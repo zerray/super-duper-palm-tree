@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>贪吃蛇</title>
+  <style>
+    :root {
+      --bg: #f5efe0;
+      --panel: #fff9ee;
+      --grid: #1c1c1c;
+      --accent: #cf5c36;
+      --accent-dark: #8f2d14;
+      --text: #2f241f;
+      --muted: #77645b;
+      --border: #d8c5a6;
+      --cell-size: min(5.2vw, 24px);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "PingFang SC", "Noto Sans SC", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, #fff5d8 0%, transparent 32%),
+        linear-gradient(160deg, #f3d8a6 0%, #f6efe4 52%, #efe1c0 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .app {
+      width: min(960px, 100%);
+      background: rgba(255, 249, 238, 0.94);
+      border: 2px solid var(--border);
+      border-radius: 24px;
+      box-shadow: 0 18px 45px rgba(90, 57, 29, 0.18);
+      padding: 24px;
+      display: grid;
+      gap: 20px;
+      grid-template-columns: minmax(0, 1fr) 280px;
+    }
+
+    .board-panel {
+      display: grid;
+      gap: 16px;
+      justify-items: center;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    .title {
+      text-align: center;
+    }
+
+    .title h1 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      letter-spacing: 0.08em;
+    }
+
+    .title p {
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .hud {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px 14px;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 1.4rem;
+    }
+
+    #board {
+      width: calc(var(--cell-size) * 18);
+      height: calc(var(--cell-size) * 18);
+      display: grid;
+      grid-template-columns: repeat(18, 1fr);
+      grid-template-rows: repeat(18, 1fr);
+      gap: 2px;
+      padding: 10px;
+      background: linear-gradient(180deg, #46372f 0%, #241d19 100%);
+      border-radius: 22px;
+      border: 3px solid #1c1612;
+      user-select: none;
+      touch-action: none;
+    }
+
+    .cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      background: #302723;
+      font-size: clamp(0.9rem, 2vw, 1.2rem);
+    }
+
+    .cell.snake {
+      background: #4e9f3d;
+    }
+
+    .cell.head {
+      background: #2e6d21;
+    }
+
+    .cell.food {
+      background: #814130;
+    }
+
+    .controls,
+    .leaderboard {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+    }
+
+    .controls {
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 120ms ease, opacity 120ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .primary {
+      color: #fff;
+      background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dark) 100%);
+    }
+
+    .secondary {
+      color: var(--text);
+      background: #ead8b6;
+    }
+
+    .controls ul,
+    .leaderboard ol {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .controls li,
+    .leaderboard li {
+      margin-bottom: 8px;
+      color: var(--muted);
+    }
+
+    .leaderboard {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .leaderboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .leaderboard small {
+      color: var(--muted);
+    }
+
+    .empty {
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(31, 22, 17, 0.58);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .overlay[hidden] {
+      display: none;
+    }
+
+    .dialog {
+      width: min(420px, 100%);
+      background: #fff9ee;
+      border-radius: 24px;
+      border: 2px solid var(--border);
+      padding: 24px;
+      display: grid;
+      gap: 14px;
+      box-shadow: 0 16px 42px rgba(41, 29, 20, 0.22);
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-weight: 700;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      font-size: 1rem;
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    @media (max-width: 860px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .hud {
+        grid-template-columns: 1fr;
+      }
+
+      #board {
+        width: min(88vw, 460px);
+        height: min(88vw, 460px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="board-panel">
+      <div class="title">
+        <h1>贪吃蛇</h1>
+        <p>静态页面即可运行，支持键盘操作、积分和本地排行榜。</p>
+      </div>
+
+      <section class="hud" aria-label="游戏状态">
+        <div class="stat">
+          <span class="stat-label">当前积分</span>
+          <strong id="score">0</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">历史最高</span>
+          <strong id="best-score">0</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">游戏速度</span>
+          <strong id="speed">慢</strong>
+        </div>
+      </section>
+
+      <div id="board" aria-label="贪吃蛇棋盘" role="application"></div>
+    </section>
+
+    <aside class="controls">
+      <section>
+        <h2>开始游戏</h2>
+        <p class="note">点击开始后，方向键或 WASD 控制移动。</p>
+      </section>
+
+      <div class="button-row">
+        <button id="start-button" class="primary" type="button">开始 / 重新开始</button>
+        <button id="pause-button" class="secondary" type="button">暂停</button>
+      </div>
+
+      <section>
+        <h2>操作说明</h2>
+        <ul>
+          <li>方向键或 `WASD` 控制移动。</li>
+          <li>撞墙或撞到自己即游戏结束。</li>
+          <li>每吃一个苹果加 10 分，并略微加速。</li>
+        </ul>
+      </section>
+
+      <section class="leaderboard">
+        <div class="leaderboard-header">
+          <h2>排行榜</h2>
+          <small>本机浏览器保存前 10 名</small>
+        </div>
+        <ol id="leaderboard-list"></ol>
+        <p id="leaderboard-empty" class="empty">还没有记录，先来一局。</p>
+      </section>
+    </aside>
+  </main>
+
+  <div id="game-over" class="overlay" hidden>
+    <div class="dialog">
+      <h2>游戏结束</h2>
+      <p id="final-score">本局得分：0</p>
+      <label for="player-name">
+        记录昵称
+        <input id="player-name" type="text" maxlength="12" placeholder="例如 ZR" autocomplete="off">
+      </label>
+      <p class="note">按保存写入排行榜；留空则使用 `玩家`。</p>
+      <div class="button-row">
+        <button id="save-score" class="primary" type="button">保存成绩</button>
+        <button id="skip-save" class="secondary" type="button">跳过</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const GRID_SIZE = 18;
+    const BASE_SPEED = 180;
+    const MIN_SPEED = 75;
+    const SPEED_STEP = 6;
+    const LEADERBOARD_KEY = "snake-game-leaderboard";
+
+    const board = document.getElementById("board");
+    const scoreNode = document.getElementById("score");
+    const bestScoreNode = document.getElementById("best-score");
+    const speedNode = document.getElementById("speed");
+    const leaderboardList = document.getElementById("leaderboard-list");
+    const leaderboardEmpty = document.getElementById("leaderboard-empty");
+    const startButton = document.getElementById("start-button");
+    const pauseButton = document.getElementById("pause-button");
+    const gameOverOverlay = document.getElementById("game-over");
+    const finalScoreNode = document.getElementById("final-score");
+    const playerNameInput = document.getElementById("player-name");
+    const saveScoreButton = document.getElementById("save-score");
+    const skipSaveButton = document.getElementById("skip-save");
+
+    const cells = [];
+    let snake = [];
+    let direction = { x: 1, y: 0 };
+    let pendingDirection = { x: 1, y: 0 };
+    let food = null;
+    let loopId = null;
+    let score = 0;
+    let currentSpeed = BASE_SPEED;
+    let gameStarted = false;
+    let gameOver = false;
+    let paused = false;
+    let lastScoreSaved = false;
+
+    function createBoard() {
+      const fragment = document.createDocumentFragment();
+      for (let index = 0; index < GRID_SIZE * GRID_SIZE; index += 1) {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        fragment.appendChild(cell);
+        cells.push(cell);
+      }
+      board.appendChild(fragment);
+    }
+
+    function getIndex(x, y) {
+      return y * GRID_SIZE + x;
+    }
+
+    function resetState() {
+      snake = [
+        { x: 4, y: 9 },
+        { x: 3, y: 9 },
+        { x: 2, y: 9 }
+      ];
+      direction = { x: 1, y: 0 };
+      pendingDirection = { x: 1, y: 0 };
+      score = 0;
+      currentSpeed = BASE_SPEED;
+      gameOver = false;
+      paused = false;
+      lastScoreSaved = false;
+      food = spawnFood();
+      updateHud();
+      render();
+    }
+
+    function spawnFood() {
+      const freeCells = [];
+      for (let y = 0; y < GRID_SIZE; y += 1) {
+        for (let x = 0; x < GRID_SIZE; x += 1) {
+          const occupied = snake.some((segment) => segment.x === x && segment.y === y);
+          if (!occupied) {
+            freeCells.push({ x, y });
+          }
+        }
+      }
+      return freeCells[Math.floor(Math.random() * freeCells.length)];
+    }
+
+    function render() {
+      for (const cell of cells) {
+        cell.className = "cell";
+        cell.textContent = "";
+      }
+
+      if (food) {
+        const foodCell = cells[getIndex(food.x, food.y)];
+        foodCell.classList.add("food");
+        foodCell.textContent = "🍎";
+      }
+
+      snake.forEach((segment, index) => {
+        const cell = cells[getIndex(segment.x, segment.y)];
+        cell.classList.add(index === 0 ? "head" : "snake");
+        cell.textContent = index === 0 ? "🟢" : "🟩";
+      });
+    }
+
+    function updateHud() {
+      scoreNode.textContent = String(score);
+      bestScoreNode.textContent = String(getBestScore());
+      speedNode.textContent = currentSpeed <= 105 ? "快" : currentSpeed <= 145 ? "中" : "慢";
+      pauseButton.textContent = paused ? "继续" : "暂停";
+    }
+
+    function setDirection(nextDirection) {
+      const isOpposite =
+        nextDirection.x + direction.x === 0 &&
+        nextDirection.y + direction.y === 0;
+
+      if (isOpposite || gameOver) {
+        return;
+      }
+
+      pendingDirection = nextDirection;
+    }
+
+    function tick() {
+      if (paused || gameOver) {
+        return;
+      }
+
+      direction = pendingDirection;
+      const head = snake[0];
+      const nextHead = {
+        x: head.x + direction.x,
+        y: head.y + direction.y
+      };
+
+      const hitWall =
+        nextHead.x < 0 ||
+        nextHead.x >= GRID_SIZE ||
+        nextHead.y < 0 ||
+        nextHead.y >= GRID_SIZE;
+
+      const hitSelf = snake.some(
+        (segment) => segment.x === nextHead.x && segment.y === nextHead.y
+      );
+
+      if (hitWall || hitSelf) {
+        finishGame();
+        return;
+      }
+
+      snake.unshift(nextHead);
+
+      if (nextHead.x === food.x && nextHead.y === food.y) {
+        score += 10;
+        currentSpeed = Math.max(MIN_SPEED, currentSpeed - SPEED_STEP);
+        food = spawnFood();
+        restartLoop();
+      } else {
+        snake.pop();
+      }
+
+      updateHud();
+      render();
+    }
+
+    function restartLoop() {
+      if (loopId) {
+        window.clearInterval(loopId);
+      }
+      loopId = window.setInterval(tick, currentSpeed);
+    }
+
+    function startGame() {
+      gameStarted = true;
+      gameOverOverlay.hidden = true;
+      resetState();
+      restartLoop();
+    }
+
+    function finishGame() {
+      gameOver = true;
+      if (loopId) {
+        window.clearInterval(loopId);
+        loopId = null;
+      }
+      finalScoreNode.textContent = "本局得分：" + score;
+      playerNameInput.value = "";
+      gameOverOverlay.hidden = false;
+      playerNameInput.focus();
+    }
+
+    function togglePause() {
+      if (!gameStarted || gameOver) {
+        return;
+      }
+      paused = !paused;
+      updateHud();
+    }
+
+    function getLeaderboard() {
+      try {
+        const saved = window.localStorage.getItem(LEADERBOARD_KEY);
+        return saved ? JSON.parse(saved) : [];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function saveLeaderboard(entries) {
+      window.localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(entries));
+    }
+
+    function getBestScore() {
+      const entries = getLeaderboard();
+      return entries.length > 0 ? entries[0].score : 0;
+    }
+
+    function renderLeaderboard() {
+      const entries = getLeaderboard();
+      leaderboardList.innerHTML = "";
+
+      leaderboardEmpty.hidden = entries.length > 0;
+
+      entries.forEach((entry, index) => {
+        const item = document.createElement("li");
+        item.textContent = `${index + 1}. ${entry.name} - ${entry.score} 分`;
+        leaderboardList.appendChild(item);
+      });
+
+      updateHud();
+    }
+
+    function saveCurrentScore() {
+      if (lastScoreSaved) {
+        gameOverOverlay.hidden = true;
+        return;
+      }
+
+      const name = (playerNameInput.value.trim() || "玩家").slice(0, 12);
+      const entries = getLeaderboard();
+      entries.push({
+        name,
+        score,
+        createdAt: new Date().toISOString()
+      });
+      entries.sort((a, b) => {
+        if (b.score !== a.score) {
+          return b.score - a.score;
+        }
+        return a.createdAt.localeCompare(b.createdAt);
+      });
+
+      saveLeaderboard(entries.slice(0, 10));
+      lastScoreSaved = true;
+      gameOverOverlay.hidden = true;
+      renderLeaderboard();
+    }
+
+    document.addEventListener("keydown", (event) => {
+      const key = event.key.toLowerCase();
+      const nextDirections = {
+        arrowup: { x: 0, y: -1 },
+        w: { x: 0, y: -1 },
+        arrowdown: { x: 0, y: 1 },
+        s: { x: 0, y: 1 },
+        arrowleft: { x: -1, y: 0 },
+        a: { x: -1, y: 0 },
+        arrowright: { x: 1, y: 0 },
+        d: { x: 1, y: 0 }
+      };
+
+      if (key === " " || key === "spacebar") {
+        event.preventDefault();
+        togglePause();
+        return;
+      }
+
+      const nextDirection = nextDirections[key];
+      if (!nextDirection) {
+        return;
+      }
+
+      event.preventDefault();
+      if (!gameStarted) {
+        startGame();
+      }
+      setDirection(nextDirection);
+    });
+
+    startButton.addEventListener("click", startGame);
+    pauseButton.addEventListener("click", togglePause);
+    saveScoreButton.addEventListener("click", saveCurrentScore);
+    skipSaveButton.addEventListener("click", () => {
+      gameOverOverlay.hidden = true;
+    });
+
+    createBoard();
+    resetState();
+    renderLeaderboard();
+  </script>
+</body>
+</html>
