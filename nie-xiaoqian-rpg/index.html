@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>聂小倩 HD-2D RPG</title>
+  <style>
+    :root {
+      --bg: #0e0a12;
+      --panel: rgba(26, 19, 31, 0.88);
+      --panel-border: rgba(246, 216, 158, 0.35);
+      --gold: #f1d18a;
+      --mist: #9ec5d6;
+      --ink: #f9f2de;
+      --danger: #d26a6a;
+      --ok: #93c38f;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Noto Serif SC", "STSong", serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top, rgba(61, 75, 108, 0.48), transparent 30%),
+        linear-gradient(180deg, #140d18 0%, #09070b 100%);
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+
+    .shell {
+      width: min(1100px, 100%);
+      display: grid;
+      gap: 16px;
+    }
+
+    .titlebar,
+    .panel,
+    .dialogue-box {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(10px);
+    }
+
+    .titlebar {
+      border-radius: 24px;
+      padding: 18px 22px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .titlebar h1,
+    .titlebar p,
+    .panel h2,
+    .panel p {
+      margin: 0;
+    }
+
+    .titlebar h1 {
+      letter-spacing: 0.14em;
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      color: var(--gold);
+    }
+
+    .titlebar p,
+    .panel p,
+    .hint,
+    .stat-note {
+      color: #d2c8b7;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .stage {
+      position: relative;
+    }
+
+    canvas {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      display: block;
+      border-radius: 28px;
+      background: #05070b;
+      image-rendering: pixelated;
+      border: 1px solid rgba(241, 209, 138, 0.18);
+      box-shadow: inset 0 0 60px rgba(255, 255, 255, 0.05);
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      pointer-events: none;
+    }
+
+    .overlay-card {
+      pointer-events: auto;
+      width: min(520px, 100%);
+      padding: 28px;
+      border-radius: 24px;
+      text-align: center;
+      background:
+        linear-gradient(180deg, rgba(45, 33, 58, 0.92), rgba(14, 11, 18, 0.96)),
+        radial-gradient(circle at top, rgba(219, 232, 255, 0.12), transparent 40%);
+      border: 1px solid rgba(241, 209, 138, 0.3);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+    }
+
+    .overlay-card h2,
+    .overlay-card p {
+      margin: 0;
+    }
+
+    .overlay-card h2 {
+      font-size: clamp(2rem, 5vw, 3.6rem);
+      color: var(--gold);
+      letter-spacing: 0.2em;
+    }
+
+    .overlay-card p {
+      margin-top: 14px;
+      line-height: 1.7;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      font: inherit;
+      color: #130f0d;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 12px 22px;
+      margin-top: 20px;
+      background: linear-gradient(180deg, #f7deb0, #dca95e);
+      box-shadow: 0 8px 20px rgba(220, 169, 94, 0.3);
+    }
+
+    .panel {
+      border-radius: 24px;
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .stats {
+      display: grid;
+      gap: 10px;
+    }
+
+    .stat-card {
+      border-radius: 16px;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 0.95rem;
+    }
+
+    .log {
+      min-height: 120px;
+      border-radius: 16px;
+      padding: 14px;
+      background: rgba(0, 0, 0, 0.2);
+      line-height: 1.7;
+      font-size: 0.96rem;
+    }
+
+    .dialogue-box {
+      border-radius: 24px;
+      padding: 16px 18px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .dialogue-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .choices {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .choices button {
+      margin-top: 0;
+      padding: 10px 14px;
+    }
+
+    .hint {
+      font-size: 0.92rem;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    @media (max-width: 960px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="titlebar">
+      <div>
+        <h1>聂小倩</h1>
+        <p>聊斋志异改编 · HD-2D 风格 · 地图探索 + 回合制战斗</p>
+      </div>
+      <div class="hint">移动：方向键 / WASD · 交互：空格 · 对话：继续 / 选项</div>
+    </header>
+
+    <main class="layout">
+      <section class="stage">
+        <canvas id="game" width="960" height="540" aria-label="聂小倩游戏画面"></canvas>
+        <div id="title-overlay" class="overlay">
+          <div class="overlay-card">
+            <h2>聂小倩</h2>
+            <p>宁采臣夜宿兰若寺，误入鬼魅与人心交织的迷局。穿过郊外薄雾，辨明善恶，迎战黑山老妖。</p>
+            <button id="start-button" type="button">开始游戏</button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <div>
+          <h2>队伍状态</h2>
+          <p class="stat-note">当前地图与战斗数据会在这里同步更新。</p>
+        </div>
+        <div id="stats" class="stats"></div>
+        <div>
+          <h2>事件记录</h2>
+          <div id="log" class="log"></div>
+        </div>
+      </aside>
+    </main>
+
+    <section id="dialogue-box" class="dialogue-box" hidden>
+      <div class="dialogue-header">
+        <strong id="speaker">旁白</strong>
+        <span id="scene-label">序章</span>
+      </div>
+      <div id="dialogue-text">……</div>
+      <div id="dialogue-choices" class="choices"></div>
+    </section>
+  </div>
+
+  <script src="./js/map.js"></script>
+  <script src="./js/dialogue.js"></script>
+  <script src="./js/battle.js"></script>
+  <script src="./js/engine.js"></script>
+</body>
+</html>
