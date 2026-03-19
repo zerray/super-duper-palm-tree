@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>聂小倩 HD-2D RPG</title>
+  <style>
+    :root {
+      --bg: #08111b;
+      --panel: rgba(14, 23, 36, 0.86);
+      --panel-strong: rgba(10, 17, 29, 0.94);
+      --gold: #dcc389;
+      --ink: #f4ecdb;
+      --muted: #99a7b8;
+      --danger: #e46f68;
+      --accent: #73c8d4;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Noto Serif SC", "Songti SC", serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 20% 20%, rgba(69, 119, 150, 0.2), transparent 24%),
+        radial-gradient(circle at 80% 18%, rgba(212, 188, 128, 0.14), transparent 20%),
+        linear-gradient(180deg, #132436 0%, #08111b 45%, #04070c 100%);
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .shell {
+      width: min(1100px, 100%);
+      display: grid;
+      gap: 18px;
+    }
+
+    .hero {
+      padding: 24px 28px;
+      border: 1px solid rgba(220, 195, 137, 0.28);
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(18, 29, 45, 0.9), rgba(8, 13, 22, 0.82));
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+    }
+
+    .hero h1,
+    .hero p {
+      margin: 0;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.4rem, 6vw, 4.8rem);
+      letter-spacing: 0.22em;
+      text-shadow: 0 0 18px rgba(220, 195, 137, 0.3);
+    }
+
+    .hero p {
+      margin-top: 10px;
+      max-width: 760px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .layout {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: minmax(0, 1fr) 300px;
+    }
+
+    .stage {
+      position: relative;
+      padding: 18px;
+      border-radius: 28px;
+      border: 1px solid rgba(220, 195, 137, 0.25);
+      background: linear-gradient(180deg, rgba(12, 19, 31, 0.95), rgba(4, 8, 14, 0.92));
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03), 0 24px 54px rgba(0, 0, 0, 0.4);
+    }
+
+    canvas {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      display: block;
+      border-radius: 18px;
+      image-rendering: pixelated;
+      background: #0a111b;
+    }
+
+    .hud {
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+
+    .panel {
+      padding: 18px;
+      border-radius: 20px;
+      border: 1px solid rgba(220, 195, 137, 0.22);
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+    }
+
+    .panel h2,
+    .panel p,
+    .panel ul {
+      margin: 0;
+    }
+
+    .panel h2 {
+      font-size: 1.05rem;
+      margin-bottom: 10px;
+      color: var(--gold);
+      letter-spacing: 0.08em;
+    }
+
+    .panel p,
+    .panel li {
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .panel ul {
+      padding-left: 18px;
+    }
+
+    .stats {
+      display: grid;
+      gap: 10px;
+    }
+
+    .stat {
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .stat strong,
+    .stat span {
+      display: block;
+    }
+
+    .stat strong {
+      color: var(--ink);
+      margin-bottom: 3px;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 12px 20px;
+      font: inherit;
+      color: #08111b;
+      background: linear-gradient(180deg, #e7d29f 0%, #c9ae6d 100%);
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 120ms ease, filter 120ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
+    button.secondary {
+      background: linear-gradient(180deg, #89d7dc 0%, #5cb4c2 100%);
+    }
+
+    .footnote {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <h1>聂小倩</h1>
+      <p>以《聊斋志异》中《聂小倩》的故事为蓝本，体验郊外夜行、兰若寺相识、燕赤霞助战与黑山老妖决战的轻量 HD-2D 风格 RPG。</p>
+    </section>
+
+    <section class="layout">
+      <div class="stage">
+        <canvas id="game" width="960" height="540" aria-label="聂小倩游戏画面"></canvas>
+      </div>
+
+      <aside class="hud">
+        <section class="panel">
+          <h2>游玩方式</h2>
+          <ul>
+            <li>方向键或 WASD 移动。</li>
+            <li>空格或 Enter 对话、确认。</li>
+            <li>战斗中用方向键切换指令，Enter 执行。</li>
+          </ul>
+          <div class="actions">
+            <button id="start-button">开始游戏</button>
+            <button id="reset-button" class="secondary">重置章节</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>当前状态</h2>
+          <div id="stats" class="stats"></div>
+        </section>
+
+        <section class="panel">
+          <h2>章节目标</h2>
+          <p id="objective">点击“开始游戏”，进入郊外夜路。</p>
+        </section>
+
+        <p class="footnote">最小实现包含 2 张地图、剧情对话与 2 场回合制战斗。</p>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const startButton = document.getElementById("start-button");
+    const resetButton = document.getElementById("reset-button");
+    const statsEl = document.getElementById("stats");
+    const objectiveEl = document.getElementById("objective");
+
+    const TILE = 48;
+    const VIEW_COLS = 10;
+    const VIEW_ROWS = 7;
+    const ACTIONS = ["攻击", "法术", "防御", "逃跑"];
+
+    const maps = {
+      outskirts: {
+        name: "郊外",
+        tiles: [
+          "##########",
+          "#..g.....#",
+          "#..##....#",
+          "#........#",
+          "#....p...#",
+          "#........#",
+          "##########"
+        ],
+        portals: [{ x: 5, y: 4, to: "temple", tx: 1, ty: 3, label: "前往兰若寺" }],
+        npcs: [
+          {
+            id: "xiaoqian-meet",
+            x: 3,
+            y: 1,
+            once: true,
+            dialogue: [
+              { speaker: "聂小倩", text: "公子夜行至此，荒郊多魅，还是快些离去。" },
+              { speaker: "宁采臣", text: "姑娘神色凄然，可是受困于此？" },
+              { speaker: "聂小倩", text: "我被姥姥胁迫引人入局，若你信我，去兰若寺寻燕赤霞。" }
+            ],
+            rewardFlag: "metXiaoqian",
+            objective: "去兰若寺寻找燕赤霞。"
+          }
+        ],
+        encounters: [{ x: 7, y: 3, battle: "ghosts", flag: "wonGhosts" }]
+      },
+      temple: {
+        name: "兰若寺",
+        tiles: [
+          "##########",
+          "#........#",
+          "#..ttt...#",
+          "#..t..p..#",
+          "#..ttt...#",
+          "#........#",
+          "##########"
+        ],
+        portals: [{ x: 6, y: 3, to: "outskirts", tx: 5, ty: 3, label: "返回郊外" }],
+        npcs: [
+          {
+            id: "yan-meet",
+            x: 3,
+            y: 3,
+            once: true,
+            requireFlag: "metXiaoqian",
+            dialogue: [
+              { speaker: "燕赤霞", text: "兰若寺阴气冲天，你既能走到这里，胆识倒不小。" },
+              { speaker: "宁采臣", text: "聂小倩求我相救，我愿助她脱困。" },
+              { speaker: "燕赤霞", text: "那就由我持剑护法，你与小倩并肩，今夜便斩黑山老妖。" }
+            ],
+            rewardFlag: "metYan",
+            objective: "走近寺前黑雾，迎战黑山老妖。"
+          }
+        ],
+        encounters: [{ x: 4, y: 2, battle: "boss", flag: "wonBoss", requireFlag: "metYan" }]
+      }
+    };
+
+    const battleDefs = {
+      ghosts: {
+        name: "小鬼伏击",
+        enemies: [
+          { name: "小鬼甲", hp: 18, attack: 6, speed: 5 },
+          { name: "小鬼乙", hp: 16, attack: 5, speed: 4 }
+        ],
+        intro: "阴风骤起，两个小鬼从树影中扑来。"
+      },
+      boss: {
+        name: "黑山老妖",
+        enemies: [
+          { name: "黑山老妖", hp: 50, attack: 9, speed: 6 }
+        ],
+        intro: "黑云压寺，黑山老妖现身，兰若寺震动不止。"
+      }
+    };
+
+    const templateParty = [
+      { name: "宁采臣", maxHp: 34, hp: 34, mp: 8, attack: 7, speed: 5 },
+      { name: "聂小倩", maxHp: 26, hp: 26, mp: 16, attack: 5, speed: 7 },
+      { name: "燕赤霞", maxHp: 42, hp: 42, mp: 10, attack: 10, speed: 6 }
+    ];
+
+    const state = {
+      scene: "title",
+      mapId: "outskirts",
+      player: { x: 1, y: 4 },
+      facing: "down",
+      flags: {},
+      party: cloneParty(),
+      battle: null,
+      dialogue: null,
+      menuIndex: 0,
+      message: "",
+      lastMove: 0
+    };
+
+    function cloneParty() {
+      return templateParty.map((member) => ({ ...member }));
+    }
+
+    function resetGame() {
+      state.scene = "title";
+      state.mapId = "outskirts";
+      state.player = { x: 1, y: 4 };
+      state.flags = {};
+      state.party = cloneParty();
+      state.battle = null;
+      state.dialogue = null;
+      state.menuIndex = 0;
+      state.message = "点击开始，踏上夜路。";
+      syncHud();
+    }
+
+    function startGame() {
+      if (state.scene === "battle") {
+        return;
+      }
+      state.scene = "explore";
+      state.message = "夜风穿林，宁采臣独行郊外。";
+      objectiveEl.textContent = "在郊外寻找异样气息，与聂小倩相遇。";
+      syncHud();
+    }
+
+    function currentMap() {
+      return maps[state.mapId];
+    }
+
+    function syncHud() {
+      statsEl.innerHTML = "";
+      state.party.forEach((member) => {
+        const node = document.createElement("div");
+        node.className = "stat";
+        node.innerHTML = "<strong>" + member.name + "</strong><span>HP " + member.hp + "/" + member.maxHp + " · MP " + member.mp + "</span>";
+        statsEl.appendChild(node);
+      });
+    }
+
+    function interact() {
+      if (state.scene === "title") {
+        startGame();
+        return;
+      }
+      if (state.scene === "dialogue") {
+        advanceDialogue();
+        return;
+      }
+      if (state.scene === "battle") {
+        performBattleAction();
+        return;
+      }
+
+      const map = currentMap();
+      const target = { x: state.player.x, y: state.player.y };
+      const npc = map.npcs.find((entry) => entry.x === target.x && entry.y === target.y);
+      if (npc && canTriggerNpc(npc)) {
+        beginDialogue(npc);
+      }
+    }
+
+    function canTriggerNpc(npc) {
+      if (npc.once && state.flags[npc.rewardFlag]) {
+        return false;
+      }
+      if (npc.requireFlag && !state.flags[npc.requireFlag]) {
+        return false;
+      }
+      return true;
+    }
+
+    function beginDialogue(npc) {
+      state.scene = "dialogue";
+      state.dialogue = { steps: npc.dialogue, index: 0, npc };
+      state.message = npc.dialogue[0].speaker + "： " + npc.dialogue[0].text;
+    }
+
+    function advanceDialogue() {
+      if (!state.dialogue) {
+        return;
+      }
+      state.dialogue.index += 1;
+      if (state.dialogue.index >= state.dialogue.steps.length) {
+        const npc = state.dialogue.npc;
+        if (npc.rewardFlag) {
+          state.flags[npc.rewardFlag] = true;
+        }
+        if (npc.objective) {
+          objectiveEl.textContent = npc.objective;
+        }
+        state.dialogue = null;
+        state.scene = "explore";
+        state.message = "对话结束。";
+        return;
+      }
+      const step = state.dialogue.steps[state.dialogue.index];
+      state.message = step.speaker + "： " + step.text;
+    }
+
+    function tryMove(dx, dy) {
+      if (state.scene !== "explore") {
+        return;
+      }
+      const now = performance.now();
+      if (now - state.lastMove < 120) {
+        return;
+      }
+      state.lastMove = now;
+      const map = currentMap();
+      const nx = state.player.x + dx;
+      const ny = state.player.y + dy;
+      const row = map.tiles[ny];
+      if (!row || row[nx] === "#") {
+        state.message = "前路被断壁与阴影阻住。";
+        return;
+      }
+      state.player.x = nx;
+      state.player.y = ny;
+      checkPortal();
+      checkEncounter();
+      checkNpcAutoHint();
+    }
+
+    function checkNpcAutoHint() {
+      const map = currentMap();
+      const npc = map.npcs.find((entry) => entry.x === state.player.x && entry.y === state.player.y && canTriggerNpc(entry));
+      if (npc) {
+        state.message = "按空格与" + npc.dialogue[0].speaker + "交谈。";
+      }
+    }
+
+    function checkPortal() {
+      const portal = currentMap().portals.find((entry) => entry.x === state.player.x && entry.y === state.player.y);
+      if (!portal) {
+        return;
+      }
+      state.mapId = portal.to;
+      state.player.x = portal.tx;
+      state.player.y = portal.ty;
+      state.message = portal.label;
+    }
+
+    function checkEncounter() {
+      const encounter = currentMap().encounters.find((entry) => entry.x === state.player.x && entry.y === state.player.y);
+      if (!encounter) {
+        return;
+      }
+      if (encounter.flag && state.flags[encounter.flag]) {
+        return;
+      }
+      if (encounter.requireFlag && !state.flags[encounter.requireFlag]) {
+        state.message = "黑雾深处杀气逼人，先去见燕赤霞。";
+        return;
+      }
+      beginBattle(encounter.battle, encounter.flag);
+    }
+
+    function beginBattle(battleId, rewardFlag) {
+      const def = battleDefs[battleId];
+      state.scene = "battle";
+      state.menuIndex = 0;
+      state.battle = {
+        id: battleId,
+        rewardFlag,
+        intro: def.intro,
+        enemies: def.enemies.map((enemy) => ({ ...enemy })),
+        defending: false
+      };
+      state.message = def.intro;
+    }
+
+    function performBattleAction() {
+      if (!state.battle) {
+        return;
+      }
+      const aliveEnemies = state.battle.enemies.filter((enemy) => enemy.hp > 0);
+      const aliveParty = state.party.filter((member) => member.hp > 0);
+      if (aliveEnemies.length === 0 || aliveParty.length === 0) {
+        resolveBattle();
+        return;
+      }
+
+      const action = ACTIONS[state.menuIndex];
+      let log = "";
+      state.battle.defending = action === "防御";
+
+      if (action === "攻击") {
+        const target = aliveEnemies[0];
+        const attacker = aliveParty[0];
+        const damage = Math.max(4, attacker.attack + 2);
+        target.hp = Math.max(0, target.hp - damage);
+        log = attacker.name + "挥剑斩向" + target.name + "，造成" + damage + "点伤害。";
+      } else if (action === "法术") {
+        const caster = state.party[1];
+        if (caster.hp > 0 && caster.mp >= 4) {
+          caster.mp -= 4;
+          const total = aliveEnemies.reduce((sum, enemy) => {
+            const damage = 8;
+            enemy.hp = Math.max(0, enemy.hp - damage);
+            return sum + damage;
+          }, 0);
+          log = caster.name + "施展幽光之术，群体造成" + total + "点伤害。";
+        } else {
+          log = "聂小倩灵力不足，法术未能成形。";
+        }
+      } else if (action === "防御") {
+        log = "众人稳住阵脚，准备承受下一轮攻势。";
+      } else if (action === "逃跑") {
+        if (state.battle.id === "ghosts") {
+          state.scene = "explore";
+          state.battle = null;
+          state.message = "众人脱离缠斗，但阴影仍在附近游荡。";
+          return;
+        }
+        log = "黑山老妖封死退路，无法逃脱。";
+      }
+
+      const survivors = state.battle.enemies.filter((enemy) => enemy.hp > 0);
+      if (survivors.length === 0) {
+        state.message = log;
+        resolveBattle();
+        return;
+      }
+
+      survivors.forEach((enemy) => {
+        const target = state.party.find((member) => member.hp > 0);
+        if (!target) {
+          return;
+        }
+        const reduction = state.battle.defending ? 3 : 0;
+        const damage = Math.max(1, enemy.attack - reduction);
+        target.hp = Math.max(0, target.hp - damage);
+        log += " " + enemy.name + "反击" + target.name + "，造成" + damage + "点伤害。";
+      });
+
+      syncHud();
+
+      if (state.party.every((member) => member.hp <= 0)) {
+        state.message = log;
+        resolveBattle();
+        return;
+      }
+
+      state.message = log;
+    }
+
+    function resolveBattle() {
+      if (!state.battle) {
+        return;
+      }
+      if (state.battle.enemies.every((enemy) => enemy.hp <= 0)) {
+        if (state.battle.rewardFlag) {
+          state.flags[state.battle.rewardFlag] = true;
+        }
+        if (state.battle.id === "ghosts") {
+          objectiveEl.textContent = "进入兰若寺，寻找燕赤霞。";
+          state.message += " 小鬼溃散，前方只剩兰若寺的残灯。";
+        } else {
+          objectiveEl.textContent = "黑山老妖已除，聂小倩重获自由。";
+          state.message += " 黑山老妖伏诛，聂小倩终于脱离束缚。";
+        }
+        state.scene = "explore";
+        state.battle = null;
+        syncHud();
+        return;
+      }
+
+      state.scene = "title";
+      state.battle = null;
+      state.party = cloneParty();
+      objectiveEl.textContent = "战败后回到起点，请重新开始。";
+      state.message = "众人败退，故事重新回到夜路起点。";
+      syncHud();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBackdrop();
+
+      if (state.scene === "title") {
+        drawTitle();
+      } else if (state.scene === "battle") {
+        drawBattle();
+      } else {
+        drawMap();
+      }
+
+      drawMessagePanel();
+    }
+
+    function drawBackdrop() {
+      const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      sky.addColorStop(0, "#18314f");
+      sky.addColorStop(0.5, "#0d1727");
+      sky.addColorStop(1, "#04070c");
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "rgba(235, 224, 190, 0.12)";
+      ctx.beginPath();
+      ctx.arc(770, 88, 52, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(36, 51, 72, 0.8)";
+      ctx.fillRect(0, 300, canvas.width, 240);
+      ctx.fillStyle = "rgba(24, 35, 50, 0.9)";
+      for (let i = 0; i < 6; i += 1) {
+        const x = i * 180;
+        ctx.beginPath();
+        ctx.moveTo(x, 320);
+        ctx.lineTo(x + 90, 190);
+        ctx.lineTo(x + 180, 320);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+
+    function drawTitle() {
+      ctx.fillStyle = "rgba(8, 12, 20, 0.64)";
+      ctx.fillRect(110, 80, 740, 230);
+      ctx.strokeStyle = "rgba(220, 195, 137, 0.35)";
+      ctx.strokeRect(110, 80, 740, 230);
+
+      ctx.fillStyle = "#f4ecdb";
+      ctx.textAlign = "center";
+      ctx.font = "bold 72px serif";
+      ctx.fillText("聂小倩", canvas.width / 2, 170);
+      ctx.font = "28px serif";
+      ctx.fillStyle = "#dcc389";
+      ctx.fillText("HD-2D 志怪回合制 RPG", canvas.width / 2, 225);
+      ctx.font = "22px serif";
+      ctx.fillStyle = "#99a7b8";
+      ctx.fillText("点击右侧按钮或按 Enter 开始游戏", canvas.width / 2, 275);
+    }
+
+    function drawMap() {
+      const map = currentMap();
+      const offsetX = 160;
+      const offsetY = 90;
+
+      for (let y = 0; y < VIEW_ROWS; y += 1) {
+        for (let x = 0; x < VIEW_COLS; x += 1) {
+          const tile = map.tiles[y][x];
+          const px = offsetX + x * TILE;
+          const py = offsetY + y * TILE;
+          drawTile(tile, px, py);
+        }
+      }
+
+      map.portals.forEach((portal) => {
+        drawPortal(offsetX + portal.x * TILE, offsetY + portal.y * TILE);
+      });
+
+      map.encounters.forEach((encounter) => {
+        if (encounter.flag && state.flags[encounter.flag]) {
+          return;
+        }
+        if (encounter.requireFlag && !state.flags[encounter.requireFlag]) {
+          return;
+        }
+        drawMist(offsetX + encounter.x * TILE, offsetY + encounter.y * TILE);
+      });
+
+      map.npcs.forEach((npc) => {
+        if (!canTriggerNpc(npc)) {
+          return;
+        }
+        drawCharacter(offsetX + npc.x * TILE, offsetY + npc.y * TILE, npc.id === "yan-meet" ? "#d8aa57" : "#9ad5f5");
+      });
+
+      drawCharacter(offsetX + state.player.x * TILE, offsetY + state.player.y * TILE, "#f4ecdb");
+
+      ctx.textAlign = "left";
+      ctx.fillStyle = "#dcc389";
+      ctx.font = "24px serif";
+      ctx.fillText(map.name, 160, 58);
+    }
+
+    function drawTile(tile, x, y) {
+      if (tile === "#") {
+        ctx.fillStyle = "#1c2430";
+        ctx.fillRect(x, y, TILE, TILE);
+        ctx.fillStyle = "#2b394b";
+        ctx.fillRect(x + 4, y + 6, TILE - 8, TILE - 12);
+        return;
+      }
+      if (tile === "g") {
+        ctx.fillStyle = "#243627";
+      } else if (tile === "t") {
+        ctx.fillStyle = "#392b24";
+      } else if (tile === "p") {
+        ctx.fillStyle = "#2a2338";
+      } else {
+        ctx.fillStyle = "#1c3223";
+      }
+      ctx.fillRect(x, y, TILE, TILE);
+      ctx.fillStyle = "rgba(255,255,255,0.05)";
+      ctx.fillRect(x + 2, y + 2, TILE - 4, TILE - 4);
+    }
+
+    function drawCharacter(x, y, color) {
+      ctx.fillStyle = color;
+      ctx.fillRect(x + 14, y + 8, 20, 30);
+      ctx.fillStyle = "#18202c";
+      ctx.fillRect(x + 18, y + 2, 12, 10);
+    }
+
+    function drawPortal(x, y) {
+      ctx.strokeStyle = "rgba(115, 200, 212, 0.85)";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(x + 8, y + 8, TILE - 16, TILE - 16);
+    }
+
+    function drawMist(x, y) {
+      ctx.fillStyle = "rgba(163, 179, 202, 0.18)";
+      ctx.beginPath();
+      ctx.arc(x + 24, y + 24, 18, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x + 18, y + 18, 13, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawBattle() {
+      ctx.fillStyle = "rgba(9, 14, 24, 0.78)";
+      ctx.fillRect(90, 60, 780, 330);
+      ctx.strokeStyle = "rgba(220, 195, 137, 0.35)";
+      ctx.strokeRect(90, 60, 780, 330);
+
+      ctx.fillStyle = "#dcc389";
+      ctx.font = "28px serif";
+      ctx.textAlign = "left";
+      ctx.fillText(state.battle ? battleDefs[state.battle.id].name : "", 120, 105);
+
+      state.party.forEach((member, index) => {
+        const y = 170 + index * 58;
+        ctx.fillStyle = member.hp > 0 ? "#f4ecdb" : "#7d8794";
+        ctx.fillRect(140, y - 24, 26, 38);
+        ctx.fillStyle = "#f4ecdb";
+        ctx.font = "20px serif";
+        ctx.fillText(member.name + " HP " + member.hp + "/" + member.maxHp, 188, y);
+      });
+
+      state.battle.enemies.forEach((enemy, index) => {
+        const x = 620 + index * 90;
+        ctx.fillStyle = enemy.hp > 0 ? "#c86d63" : "#675a5a";
+        ctx.fillRect(x, 160, 34, 46);
+        ctx.fillStyle = "#f4ecdb";
+        ctx.font = "18px serif";
+        ctx.fillText(enemy.name, x - 10, 230);
+        ctx.fillText("HP " + enemy.hp, x - 8, 255);
+      });
+
+      ACTIONS.forEach((action, index) => {
+        const selected = index === state.menuIndex;
+        ctx.fillStyle = selected ? "#73c8d4" : "#99a7b8";
+        ctx.fillText((selected ? "▶ " : "") + action, 150, 370 + index * 32);
+      });
+    }
+
+    function drawMessagePanel() {
+      ctx.fillStyle = "rgba(7, 11, 18, 0.88)";
+      ctx.fillRect(60, 420, 840, 90);
+      ctx.strokeStyle = "rgba(220, 195, 137, 0.22)";
+      ctx.strokeRect(60, 420, 840, 90);
+
+      ctx.fillStyle = "#f4ecdb";
+      ctx.textAlign = "left";
+      ctx.font = "22px serif";
+      wrapText(state.message, 92, 456, 780, 30);
+
+      if (state.scene === "dialogue" && state.dialogue) {
+        ctx.fillStyle = "#dcc389";
+        ctx.fillText("按 Enter 继续", 714, 494);
+      }
+    }
+
+    function wrapText(text, x, y, maxWidth, lineHeight) {
+      const chars = text.split("");
+      let line = "";
+      let row = 0;
+
+      chars.forEach((char) => {
+        const test = line + char;
+        if (ctx.measureText(test).width > maxWidth && line) {
+          ctx.fillText(line, x, y + row * lineHeight);
+          line = char;
+          row += 1;
+        } else {
+          line = test;
+        }
+      });
+
+      if (line) {
+        ctx.fillText(line, x, y + row * lineHeight);
+      }
+    }
+
+    window.addEventListener("keydown", (event) => {
+      const key = event.key.toLowerCase();
+
+      if (key === "enter" || key === " ") {
+        event.preventDefault();
+        interact();
+        return;
+      }
+
+      if (state.scene === "battle") {
+        if (key === "arrowup" || key === "w") {
+          state.menuIndex = (state.menuIndex + ACTIONS.length - 1) % ACTIONS.length;
+        } else if (key === "arrowdown" || key === "s") {
+          state.menuIndex = (state.menuIndex + 1) % ACTIONS.length;
+        }
+        return;
+      }
+
+      if (key === "arrowup" || key === "w") {
+        tryMove(0, -1);
+      } else if (key === "arrowdown" || key === "s") {
+        tryMove(0, 1);
+      } else if (key === "arrowleft" || key === "a") {
+        tryMove(-1, 0);
+      } else if (key === "arrowright" || key === "d") {
+        tryMove(1, 0);
+      }
+    });
+
+    startButton.addEventListener("click", startGame);
+    resetButton.addEventListener("click", resetGame);
+
+    function loop() {
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    resetGame();
+    loop();
+  </script>
+</body>
+</html>
