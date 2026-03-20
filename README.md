@@ -112,6 +112,17 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `gem-mine-clicker/index.html` 即可游玩。
 
+## Hex Chain Reaction
+
+新增 `hex-chain-reaction/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的六边形连锁反应策略游戏，包含：
+
+- 默认 7x7 的可配置 SVG 六边形棋盘
+- 双人热座模式，以及使用 minimax + alpha-beta pruning 的单人 AI 模式
+- 基于邻居容量的爆裂连锁结算，并以短延迟逐步播放级联过程
+- 正确的胜负检测与结算弹层
+
+直接用浏览器打开 `hex-chain-reaction/index.html` 即可游玩。
+
 ## Kaleidoscope Drawing Toy
 
 新增 `kaleidoscope/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的万花筒绘画玩具，包含：
