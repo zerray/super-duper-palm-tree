@@ -111,3 +111,13 @@ This repository contains a simple agent-factory workflow for planning and comple
 - 使用 `localStorage` 持久化保存当前进度
 
 直接用浏览器打开 `gem-mine-clicker/index.html` 即可游玩。
+
+## Kaleidoscope Drawing Toy
+
+新增 `kaleidoscope/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的万花筒绘画玩具，包含：
+
+- 鼠标或触摸绘制的自由线条会实时按 N 条对称轴旋转并镜像复制
+- 可调节 symmetry（3-12）、笔刷粗细、描边颜色与背景颜色
+- `Clear` 清空画布，`Export PNG` 导出当前作品
+
+直接用浏览器打开 `kaleidoscope/index.html` 即可运行。

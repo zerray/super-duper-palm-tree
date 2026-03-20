@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kaleidoscope Drawing Toy</title>
+  <style>
+    :root {
+      --panel-bg: rgba(18, 24, 38, 0.82);
+      --panel-border: rgba(255, 255, 255, 0.18);
+      --panel-text: #f5f7ff;
+      --panel-muted: rgba(245, 247, 255, 0.72);
+      --accent: #7bdff6;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      background: #10141d;
+    }
+
+    body {
+      position: relative;
+      touch-action: none;
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .controls {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 2;
+      width: min(320px, calc(100vw - 32px));
+      padding: 16px;
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      background:
+        linear-gradient(180deg, rgba(42, 56, 83, 0.94), rgba(14, 18, 28, 0.9)),
+        radial-gradient(circle at top left, rgba(123, 223, 246, 0.14), transparent 45%);
+      color: var(--panel-text);
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
+      backdrop-filter: blur(10px);
+    }
+
+    .controls h1,
+    .controls p {
+      margin: 0;
+    }
+
+    .controls h1 {
+      font-size: 1.35rem;
+      letter-spacing: 0.02em;
+    }
+
+    .controls p {
+      margin-top: 6px;
+      color: var(--panel-muted);
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+
+    .control-grid {
+      margin-top: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-size: 0.92rem;
+    }
+
+    .label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    input[type="color"] {
+      width: 100%;
+      height: 40px;
+      padding: 0;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      background: transparent;
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    button {
+      min-height: 42px;
+      border: 0;
+      border-radius: 999px;
+      font: inherit;
+      font-weight: 700;
+      color: #0b1220;
+      background: linear-gradient(180deg, #f3f7ff, #b8d8ff);
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: linear-gradient(180deg, #c7fff2, #7bdff6);
+    }
+
+    .hint {
+      margin-top: 12px;
+      font-size: 0.82rem;
+      color: var(--panel-muted);
+    }
+
+    @media (max-width: 640px) {
+      .controls {
+        top: auto;
+        bottom: 12px;
+        left: 12px;
+        right: 12px;
+        width: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="kaleidoscope-canvas" aria-label="Kaleidoscope drawing canvas"></canvas>
+
+  <section class="controls">
+    <h1>Kaleidoscope Toy</h1>
+    <p>Draw freehand and watch each stroke echo across mirrored symmetry axes.</p>
+
+    <div class="control-grid">
+      <label for="symmetry-slider">
+        <span class="label-row"><span>Symmetry</span><span id="symmetry-value">8</span></span>
+        <input id="symmetry-slider" type="range" min="3" max="12" step="1" value="8">
+      </label>
+
+      <label for="brush-slider">
+        <span class="label-row"><span>Brush size</span><span id="brush-value">4</span></span>
+        <input id="brush-slider" type="range" min="1" max="24" step="1" value="4">
+      </label>
+
+      <label for="stroke-color">
+        <span class="label-row"><span>Stroke color</span><span id="stroke-value">#ff5f87</span></span>
+        <input id="stroke-color" type="color" value="#ff5f87">
+      </label>
+
+      <label for="background-color">
+        <span class="label-row"><span>Background</span><span id="background-value">#0b1020</span></span>
+        <input id="background-color" type="color" value="#0b1020">
+      </label>
+
+      <div class="button-row">
+        <button id="clear-button" type="button">Clear</button>
+        <button id="export-button" class="secondary" type="button">Export PNG</button>
+      </div>
+    </div>
+
+    <div class="hint">Mouse and touch both use the same pointer drawing path. Background changes redraw existing strokes.</div>
+  </section>
+
+  <script>
+    const canvas = document.getElementById("kaleidoscope-canvas");
+    const ctx = canvas.getContext("2d", { alpha: false });
+
+    const symmetrySlider = document.getElementById("symmetry-slider");
+    const brushSlider = document.getElementById("brush-slider");
+    const strokeColorInput = document.getElementById("stroke-color");
+    const backgroundColorInput = document.getElementById("background-color");
+    const symmetryValue = document.getElementById("symmetry-value");
+    const brushValue = document.getElementById("brush-value");
+    const strokeValue = document.getElementById("stroke-value");
+    const backgroundValue = document.getElementById("background-value");
+    const clearButton = document.getElementById("clear-button");
+    const exportButton = document.getElementById("export-button");
+
+    let dpr = Math.max(1, window.devicePixelRatio || 1);
+    let width = 0;
+    let height = 0;
+    let centerX = 0;
+    let centerY = 0;
+    let isDrawing = false;
+    let activePointerId = null;
+    let lastPoint = null;
+    let backgroundColor = backgroundColorInput.value;
+    const segments = [];
+
+    function updateLabels() {
+      symmetryValue.textContent = symmetrySlider.value;
+      brushValue.textContent = brushSlider.value;
+      strokeValue.textContent = strokeColorInput.value;
+      backgroundValue.textContent = backgroundColorInput.value;
+    }
+
+    function resizeCanvas() {
+      dpr = Math.max(1, window.devicePixelRatio || 1);
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      centerX = width / 2;
+      centerY = height / 2;
+      redraw();
+    }
+
+    function clearSurface() {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.fillStyle = backgroundColor;
+      ctx.fillRect(0, 0, width, height);
+    }
+
+    function rotatePoint(point, angle) {
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      return {
+        x: point.x * cos - point.y * sin,
+        y: point.x * sin + point.y * cos
+      };
+    }
+
+    function strokeLine(from, to, color, brushSize) {
+      ctx.beginPath();
+      ctx.moveTo(centerX + from.x, centerY + from.y);
+      ctx.lineTo(centerX + to.x, centerY + to.y);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = brushSize;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.stroke();
+    }
+
+    function drawSegment(segment) {
+      const step = (Math.PI * 2) / segment.symmetry;
+      for (let i = 0; i < segment.symmetry; i += 1) {
+        const angle = step * i;
+        const start = rotatePoint(segment.from, angle);
+        const end = rotatePoint(segment.to, angle);
+        strokeLine(start, end, segment.color, segment.brushSize);
+        strokeLine(
+          { x: -start.x, y: start.y },
+          { x: -end.x, y: end.y },
+          segment.color,
+          segment.brushSize
+        );
+      }
+    }
+
+    function redraw() {
+      clearSurface();
+      for (const segment of segments) {
+        drawSegment(segment);
+      }
+    }
+
+    function getCanvasPoint(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: event.clientX - rect.left - centerX,
+        y: event.clientY - rect.top - centerY
+      };
+    }
+
+    function beginStroke(event) {
+      if (activePointerId !== null) {
+        return;
+      }
+      activePointerId = event.pointerId;
+      isDrawing = true;
+      lastPoint = getCanvasPoint(event);
+      canvas.setPointerCapture(event.pointerId);
+      event.preventDefault();
+    }
+
+    function extendStroke(event) {
+      if (!isDrawing || event.pointerId !== activePointerId) {
+        return;
+      }
+      const point = getCanvasPoint(event);
+      const segment = {
+        from: lastPoint,
+        to: point,
+        color: strokeColorInput.value,
+        brushSize: Number(brushSlider.value),
+        symmetry: Number(symmetrySlider.value)
+      };
+      segments.push(segment);
+      drawSegment(segment);
+      lastPoint = point;
+      event.preventDefault();
+    }
+
+    function endStroke(event) {
+      if (event.pointerId !== activePointerId) {
+        return;
+      }
+      isDrawing = false;
+      activePointerId = null;
+      lastPoint = null;
+      if (canvas.hasPointerCapture(event.pointerId)) {
+        canvas.releasePointerCapture(event.pointerId);
+      }
+      event.preventDefault();
+    }
+
+    symmetrySlider.addEventListener("input", updateLabels);
+    brushSlider.addEventListener("input", updateLabels);
+    strokeColorInput.addEventListener("input", updateLabels);
+    backgroundColorInput.addEventListener("input", () => {
+      backgroundColor = backgroundColorInput.value;
+      updateLabels();
+      redraw();
+    });
+
+    clearButton.addEventListener("click", () => {
+      segments.length = 0;
+      redraw();
+    });
+
+    exportButton.addEventListener("click", () => {
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png");
+      link.download = "kaleidoscope.png";
+      link.click();
+    });
+
+    canvas.addEventListener("pointerdown", beginStroke);
+    canvas.addEventListener("pointermove", extendStroke);
+    canvas.addEventListener("pointerup", endStroke);
+    canvas.addEventListener("pointercancel", endStroke);
+    canvas.addEventListener("pointerleave", (event) => {
+      if (isDrawing && event.pointerId === activePointerId) {
+        extendStroke(event);
+      }
+    });
+
+    window.addEventListener("resize", resizeCanvas);
+
+    updateLabels();
+    resizeCanvas();
+  </script>
+</body>
+</html>
