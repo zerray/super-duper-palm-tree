@@ -99,3 +99,15 @@ This repository contains a simple agent-factory workflow for planning and comple
 - 命中右侧目标区域后自动进入下一关，并增加场上星体数量
 
 直接用浏览器打开 `slingshot-game/index.html` 即可游玩。
+
+## Gem Mine Clicker
+
+新增 `gem-mine-clicker/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的 idle gem mine clicker，包含：
+
+- 点击矿脉获取宝石，并带有粒子爆裂与飘字反馈
+- 4 种可购买升级，分别强化点击收益与被动产出
+- 基于 `requestAnimationFrame` 的挂机收益与动画循环
+- Prestige 重置机制，重开后获得永久倍率提升
+- 使用 `localStorage` 持久化保存当前进度
+
+直接用浏览器打开 `gem-mine-clicker/index.html` 即可游玩。

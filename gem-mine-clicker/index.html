@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gem Mine Clicker</title>
+  <style>
+    :root {
+      --bg-1: #120f1f;
+      --bg-2: #241739;
+      --panel: rgba(18, 14, 33, 0.82);
+      --panel-border: rgba(255, 255, 255, 0.1);
+      --text: #f8f4ff;
+      --muted: #c6b9da;
+      --accent: #7af0ff;
+      --accent-2: #ff8ec7;
+      --accent-3: #ffe98a;
+      --good: #8cffae;
+      --warn: #ffb86c;
+      --danger: #ff7f96;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 24px;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(122, 240, 255, 0.16), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(255, 142, 199, 0.2), transparent 28%),
+        linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    }
+
+    .app {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(320px, 420px);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 28px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(14px);
+    }
+
+    .hero {
+      padding: 28px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(120deg, rgba(255, 255, 255, 0.05), transparent 32%),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+      background-size: auto, 30px 30px, 30px 30px;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      font-size: clamp(2.8rem, 7vw, 5.2rem);
+      line-height: 0.88;
+      letter-spacing: -0.06em;
+      max-width: 7ch;
+    }
+
+    .lede {
+      margin-top: 14px;
+      max-width: 58ch;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .stats {
+      position: relative;
+      z-index: 1;
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .stat-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .stat-value {
+      margin-top: 8px;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .mine-shell {
+      position: relative;
+      z-index: 1;
+      margin-top: 22px;
+      padding: 24px;
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(14, 10, 25, 0.92), rgba(27, 18, 43, 0.96));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      min-height: 520px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .mine-backdrop {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 50% 30%, rgba(122, 240, 255, 0.16), transparent 26%),
+        radial-gradient(circle at 25% 75%, rgba(255, 233, 138, 0.12), transparent 22%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 40%);
+      pointer-events: none;
+    }
+
+    .mine-core {
+      position: relative;
+      width: min(100%, 420px);
+      aspect-ratio: 1 / 1;
+      border: 0;
+      border-radius: 32px;
+      cursor: pointer;
+      color: inherit;
+      background:
+        radial-gradient(circle at 35% 30%, #d8f8ff 0%, #8df4ff 18%, #44c7f8 32%, rgba(68, 199, 248, 0.6) 33%, transparent 34%),
+        radial-gradient(circle at 70% 58%, #ffe9f5 0%, #ff8ec7 18%, #ee4b95 31%, rgba(238, 75, 149, 0.5) 32%, transparent 33%),
+        radial-gradient(circle at 42% 62%, #fff5c0 0%, #ffdc72 14%, #d7a63a 27%, rgba(215, 166, 58, 0.45) 28%, transparent 29%),
+        linear-gradient(180deg, #3e2b55, #1c132f);
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.12),
+        0 20px 60px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      transition: transform 90ms ease, box-shadow 120ms ease;
+    }
+
+    .mine-core:hover {
+      transform: translateY(-3px) scale(1.01);
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.16),
+        0 28px 72px rgba(0, 0, 0, 0.44),
+        0 0 32px rgba(122, 240, 255, 0.12);
+    }
+
+    .mine-core:active,
+    .mine-core.pulse {
+      transform: scale(0.97);
+    }
+
+    .mine-label {
+      position: absolute;
+      inset: auto 18px 18px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(12, 8, 24, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      text-align: left;
+      backdrop-filter: blur(10px);
+    }
+
+    .mine-label strong {
+      display: block;
+      font-size: 1.2rem;
+    }
+
+    .mine-label span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .particles,
+    .floaters {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .particle,
+    .floater {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      will-change: transform, opacity;
+    }
+
+    .particle {
+      width: 12px;
+      height: 12px;
+      clip-path: polygon(50% 0%, 100% 35%, 82% 100%, 18% 100%, 0% 35%);
+      background: linear-gradient(180deg, var(--accent), var(--accent-2));
+      box-shadow: 0 0 12px rgba(122, 240, 255, 0.45);
+    }
+
+    .floater {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--accent-3);
+      text-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+      white-space: nowrap;
+    }
+
+    .side {
+      padding: 20px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .section {
+      padding: 18px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.045);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .section h2 {
+      font-size: 1.05rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .section-copy {
+      margin-top: 8px;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 0.94rem;
+    }
+
+    .upgrades {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .upgrade {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      color: inherit;
+      text-align: left;
+      cursor: pointer;
+      transition: transform 100ms ease, border-color 120ms ease, background-color 120ms ease;
+    }
+
+    .upgrade:hover:not(:disabled) {
+      transform: translateY(-2px);
+      border-color: rgba(122, 240, 255, 0.34);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .upgrade:disabled {
+      cursor: not-allowed;
+      opacity: 0.58;
+    }
+
+    .upgrade-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+    }
+
+    .upgrade-name {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .upgrade-cost {
+      color: var(--accent-3);
+      font-weight: 700;
+    }
+
+    .upgrade-desc {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+
+    .meta-row {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .prestige-card {
+      margin-top: 14px;
+      padding: 16px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255, 142, 199, 0.12), rgba(122, 240, 255, 0.08));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .prestige-button,
+    .secondary-button {
+      width: 100%;
+      margin-top: 12px;
+      border: 0;
+      border-radius: 16px;
+      padding: 14px 16px;
+      font: inherit;
+      font-weight: 700;
+      color: #171220;
+      cursor: pointer;
+      transition: transform 100ms ease, opacity 120ms ease;
+    }
+
+    .prestige-button {
+      background: linear-gradient(135deg, var(--accent-3), var(--accent-2));
+    }
+
+    .secondary-button {
+      background: linear-gradient(135deg, var(--accent), #9be6b0);
+      margin-top: 10px;
+    }
+
+    .prestige-button:disabled,
+    .secondary-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .prestige-button:hover:not(:disabled),
+    .secondary-button:hover:not(:disabled) {
+      transform: translateY(-2px);
+    }
+
+    .footnote {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 14px;
+      }
+
+      .hero,
+      .side {
+        padding: 18px;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .mine-shell {
+        min-height: 420px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel hero">
+      <h1>Gem Mine Clicker</h1>
+      <p class="lede">
+        Crack the crystal seam, reinvest into miners, and cash out for a permanent prestige surge when the cave starts overflowing.
+      </p>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label">Gems</div>
+          <div class="stat-value" id="gems">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Per Click</div>
+          <div class="stat-value" id="gpc">1</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Per Second</div>
+          <div class="stat-value" id="gps">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Prestige</div>
+          <div class="stat-value" id="prestige-multiplier">x1.0</div>
+        </div>
+      </div>
+
+      <div class="mine-shell" id="mine-shell">
+        <div class="mine-backdrop"></div>
+        <button class="mine-core" id="mine-button" type="button" aria-label="Mine gems">
+          <div class="mine-label">
+            <strong>Click to Mine</strong>
+            <span id="mine-hint">+1 gems per strike</span>
+          </div>
+        </button>
+        <div class="particles" id="particles" aria-hidden="true"></div>
+        <div class="floaters" id="floaters" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <aside class="panel side">
+      <section class="section">
+        <h2>Mine Upgrades</h2>
+        <p class="section-copy">Buy tools and crews to scale manual clicks and passive income while the tab stays open.</p>
+        <div class="upgrades" id="upgrades"></div>
+      </section>
+
+      <section class="section">
+        <h2>Prestige</h2>
+        <p class="section-copy">
+          Convert a deep run into a permanent multiplier. Reset gems and upgrades, then come back stronger.
+        </p>
+        <div class="prestige-card">
+          <div class="stat-label">Crystals Banked</div>
+          <div class="stat-value" id="prestige-count">0</div>
+          <div class="section-copy" id="prestige-copy"></div>
+          <button class="prestige-button" id="prestige-button" type="button">Prestige for 0 crystal</button>
+        </div>
+        <button class="secondary-button" id="reset-button" type="button">Hard Reset Save</button>
+        <p class="footnote">
+          Saves automatically with <code>localStorage</code>. Passive income and click effects both run from the same <code>requestAnimationFrame</code> loop.
+        </p>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "gem-mine-clicker-save-v1";
+    const prestigeBaseRequirement = 5000;
+    const upgradeDefinitions = [
+      {
+        id: "pickaxe",
+        name: "Reinforced Pickaxe",
+        description: "Adds +1 base gem per click.",
+        baseCost: 15,
+        growth: 1.58,
+        effect(state) {
+          return { click: state.upgrades.pickaxe };
+        }
+      },
+      {
+        id: "drill",
+        name: "Gem Drill",
+        description: "Adds +1 base gem per second.",
+        baseCost: 40,
+        growth: 1.7,
+        effect(state) {
+          return { perSecond: state.upgrades.drill };
+        }
+      },
+      {
+        id: "crew",
+        name: "Mining Crew",
+        description: "Adds +6 base gems per second.",
+        baseCost: 220,
+        growth: 1.85,
+        effect(state) {
+          return { perSecond: state.upgrades.crew * 6 };
+        }
+      },
+      {
+        id: "charge",
+        name: "Blast Charge",
+        description: "Multiplies click yield by +50% each purchase.",
+        baseCost: 600,
+        growth: 2.08,
+        effect(state) {
+          return { clickMultiplier: state.upgrades.charge * 0.5 };
+        }
+      }
+    ];
+
+    const defaultState = () => ({
+      gems: 0,
+      lifetimeGems: 0,
+      prestigeCount: 0,
+      lastTimestamp: 0,
+      upgrades: {
+        pickaxe: 0,
+        drill: 0,
+        crew: 0,
+        charge: 0
+      }
+    });
+
+    function sanitizeState(raw) {
+      const state = defaultState();
+      if (!raw || typeof raw !== "object") {
+        return state;
+      }
+
+      state.gems = Number.isFinite(raw.gems) ? Math.max(0, raw.gems) : 0;
+      state.lifetimeGems = Number.isFinite(raw.lifetimeGems) ? Math.max(0, raw.lifetimeGems) : 0;
+      state.prestigeCount = Number.isFinite(raw.prestigeCount) ? Math.max(0, Math.floor(raw.prestigeCount)) : 0;
+      state.lastTimestamp = 0;
+
+      for (const definition of upgradeDefinitions) {
+        const value = raw.upgrades && raw.upgrades[definition.id];
+        state.upgrades[definition.id] = Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+      }
+
+      return state;
+    }
+
+    const state = loadState();
+
+    const gemsEl = document.getElementById("gems");
+    const gpcEl = document.getElementById("gpc");
+    const gpsEl = document.getElementById("gps");
+    const prestigeMultiplierEl = document.getElementById("prestige-multiplier");
+    const prestigeCountEl = document.getElementById("prestige-count");
+    const prestigeCopyEl = document.getElementById("prestige-copy");
+    const prestigeButton = document.getElementById("prestige-button");
+    const resetButton = document.getElementById("reset-button");
+    const upgradesEl = document.getElementById("upgrades");
+    const mineButton = document.getElementById("mine-button");
+    const mineHint = document.getElementById("mine-hint");
+    const particlesEl = document.getElementById("particles");
+    const floatersEl = document.getElementById("floaters");
+
+    const particleBursts = [];
+    const risingNumbers = [];
+    let saveQueued = false;
+    let lastFrameTime = performance.now();
+
+    renderUpgradeButtons();
+    render();
+
+    mineButton.addEventListener("click", () => {
+      const amount = getGemsPerClick();
+      addGems(amount);
+      mineButton.classList.add("pulse");
+      window.setTimeout(() => mineButton.classList.remove("pulse"), 90);
+      spawnParticleBurst();
+      spawnFloater(amount);
+      render();
+      queueSave();
+    });
+
+    upgradesEl.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-upgrade-id]");
+      if (!button) {
+        return;
+      }
+
+      buyUpgrade(button.dataset.upgradeId);
+    });
+
+    prestigeButton.addEventListener("click", () => {
+      const reward = getPrestigeReward();
+      if (reward < 1) {
+        return;
+      }
+
+      const confirmed = window.confirm(
+        `Prestige for ${reward} crystal${reward === 1 ? "" : "s"}? This resets gems and upgrades.`
+      );
+      if (!confirmed) {
+        return;
+      }
+
+      state.prestigeCount += reward;
+      state.gems = 0;
+      state.lifetimeGems = 0;
+      state.upgrades = defaultState().upgrades;
+      render();
+      queueSave(true);
+    });
+
+    resetButton.addEventListener("click", () => {
+      const confirmed = window.confirm("Delete this save and reset the mine?");
+      if (!confirmed) {
+        return;
+      }
+
+      Object.assign(state, defaultState());
+      render();
+      queueSave(true);
+    });
+
+    function loadState() {
+      try {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          return defaultState();
+        }
+        return sanitizeState(JSON.parse(raw));
+      } catch (error) {
+        return defaultState();
+      }
+    }
+
+    function queueSave(force = false) {
+      if (force) {
+        saveState();
+        return;
+      }
+
+      if (saveQueued) {
+        return;
+      }
+
+      saveQueued = true;
+      window.setTimeout(() => {
+        saveQueued = false;
+        saveState();
+      }, 120);
+    }
+
+    function saveState() {
+      const snapshot = {
+        gems: state.gems,
+        lifetimeGems: state.lifetimeGems,
+        prestigeCount: state.prestigeCount,
+        upgrades: state.upgrades
+      };
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+    }
+
+    function formatNumber(value) {
+      const suffixes = ["", "K", "M", "B", "T", "Qa", "Qi"];
+      if (value < 1000) {
+        return value.toFixed(value >= 100 ? 0 : value >= 10 ? 1 : 2).replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1");
+      }
+
+      let suffixIndex = 0;
+      let scaled = value;
+      while (scaled >= 1000 && suffixIndex < suffixes.length - 1) {
+        scaled /= 1000;
+        suffixIndex += 1;
+      }
+
+      const digits = scaled >= 100 ? 0 : scaled >= 10 ? 1 : 2;
+      return `${scaled.toFixed(digits).replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1")}${suffixes[suffixIndex]}`;
+    }
+
+    function getPrestigeMultiplier() {
+      return 1 + state.prestigeCount * 0.5;
+    }
+
+    function computeProduction() {
+      let baseClick = 1;
+      let basePerSecond = 0;
+      let clickMultiplierBonus = 0;
+
+      for (const definition of upgradeDefinitions) {
+        const effect = definition.effect(state);
+        baseClick += effect.click || 0;
+        basePerSecond += effect.perSecond || 0;
+        clickMultiplierBonus += effect.clickMultiplier || 0;
+      }
+
+      const prestigeMultiplier = getPrestigeMultiplier();
+      const click = baseClick * (1 + clickMultiplierBonus) * prestigeMultiplier;
+      const perSecond = basePerSecond * prestigeMultiplier;
+
+      return { click, perSecond };
+    }
+
+    function getGemsPerClick() {
+      return computeProduction().click;
+    }
+
+    function getGemsPerSecond() {
+      return computeProduction().perSecond;
+    }
+
+    function getUpgradeCost(definition) {
+      const owned = state.upgrades[definition.id];
+      return Math.floor(definition.baseCost * Math.pow(definition.growth, owned));
+    }
+
+    function addGems(amount) {
+      state.gems += amount;
+      state.lifetimeGems += amount;
+    }
+
+    function buyUpgrade(upgradeId) {
+      const definition = upgradeDefinitions.find((item) => item.id === upgradeId);
+      if (!definition) {
+        return;
+      }
+
+      const cost = getUpgradeCost(definition);
+      if (state.gems < cost) {
+        return;
+      }
+
+      state.gems -= cost;
+      state.upgrades[upgradeId] += 1;
+      render();
+      queueSave();
+    }
+
+    function getPrestigeRequirement() {
+      return prestigeBaseRequirement * Math.pow(2.35, state.prestigeCount);
+    }
+
+    function getPrestigeReward() {
+      const requirement = getPrestigeRequirement();
+      if (state.lifetimeGems < requirement) {
+        return 0;
+      }
+
+      return Math.max(1, Math.floor(Math.sqrt(state.lifetimeGems / requirement)));
+    }
+
+    function renderUpgradeButtons() {
+      upgradesEl.innerHTML = upgradeDefinitions.map((definition) => {
+        return `
+          <button class="upgrade" type="button" data-upgrade-id="${definition.id}">
+            <div class="upgrade-head">
+              <span class="upgrade-name">${definition.name}</span>
+              <span class="upgrade-cost" data-role="cost-${definition.id}">0</span>
+            </div>
+            <div class="upgrade-desc">${definition.description}</div>
+            <div class="meta-row">
+              <span data-role="owned-${definition.id}">Owned: 0</span>
+              <span data-role="effect-${definition.id}"></span>
+            </div>
+          </button>
+        `;
+      }).join("");
+    }
+
+    function render() {
+      const production = computeProduction();
+      const reward = getPrestigeReward();
+      const requirement = getPrestigeRequirement();
+
+      gemsEl.textContent = formatNumber(state.gems);
+      gpcEl.textContent = formatNumber(production.click);
+      gpsEl.textContent = formatNumber(production.perSecond);
+      prestigeMultiplierEl.textContent = `x${getPrestigeMultiplier().toFixed(1)}`;
+      prestigeCountEl.textContent = formatNumber(state.prestigeCount);
+      mineHint.textContent = `+${formatNumber(production.click)} gems per strike`;
+      prestigeCopyEl.textContent = reward > 0
+        ? `Prestige now for ${reward} crystal${reward === 1 ? "" : "s"} and raise all gem sources to x${(1 + (state.prestigeCount + reward) * 0.5).toFixed(1)}.`
+        : `Reach ${formatNumber(requirement)} lifetime gems in this run to unlock the next prestige crystal.`;
+      prestigeButton.textContent = reward > 0
+        ? `Prestige for ${reward} crystal${reward === 1 ? "" : "s"}`
+        : `Need ${formatNumber(requirement)} lifetime gems`;
+      prestigeButton.disabled = reward < 1;
+
+      for (const definition of upgradeDefinitions) {
+        const button = upgradesEl.querySelector(`[data-upgrade-id="${definition.id}"]`);
+        const cost = getUpgradeCost(definition);
+        const owned = state.upgrades[definition.id];
+        const effect = definition.effect({ upgrades: { ...state.upgrades, [definition.id]: owned + 1 } });
+        const effectText = effect.click
+          ? `Next: +${formatNumber(effect.click)} click`
+          : effect.perSecond
+            ? `Next: +${formatNumber(effect.perSecond)} / sec`
+            : `Next: +${Math.round((effect.clickMultiplier || 0) * 100)}% click`;
+
+        button.disabled = state.gems < cost;
+        button.querySelector(`[data-role="cost-${definition.id}"]`).textContent = `${formatNumber(cost)} gems`;
+        button.querySelector(`[data-role="owned-${definition.id}"]`).textContent = `Owned: ${owned}`;
+        button.querySelector(`[data-role="effect-${definition.id}"]`).textContent = effectText;
+      }
+    }
+
+    function spawnParticleBurst() {
+      const count = 12;
+      for (let i = 0; i < count; i += 1) {
+        const node = document.createElement("div");
+        node.className = "particle";
+        particlesEl.appendChild(node);
+        particleBursts.push({
+          node,
+          age: 0,
+          life: 0.75 + Math.random() * 0.35,
+          x: 0,
+          y: 0,
+          vx: (Math.random() - 0.5) * 230,
+          vy: -160 - Math.random() * 170,
+          rotate: (Math.random() - 0.5) * 420
+        });
+      }
+    }
+
+    function spawnFloater(amount) {
+      const node = document.createElement("div");
+      node.className = "floater";
+      node.textContent = `+${formatNumber(amount)}`;
+      floatersEl.appendChild(node);
+      risingNumbers.push({
+        node,
+        age: 0,
+        life: 1.1,
+        x: (Math.random() - 0.5) * 80,
+        y: 40,
+        vx: (Math.random() - 0.5) * 14,
+        vy: -68
+      });
+    }
+
+    function updateEffects(dt) {
+      for (let i = particleBursts.length - 1; i >= 0; i -= 1) {
+        const particle = particleBursts[i];
+        particle.age += dt;
+        particle.x += particle.vx * dt;
+        particle.y += particle.vy * dt;
+        particle.vy += 400 * dt;
+
+        const progress = particle.age / particle.life;
+        if (progress >= 1) {
+          particle.node.remove();
+          particleBursts.splice(i, 1);
+          continue;
+        }
+
+        const opacity = 1 - progress;
+        particle.node.style.opacity = opacity.toFixed(3);
+        particle.node.style.transform = `translate(${particle.x}px, ${particle.y}px) rotate(${particle.rotate * progress}deg) scale(${1 - progress * 0.35})`;
+      }
+
+      for (let i = risingNumbers.length - 1; i >= 0; i -= 1) {
+        const floater = risingNumbers[i];
+        floater.age += dt;
+        floater.x += floater.vx * dt;
+        floater.y += floater.vy * dt;
+        const progress = floater.age / floater.life;
+
+        if (progress >= 1) {
+          floater.node.remove();
+          risingNumbers.splice(i, 1);
+          continue;
+        }
+
+        floater.node.style.opacity = (1 - progress).toFixed(3);
+        floater.node.style.transform = `translate(${floater.x}px, ${floater.y}px) scale(${1 + progress * 0.15})`;
+      }
+    }
+
+    function step(timestamp) {
+      const dt = Math.min(0.1, (timestamp - lastFrameTime) / 1000);
+      lastFrameTime = timestamp;
+
+      const passiveIncome = getGemsPerSecond() * dt;
+      if (passiveIncome > 0) {
+        addGems(passiveIncome);
+        render();
+        queueSave();
+      }
+
+      updateEffects(dt);
+      requestAnimationFrame(step);
+    }
+
+    requestAnimationFrame(step);
+  </script>
+</body>
+</html>
