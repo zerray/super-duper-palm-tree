@@ -65,3 +65,13 @@ This repository contains a simple agent-factory workflow for planning and comple
 - Canvas 渲染、步数统计、通关提示与已解锁关卡持久化
 
 直接用浏览器打开 `sokoban-game/index.html` 即可游玩。
+
+## Gem Mine Clicker
+
+新增 `gem-mine-clicker/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的放置点击游戏，包含：
+
+- 点击矿石获得宝石，并带有粒子爆裂与飘字反馈
+- 可购买的点击与自动采矿升级，产量会持续指数增长
+- `requestAnimationFrame` 驱动的挂机收益、Prestige 重生倍率与 `localStorage` 存档
+
+直接用浏览器打开 `gem-mine-clicker/index.html` 即可游玩。
