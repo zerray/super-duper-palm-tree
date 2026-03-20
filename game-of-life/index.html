@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conway's Game of Life</title>
+  <style>
+    :root {
+      --bg: #f3efe6;
+      --panel: rgba(255, 252, 247, 0.92);
+      --border: #c6bfb0;
+      --text: #1f2933;
+      --muted: #5b6570;
+      --accent: #0f766e;
+      --accent-dark: #115e59;
+      --accent-soft: #d6f0ec;
+      --canvas: #fffdf8;
+      --grid: rgba(31, 41, 51, 0.12);
+      --cell: #0f766e;
+      --cell-stroke: rgba(5, 34, 32, 0.18);
+      --danger: #dbe7f6;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(15, 118, 110, 0.14), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(18, 99, 129, 0.16), transparent 30%),
+        linear-gradient(180deg, #f7f3ea 0%, #ede6d7 100%);
+      padding: 24px;
+    }
+
+    .app {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      background: rgba(255, 251, 245, 0.86);
+      border: 1px solid rgba(198, 191, 176, 0.9);
+      border-radius: 24px;
+      box-shadow: 0 24px 60px rgba(77, 65, 48, 0.16);
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+    }
+
+    .hero {
+      padding: 24px 24px 16px;
+      border-bottom: 1px solid rgba(198, 191, 176, 0.8);
+      background: linear-gradient(180deg, rgba(255, 252, 247, 0.92), rgba(246, 239, 227, 0.88));
+    }
+
+    h1,
+    p {
+      margin: 0;
+    }
+
+    .hero h1 {
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      letter-spacing: -0.04em;
+    }
+
+    .hero p {
+      margin-top: 8px;
+      max-width: 70ch;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 0;
+    }
+
+    .stage {
+      padding: 20px;
+      background: linear-gradient(180deg, rgba(255, 253, 248, 0.96), rgba(247, 241, 231, 0.9));
+    }
+
+    .toolbar {
+      display: grid;
+      gap: 14px;
+      padding: 20px;
+      background: rgba(248, 243, 235, 0.96);
+      border-left: 1px solid rgba(198, 191, 176, 0.8);
+    }
+
+    .stats,
+    .control-group,
+    .help {
+      background: var(--panel);
+      border: 1px solid rgba(198, 191, 176, 0.85);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat-label {
+      display: block;
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+    }
+
+    .canvas-shell {
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(198, 191, 176, 0.85);
+      border-radius: 22px;
+      padding: 16px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    }
+
+    canvas {
+      width: 100%;
+      height: min(75vh, 760px);
+      display: block;
+      background: var(--canvas);
+      border-radius: 16px;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .control-group {
+      display: grid;
+      gap: 12px;
+    }
+
+    .control-group h2 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button,
+    select,
+    input[type="range"] {
+      font: inherit;
+    }
+
+    button,
+    select {
+      min-height: 42px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      padding: 0 16px;
+    }
+
+    button {
+      cursor: pointer;
+      color: white;
+      background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dark) 100%);
+      box-shadow: 0 8px 16px rgba(15, 118, 110, 0.16);
+    }
+
+    button.secondary {
+      color: var(--text);
+      background: white;
+      border-color: rgba(198, 191, 176, 0.95);
+      box-shadow: none;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+
+    select {
+      width: 100%;
+      color: var(--text);
+      background: white;
+      border-color: rgba(198, 191, 176, 0.95);
+    }
+
+    label {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .speed-row,
+    .mode-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 82px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+      font-weight: 700;
+    }
+
+    .help p {
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+
+    .help p:last-child {
+      margin-bottom: 0;
+    }
+
+    @media (max-width: 920px) {
+      body {
+        padding: 12px;
+      }
+
+      .content {
+        grid-template-columns: 1fr;
+      }
+
+      .toolbar {
+        border-left: 0;
+        border-top: 1px solid rgba(198, 191, 176, 0.8);
+      }
+
+      canvas {
+        height: min(62vh, 520px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="hero">
+      <h1>Conway's Game of Life</h1>
+      <p>Build your own cellular automaton, pan across a large board, zoom into dense colonies, and drop classic patterns directly onto the grid.</p>
+    </section>
+    <div class="content">
+      <section class="stage">
+        <div class="canvas-shell">
+          <canvas id="life-canvas" aria-label="Game of Life grid"></canvas>
+        </div>
+      </section>
+      <aside class="toolbar">
+        <section class="stats">
+          <div>
+            <span class="stat-label">Generation</span>
+            <div class="stat-value" id="generation-counter">0</div>
+          </div>
+          <div>
+            <span class="stat-label">Live Cells</span>
+            <div class="stat-value" id="live-counter">0</div>
+          </div>
+        </section>
+
+        <section class="control-group">
+          <h2>Simulation</h2>
+          <div class="button-row">
+            <button id="play-button" type="button">Play</button>
+            <button id="pause-button" type="button" class="secondary">Pause</button>
+            <button id="step-button" type="button" class="secondary">Step</button>
+          </div>
+          <div class="button-row">
+            <button id="randomize-button" type="button" class="secondary">Randomize</button>
+            <button id="clear-button" type="button" class="secondary">Clear</button>
+            <button id="reset-view-button" type="button" class="secondary">Reset View</button>
+          </div>
+        </section>
+
+        <section class="control-group">
+          <h2>Speed</h2>
+          <label for="speed-slider">
+            <span class="speed-row">
+              <span>Generations per second</span>
+              <span class="pill" id="speed-value">12/s</span>
+            </span>
+            <input id="speed-slider" type="range" min="1" max="30" step="1" value="12">
+          </label>
+        </section>
+
+        <section class="control-group">
+          <h2>Patterns</h2>
+          <label for="pattern-select">
+            <span>Classic seeds</span>
+            <select id="pattern-select">
+              <option value="glider">Glider</option>
+              <option value="lightweight-spaceship">Lightweight Spaceship</option>
+              <option value="pulsar">Pulsar</option>
+              <option value="gosper-glider-gun">Gosper Glider Gun</option>
+              <option value="r-pentomino">R-pentomino</option>
+            </select>
+          </label>
+          <div class="button-row">
+            <button id="place-pattern-button" type="button">Place Pattern</button>
+          </div>
+          <div class="mode-row">
+            <span>Placement mode</span>
+            <span class="pill" id="mode-indicator">Draw</span>
+          </div>
+        </section>
+
+        <section class="help">
+          <p>Left click and drag to draw or erase cells. The first cell you touch decides whether the drag paints or removes.</p>
+          <p>Use the mouse wheel to zoom. Drag with the right mouse button or hold the space bar while dragging to pan.</p>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const GRID_WIDTH = 120;
+    const GRID_HEIGHT = 120;
+    const MIN_VISIBLE_GRID = 60;
+    const canvas = document.getElementById("life-canvas");
+    const ctx = canvas.getContext("2d");
+    const generationCounter = document.getElementById("generation-counter");
+    const liveCounter = document.getElementById("live-counter");
+    const speedSlider = document.getElementById("speed-slider");
+    const speedValue = document.getElementById("speed-value");
+    const patternSelect = document.getElementById("pattern-select");
+    const modeIndicator = document.getElementById("mode-indicator");
+    const playButton = document.getElementById("play-button");
+    const pauseButton = document.getElementById("pause-button");
+    const stepButton = document.getElementById("step-button");
+    const clearButton = document.getElementById("clear-button");
+    const randomizeButton = document.getElementById("randomize-button");
+    const placePatternButton = document.getElementById("place-pattern-button");
+    const resetViewButton = document.getElementById("reset-view-button");
+
+    let currentGrid = new Uint8Array(GRID_WIDTH * GRID_HEIGHT);
+    let nextGrid = new Uint8Array(GRID_WIDTH * GRID_HEIGHT);
+    let generation = 0;
+    let liveCells = 0;
+    let running = false;
+    let pendingPattern = null;
+    let pointerState = null;
+    let animationFrameId = 0;
+    let lastFrameTime = performance.now();
+    let stepAccumulator = 0;
+    let viewport = {
+      scale: 11,
+      offsetX: 48,
+      offsetY: 48
+    };
+    const keys = {
+      space: false
+    };
+
+    const patterns = {
+      glider: [
+        [1, 0],
+        [2, 1],
+        [0, 2], [1, 2], [2, 2]
+      ],
+      "lightweight-spaceship": [
+        [1, 0], [2, 0], [3, 0], [4, 0],
+        [0, 1], [4, 1],
+        [4, 2],
+        [0, 3], [3, 3]
+      ],
+      pulsar: [
+        [2, 0], [3, 0], [4, 0], [8, 0], [9, 0], [10, 0],
+        [0, 2], [5, 2], [7, 2], [12, 2],
+        [0, 3], [5, 3], [7, 3], [12, 3],
+        [0, 4], [5, 4], [7, 4], [12, 4],
+        [2, 5], [3, 5], [4, 5], [8, 5], [9, 5], [10, 5],
+        [2, 7], [3, 7], [4, 7], [8, 7], [9, 7], [10, 7],
+        [0, 8], [5, 8], [7, 8], [12, 8],
+        [0, 9], [5, 9], [7, 9], [12, 9],
+        [0, 10], [5, 10], [7, 10], [12, 10],
+        [2, 12], [3, 12], [4, 12], [8, 12], [9, 12], [10, 12]
+      ],
+      "gosper-glider-gun": [
+        [24, 0],
+        [22, 1], [24, 1],
+        [12, 2], [13, 2], [20, 2], [21, 2], [34, 2], [35, 2],
+        [11, 3], [15, 3], [20, 3], [21, 3], [34, 3], [35, 3],
+        [0, 4], [1, 4], [10, 4], [16, 4], [20, 4], [21, 4],
+        [0, 5], [1, 5], [10, 5], [14, 5], [16, 5], [17, 5], [22, 5], [24, 5],
+        [10, 6], [16, 6], [24, 6],
+        [11, 7], [15, 7],
+        [12, 8], [13, 8]
+      ],
+      "r-pentomino": [
+        [1, 0], [2, 0],
+        [0, 1], [1, 1],
+        [1, 2]
+      ]
+    };
+
+    function indexFor(x, y) {
+      return y * GRID_WIDTH + x;
+    }
+
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      draw();
+    }
+
+    function clampScale(scale) {
+      const minScale = Math.min(canvas.clientWidth, canvas.clientHeight) / MIN_VISIBLE_GRID;
+      return Math.max(minScale, Math.min(scale, 36));
+    }
+
+    function screenToCell(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const x = (clientX - rect.left - viewport.offsetX) / viewport.scale;
+      const y = (clientY - rect.top - viewport.offsetY) / viewport.scale;
+      return {
+        x: Math.floor(x),
+        y: Math.floor(y)
+      };
+    }
+
+    function setCell(x, y, value) {
+      if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) {
+        return false;
+      }
+      const idx = indexFor(x, y);
+      if (currentGrid[idx] === value) {
+        return false;
+      }
+      currentGrid[idx] = value;
+      liveCells += value ? 1 : -1;
+      return true;
+    }
+
+    function toggleCell(x, y) {
+      if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) {
+        return;
+      }
+      const idx = indexFor(x, y);
+      const value = currentGrid[idx] ? 0 : 1;
+      currentGrid[idx] = value;
+      liveCells += value ? 1 : -1;
+    }
+
+    function clearGrid() {
+      currentGrid.fill(0);
+      nextGrid.fill(0);
+      generation = 0;
+      liveCells = 0;
+      updateHud();
+      draw();
+    }
+
+    function randomizeGrid() {
+      generation = 0;
+      liveCells = 0;
+      for (let i = 0; i < currentGrid.length; i += 1) {
+        const value = Math.random() > 0.72 ? 1 : 0;
+        currentGrid[i] = value;
+        nextGrid[i] = 0;
+        liveCells += value;
+      }
+      updateHud();
+      draw();
+    }
+
+    function placePattern(name, originX, originY) {
+      const pattern = patterns[name];
+      if (!pattern) {
+        return;
+      }
+      for (const [dx, dy] of pattern) {
+        setCell(originX + dx, originY + dy, 1);
+      }
+      updateHud();
+      draw();
+    }
+
+    function updateHud() {
+      generationCounter.textContent = String(generation);
+      liveCounter.textContent = String(liveCells);
+      speedValue.textContent = speedSlider.value + "/s";
+      modeIndicator.textContent = pendingPattern ? "Place" : (running ? "Running" : "Draw");
+      playButton.disabled = running;
+      pauseButton.disabled = !running;
+    }
+
+    function computeNextGeneration() {
+      let nextLiveCount = 0;
+      for (let y = 0; y < GRID_HEIGHT; y += 1) {
+        for (let x = 0; x < GRID_WIDTH; x += 1) {
+          let neighbors = 0;
+          for (let dy = -1; dy <= 1; dy += 1) {
+            for (let dx = -1; dx <= 1; dx += 1) {
+              if (dx === 0 && dy === 0) {
+                continue;
+              }
+              const nx = (x + dx + GRID_WIDTH) % GRID_WIDTH;
+              const ny = (y + dy + GRID_HEIGHT) % GRID_HEIGHT;
+              neighbors += currentGrid[indexFor(nx, ny)];
+            }
+          }
+          const idx = indexFor(x, y);
+          const alive = currentGrid[idx] === 1;
+          const nextAlive = neighbors === 3 || (alive && neighbors === 2) ? 1 : 0;
+          nextGrid[idx] = nextAlive;
+          nextLiveCount += nextAlive;
+        }
+      }
+      const temp = currentGrid;
+      currentGrid = nextGrid;
+      nextGrid = temp;
+      liveCells = nextLiveCount;
+      generation += 1;
+      updateHud();
+    }
+
+    function draw() {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = "#fffdf8";
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.save();
+      ctx.translate(viewport.offsetX, viewport.offsetY);
+      ctx.scale(viewport.scale, viewport.scale);
+
+      const visibleLeft = Math.max(0, Math.floor(-viewport.offsetX / viewport.scale) - 1);
+      const visibleTop = Math.max(0, Math.floor(-viewport.offsetY / viewport.scale) - 1);
+      const visibleRight = Math.min(GRID_WIDTH, Math.ceil((width - viewport.offsetX) / viewport.scale) + 1);
+      const visibleBottom = Math.min(GRID_HEIGHT, Math.ceil((height - viewport.offsetY) / viewport.scale) + 1);
+
+      ctx.strokeStyle = "rgba(31, 41, 51, 0.12)";
+      ctx.lineWidth = 1 / viewport.scale;
+      ctx.beginPath();
+      for (let x = visibleLeft; x <= visibleRight; x += 1) {
+        ctx.moveTo(x, visibleTop);
+        ctx.lineTo(x, visibleBottom);
+      }
+      for (let y = visibleTop; y <= visibleBottom; y += 1) {
+        ctx.moveTo(visibleLeft, y);
+        ctx.lineTo(visibleRight, y);
+      }
+      ctx.stroke();
+
+      ctx.fillStyle = "#0f766e";
+      ctx.strokeStyle = "rgba(5, 34, 32, 0.18)";
+      for (let y = visibleTop; y < visibleBottom; y += 1) {
+        for (let x = visibleLeft; x < visibleRight; x += 1) {
+          if (!currentGrid[indexFor(x, y)]) {
+            continue;
+          }
+          ctx.fillRect(x + 0.08, y + 0.08, 0.84, 0.84);
+          if (viewport.scale > 7) {
+            ctx.strokeRect(x + 0.08, y + 0.08, 0.84, 0.84);
+          }
+        }
+      }
+      ctx.restore();
+    }
+
+    function stepSimulation() {
+      computeNextGeneration();
+      draw();
+    }
+
+    function startSimulation() {
+      running = true;
+      updateHud();
+    }
+
+    function pauseSimulation() {
+      running = false;
+      updateHud();
+    }
+
+    function handlePointerDown(event) {
+      canvas.setPointerCapture(event.pointerId);
+      const isPan = event.button === 1 || event.button === 2 || keys.space;
+      pointerState = {
+        mode: isPan ? "pan" : "draw",
+        lastX: event.clientX,
+        lastY: event.clientY,
+        paintValue: 1,
+        touched: new Set()
+      };
+
+      if (pointerState.mode === "pan") {
+        canvas.style.cursor = "grabbing";
+        return;
+      }
+
+      const cell = screenToCell(event.clientX, event.clientY);
+      if (pendingPattern) {
+        placePattern(pendingPattern, cell.x, cell.y);
+        pendingPattern = null;
+        updateHud();
+        return;
+      }
+      if (cell.x < 0 || cell.x >= GRID_WIDTH || cell.y < 0 || cell.y >= GRID_HEIGHT) {
+        return;
+      }
+      const idx = indexFor(cell.x, cell.y);
+      pointerState.paintValue = currentGrid[idx] ? 0 : 1;
+      applyPaint(cell.x, cell.y);
+    }
+
+    function applyPaint(x, y) {
+      if (!pointerState || pointerState.mode !== "draw") {
+        return;
+      }
+      if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) {
+        return;
+      }
+      const key = x + "," + y;
+      if (pointerState.touched.has(key)) {
+        return;
+      }
+      pointerState.touched.add(key);
+      if (setCell(x, y, pointerState.paintValue)) {
+        updateHud();
+        draw();
+      }
+    }
+
+    function handlePointerMove(event) {
+      if (!pointerState) {
+        return;
+      }
+      if (pointerState.mode === "pan") {
+        viewport.offsetX += event.clientX - pointerState.lastX;
+        viewport.offsetY += event.clientY - pointerState.lastY;
+        pointerState.lastX = event.clientX;
+        pointerState.lastY = event.clientY;
+        draw();
+        return;
+      }
+      const cell = screenToCell(event.clientX, event.clientY);
+      applyPaint(cell.x, cell.y);
+    }
+
+    function handlePointerUp(event) {
+      if (pointerState) {
+        pointerState = null;
+      }
+      canvas.style.cursor = keys.space ? "grab" : "crosshair";
+      if (canvas.hasPointerCapture(event.pointerId)) {
+        canvas.releasePointerCapture(event.pointerId);
+      }
+    }
+
+    function handleWheel(event) {
+      event.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const pointX = event.clientX - rect.left;
+      const pointY = event.clientY - rect.top;
+      const worldX = (pointX - viewport.offsetX) / viewport.scale;
+      const worldY = (pointY - viewport.offsetY) / viewport.scale;
+      const zoomFactor = event.deltaY < 0 ? 1.12 : 0.9;
+      const nextScale = clampScale(viewport.scale * zoomFactor);
+      viewport.offsetX = pointX - worldX * nextScale;
+      viewport.offsetY = pointY - worldY * nextScale;
+      viewport.scale = nextScale;
+      draw();
+    }
+
+    function resetView() {
+      const scaleX = canvas.clientWidth / GRID_WIDTH;
+      const scaleY = canvas.clientHeight / GRID_HEIGHT;
+      viewport.scale = clampScale(Math.max(Math.min(scaleX, scaleY) * 0.92, 6));
+      viewport.offsetX = (canvas.clientWidth - GRID_WIDTH * viewport.scale) / 2;
+      viewport.offsetY = (canvas.clientHeight - GRID_HEIGHT * viewport.scale) / 2;
+      draw();
+    }
+
+    function tick(now) {
+      const delta = now - lastFrameTime;
+      lastFrameTime = now;
+      if (running) {
+        stepAccumulator += delta;
+        const stepDuration = 1000 / Number(speedSlider.value);
+        while (stepAccumulator >= stepDuration) {
+          computeNextGeneration();
+          stepAccumulator -= stepDuration;
+        }
+      } else {
+        stepAccumulator = 0;
+      }
+      draw();
+      animationFrameId = window.requestAnimationFrame(tick);
+    }
+
+    playButton.addEventListener("click", startSimulation);
+    pauseButton.addEventListener("click", pauseSimulation);
+    stepButton.addEventListener("click", () => {
+      pauseSimulation();
+      stepSimulation();
+    });
+    clearButton.addEventListener("click", () => {
+      pauseSimulation();
+      pendingPattern = null;
+      clearGrid();
+    });
+    randomizeButton.addEventListener("click", () => {
+      pauseSimulation();
+      pendingPattern = null;
+      randomizeGrid();
+    });
+    placePatternButton.addEventListener("click", () => {
+      pendingPattern = patternSelect.value;
+      updateHud();
+    });
+    resetViewButton.addEventListener("click", resetView);
+    speedSlider.addEventListener("input", updateHud);
+
+    canvas.addEventListener("pointerdown", handlePointerDown);
+    canvas.addEventListener("pointermove", handlePointerMove);
+    canvas.addEventListener("pointerup", handlePointerUp);
+    canvas.addEventListener("pointercancel", handlePointerUp);
+    canvas.addEventListener("wheel", handleWheel, { passive: false });
+    canvas.addEventListener("contextmenu", (event) => event.preventDefault());
+
+    window.addEventListener("keydown", (event) => {
+      if (event.code === "Space") {
+        keys.space = true;
+        canvas.style.cursor = "grab";
+      }
+      if (event.code === "Enter" && pendingPattern) {
+        event.preventDefault();
+      }
+    });
+
+    window.addEventListener("keyup", (event) => {
+      if (event.code === "Space") {
+        keys.space = false;
+        canvas.style.cursor = "crosshair";
+      }
+    });
+
+    window.addEventListener("resize", () => {
+      resizeCanvas();
+      resetView();
+    });
+
+    resizeCanvas();
+    resetView();
+    updateHud();
+    animationFrameId = window.requestAnimationFrame(tick);
+
+    window.addEventListener("beforeunload", () => {
+      window.cancelAnimationFrame(animationFrameId);
+    });
+  </script>
+</body>
+</html>
