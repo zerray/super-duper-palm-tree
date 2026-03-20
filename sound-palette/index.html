@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sound Palette</title>
+  <style>
+    :root {
+      --bg: #f4efe5;
+      --panel: rgba(255, 251, 244, 0.82);
+      --border: rgba(75, 54, 27, 0.18);
+      --text: #23180f;
+      --muted: #755d47;
+      --accent: #d56f3f;
+      --accent-strong: #a74d2b;
+      --step-off: #f7dcc1;
+      --step-on: #f29e4c;
+      --step-hit: #ffe27a;
+      --playhead: rgba(96, 170, 184, 0.22);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 24px;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.78), transparent 35%),
+        linear-gradient(180deg, #f8f2e8 0%, #ead8c0 100%);
+    }
+
+    .app {
+      width: min(1080px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .surface,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: 0 18px 44px rgba(93, 63, 23, 0.12);
+      backdrop-filter: blur(10px);
+    }
+
+    .surface {
+      padding: 24px;
+    }
+
+    .panel {
+      padding: 20px;
+      display: grid;
+      gap: 16px;
+    }
+
+    h1,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      line-height: 0.9;
+      letter-spacing: -0.05em;
+    }
+
+    .lede {
+      margin-top: 12px;
+      max-width: 60ch;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .sequencer-shell {
+      margin-top: 24px;
+      padding: 18px;
+      border-radius: 20px;
+      background:
+        linear-gradient(180deg, rgba(255, 250, 243, 0.92), rgba(246, 235, 219, 0.92)),
+        repeating-linear-gradient(135deg, rgba(115, 83, 47, 0.04) 0 14px, transparent 14px 28px);
+      border: 1px solid rgba(120, 90, 57, 0.12);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .cell {
+      appearance: none;
+      border: 0;
+      min-height: 56px;
+      border-radius: 16px;
+      cursor: pointer;
+      background: var(--step-off);
+      box-shadow: inset 0 0 0 1px rgba(120, 86, 50, 0.16);
+      transition: transform 100ms ease, background-color 140ms ease, box-shadow 140ms ease;
+    }
+
+    .cell:hover,
+    .cell:focus-visible {
+      transform: translateY(-1px);
+      outline: none;
+      box-shadow: inset 0 0 0 1px rgba(120, 86, 50, 0.16), 0 8px 18px rgba(83, 58, 22, 0.14);
+    }
+
+    .cell.active {
+      background: var(--step-on);
+      box-shadow: inset 0 0 0 2px rgba(117, 57, 25, 0.18), 0 10px 22px rgba(185, 102, 54, 0.2);
+    }
+
+    .cell.playhead {
+      box-shadow: inset 0 0 0 3px rgba(55, 117, 128, 0.36), 0 0 0 4px var(--playhead);
+    }
+
+    .cell.active.pulse {
+      background: var(--step-hit);
+      transform: scale(0.95);
+    }
+
+    .card {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 247, 235, 0.74);
+      border: 1px solid rgba(120, 90, 57, 0.12);
+    }
+
+    .card h2 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .label-row,
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    button.control {
+      font: inherit;
+      cursor: pointer;
+      min-height: 44px;
+      border: 0;
+      border-radius: 999px;
+      color: #fff8f2;
+      background: linear-gradient(180deg, var(--accent) 0%, var(--accent-strong) 100%);
+      box-shadow: 0 10px 18px rgba(76, 41, 19, 0.18);
+    }
+
+    button.control.secondary {
+      color: var(--text);
+      background: linear-gradient(180deg, #f6e8d7 0%, #e6c9a8 100%);
+    }
+
+    .note-list {
+      display: grid;
+      gap: 6px;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    @media (max-width: 900px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 620px) {
+      body {
+        padding: 14px;
+      }
+
+      .cell {
+        min-height: 42px;
+        border-radius: 12px;
+      }
+
+      .button-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="surface">
+      <h1>Sound Palette</h1>
+      <p class="lede">
+        Paint a looping step pattern across eight tones and eight beats. Each column fires once per cycle, so
+        small color blocks turn into layered rhythms and simple melodies.
+      </p>
+      <div class="sequencer-shell">
+        <div id="grid" class="grid" aria-label="Step sequencer grid"></div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <section class="card">
+        <h2>Transport</h2>
+        <div class="status-row"><span>Status</span><span id="status-label">Running</span></div>
+        <div class="status-row"><span>Step</span><span id="step-label">1 / 8</span></div>
+        <div class="button-row">
+          <button id="play-toggle" class="control" type="button">Pause</button>
+          <button id="clear-button" class="control secondary" type="button">Clear All</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Tempo</h2>
+        <label for="bpm-slider">
+          <div class="label-row"><span>BPM</span><span id="bpm-value">108</span></div>
+          <input id="bpm-slider" type="range" min="70" max="180" step="1" value="108">
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>Scale</h2>
+        <div class="note-list" id="note-list" aria-label="Scale notes"></div>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    const rows = 8;
+    const cols = 8;
+    const pentatonicScale = [261.63, 293.66, 329.63, 392.0, 440.0, 523.25, 587.33, 659.25];
+    const gridState = Array.from({ length: rows }, () => Array(cols).fill(false));
+    const cells = [];
+
+    const grid = document.getElementById("grid");
+    const playToggle = document.getElementById("play-toggle");
+    const clearButton = document.getElementById("clear-button");
+    const bpmSlider = document.getElementById("bpm-slider");
+    const bpmValue = document.getElementById("bpm-value");
+    const stepLabel = document.getElementById("step-label");
+    const statusLabel = document.getElementById("status-label");
+    const noteList = document.getElementById("note-list");
+
+    let bpm = Number(bpmSlider.value);
+    let currentStep = 0;
+    let timerId = null;
+    let isPlaying = true;
+    let audioContext = null;
+
+    const noteNames = ["E5", "D5", "C5", "A4", "G4", "E4", "D4", "C4"];
+
+    function ensureAudioContext() {
+      if (!audioContext) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) {
+          return null;
+        }
+        audioContext = new AudioContextClass();
+      }
+
+      if (audioContext.state === "suspended") {
+        audioContext.resume();
+      }
+
+      return audioContext;
+    }
+
+    function stepIntervalMs() {
+      return (60 / bpm) * 1000;
+    }
+
+    function renderNotes() {
+      noteList.innerHTML = "";
+      noteNames.forEach((note, index) => {
+        const row = document.createElement("div");
+        row.textContent = `Row ${rows - index}: ${note}`;
+        noteList.appendChild(row);
+      });
+    }
+
+    function updateReadout() {
+      bpmValue.textContent = String(bpm);
+      stepLabel.textContent = `${currentStep + 1} / ${cols}`;
+      statusLabel.textContent = isPlaying ? "Running" : "Paused";
+      playToggle.textContent = isPlaying ? "Pause" : "Play";
+    }
+
+    function updatePlayhead() {
+      cells.forEach((cell) => {
+        const isCurrentColumn = Number(cell.dataset.col) === currentStep;
+        cell.classList.toggle("playhead", isCurrentColumn);
+      });
+      updateReadout();
+    }
+
+    function triggerPulse(cell) {
+      cell.classList.remove("pulse");
+      void cell.offsetWidth;
+      cell.classList.add("pulse");
+      window.setTimeout(() => cell.classList.remove("pulse"), 180);
+    }
+
+    function playFrequency(frequency) {
+      const context = ensureAudioContext();
+      if (!context) {
+        return;
+      }
+
+      const now = context.currentTime;
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+
+      oscillator.type = "triangle";
+      oscillator.frequency.setValueAtTime(frequency, now);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.12, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
+
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+
+      oscillator.start(now);
+      oscillator.stop(now + 0.3);
+    }
+
+    function advanceStep() {
+      updatePlayhead();
+
+      for (let row = 0; row < rows; row += 1) {
+        if (!gridState[row][currentStep]) {
+          continue;
+        }
+
+        const cell = cells[row * cols + currentStep];
+        triggerPulse(cell);
+        playFrequency(pentatonicScale[rows - 1 - row]);
+      }
+
+      currentStep = (currentStep + 1) % cols;
+    }
+
+    function restartTransport() {
+      if (timerId !== null) {
+        window.clearInterval(timerId);
+        timerId = null;
+      }
+
+      if (!isPlaying) {
+        updateReadout();
+        return;
+      }
+
+      timerId = window.setInterval(advanceStep, stepIntervalMs());
+      updateReadout();
+    }
+
+    function toggleCell(row, col) {
+      ensureAudioContext();
+      gridState[row][col] = !gridState[row][col];
+      const cell = cells[row * cols + col];
+      cell.classList.toggle("active", gridState[row][col]);
+      cell.setAttribute("aria-pressed", String(gridState[row][col]));
+    }
+
+    function clearGrid() {
+      ensureAudioContext();
+      for (let row = 0; row < rows; row += 1) {
+        for (let col = 0; col < cols; col += 1) {
+          gridState[row][col] = false;
+        }
+      }
+
+      cells.forEach((cell) => {
+        cell.classList.remove("active", "pulse");
+        cell.setAttribute("aria-pressed", "false");
+      });
+    }
+
+    function buildGrid() {
+      for (let row = 0; row < rows; row += 1) {
+        for (let col = 0; col < cols; col += 1) {
+          const cell = document.createElement("button");
+          cell.type = "button";
+          cell.className = "cell";
+          cell.dataset.row = String(row);
+          cell.dataset.col = String(col);
+          cell.setAttribute("aria-label", `Row ${rows - row}, step ${col + 1}`);
+          cell.setAttribute("aria-pressed", "false");
+          cell.addEventListener("click", () => toggleCell(row, col));
+          grid.appendChild(cell);
+          cells.push(cell);
+        }
+      }
+    }
+
+    playToggle.addEventListener("click", () => {
+      ensureAudioContext();
+      isPlaying = !isPlaying;
+      restartTransport();
+    });
+
+    clearButton.addEventListener("click", clearGrid);
+
+    bpmSlider.addEventListener("input", (event) => {
+      ensureAudioContext();
+      bpm = Number(event.target.value);
+      updateReadout();
+      restartTransport();
+    });
+
+    buildGrid();
+    renderNotes();
+    updatePlayhead();
+    restartTransport();
+  </script>
+</body>
+</html>
