@@ -6,21 +6,21 @@
   <title>Hex Chain Reaction</title>
   <style>
     :root {
-      --bg: #f4efe4;
-      --panel: rgba(255, 250, 241, 0.92);
-      --panel-border: rgba(74, 58, 40, 0.12);
-      --ink: #33261b;
-      --muted: #736250;
-      --p1: #1f6fd1;
+      --bg: #f3eee4;
+      --panel: rgba(255, 251, 245, 0.9);
+      --line: rgba(66, 52, 34, 0.16);
+      --ink: #2d2318;
+      --muted: #6d5d4b;
+      --p1: #2168c9;
       --p1-soft: #dce9ff;
-      --p2: #d65042;
-      --p2-soft: #ffdcd7;
-      --hex: #efe1c7;
-      --hex-edge: #b8a284;
-      --burst: #f2bd4f;
-      --button: #466d49;
-      --button-dark: #2f4f34;
-      --shadow: rgba(51, 38, 27, 0.14);
+      --p2: #d34e44;
+      --p2-soft: #ffdcd8;
+      --hex: #efe2c7;
+      --hex-edge: #b59c7f;
+      --flash: #ffd56b;
+      --accent: #2f5b3d;
+      --accent-dark: #244630;
+      --shadow: rgba(45, 35, 24, 0.14);
     }
 
     * {
@@ -30,12 +30,12 @@
     body {
       margin: 0;
       min-height: 100vh;
-      padding: 20px;
-      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      padding: 16px;
       color: var(--ink);
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
       background:
-        radial-gradient(circle at top, rgba(255, 255, 255, 0.78), transparent 30%),
-        linear-gradient(180deg, #faf5ed 0%, var(--bg) 100%);
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.85), transparent 32%),
+        linear-gradient(180deg, #fbf7f1 0%, var(--bg) 100%);
     }
 
     button,
@@ -57,15 +57,15 @@
 
     .surface,
     .panel {
-      background: var(--panel);
-      border: 1px solid var(--panel-border);
+      border: 1px solid var(--line);
       border-radius: 24px;
+      background: var(--panel);
       box-shadow: 0 18px 40px var(--shadow);
       backdrop-filter: blur(10px);
     }
 
     .surface {
-      padding: 24px;
+      padding: 22px;
     }
 
     .panel {
@@ -82,10 +82,14 @@
     }
 
     h1 {
-      font-size: clamp(2.25rem, 5vw, 4rem);
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
       line-height: 0.95;
       letter-spacing: -0.05em;
       max-width: 8ch;
+    }
+
+    h2 {
+      font-size: 1.08rem;
     }
 
     .lede,
@@ -94,41 +98,47 @@
       line-height: 1.5;
     }
 
-    .stats {
-      margin-top: 16px;
+    .stats,
+    .badge-row {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
     }
 
-    .chip {
+    .stats {
+      margin-top: 16px;
+    }
+
+    .chip,
+    .badge {
       padding: 10px 14px;
       border-radius: 999px;
-      border: 1px solid rgba(74, 58, 40, 0.1);
-      background: rgba(255, 255, 255, 0.74);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.78);
       color: var(--muted);
     }
 
-    .chip strong {
+    .chip strong,
+    .badge strong {
       color: var(--ink);
     }
 
-    .chip.turn-p1 strong {
+    .turn-p1 strong {
       color: var(--p1);
     }
 
-    .chip.turn-p2 strong {
+    .turn-p2 strong {
       color: var(--p2);
     }
 
     .board-shell {
       margin-top: 18px;
       padding: 18px;
-      border-radius: 20px;
-      border: 1px solid rgba(74, 58, 40, 0.1);
+      border-radius: 22px;
+      border: 1px solid var(--line);
       background:
-        radial-gradient(circle at top, rgba(255, 255, 255, 0.82), rgba(245, 236, 221, 0.92)),
-        repeating-linear-gradient(135deg, rgba(74, 58, 40, 0.03) 0 16px, transparent 16px 32px);
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.84), rgba(246, 237, 223, 0.95)),
+        repeating-linear-gradient(135deg, rgba(66, 52, 34, 0.03) 0 16px, transparent 16px 32px);
     }
 
     svg {
@@ -137,45 +147,52 @@
       display: block;
     }
 
-    .hex-tile {
+    .hex {
       fill: var(--hex);
       stroke: var(--hex-edge);
-      stroke-width: 1.5;
+      stroke-width: 1.6;
       cursor: pointer;
-      transition: fill 120ms ease, stroke 120ms ease, transform 120ms ease;
+      transition: fill 140ms ease, stroke 140ms ease, transform 140ms ease;
     }
 
-    .hex-tile.clickable:hover {
-      fill: #f7eecf;
-      stroke: #d4ab5c;
+    .hex.clickable:hover {
+      fill: #f7efda;
+      stroke: #d7b067;
       stroke-width: 2.6;
     }
 
-    .hex-tile.p1 {
-      fill: var(--p1-soft);
-      stroke: var(--p1);
-      stroke-width: 2.4;
-    }
-
-    .hex-tile.p2 {
-      fill: var(--p2-soft);
-      stroke: var(--p2);
-      stroke-width: 2.4;
-    }
-
-    .hex-tile.blocked {
+    .hex.blocked {
       cursor: default;
     }
 
-    .hex-tile.overflowing {
-      fill: #fff1ca;
-      stroke: var(--burst);
-      stroke-width: 4;
-      filter: drop-shadow(0 0 10px rgba(242, 189, 79, 0.7));
+    .hex.p1 {
+      fill: var(--p1-soft);
+      stroke: var(--p1);
+      stroke-width: 2.2;
     }
 
-    .token {
+    .hex.p2 {
+      fill: var(--p2-soft);
+      stroke: var(--p2);
+      stroke-width: 2.2;
+    }
+
+    .hex.bursting {
+      fill: #fff1c3;
+      stroke: #f1ab00;
+      stroke-width: 4;
+      filter: drop-shadow(0 0 12px rgba(241, 171, 0, 0.55));
+    }
+
+    .hex.pulsing {
+      transform: scale(1.02);
+    }
+
+    .token,
+    .count-text,
+    .cap-text {
       pointer-events: none;
+      user-select: none;
     }
 
     .token.p1 {
@@ -187,21 +204,19 @@
     }
 
     .count-text,
-    .capacity-text {
-      pointer-events: none;
+    .cap-text {
       text-anchor: middle;
       font-weight: 700;
-      user-select: none;
     }
 
     .count-text {
-      fill: rgba(51, 38, 27, 0.86);
-      font-size: 16px;
+      fill: rgba(45, 35, 24, 0.88);
+      font-size: 15px;
     }
 
-    .capacity-text {
-      fill: rgba(51, 38, 27, 0.34);
-      font-size: 12px;
+    .cap-text {
+      fill: rgba(45, 35, 24, 0.32);
+      font-size: 11px;
     }
 
     .card {
@@ -209,35 +224,49 @@
       gap: 10px;
       padding: 14px;
       border-radius: 18px;
-      border: 1px solid rgba(74, 58, 40, 0.1);
-      background: rgba(255, 255, 255, 0.76);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.78);
     }
 
-    .badge-row {
+    .control-row {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
+      align-items: center;
     }
 
-    .badge {
-      padding: 8px 10px;
-      border-radius: 12px;
-      border: 1px solid rgba(74, 58, 40, 0.1);
-      background: rgba(255, 255, 255, 0.76);
-      color: var(--muted);
-      font-size: 0.92rem;
+    .size-select,
+    .action {
+      min-height: 46px;
+      border-radius: 999px;
+    }
+
+    .size-select {
+      min-width: 92px;
+      padding: 10px 14px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--ink);
+    }
+
+    .action {
+      border: 0;
+      padding: 10px 18px;
+      color: #f8f4ec;
+      background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+      box-shadow: 0 10px 16px rgba(36, 70, 48, 0.2);
     }
 
     .legend {
       display: grid;
       gap: 8px;
-      font-size: 0.94rem;
+      font-size: 0.95rem;
       color: var(--muted);
     }
 
     .legend-line {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 10px;
     }
 
@@ -245,7 +274,9 @@
       width: 16px;
       height: 16px;
       border-radius: 999px;
-      border: 1px solid rgba(74, 58, 40, 0.16);
+      border: 1px solid rgba(45, 35, 24, 0.18);
+      margin-top: 3px;
+      flex: 0 0 auto;
     }
 
     .swatch.p1 {
@@ -256,39 +287,8 @@
       background: var(--p2);
     }
 
-    .swatch.burst {
-      background: #fff1ca;
-      border-color: var(--burst);
-    }
-
-    .action {
-      min-height: 46px;
-      border: 0;
-      border-radius: 999px;
-      color: #f7f2ea;
-      background: linear-gradient(180deg, var(--button), var(--button-dark));
-      box-shadow: 0 10px 16px rgba(47, 79, 52, 0.2);
-    }
-
-    .control-row {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .control-row label {
-      color: var(--muted);
-      font-size: 0.94rem;
-    }
-
-    .size-select {
-      min-width: 84px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid rgba(74, 58, 40, 0.16);
-      background: rgba(255, 255, 255, 0.92);
-      color: var(--ink);
+    .swatch.flash {
+      background: var(--flash);
     }
 
     .overlay {
@@ -298,7 +298,7 @@
       align-items: center;
       justify-content: center;
       padding: 20px;
-      background: rgba(20, 14, 10, 0.42);
+      background: rgba(18, 12, 8, 0.48);
     }
 
     .overlay.open {
@@ -310,7 +310,7 @@
       padding: 24px;
       border-radius: 24px;
       background: rgba(255, 251, 244, 0.97);
-      box-shadow: 0 24px 44px rgba(20, 14, 10, 0.24);
+      box-shadow: 0 24px 44px rgba(18, 12, 8, 0.24);
       display: grid;
       gap: 14px;
       text-align: center;
@@ -324,7 +324,7 @@
 
     @media (max-width: 640px) {
       body {
-        padding: 14px;
+        padding: 12px;
       }
 
       .surface,
@@ -333,7 +333,11 @@
       }
 
       .surface {
-        padding: 18px;
+        padding: 16px;
+      }
+
+      .board-shell {
+        padding: 12px;
       }
     }
   </style>
@@ -342,11 +346,11 @@
   <div class="app">
     <section class="surface">
       <h1>Hex Chain Reaction</h1>
-      <p class="lede">Take turns placing tokens on a hex grid, trigger chain reactions when a cell exceeds its live neighbor count, and outspread a greedy AI opponent before it captures the whole occupied board.</p>
+      <p class="lede">Take turns placing tokens on a hex grid. If a cell exceeds its live neighbor count, it explodes outward and can trigger a cascading capture wave.</p>
       <div class="stats">
         <div class="chip" id="turnChip"><strong>Turn:</strong> <span id="turnLabel">Blue</span></div>
         <div class="chip"><strong>Status:</strong> <span id="statusText">Blue to move.</span></div>
-        <div class="chip"><strong>Board:</strong> <span id="boardLabel">7 × 7</span></div>
+        <div class="chip"><strong>Radius:</strong> <span id="radiusLabel">7</span></div>
         <div class="chip"><strong>Move:</strong> <span id="moveLabel">0</span></div>
       </div>
       <div class="board-shell">
@@ -357,64 +361,61 @@
     <aside class="panel">
       <div class="card">
         <h2>Match Controls</h2>
-        <p class="muted">Human vs AI. Blue plays first, then the red greedy heuristic evaluates every legal reply and picks the best full-cascade outcome.</p>
+        <p class="muted">Two-player hot-seat. Place on empty cells or your own cells, then let the board finish every cascade before the next move.</p>
         <div class="control-row">
-          <label for="sizeSelect">Board size</label>
-          <select id="sizeSelect" class="size-select" aria-label="Board size">
-            <option value="5">5 × 5</option>
-            <option value="7" selected>7 × 7</option>
-            <option value="9">9 × 9</option>
+          <label for="sizeSelect">Board radius</label>
+          <select id="sizeSelect" class="size-select" aria-label="Board radius">
+            <option value="5">5</option>
+            <option value="7" selected>7</option>
+            <option value="9">9</option>
           </select>
+          <button id="newGameButton" class="action" type="button">New Game</button>
         </div>
-        <button class="action" id="restartButton" type="button">New Game</button>
       </div>
 
       <div class="card">
         <h2>Live State</h2>
         <div class="badge-row">
-          <div class="badge">Blue cells: <span id="blueCount">0</span></div>
-          <div class="badge">Red cells: <span id="redCount">0</span></div>
-          <div class="badge">Cascade step: <span id="cascadeCount">0</span></div>
-          <div class="badge">AI think time: <span id="aiTime">0 ms</span></div>
+          <div class="badge"><strong>Blue cells:</strong> <span id="blueCells">0</span></div>
+          <div class="badge"><strong>Red cells:</strong> <span id="redCells">0</span></div>
+          <div class="badge"><strong>Cascade step:</strong> <span id="cascadeLabel">0</span></div>
+          <div class="badge"><strong>Animating:</strong> <span id="animatingLabel">No</span></div>
         </div>
-        <p class="muted" id="detailText">Blue begins. Edge hexes burst later than center hexes because capacity always matches the real number of neighbors.</p>
+        <p class="muted" id="detailText">Center cells can hold more tokens than edge cells because capacity matches the real number of neighboring hexes.</p>
       </div>
 
       <div class="card">
         <h2>Rules</h2>
         <div class="legend">
-          <div class="legend-line"><span class="swatch p1"></span><span>Blue is the human player. You may place on an empty or blue-controlled cell.</span></div>
-          <div class="legend-line"><span class="swatch p2"></span><span>Red is a simple greedy AI that simulates every legal move and chooses the strongest board swing it can find.</span></div>
-          <div class="legend-line"><span class="swatch burst"></span><span>When tokens exceed a cell's neighbor count, it explodes outward, converts adjacent cells, and can keep chaining with a short animation delay.</span></div>
+          <div class="legend-line"><span class="swatch p1"></span><span>Blue and red alternate turns on the same device.</span></div>
+          <div class="legend-line"><span class="swatch flash"></span><span>When a cell's token count exceeds its neighbor count, it bursts, sends one token to each adjacent hex, and converts those cells to the bursting player.</span></div>
+          <div class="legend-line"><span class="swatch p2"></span><span>After the first two turns, if one player has no tokens left on the board, the other player wins immediately.</span></div>
         </div>
       </div>
     </aside>
   </div>
 
-  <div class="overlay" id="winnerOverlay" aria-hidden="true">
+  <div id="winnerOverlay" class="overlay" aria-hidden="true">
     <div class="modal">
       <h2 id="winnerTitle">Blue Wins</h2>
-      <p class="muted" id="winnerText">One player controls every occupied hex.</p>
-      <button class="action" id="playAgainButton" type="button">Play Again</button>
+      <p id="winnerText" class="muted">Red has no tokens left on the board.</p>
+      <button id="playAgainButton" class="action" type="button">Play Again</button>
     </div>
   </div>
 
   <script>
-    const DEFAULT_GRID_SIZE = 7;
-    const ANIMATION_STEP_MS = 180;
-    const AI_TURN_DELAY_MS = 320;
-    const HEX_RADIUS = 38;
-    const HEX_H_SPACING = Math.sqrt(3) * HEX_RADIUS;
-    const HEX_V_SPACING = 1.5 * HEX_RADIUS;
+    const DEFAULT_BOARD_RADIUS = 7;
+    const ANIMATION_STEP_MS = 150;
+    const HEX_SIZE = 30;
     const PLAYER_ONE = 1;
     const PLAYER_TWO = 2;
-    const DIRECTIONS = [
-      [1, 0],
-      [1, -1],
-      [0, -1],
-      [-1, 0],
-      [-1, 1],
-      [0, 1]
+    const HEX_DIRECTIONS = [
+      [1, -1, 0],
+      [1, 0, -1],
+      [0, 1, -1],
+      [-1, 1, 0],
+      [-1, 0, 1],
+      [0, -1, 1]
     ];
     const PLAYER_NAMES = {
       [PLAYER_ONE]: "Blue",
@@ -429,96 +430,81 @@
     const turnChip = document.getElementById("turnChip");
     const turnLabel = document.getElementById("turnLabel");
     const statusText = document.getElementById("statusText");
-    const boardLabel = document.getElementById("boardLabel");
+    const radiusLabel = document.getElementById("radiusLabel");
     const moveLabel = document.getElementById("moveLabel");
-    const blueCount = document.getElementById("blueCount");
-    const redCount = document.getElementById("redCount");
-    const cascadeCount = document.getElementById("cascadeCount");
-    const aiTime = document.getElementById("aiTime");
+    const blueCells = document.getElementById("blueCells");
+    const redCells = document.getElementById("redCells");
+    const cascadeLabel = document.getElementById("cascadeLabel");
+    const animatingLabel = document.getElementById("animatingLabel");
     const detailText = document.getElementById("detailText");
-    const restartButton = document.getElementById("restartButton");
-    const playAgainButton = document.getElementById("playAgainButton");
     const sizeSelect = document.getElementById("sizeSelect");
+    const newGameButton = document.getElementById("newGameButton");
+    const playAgainButton = document.getElementById("playAgainButton");
     const winnerOverlay = document.getElementById("winnerOverlay");
     const winnerTitle = document.getElementById("winnerTitle");
     const winnerText = document.getElementById("winnerText");
 
     const state = {
-      gridSize: DEFAULT_GRID_SIZE,
-      currentPlayer: PLAYER_ONE,
+      boardRadius: DEFAULT_BOARD_RADIUS,
       board: new Map(),
-      offsetCells: [],
+      cells: [],
+      currentPlayer: PLAYER_ONE,
+      moveCount: 0,
+      gameOver: false,
       resolving: false,
-      winner: 0,
-      totalMoves: 0,
-      highlightedKeys: new Set(),
       cascadeStep: 0,
-      aiLastThinkMs: 0
+      burstingKeys: new Set(),
+      pulsingKeys: new Set()
     };
 
     function sleep(ms) {
       return new Promise((resolve) => window.setTimeout(resolve, ms));
     }
 
-    function keyFor(q, r) {
-      return `${q},${r}`;
+    function keyForCube(x, y, z) {
+      return `${x},${y},${z}`;
     }
 
-    function offsetToAxial(col, row) {
-      return {
-        q: col - Math.floor(row / 2),
-        r: row
-      };
+    function cubeToAxial(x, y, z) {
+      return { q: x, r: z };
     }
 
-    function axialToPixel(q, r) {
-      return {
-        x: 110 + HEX_H_SPACING * (q + r / 2),
-        y: 90 + HEX_V_SPACING * r
-      };
-    }
-
-    function createBoardMap(size) {
+    function createBoard(radius) {
       const board = new Map();
-      const offsetCells = [];
-      for (let row = 0; row < size; row += 1) {
-        for (let col = 0; col < size; col += 1) {
-          const { q, r } = offsetToAxial(col, row);
-          const key = keyFor(q, r);
-          board.set(key, {
-            q,
-            r,
-            row,
-            col,
+      const cells = [];
+      for (let x = -radius + 1; x <= radius - 1; x += 1) {
+        for (let y = -radius + 1; y <= radius - 1; y += 1) {
+          const z = -x - y;
+          if (Math.max(Math.abs(x), Math.abs(y), Math.abs(z)) >= radius) {
+            continue;
+          }
+          const axial = cubeToAxial(x, y, z);
+          const cell = {
+            key: keyForCube(x, y, z),
+            x,
+            y,
+            z,
+            q: axial.q,
+            r: axial.r,
             owner: 0,
             count: 0
-          });
-          offsetCells.push({ key, q, r, row, col });
+          };
+          board.set(cell.key, cell);
+          cells.push(cell);
         }
       }
-      return { board, offsetCells };
+      cells.sort((a, b) => a.r - b.r || a.q - b.q);
+      return { board, cells };
     }
 
-    function cloneBoard(board) {
-      const copy = new Map();
-      for (const [key, cell] of board.entries()) {
-        copy.set(key, { ...cell });
-      }
-      return copy;
+    function getCell(board, x, y, z) {
+      return board.get(keyForCube(x, y, z)) || null;
     }
 
-    function getCellFromBoard(board, q, r) {
-      return board.get(keyFor(q, r)) || null;
-    }
-
-    function getCell(q, r) {
-      return getCellFromBoard(state.board, q, r);
-    }
-
-    function getNeighborsFromBoard(board, q, r) {
+    function getNeighbors(cell, board = state.board) {
       const neighbors = [];
-      for (const [dq, dr] of DIRECTIONS) {
-        const neighbor = getCellFromBoard(board, q + dq, r + dr);
+      for (const [dx, dy, dz] of HEX_DIRECTIONS) {
+        const neighbor = getCell(board, cell.x + dx, cell.y + dy, cell.z + dz);
         if (neighbor) {
           neighbors.push(neighbor);
         }
@@ -526,67 +512,68 @@
       return neighbors;
     }
 
-    function getNeighbors(q, r) {
-      return getNeighborsFromBoard(state.board, q, r);
-    }
-
-    function getNeighborCount(cell, board = state.board) {
-      return getNeighborsFromBoard(board, cell.q, cell.r).length;
+    function getCapacity(cell, board = state.board) {
+      return getNeighbors(cell, board).length;
     }
 
     function isLegalMove(cell, player) {
       return Boolean(cell) && (cell.owner === 0 || cell.owner === player);
     }
 
-    function getOverflowQueue(board) {
-      const queue = [];
+    function getOverflowingCells(board = state.board) {
+      const overflowing = [];
       for (const cell of board.values()) {
-        if (cell.owner !== 0 && cell.count > getNeighborCount(cell, board)) {
-          queue.push(cell);
+        if (cell.owner !== 0 && cell.count > getCapacity(cell, board)) {
+          overflowing.push(cell);
         }
       }
-      return queue;
+      return overflowing;
     }
 
     function summarizeBoard(board = state.board) {
-      let blueOwned = 0;
-      let redOwned = 0;
-      let blueTokens = 0;
-      let redTokens = 0;
+      let p1Cells = 0;
+      let p2Cells = 0;
+      let p1Tokens = 0;
+      let p2Tokens = 0;
       for (const cell of board.values()) {
         if (cell.owner === PLAYER_ONE) {
-          blueOwned += 1;
-          blueTokens += cell.count;
+          p1Cells += 1;
+          p1Tokens += cell.count;
         } else if (cell.owner === PLAYER_TWO) {
-          redOwned += 1;
-          redTokens += cell.count;
+          p2Cells += 1;
+          p2Tokens += cell.count;
         }
       }
-      return { blueOwned, redOwned, blueTokens, redTokens };
+      return { p1Cells, p2Cells, p1Tokens, p2Tokens };
     }
 
-    function getWinnerForBoard(board, totalMoves) {
-      if (totalMoves < 2) {
+    function getWinner() {
+      if (state.moveCount < 2) {
         return 0;
       }
-      const owners = new Set();
-      for (const cell of board.values()) {
-        if (cell.owner !== 0) {
-          owners.add(cell.owner);
-        }
+      const summary = summarizeBoard();
+      if (summary.p1Cells > 0 && summary.p2Cells === 0) {
+        return PLAYER_ONE;
       }
-      if (owners.size !== 1) {
-        return 0;
+      if (summary.p2Cells > 0 && summary.p1Cells === 0) {
+        return PLAYER_TWO;
       }
-      return owners.values().next().value || 0;
+      return 0;
     }
 
-    function buildHexPoints(cx, cy) {
+    function cubeToPixel(cell) {
+      return {
+        x: HEX_SIZE * Math.sqrt(3) * (cell.q + cell.r / 2),
+        y: HEX_SIZE * 1.5 * cell.r
+      };
+    }
+
+    function buildHexPoints(centerX, centerY) {
       const points = [];
       for (let index = 0; index < 6; index += 1) {
-        const angle = ((60 * index) - 30) * Math.PI / 180;
-        const x = cx + HEX_RADIUS * Math.cos(angle);
-        const y = cy + HEX_RADIUS * Math.sin(angle);
+        const angle = (60 * index - 30) * (Math.PI / 180);
+        const x = centerX + HEX_SIZE * Math.cos(angle);
+        const y = centerY + HEX_SIZE * Math.sin(angle);
         points.push(`${x.toFixed(2)},${y.toFixed(2)}`);
       }
       return points.join(" ");
@@ -595,102 +582,117 @@
     function getTokenOffsets(count) {
       const patterns = {
         1: [[0, 0]],
-        2: [[-10, 0], [10, 0]],
-        3: [[0, -10], [-10, 10], [10, 10]],
-        4: [[-10, -10], [10, -10], [-10, 10], [10, 10]],
-        5: [[0, 0], [-13, -10], [13, -10], [-13, 10], [13, 10]],
-        6: [[-14, -12], [0, -12], [14, -12], [-14, 12], [0, 12], [14, 12]]
+        2: [[-9, 0], [9, 0]],
+        3: [[0, -8], [-9, 9], [9, 9]],
+        4: [[-9, -9], [9, -9], [-9, 9], [9, 9]],
+        5: [[0, 0], [-12, -9], [12, -9], [-12, 9], [12, 9]],
+        6: [[-12, -11], [0, -11], [12, -11], [-12, 11], [0, 11], [12, 11]]
       };
       return patterns[Math.min(count, 6)] || patterns[6];
     }
 
+    function updateHud() {
+      const summary = summarizeBoard();
+      const playerName = PLAYER_NAMES[state.currentPlayer];
+      turnLabel.textContent = playerName;
+      turnChip.className = `chip ${state.currentPlayer === PLAYER_ONE ? "turn-p1" : "turn-p2"}`;
+      radiusLabel.textContent = String(state.boardRadius);
+      moveLabel.textContent = String(state.moveCount);
+      blueCells.textContent = String(summary.p1Cells);
+      redCells.textContent = String(summary.p2Cells);
+      cascadeLabel.textContent = String(state.cascadeStep);
+      animatingLabel.textContent = state.resolving ? "Yes" : "No";
+
+      if (state.gameOver) {
+        statusText.textContent = `${playerName} wins.`;
+      } else if (state.resolving) {
+        statusText.textContent = `${playerName} cascade resolving.`;
+      } else {
+        statusText.textContent = `${playerName} to move.`;
+      }
+
+      detailText.textContent = state.resolving
+        ? "Explosions resolve in sequence. Converted neighboring cells can immediately become the next burst wave."
+        : "Capacity equals the number of real neighbors, so edge and corner cells explode earlier than the center.";
+    }
+
     function renderBoard() {
-      const width = 180 + HEX_H_SPACING * (state.gridSize + 2);
-      const height = 160 + HEX_V_SPACING * (state.gridSize - 1) + HEX_RADIUS * 2;
+      const positions = state.cells.map((cell) => cubeToPixel(cell));
+      const minX = Math.min(...positions.map((point) => point.x));
+      const maxX = Math.max(...positions.map((point) => point.x));
+      const minY = Math.min(...positions.map((point) => point.y));
+      const maxY = Math.max(...positions.map((point) => point.y));
+      const padding = HEX_SIZE * 1.8;
+      const width = maxX - minX + padding * 2;
+      const height = maxY - minY + padding * 2;
+      const offsetX = padding - minX;
+      const offsetY = padding - minY;
+
       boardSvg.setAttribute("viewBox", `0 0 ${width} ${height}`);
       boardSvg.innerHTML = "";
 
-      for (const entry of state.offsetCells) {
-        const cell = state.board.get(entry.key);
-        const { x, y } = axialToPixel(cell.q, cell.r);
+      for (const sourceCell of state.cells) {
+        const cell = state.board.get(sourceCell.key);
+        const center = cubeToPixel(cell);
+        const centerX = center.x + offsetX;
+        const centerY = center.y + offsetY;
         const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
 
-        const tile = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-        const classes = ["hex-tile"];
-        if (cell.owner) {
+        const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+        const classes = ["hex"];
+        if (cell.owner !== 0) {
           classes.push(PLAYER_CLASS[cell.owner]);
         }
-        if (!state.resolving && !state.winner && state.currentPlayer === PLAYER_ONE && isLegalMove(cell, state.currentPlayer)) {
+        if (state.burstingKeys.has(cell.key)) {
+          classes.push("bursting");
+        } else if (state.pulsingKeys.has(cell.key)) {
+          classes.push("pulsing");
+        }
+        if (isLegalMove(cell, state.currentPlayer) && !state.resolving && !state.gameOver) {
           classes.push("clickable");
         } else {
           classes.push("blocked");
         }
-        if (state.highlightedKeys.has(entry.key)) {
-          classes.push("overflowing");
-        }
-        tile.setAttribute("class", classes.join(" "));
-        tile.setAttribute("points", buildHexPoints(x, y));
-        tile.addEventListener("click", () => handleCellClick(cell.q, cell.r));
-        group.appendChild(tile);
+        polygon.setAttribute("class", classes.join(" "));
+        polygon.setAttribute("points", buildHexPoints(centerX, centerY));
+        polygon.dataset.key = cell.key;
+        group.appendChild(polygon);
 
-        const capacity = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        capacity.setAttribute("class", "capacity-text");
-        capacity.setAttribute("x", String(x));
-        capacity.setAttribute("y", String(y - 18));
-        capacity.textContent = `${getNeighborCount(cell)}`;
-        group.appendChild(capacity);
-
-        if (cell.owner !== 0 && cell.count > 0) {
-          for (const [offsetX, offsetY] of getTokenOffsets(cell.count)) {
+        if (cell.count > 0) {
+          const offsets = getTokenOffsets(cell.count);
+          for (const [dx, dy] of offsets) {
             const token = document.createElementNS("http://www.w3.org/2000/svg", "circle");
             token.setAttribute("class", `token ${PLAYER_CLASS[cell.owner]}`);
-            token.setAttribute("cx", String(x + offsetX));
-            token.setAttribute("cy", String(y + offsetY));
-            token.setAttribute("r", "7.5");
+            token.setAttribute("cx", String(centerX + dx));
+            token.setAttribute("cy", String(centerY + dy));
+            token.setAttribute("r", "4.2");
             group.appendChild(token);
           }
-
-          const countText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-          countText.setAttribute("class", "count-text");
-          countText.setAttribute("x", String(x));
-          countText.setAttribute("y", String(y + 6));
-          countText.textContent = `${cell.count}`;
-          group.appendChild(countText);
         }
+
+        const countText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        countText.setAttribute("class", "count-text");
+        countText.setAttribute("x", String(centerX));
+        countText.setAttribute("y", String(centerY + 6));
+        countText.textContent = cell.count > 0 ? String(cell.count) : "";
+        group.appendChild(countText);
+
+        const capText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        capText.setAttribute("class", "cap-text");
+        capText.setAttribute("x", String(centerX));
+        capText.setAttribute("y", String(centerY - HEX_SIZE + 14));
+        capText.textContent = String(getCapacity(cell));
+        group.appendChild(capText);
 
         boardSvg.appendChild(group);
       }
-    }
 
-    function renderHud() {
-      const summary = summarizeBoard();
-      turnChip.className = `chip ${state.currentPlayer === PLAYER_ONE ? "turn-p1" : "turn-p2"}`;
-      turnLabel.textContent = PLAYER_NAMES[state.currentPlayer];
-      statusText.textContent = state.winner
-        ? `${PLAYER_NAMES[state.winner]} wins.`
-        : state.resolving
-          ? state.currentPlayer === PLAYER_TWO
-            ? "AI is resolving chain reaction..."
-            : "Resolving chain reaction..."
-          : state.currentPlayer === PLAYER_TWO
-            ? "AI is thinking..."
-            : "Blue to move.";
-      boardLabel.textContent = `${state.gridSize} × ${state.gridSize}`;
-      moveLabel.textContent = `${state.totalMoves}`;
-      blueCount.textContent = `${summary.blueOwned} cells / ${summary.blueTokens} tokens`;
-      redCount.textContent = `${summary.redOwned} cells / ${summary.redTokens} tokens`;
-      cascadeCount.textContent = `${state.cascadeStep}`;
-      aiTime.textContent = `${state.aiLastThinkMs} ms`;
-    }
-
-    function render() {
-      renderBoard();
-      renderHud();
+      updateHud();
     }
 
     function openWinnerOverlay(winner) {
       winnerTitle.textContent = `${PLAYER_NAMES[winner]} Wins`;
-      winnerText.textContent = `${PLAYER_NAMES[winner]} controls all occupied cells after the final cascade.`;
+      winnerText.textContent = `${PLAYER_NAMES[winner]} is the last player with tokens on the board.`;
       winnerOverlay.classList.add("open");
       winnerOverlay.setAttribute("aria-hidden", "false");
     }
@@ -700,216 +702,122 @@
       winnerOverlay.setAttribute("aria-hidden", "true");
     }
 
-    function simulateCascade(board, activePlayer) {
-      let safety = 0;
-      while (true) {
-        const queue = getOverflowQueue(board);
-        if (queue.length === 0) {
-          return;
-        }
-        const additions = new Map();
-        for (const cell of queue) {
-          const neighbors = getNeighborsFromBoard(board, cell.q, cell.r);
-          cell.count -= neighbors.length;
-          if (cell.count <= 0) {
-            cell.count = 0;
-            cell.owner = 0;
-          }
-          for (const neighbor of neighbors) {
-            const neighborKey = keyFor(neighbor.q, neighbor.r);
-            additions.set(neighborKey, (additions.get(neighborKey) || 0) + 1);
-          }
-        }
-        for (const [neighborKey, amount] of additions.entries()) {
-          const target = board.get(neighborKey);
-          target.owner = activePlayer;
-          target.count += amount;
-        }
-        safety += 1;
-        if (safety > 500) {
-          return;
-        }
-      }
+    function resetGame(radius = state.boardRadius) {
+      const next = createBoard(radius);
+      state.boardRadius = radius;
+      state.board = next.board;
+      state.cells = next.cells;
+      state.currentPlayer = PLAYER_ONE;
+      state.moveCount = 0;
+      state.gameOver = false;
+      state.resolving = false;
+      state.cascadeStep = 0;
+      state.burstingKeys = new Set();
+      state.pulsingKeys = new Set();
+      sizeSelect.value = String(radius);
+      closeWinnerOverlay();
+      renderBoard();
     }
 
-    function evaluateBoardForPlayer(board, player) {
-      const summary = summarizeBoard(board);
-      const owned = player === PLAYER_ONE ? summary.blueOwned : summary.redOwned;
-      const enemyOwned = player === PLAYER_ONE ? summary.redOwned : summary.blueOwned;
-      const tokens = player === PLAYER_ONE ? summary.blueTokens : summary.redTokens;
-      const enemyTokens = player === PLAYER_ONE ? summary.redTokens : summary.blueTokens;
-      return (owned * 100) + tokens - (enemyOwned * 100) - enemyTokens;
-    }
-
-    function getLegalMoves(board, player) {
-      const moves = [];
-      for (const cell of board.values()) {
-        if (isLegalMove(cell, player)) {
-          moves.push({ q: cell.q, r: cell.r, key: keyFor(cell.q, cell.r) });
-        }
-      }
-      return moves;
-    }
-
-    function chooseGreedyAiMove() {
-      const startedAt = performance.now();
-      const legalMoves = getLegalMoves(state.board, PLAYER_TWO);
-      let bestMove = legalMoves[0] || null;
-      let bestScore = -Infinity;
-
-      for (const move of legalMoves) {
-        const boardCopy = cloneBoard(state.board);
-        const target = boardCopy.get(move.key);
-        target.owner = PLAYER_TWO;
-        target.count += 1;
-        simulateCascade(boardCopy, PLAYER_TWO);
-        const score = evaluateBoardForPlayer(boardCopy, PLAYER_TWO);
-        if (score > bestScore) {
-          bestScore = score;
-          bestMove = move;
-        }
-      }
-
-      state.aiLastThinkMs = Math.round(performance.now() - startedAt);
-      return bestMove;
-    }
-
-    async function resolveChainReaction(activePlayer) {
+    async function resolveChainReaction() {
       state.resolving = true;
       state.cascadeStep = 0;
-      render();
+      renderBoard();
 
-      while (true) {
-        const queue = getOverflowQueue(state.board);
-        if (queue.length === 0) {
-          break;
-        }
-
+      let wave = getOverflowingCells();
+      let safety = 0;
+      while (wave.length > 0 && safety < 500) {
+        safety += 1;
         state.cascadeStep += 1;
-        state.highlightedKeys = new Set(queue.map((cell) => keyFor(cell.q, cell.r)));
-        detailText.textContent = `Cascade step ${state.cascadeStep}: ${queue.length} hex${queue.length === 1 ? "" : "es"} burst outward.`;
-        render();
+        state.burstingKeys = new Set(wave.map((cell) => cell.key));
+        state.pulsingKeys = new Set();
+        renderBoard();
         await sleep(ANIMATION_STEP_MS);
 
-        const additions = new Map();
-        for (const cell of queue) {
-          const neighbors = getNeighbors(cell.q, cell.r);
-          cell.count -= neighbors.length;
-          if (cell.count <= 0) {
-            cell.count = 0;
-            cell.owner = 0;
+        const receivingKeys = new Set();
+        for (const cell of wave) {
+          const liveCell = state.board.get(cell.key);
+          if (!liveCell || liveCell.owner === 0) {
+            continue;
           }
+          const owner = liveCell.owner;
+          const neighbors = getNeighbors(liveCell);
+          liveCell.count = 0;
+          liveCell.owner = 0;
+
           for (const neighbor of neighbors) {
-            const neighborKey = keyFor(neighbor.q, neighbor.r);
-            additions.set(neighborKey, (additions.get(neighborKey) || 0) + 1);
+            neighbor.owner = owner;
+            neighbor.count += 1;
+            receivingKeys.add(neighbor.key);
           }
         }
 
-        for (const [neighborKey, amount] of additions.entries()) {
-          const target = state.board.get(neighborKey);
-          target.owner = activePlayer;
-          target.count += amount;
-        }
-
-        state.highlightedKeys = new Set();
-        render();
+        state.burstingKeys = new Set();
+        state.pulsingKeys = receivingKeys;
+        renderBoard();
         await sleep(ANIMATION_STEP_MS);
+        wave = getOverflowingCells();
       }
 
+      state.burstingKeys = new Set();
+      state.pulsingKeys = new Set();
       state.resolving = false;
-      state.highlightedKeys = new Set();
-      state.winner = getWinnerForBoard(state.board, state.totalMoves);
-      if (state.winner) {
-        openWinnerOverlay(state.winner);
+
+      const winner = getWinner();
+      if (winner !== 0) {
+        state.gameOver = true;
+        renderBoard();
+        openWinnerOverlay(winner);
+        return;
       }
-      render();
+
+      state.currentPlayer = state.currentPlayer === PLAYER_ONE ? PLAYER_TWO : PLAYER_ONE;
+      renderBoard();
     }
 
-    async function commitMove(q, r, player, isAiMove = false) {
-      const cell = getCell(q, r);
-      if (!isLegalMove(cell, player)) {
-        return false;
+    async function handleMove(cellKey) {
+      if (state.gameOver || state.resolving) {
+        return;
+      }
+      const cell = state.board.get(cellKey);
+      if (!isLegalMove(cell, state.currentPlayer)) {
+        return;
       }
 
-      closeWinnerOverlay();
-      state.currentPlayer = player;
-      cell.owner = player;
+      cell.owner = state.currentPlayer;
       cell.count += 1;
-      state.totalMoves += 1;
-      detailText.textContent = isAiMove
-        ? `AI played at axial ${q},${r} after evaluating ${getLegalMoves(state.board, PLAYER_TWO).length} legal moves.`
-        : `Blue played at axial ${q},${r}.`;
-      render();
-
-      await resolveChainReaction(player);
-      return !state.winner;
+      state.moveCount += 1;
+      renderBoard();
+      await resolveChainReaction();
     }
 
-    async function takeAiTurn() {
-      if (state.winner) {
+    boardSvg.addEventListener("click", (event) => {
+      const polygon = event.target.closest("polygon[data-key]");
+      if (!polygon) {
         return;
       }
-      state.currentPlayer = PLAYER_TWO;
-      detailText.textContent = "AI is evaluating legal moves.";
-      render();
-      await sleep(AI_TURN_DELAY_MS);
+      void handleMove(polygon.dataset.key);
+    });
 
-      const move = chooseGreedyAiMove();
-      if (!move) {
-        return;
+    sizeSelect.addEventListener("change", () => {
+      resetGame(Number(sizeSelect.value));
+    });
+
+    newGameButton.addEventListener("click", () => {
+      resetGame(Number(sizeSelect.value));
+    });
+
+    playAgainButton.addEventListener("click", () => {
+      resetGame(Number(sizeSelect.value));
+    });
+
+    winnerOverlay.addEventListener("click", (event) => {
+      if (event.target === winnerOverlay) {
+        closeWinnerOverlay();
       }
-      await commitMove(move.q, move.r, PLAYER_TWO, true);
-      if (state.winner) {
-        return;
-      }
+    });
 
-      state.currentPlayer = PLAYER_ONE;
-      state.cascadeStep = 0;
-      detailText.textContent = "Blue to move. Build a larger chain than the AI.";
-      render();
-    }
-
-    async function handleCellClick(q, r) {
-      if (state.resolving || state.winner || state.currentPlayer !== PLAYER_ONE) {
-        return;
-      }
-      const cell = getCell(q, r);
-      if (!isLegalMove(cell, PLAYER_ONE)) {
-        detailText.textContent = "Choose an empty hex or one you already control.";
-        return;
-      }
-
-      const shouldContinue = await commitMove(q, r, PLAYER_ONE, false);
-      if (!shouldContinue) {
-        return;
-      }
-
-      await takeAiTurn();
-    }
-
-    function resetGame() {
-      const nextSize = Number(sizeSelect.value) || DEFAULT_GRID_SIZE;
-      const { board, offsetCells } = createBoardMap(nextSize);
-      state.gridSize = nextSize;
-      state.currentPlayer = PLAYER_ONE;
-      state.board = board;
-      state.offsetCells = offsetCells;
-      state.resolving = false;
-      state.winner = 0;
-      state.totalMoves = 0;
-      state.highlightedKeys = new Set();
-      state.cascadeStep = 0;
-      state.aiLastThinkMs = 0;
-      closeWinnerOverlay();
-      detailText.textContent = "Blue begins. Edge hexes burst later than center hexes because capacity always matches the real number of neighbors.";
-      render();
-    }
-
-    restartButton.addEventListener("click", resetGame);
-    playAgainButton.addEventListener("click", resetGame);
-    sizeSelect.addEventListener("change", resetGame);
-
-    resetGame();
+    resetGame(DEFAULT_BOARD_RADIUS);
   </script>
 </body>
 </html>
