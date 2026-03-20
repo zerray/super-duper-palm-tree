@@ -76,3 +76,15 @@ This repository contains a simple agent-factory workflow for planning and comple
 - 实时显示双方领地数量、剩余 jump points、当前回合与胜负结果
 
 直接用浏览器打开 `hex-territory/index.html` 即可游玩。
+
+## Rhythm Tap Reflex
+
+新增 `rhythm-tap/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的节奏点击反应游戏，包含：
+
+- 4 条按键轨道，使用 `D` / `F` / `J` / `K` 击打下落音符
+- 连击、分数、失误与速度实时显示
+- 基于 `requestAnimationFrame` 的音符滚动与程序化节拍生成
+- 使用 Web Audio API 振荡器生成 hit / miss 音效
+- 随时间提升滚动速度与音符密度，失误达到上限后显示结算界面
+
+直接用浏览器打开 `rhythm-tap/index.html` 即可游玩。
