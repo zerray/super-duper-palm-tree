@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Soundscape Garden</title>
+  <style>
+    :root {
+      --sky: #eef7f3;
+      --mist: rgba(255, 255, 255, 0.72);
+      --panel: rgba(250, 255, 252, 0.76);
+      --line: rgba(50, 87, 69, 0.14);
+      --text: #1f342a;
+      --muted: #5e7a6c;
+      --accent: #5ca37d;
+      --accent-strong: #3d7d5b;
+      --pond: #d2ece6;
+      --earth: #b78a63;
+      --shadow: rgba(42, 73, 59, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 22px;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.82), transparent 32%),
+        linear-gradient(180deg, #f6fbf7 0%, #ddeee4 52%, #d2e7da 100%);
+    }
+
+    .app {
+      width: min(1200px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .surface,
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 22px 40px rgba(68, 102, 84, 0.12);
+    }
+
+    .surface {
+      padding: 24px;
+    }
+
+    .panel {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 6vw, 4.8rem);
+      line-height: 0.9;
+      letter-spacing: -0.05em;
+      font-weight: 700;
+    }
+
+    .lede {
+      margin-top: 12px;
+      max-width: 62ch;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+
+    .toolbar {
+      margin-top: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button,
+    select,
+    input {
+      font: inherit;
+    }
+
+    .type-button,
+    .mini-button {
+      cursor: pointer;
+      border: 1px solid rgba(61, 125, 91, 0.16);
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(230, 243, 235, 0.9));
+      color: var(--text);
+      min-height: 40px;
+      padding: 0 14px;
+      transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+    }
+
+    .type-button:hover,
+    .type-button:focus-visible,
+    .mini-button:hover,
+    .mini-button:focus-visible {
+      outline: none;
+      transform: translateY(-1px);
+      box-shadow: 0 12px 20px rgba(74, 117, 92, 0.12);
+    }
+
+    .type-button.active {
+      border-color: rgba(61, 125, 91, 0.42);
+      background: linear-gradient(180deg, rgba(130, 196, 155, 0.95), rgba(79, 149, 111, 0.95));
+      color: #f7fff9;
+    }
+
+    .garden-shell {
+      margin-top: 18px;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid rgba(59, 97, 77, 0.14);
+      background:
+        radial-gradient(circle at 20% 18%, rgba(255, 255, 255, 0.75), transparent 18%),
+        linear-gradient(180deg, #dff1e8 0%, #c7e5d3 55%, #bcdab8 100%);
+      position: relative;
+    }
+
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 16 / 10;
+      touch-action: none;
+    }
+
+    .card {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(65, 100, 82, 0.12);
+      background: rgba(255, 255, 255, 0.44);
+      display: grid;
+      gap: 10px;
+    }
+
+    .card h2 {
+      font-size: 1rem;
+    }
+
+    .row,
+    .status {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    select {
+      width: 100%;
+      min-height: 40px;
+      border-radius: 14px;
+      border: 1px solid rgba(61, 125, 91, 0.16);
+      padding: 0 12px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.8);
+    }
+
+    .legend {
+      display: grid;
+      gap: 8px;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .legend strong {
+      color: var(--text);
+    }
+
+    .hint {
+      font-size: 0.88rem;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    .garden-status {
+      position: absolute;
+      left: 16px;
+      bottom: 16px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(251, 255, 252, 0.78);
+      border: 1px solid rgba(64, 107, 83, 0.12);
+      color: var(--muted);
+      font-size: 0.9rem;
+      box-shadow: 0 8px 18px rgba(50, 79, 62, 0.12);
+    }
+
+    .flower {
+      cursor: pointer;
+      transform-origin: center bottom;
+      animation: sway 5.6s ease-in-out infinite;
+    }
+
+    .flower .pulse-ring {
+      animation: pulse 2.4s ease-in-out infinite;
+      transform-origin: center;
+    }
+
+    .flower:hover .bloom-core,
+    .flower:focus-visible .bloom-core {
+      filter: brightness(1.08);
+    }
+
+    @keyframes sway {
+      0%, 100% { transform: rotate(-1.5deg); }
+      50% { transform: rotate(1.8deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.16; transform: scale(0.94); }
+      50% { opacity: 0.36; transform: scale(1.04); }
+    }
+
+    @media (max-width: 960px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 14px;
+      }
+
+      .surface {
+        padding: 18px;
+      }
+
+      .toolbar {
+        gap: 8px;
+      }
+
+      .type-button,
+      .mini-button {
+        min-height: 38px;
+        padding: 0 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="surface">
+      <h1>Soundscape Garden</h1>
+      <p class="lede">
+        Plant looping flowers across a soft SVG garden. Each bloom speaks with its own synth voice, nearby flowers
+        lean into one another, and the whole arrangement becomes a slow-moving ambient composition you can return to.
+      </p>
+
+      <div id="flower-toolbar" class="toolbar" aria-label="Flower types"></div>
+
+      <div class="garden-shell">
+        <svg id="garden" viewBox="0 0 960 600" role="img" aria-label="Interactive sound garden">
+          <defs>
+            <filter id="soft-glow">
+              <feGaussianBlur stdDeviation="5" result="blur"></feGaussianBlur>
+              <feMerge>
+                <feMergeNode in="blur"></feMergeNode>
+                <feMergeNode in="SourceGraphic"></feMergeNode>
+              </feMerge>
+            </filter>
+          </defs>
+          <rect x="0" y="0" width="960" height="600" fill="transparent"></rect>
+          <ellipse cx="200" cy="126" rx="160" ry="74" fill="rgba(255,255,255,0.34)"></ellipse>
+          <ellipse cx="762" cy="84" rx="124" ry="56" fill="rgba(255,255,255,0.24)"></ellipse>
+          <ellipse cx="760" cy="516" rx="204" ry="48" fill="rgba(174, 220, 183, 0.28)"></ellipse>
+          <ellipse cx="212" cy="548" rx="172" ry="40" fill="rgba(158, 213, 176, 0.24)"></ellipse>
+          <ellipse cx="474" cy="472" rx="96" ry="36" fill="rgba(140, 201, 181, 0.38)"></ellipse>
+          <ellipse cx="474" cy="478" rx="78" ry="28" fill="rgba(210, 236, 230, 0.8)"></ellipse>
+          <g id="link-layer"></g>
+          <g id="flower-layer"></g>
+        </svg>
+        <div id="garden-status" class="garden-status">Click to place a flower</div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <section class="card">
+        <h2>Global Mix</h2>
+        <label for="tempo-slider">
+          <div class="row"><span>Tempo</span><span id="tempo-value">88 BPM</span></div>
+          <input id="tempo-slider" type="range" min="50" max="160" step="1" value="88">
+        </label>
+        <label for="scale-select">
+          <div class="row"><span>Scale</span><span id="scale-label">Major Pentatonic</span></div>
+          <select id="scale-select">
+            <option value="majorPentatonic">Major Pentatonic</option>
+            <option value="minorPentatonic">Minor Pentatonic</option>
+            <option value="dorian">Dorian</option>
+            <option value="lydian">Lydian</option>
+          </select>
+        </label>
+        <label for="effect-slider">
+          <div class="row"><span>Reverb / Delay</span><span id="effect-value">34%</span></div>
+          <input id="effect-slider" type="range" min="0" max="100" step="1" value="34">
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>Garden State</h2>
+        <div class="status"><span>Flowers</span><span id="count-label">0</span></div>
+        <div class="status"><span>Audio</span><span id="audio-label">Idle</span></div>
+        <button id="clear-button" class="mini-button" type="button">Clear Garden</button>
+      </section>
+
+      <section class="card">
+        <h2>Flower Voices</h2>
+        <div class="legend">
+          <div><strong>Dawn Bell</strong> triangle plucks on the beat</div>
+          <div><strong>Moss Pad</strong> detuned saw drone</div>
+          <div><strong>Reed Chime</strong> sine shimmer with tremolo</div>
+          <div><strong>Percussion Bloom</strong> filtered noise and click</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>How To Tend It</h2>
+        <p class="hint">
+          Choose a flower type, click the garden to plant, and right-click any bloom to remove it. Nearby flowers
+          share gain, panning, and detune nudges, while the current scale quantizes new notes so the bed stays gentle.
+        </p>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "soundscape-garden-state";
+    const SVG_NS = "http://www.w3.org/2000/svg";
+    const GARDEN_WIDTH = 960;
+    const GARDEN_HEIGHT = 600;
+    const PROXIMITY_RADIUS = 220;
+    const MAX_FLOWERS = 28;
+    const ROOT_MIDI = 48;
+
+    const scales = {
+      majorPentatonic: { label: "Major Pentatonic", steps: [0, 2, 4, 7, 9] },
+      minorPentatonic: { label: "Minor Pentatonic", steps: [0, 3, 5, 7, 10] },
+      dorian: { label: "Dorian", steps: [0, 2, 3, 5, 7, 9, 10] },
+      lydian: { label: "Lydian", steps: [0, 2, 4, 6, 7, 9, 11] }
+    };
+
+    const flowerTypes = [
+      {
+        id: "dawn-bell",
+        name: "Dawn Bell",
+        color: "#f3aa88",
+        accent: "#f8d7a4",
+        oscillatorType: "triangle",
+        profile: "plucky",
+        rhythmDivision: 1,
+        stem: "#547b5d"
+      },
+      {
+        id: "moss-pad",
+        name: "Moss Pad",
+        color: "#88c59f",
+        accent: "#dff4cb",
+        oscillatorType: "sawtooth",
+        profile: "pad",
+        rhythmDivision: 4,
+        stem: "#4c7458"
+      },
+      {
+        id: "reed-chime",
+        name: "Reed Chime",
+        color: "#8fc1e8",
+        accent: "#edf7ff",
+        oscillatorType: "sine",
+        profile: "chime",
+        rhythmDivision: 2,
+        stem: "#587784"
+      },
+      {
+        id: "percussion-bloom",
+        name: "Percussion Bloom",
+        color: "#cb9be8",
+        accent: "#f3defb",
+        oscillatorType: "noise",
+        profile: "percussion",
+        rhythmDivision: 0.5,
+        stem: "#6e5b83"
+      }
+    ];
+
+    let selectedFlowerType = flowerTypes[0].id;
+    let audioContext = null;
+    let masterGain = null;
+    let dryGain = null;
+    let wetGain = null;
+    let delayNode = null;
+    let feedbackGain = null;
+    let lowpass = null;
+    let couplingTimer = 0;
+    let rhythmicTimer = 0;
+    let nextFlowerId = 1;
+
+    const state = {
+      tempo: 88,
+      scaleName: "majorPentatonic",
+      effectAmount: 0.34,
+      flowers: []
+    };
+
+    const toolbar = document.getElementById("flower-toolbar");
+    const garden = document.getElementById("garden");
+    const flowerLayer = document.getElementById("flower-layer");
+    const linkLayer = document.getElementById("link-layer");
+    const countLabel = document.getElementById("count-label");
+    const audioLabel = document.getElementById("audio-label");
+    const tempoSlider = document.getElementById("tempo-slider");
+    const tempoValue = document.getElementById("tempo-value");
+    const scaleSelect = document.getElementById("scale-select");
+    const scaleLabel = document.getElementById("scale-label");
+    const effectSlider = document.getElementById("effect-slider");
+    const effectValue = document.getElementById("effect-value");
+    const clearButton = document.getElementById("clear-button");
+    const gardenStatus = document.getElementById("garden-status");
+
+    function midiToFrequency(midi) {
+      return 440 * Math.pow(2, (midi - 69) / 12);
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function beatDuration() {
+      return 60 / state.tempo;
+    }
+
+    function quantizeNote(x, y) {
+      const scale = scales[state.scaleName].steps;
+      const octave = Math.floor((GARDEN_HEIGHT - y) / 120);
+      const degree = Math.floor((x / GARDEN_WIDTH) * scale.length * 2);
+      const midi = ROOT_MIDI + octave * 12 + scale[degree % scale.length];
+      return midiToFrequency(midi);
+    }
+
+    function serializeState() {
+      return {
+        tempo: state.tempo,
+        scaleName: state.scaleName,
+        effectAmount: state.effectAmount,
+        flowers: state.flowers.map((flower) => ({
+          id: flower.id,
+          type: flower.type.id,
+          x: flower.x,
+          y: flower.y
+        }))
+      };
+    }
+
+    function persistState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeState()));
+    }
+
+    function loadState() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        return;
+      }
+      try {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed.tempo === "number") {
+          state.tempo = clamp(parsed.tempo, 50, 160);
+        }
+        if (parsed.scaleName && scales[parsed.scaleName]) {
+          state.scaleName = parsed.scaleName;
+        }
+        if (typeof parsed.effectAmount === "number") {
+          state.effectAmount = clamp(parsed.effectAmount, 0, 1);
+        }
+        if (Array.isArray(parsed.flowers)) {
+          parsed.flowers.slice(0, MAX_FLOWERS).forEach((saved) => {
+            const type = flowerTypes.find((entry) => entry.id === saved.type);
+            if (!type) {
+              return;
+            }
+            state.flowers.push(createFlowerModel(type, clamp(saved.x, 54, 906), clamp(saved.y, 90, 548), saved.id));
+          });
+        }
+      } catch (error) {
+        console.warn("Unable to parse saved garden state.", error);
+      }
+    }
+
+    function ensureAudio() {
+      if (!audioContext) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioContext = new AudioContextClass();
+        masterGain = audioContext.createGain();
+        dryGain = audioContext.createGain();
+        wetGain = audioContext.createGain();
+        delayNode = audioContext.createDelay(1.2);
+        feedbackGain = audioContext.createGain();
+        lowpass = audioContext.createBiquadFilter();
+
+        masterGain.gain.value = 0.72;
+        dryGain.gain.value = 0.66;
+        wetGain.gain.value = state.effectAmount * 0.58;
+        delayNode.delayTime.value = 0.28;
+        feedbackGain.gain.value = 0.4;
+        lowpass.type = "lowpass";
+        lowpass.frequency.value = 1800;
+
+        masterGain.connect(dryGain);
+        masterGain.connect(delayNode);
+        delayNode.connect(lowpass);
+        lowpass.connect(feedbackGain);
+        feedbackGain.connect(delayNode);
+        lowpass.connect(wetGain);
+        dryGain.connect(audioContext.destination);
+        wetGain.connect(audioContext.destination);
+      }
+      if (audioContext.state === "suspended") {
+        audioContext.resume();
+      }
+      audioLabel.textContent = "Blooming";
+    }
+
+    function setEffectMix() {
+      if (!wetGain || !dryGain || !feedbackGain) {
+        return;
+      }
+      wetGain.gain.setTargetAtTime(state.effectAmount * 0.58, audioContext.currentTime, 0.05);
+      dryGain.gain.setTargetAtTime(0.74 - state.effectAmount * 0.22, audioContext.currentTime, 0.05);
+      feedbackGain.gain.setTargetAtTime(0.22 + state.effectAmount * 0.46, audioContext.currentTime, 0.05);
+    }
+
+    function createNoiseBuffer(durationSeconds) {
+      const frameCount = Math.max(1, Math.floor(audioContext.sampleRate * durationSeconds));
+      const buffer = audioContext.createBuffer(1, frameCount, audioContext.sampleRate);
+      const channel = buffer.getChannelData(0);
+      for (let index = 0; index < frameCount; index += 1) {
+        channel[index] = (Math.random() * 2 - 1) * (1 - index / frameCount);
+      }
+      return buffer;
+    }
+
+    function createFlowerModel(type, x, y, savedId) {
+      const id = savedId || `flower-${nextFlowerId++}`;
+      nextFlowerId = Math.max(nextFlowerId, Number(String(id).replace(/\D/g, "")) + 1 || nextFlowerId);
+      return {
+        id,
+        type,
+        x,
+        y,
+        baseFrequency: quantizeNote(x, y),
+        proximity: 0,
+        pan: 0,
+        detune: 0,
+        ui: null,
+        audio: null,
+        lastTriggerTime: 0
+      };
+    }
+
+    function createSvgElement(tag, attributes) {
+      const node = document.createElementNS(SVG_NS, tag);
+      Object.entries(attributes).forEach(([key, value]) => {
+        node.setAttribute(key, value);
+      });
+      return node;
+    }
+
+    function flowerMarkup(flower) {
+      const group = createSvgElement("g", {
+        class: "flower",
+        tabindex: "0",
+        "data-id": flower.id,
+        transform: `translate(${flower.x}, ${flower.y})`
+      });
+
+      const shadow = createSvgElement("ellipse", {
+        cx: "0",
+        cy: "10",
+        rx: "28",
+        ry: "9",
+        fill: "rgba(52, 84, 62, 0.14)"
+      });
+      const ring = createSvgElement("circle", {
+        class: "pulse-ring",
+        cx: "0",
+        cy: "-38",
+        r: "24",
+        fill: flower.type.accent,
+        opacity: "0.24",
+        filter: "url(#soft-glow)"
+      });
+      const stem = createSvgElement("path", {
+        d: "M 0 6 C -4 -30, 3 -52, 0 -84",
+        fill: "none",
+        stroke: flower.type.stem,
+        "stroke-width": "6",
+        "stroke-linecap": "round"
+      });
+      const leafLeft = createSvgElement("ellipse", {
+        cx: "-12",
+        cy: "-26",
+        rx: "14",
+        ry: "8",
+        fill: "rgba(132, 181, 136, 0.7)",
+        transform: "rotate(-26 -12 -26)"
+      });
+      const leafRight = createSvgElement("ellipse", {
+        cx: "14",
+        cy: "-16",
+        rx: "13",
+        ry: "8",
+        fill: "rgba(146, 191, 143, 0.68)",
+        transform: "rotate(30 14 -16)"
+      });
+
+      group.append(shadow, ring, stem, leafLeft, leafRight, ...flowerHead(flower));
+      group.addEventListener("contextmenu", (event) => {
+        event.preventDefault();
+        removeFlower(flower.id);
+      });
+      group.addEventListener("keydown", (event) => {
+        if (event.key === "Delete" || event.key === "Backspace") {
+          removeFlower(flower.id);
+        }
+      });
+      return group;
+    }
+
+    function flowerHead(flower) {
+      const pieces = [];
+      if (flower.type.id === "dawn-bell") {
+        pieces.push(createSvgElement("path", {
+          d: "M -24 -54 C -18 -84, 18 -84, 24 -54 C 18 -18, -18 -18, -24 -54 Z",
+          fill: flower.type.color
+        }));
+        pieces.push(createSvgElement("circle", {
+          class: "bloom-core",
+          cx: "0",
+          cy: "-52",
+          r: "9",
+          fill: flower.type.accent
+        }));
+      } else if (flower.type.id === "moss-pad") {
+        for (let index = 0; index < 6; index += 1) {
+          const angle = (index / 6) * Math.PI * 2;
+          pieces.push(createSvgElement("ellipse", {
+            cx: String(Math.cos(angle) * 18),
+            cy: String(-50 + Math.sin(angle) * 14),
+            rx: "15",
+            ry: "11",
+            fill: index % 2 === 0 ? flower.type.color : flower.type.accent
+          }));
+        }
+        pieces.push(createSvgElement("circle", {
+          class: "bloom-core",
+          cx: "0",
+          cy: "-50",
+          r: "11",
+          fill: "#6ea27f"
+        }));
+      } else if (flower.type.id === "reed-chime") {
+        for (let index = 0; index < 5; index += 1) {
+          const rotation = -40 + index * 20;
+          pieces.push(createSvgElement("ellipse", {
+            cx: "0",
+            cy: "-56",
+            rx: "8",
+            ry: "22",
+            fill: index % 2 === 0 ? flower.type.color : flower.type.accent,
+            transform: `rotate(${rotation} 0 -56)`
+          }));
+        }
+        pieces.push(createSvgElement("circle", {
+          class: "bloom-core",
+          cx: "0",
+          cy: "-54",
+          r: "8",
+          fill: "#f8ffff"
+        }));
+      } else {
+        pieces.push(createSvgElement("polygon", {
+          points: "0,-82 16,-58 40,-52 22,-34 26,-10 0,-22 -26,-10 -22,-34 -40,-52 -16,-58",
+          fill: flower.type.color
+        }));
+        pieces.push(createSvgElement("circle", {
+          class: "bloom-core",
+          cx: "0",
+          cy: "-48",
+          r: "9",
+          fill: flower.type.accent
+        }));
+      }
+      return pieces;
+    }
+
+    function buildToolbar() {
+      flowerTypes.forEach((type) => {
+        const button = document.createElement("button");
+        button.className = "type-button";
+        button.type = "button";
+        button.textContent = type.name;
+        button.dataset.type = type.id;
+        if (type.id === selectedFlowerType) {
+          button.classList.add("active");
+        }
+        button.addEventListener("click", () => {
+          selectedFlowerType = type.id;
+          Array.from(toolbar.children).forEach((entry) => {
+            entry.classList.toggle("active", entry.dataset.type === type.id);
+          });
+          gardenStatus.textContent = `Planting ${type.name}`;
+        });
+        toolbar.appendChild(button);
+      });
+    }
+
+    function spawnVoice(flower) {
+      if (!audioContext) {
+        return;
+      }
+
+      const output = audioContext.createGain();
+      const panNode = audioContext.createStereoPanner();
+      output.gain.value = 0;
+      panNode.pan.value = 0;
+      output.connect(panNode);
+      panNode.connect(masterGain);
+
+      const voice = { output, panNode };
+
+      if (flower.type.profile === "percussion") {
+        voice.noiseBuffer = createNoiseBuffer(0.2);
+      } else {
+        voice.oscillator = audioContext.createOscillator();
+        voice.oscillator.type = flower.type.oscillatorType;
+        voice.oscillator.frequency.value = flower.baseFrequency;
+        voice.oscillator.detune.value = 0;
+        voice.oscillator.connect(output);
+        voice.oscillator.start();
+
+        if (flower.type.profile === "pad") {
+          voice.detuneOscillator = audioContext.createOscillator();
+          voice.detuneOscillator.type = "sawtooth";
+          voice.detuneOscillator.frequency.value = flower.baseFrequency * 0.501;
+          voice.detuneOscillator.detune.value = -6;
+          voice.secondaryGain = audioContext.createGain();
+          voice.secondaryGain.gain.value = 0.22;
+          voice.detuneOscillator.connect(voice.secondaryGain);
+          voice.secondaryGain.connect(output);
+          voice.detuneOscillator.start();
+        }
+      }
+
+      flower.audio = voice;
+      updateFlowerVoice(flower, audioContext.currentTime, true);
+    }
+
+    function updateFlowerVoice(flower, when, immediate = false) {
+      if (!flower.audio || !audioContext) {
+        return;
+      }
+      const ramp = immediate ? 0.01 : 0.18;
+      const proximityBoost = flower.proximity * 0.22;
+      const targetPan = clamp((flower.x / GARDEN_WIDTH) * 2 - 1 + flower.pan, -1, 1);
+
+      if (flower.audio.oscillator) {
+        flower.audio.oscillator.frequency.setTargetAtTime(flower.baseFrequency, when, ramp);
+        flower.audio.oscillator.detune.setTargetAtTime(flower.detune, when, ramp);
+      }
+      if (flower.audio.detuneOscillator) {
+        flower.audio.detuneOscillator.frequency.setTargetAtTime(flower.baseFrequency * 0.5, when, ramp);
+      }
+      if (flower.type.profile === "pad") {
+        flower.audio.output.gain.setTargetAtTime(0.08 + proximityBoost, when, ramp);
+      } else if (flower.type.profile === "chime") {
+        const shimmer = 0.03 + Math.abs(Math.sin(when * 1.8 + flower.x * 0.01)) * 0.05;
+        flower.audio.output.gain.setTargetAtTime(shimmer + proximityBoost * 0.7, when, ramp);
+      } else {
+        flower.audio.output.gain.setTargetAtTime(0.0001, when, ramp);
+      }
+      flower.audio.panNode.pan.setTargetAtTime(targetPan, when, ramp);
+    }
+
+    function triggerFlower(flower, time) {
+      if (!audioContext || !flower.audio) {
+        return;
+      }
+
+      if (flower.type.profile === "plucky") {
+        const gain = flower.audio.output.gain;
+        gain.cancelScheduledValues(time);
+        gain.setValueAtTime(0.0001, time);
+        gain.linearRampToValueAtTime(0.22 + flower.proximity * 0.18, time + 0.02);
+        gain.exponentialRampToValueAtTime(0.0001, time + 0.52);
+      } else if (flower.type.profile === "percussion") {
+        const source = audioContext.createBufferSource();
+        source.buffer = flower.audio.noiseBuffer;
+        const filter = audioContext.createBiquadFilter();
+        filter.type = "bandpass";
+        filter.frequency.value = flower.baseFrequency * 1.4;
+        filter.Q.value = 3.2;
+        const gain = audioContext.createGain();
+        const click = audioContext.createOscillator();
+        const clickGain = audioContext.createGain();
+
+        source.connect(filter);
+        filter.connect(gain);
+        gain.connect(flower.audio.panNode);
+        gain.gain.setValueAtTime(0.0001, time);
+        gain.linearRampToValueAtTime(0.2 + flower.proximity * 0.14, time + 0.008);
+        gain.exponentialRampToValueAtTime(0.0001, time + 0.19);
+
+        click.type = "square";
+        click.frequency.setValueAtTime(flower.baseFrequency * 0.9, time);
+        click.frequency.exponentialRampToValueAtTime(flower.baseFrequency * 0.35, time + 0.05);
+        click.connect(clickGain);
+        clickGain.connect(flower.audio.panNode);
+        clickGain.gain.setValueAtTime(0.08, time);
+        clickGain.gain.exponentialRampToValueAtTime(0.0001, time + 0.06);
+
+        source.start(time);
+        source.stop(time + 0.2);
+        click.start(time);
+        click.stop(time + 0.07);
+      }
+
+      flower.lastTriggerTime = time;
+    }
+
+    function stopFlowerVoice(flower) {
+      if (!flower.audio) {
+        return;
+      }
+      const now = audioContext ? audioContext.currentTime : 0;
+      if (flower.audio.output) {
+        flower.audio.output.gain.cancelScheduledValues(now);
+        flower.audio.output.gain.setTargetAtTime(0.0001, now, 0.06);
+      }
+      if (flower.audio.oscillator) {
+        flower.audio.oscillator.stop(now + 0.1);
+      }
+      if (flower.audio.detuneOscillator) {
+        flower.audio.detuneOscillator.stop(now + 0.1);
+      }
+    }
+
+    function addFlower(typeId, x, y) {
+      if (state.flowers.length >= MAX_FLOWERS) {
+        gardenStatus.textContent = `Garden full at ${MAX_FLOWERS} flowers`;
+        return;
+      }
+      const type = flowerTypes.find((entry) => entry.id === typeId);
+      if (!type) {
+        return;
+      }
+      const flower = createFlowerModel(type, x, y);
+      flower.ui = flowerMarkup(flower);
+      state.flowers.push(flower);
+      flowerLayer.appendChild(flower.ui);
+      if (audioContext) {
+        spawnVoice(flower);
+      }
+      applyProximityCoupling();
+      syncUi();
+      persistState();
+      gardenStatus.textContent = `${type.name} planted`;
+    }
+
+    function removeFlower(id) {
+      const index = state.flowers.findIndex((flower) => flower.id === id);
+      if (index === -1) {
+        return;
+      }
+      const [flower] = state.flowers.splice(index, 1);
+      stopFlowerVoice(flower);
+      if (flower.ui) {
+        flower.ui.remove();
+      }
+      applyProximityCoupling();
+      syncUi();
+      persistState();
+      gardenStatus.textContent = `${flower.type.name} removed`;
+    }
+
+    function clearGarden() {
+      state.flowers.slice().forEach((flower) => removeFlower(flower.id));
+      gardenStatus.textContent = "Garden cleared";
+    }
+
+    function renderLinks(linkPairs) {
+      linkLayer.innerHTML = "";
+      linkPairs.forEach((pair) => {
+        const line = createSvgElement("line", {
+          x1: pair.a.x,
+          y1: pair.a.y - 38,
+          x2: pair.b.x,
+          y2: pair.b.y - 38,
+          stroke: "rgba(255,255,255,0.32)",
+          "stroke-width": String(1.4 + pair.strength * 2),
+          "stroke-linecap": "round",
+          opacity: String(0.2 + pair.strength * 0.36)
+        });
+        linkLayer.appendChild(line);
+      });
+    }
+
+    function applyProximityCoupling() {
+      const linkPairs = [];
+      state.flowers.forEach((flower) => {
+        flower.proximity = 0;
+        flower.pan = 0;
+        flower.detune = 0;
+      });
+
+      for (let i = 0; i < state.flowers.length; i += 1) {
+        for (let j = i + 1; j < state.flowers.length; j += 1) {
+          const a = state.flowers[i];
+          const b = state.flowers[j];
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const distance = Math.hypot(dx, dy);
+          if (distance >= PROXIMITY_RADIUS) {
+            continue;
+          }
+          const strength = 1 - distance / PROXIMITY_RADIUS;
+          a.proximity += strength;
+          b.proximity += strength;
+          a.pan -= (dx / PROXIMITY_RADIUS) * 0.18;
+          b.pan += (dx / PROXIMITY_RADIUS) * 0.18;
+          a.detune -= strength * 8;
+          b.detune += strength * 8;
+          linkPairs.push({ a, b, strength });
+        }
+      }
+
+      const now = audioContext ? audioContext.currentTime : 0;
+      state.flowers.forEach((flower) => updateFlowerVoice(flower, now));
+      renderLinks(linkPairs);
+    }
+
+    function syncUi() {
+      countLabel.textContent = String(state.flowers.length);
+      tempoValue.textContent = `${state.tempo} BPM`;
+      scaleLabel.textContent = scales[state.scaleName].label;
+      effectValue.textContent = `${Math.round(state.effectAmount * 100)}%`;
+      tempoSlider.value = String(state.tempo);
+      scaleSelect.value = state.scaleName;
+      effectSlider.value = String(Math.round(state.effectAmount * 100));
+      if (!audioContext) {
+        audioLabel.textContent = "Idle";
+      }
+    }
+
+    function restoreFlowers() {
+      state.flowers.forEach((flower) => {
+        flower.baseFrequency = quantizeNote(flower.x, flower.y);
+        flower.ui = flowerMarkup(flower);
+        flowerLayer.appendChild(flower.ui);
+      });
+    }
+
+    function reapplyScale() {
+      state.flowers.forEach((flower) => {
+        flower.baseFrequency = quantizeNote(flower.x, flower.y);
+      });
+      const now = audioContext ? audioContext.currentTime : 0;
+      state.flowers.forEach((flower) => updateFlowerVoice(flower, now));
+      persistState();
+    }
+
+    function schedulerFrame(timestamp) {
+      if (!audioContext) {
+        requestAnimationFrame(schedulerFrame);
+        return;
+      }
+
+      if (!couplingTimer || timestamp - couplingTimer > 120) {
+        couplingTimer = timestamp;
+        applyProximityCoupling();
+      }
+
+      const now = audioContext.currentTime;
+      if (!rhythmicTimer) {
+        rhythmicTimer = now;
+      }
+
+      while (rhythmicTimer < now + 0.18) {
+        state.flowers.forEach((flower) => {
+          const intervalBeats = Math.max(0.25, flower.type.rhythmDivision);
+          const intervalSeconds = beatDuration() * intervalBeats;
+          const shouldTrigger = flower.type.profile === "plucky" || flower.type.profile === "percussion";
+          if (shouldTrigger && rhythmicTimer - flower.lastTriggerTime >= intervalSeconds - 0.001) {
+            triggerFlower(flower, rhythmicTimer);
+          }
+        });
+        rhythmicTimer += beatDuration() * 0.25;
+      }
+
+      requestAnimationFrame(schedulerFrame);
+    }
+
+    function svgPointFromEvent(event) {
+      const bounds = garden.getBoundingClientRect();
+      const x = ((event.clientX - bounds.left) / bounds.width) * GARDEN_WIDTH;
+      const y = ((event.clientY - bounds.top) / bounds.height) * GARDEN_HEIGHT;
+      return {
+        x: clamp(x, 54, 906),
+        y: clamp(y, 100, 552)
+      };
+    }
+
+    function onGardenPointer(event) {
+      if (event.button !== 0) {
+        return;
+      }
+      if (event.target.closest(".flower")) {
+        return;
+      }
+      ensureAudio();
+      const point = svgPointFromEvent(event);
+      addFlower(selectedFlowerType, point.x, point.y);
+    }
+
+    function hydrateAudio() {
+      if (!audioContext) {
+        return;
+      }
+      state.flowers.forEach((flower) => {
+        if (!flower.audio) {
+          spawnVoice(flower);
+        }
+      });
+      setEffectMix();
+      applyProximityCoupling();
+    }
+
+    buildToolbar();
+    loadState();
+    restoreFlowers();
+    syncUi();
+    requestAnimationFrame(schedulerFrame);
+
+    garden.addEventListener("pointerdown", onGardenPointer);
+    tempoSlider.addEventListener("input", () => {
+      state.tempo = Number(tempoSlider.value);
+      tempoValue.textContent = `${state.tempo} BPM`;
+      persistState();
+    });
+    scaleSelect.addEventListener("change", () => {
+      state.scaleName = scaleSelect.value;
+      scaleLabel.textContent = scales[state.scaleName].label;
+      reapplyScale();
+      gardenStatus.textContent = `${scales[state.scaleName].label} active`;
+    });
+    effectSlider.addEventListener("input", () => {
+      state.effectAmount = Number(effectSlider.value) / 100;
+      effectValue.textContent = `${Math.round(state.effectAmount * 100)}%`;
+      if (audioContext) {
+        setEffectMix();
+      }
+      persistState();
+    });
+    clearButton.addEventListener("click", () => {
+      clearGarden();
+      persistState();
+    });
+    window.addEventListener("pointerdown", () => {
+      ensureAudio();
+      hydrateAudio();
+    }, { once: true });
+    window.addEventListener("beforeunload", persistState);
+  </script>
+</body>
+</html>
