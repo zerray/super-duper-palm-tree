@@ -322,6 +322,7 @@
         <div class="chip" id="turnChip"><strong>Turn:</strong> <span id="turnLabel">Blue</span></div>
         <div class="chip"><strong>Status:</strong> <span id="statusText">Blue to move.</span></div>
         <div class="chip"><strong>Board:</strong> <span id="boardLabel">7 × 7</span></div>
+        <div class="chip"><strong>Move:</strong> <span id="moveLabel">0</span></div>
       </div>
       <div class="board-shell">
         <svg id="board" aria-label="Hex Chain Reaction board"></svg>
@@ -365,8 +366,9 @@
   </div>
 
   <script>
-    const BOARD_ROWS = 7;
-    const BOARD_COLS = 7;
+    const GRID_SIZE = 7;
+    const BOARD_ROWS = GRID_SIZE;
+    const BOARD_COLS = GRID_SIZE;
     const ANIMATION_STEP_MS = 240;
     const HEX_RADIUS = 38;
     const HEX_H_SPACING = Math.sqrt(3) * HEX_RADIUS;
@@ -395,6 +397,7 @@
     const turnLabel = document.getElementById("turnLabel");
     const statusText = document.getElementById("statusText");
     const boardLabel = document.getElementById("boardLabel");
+    const moveLabel = document.getElementById("moveLabel");
     const blueCount = document.getElementById("blueCount");
     const redCount = document.getElementById("redCount");
     const cascadeCount = document.getElementById("cascadeCount");
@@ -416,7 +419,8 @@
         [PLAYER_TWO]: 0
       },
       highlightedKeys: new Set(),
-      cascadeStep: 0
+      cascadeStep: 0,
+      totalMoves: 0
     };
 
     function sleep(ms) {
@@ -616,6 +620,7 @@
           ? "Resolving chain reaction..."
           : `${PLAYER_NAMES[state.currentPlayer]} to move.`;
       boardLabel.textContent = `${BOARD_ROWS} × ${BOARD_COLS}`;
+      moveLabel.textContent = `${state.totalMoves}`;
       blueCount.textContent = `${summary.blueOwned} cells / ${summary.blueTokens} tokens`;
       redCount.textContent = `${summary.redOwned} cells / ${summary.redTokens} tokens`;
       cascadeCount.textContent = `${state.cascadeStep}`;
@@ -703,6 +708,7 @@
       cell.owner = state.currentPlayer;
       cell.count += 1;
       state.movesPlayed[state.currentPlayer] += 1;
+      state.totalMoves += 1;
       detailText.textContent = `${PLAYER_NAMES[state.currentPlayer]} played at axial ${q},${r}.`;
       render();
 
@@ -729,6 +735,7 @@
       };
       state.highlightedKeys = new Set();
       state.cascadeStep = 0;
+      state.totalMoves = 0;
       closeWinnerOverlay();
       detailText.textContent = "Blue begins. Corner hexes overflow later than center hexes because capacity matches live neighbor count.";
       render();
