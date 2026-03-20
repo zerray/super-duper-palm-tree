@@ -137,6 +137,11 @@
       border: 1px solid rgba(125, 211, 252, 0.18);
     }
 
+    button.active-mode {
+      color: #04111f;
+      background: linear-gradient(135deg, #fda4af, #fb7185);
+    }
+
     button:hover {
       transform: translateY(-1px);
     }
@@ -205,7 +210,7 @@
   <div class="hud">
     <section class="panel">
       <h1>Gravity Well Sandbox</h1>
-      <p class="subtle">Left-click to place attractors, right-click to place repulsors, then let the particle stream bend into orbits, rebounds, and slingshots.</p>
+      <p class="subtle">Click to place attractors, shift-click or right-click to place repulsors, then let the particle stream bend into orbits, rebounds, and slingshots. On touch devices, use the placement toggle.</p>
       <div class="controls">
         <label class="control-row" for="gravity-slider">
           <span class="control-head">
@@ -230,6 +235,7 @@
         </label>
       </div>
       <div class="button-row">
+        <button id="mode-button" class="secondary" type="button">Mode: Attractor</button>
         <button id="clear-button" type="button">Clear</button>
         <button id="save-button" class="secondary" type="button">Save PNG</button>
       </div>
@@ -269,10 +275,11 @@
     const attractorCountLabel = document.getElementById("attractor-count");
     const repulsorCountLabel = document.getElementById("repulsor-count");
     const fpsReadout = document.getElementById("fps-readout");
+    const modeButton = document.getElementById("mode-button");
     const clearButton = document.getElementById("clear-button");
     const saveButton = document.getElementById("save-button");
 
-    const MAX_PARTICLES = 200;
+    const MAX_PARTICLES = 600;
     const MAX_SOURCES = 24;
     const PARTICLE_RADIUS = 2.2;
     const SOURCE_RADIUS = 16;
@@ -289,6 +296,8 @@
       dpr: 1,
       particles: [],
       sources: [],
+      placementPolarity: 1,
+      suppressClickUntil: 0,
       spawnAccumulator: 0,
       lastFrame: 0,
       fpsAccumulator: 0,
@@ -321,6 +330,8 @@
       attractorCountLabel.textContent = String(state.sources.filter((source) => source.polarity > 0).length);
       repulsorCountLabel.textContent = String(state.sources.filter((source) => source.polarity < 0).length);
       fpsReadout.textContent = String(Math.round(state.fps));
+      modeButton.textContent = `Mode: ${state.placementPolarity > 0 ? "Attractor" : "Repulsor"}`;
+      modeButton.classList.toggle("active-mode", state.placementPolarity < 0);
     }
 
     function resize() {
@@ -359,6 +370,10 @@
         strength: BASE_GRAVITY * (0.7 + Math.random() * 0.6)
       });
       updateLabels();
+    }
+
+    function handlePlacement(x, y, polarity) {
+      addSource(x, y, polarity);
     }
 
     function createParticle() {
@@ -596,20 +611,39 @@
     }
 
     canvas.addEventListener("click", (event) => {
+      if (performance.now() < state.suppressClickUntil) {
+        return;
+      }
+
       const { x, y } = getPointerPosition(event);
-      addSource(x, y, 1);
+      handlePlacement(x, y, event.shiftKey ? -1 : 1);
     });
 
     canvas.addEventListener("contextmenu", (event) => {
       event.preventDefault();
       const { x, y } = getPointerPosition(event);
-      addSource(x, y, -1);
+      handlePlacement(x, y, -1);
+    });
+
+    canvas.addEventListener("pointerdown", (event) => {
+      if (event.pointerType !== "touch") {
+        return;
+      }
+
+      event.preventDefault();
+      state.suppressClickUntil = performance.now() + 450;
+      const { x, y } = getPointerPosition(event);
+      handlePlacement(x, y, state.placementPolarity);
     });
 
     [gravitySlider, spawnSlider, trailSlider].forEach((input) => {
       input.addEventListener("input", updateLabels);
     });
 
+    modeButton.addEventListener("click", () => {
+      state.placementPolarity *= -1;
+      updateLabels();
+    });
     clearButton.addEventListener("click", clearScene);
     saveButton.addEventListener("click", saveScreenshot);
     window.addEventListener("resize", resize);

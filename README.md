@@ -160,7 +160,8 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 新增 `gravity-well/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的重力井物理沙盒，包含：
 
-- 左键放置 attractor、右键放置 repulsor，并实时影响粒子轨迹
+- 支持至少 500 个同时活动的粒子；点击放置 attractor，按住 `Shift` 点击或右键放置 repulsor
+- 移动端可通过 placement toggle 在 attractor / repulsor 之间切换并直接触控放置
 - 可调节 gravity strength、particle spawn rate、trail length
 - 基于粒子速度的 HSL 彩色拖尾、清空重置与 PNG 导出
 
