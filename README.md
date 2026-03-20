@@ -34,3 +34,14 @@ This repository contains a simple agent-factory workflow for planning and comple
 - 使用 `localStorage` 保存并展示个人最佳 WPM
 
 直接用浏览器打开 `typing-speed-test/index.html` 即可开始测试。
+
+## Sokoban Warehouse
+
+新增 `sokoban-game/index.html`，提供一个可直接在浏览器中打开的 Sokoban 推箱子小游戏，包含：
+
+- 10 个逐步加难的关卡
+- 键盘方向键 / `WASD` 移动、`Z` 撤销
+- 关卡选择、步数统计与通关提示
+- 使用 `localStorage` 持久化当前进度与已解锁关卡
+
+直接用浏览器打开 `sokoban-game/index.html` 即可游玩。
