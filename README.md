@@ -44,3 +44,14 @@ This repository contains a simple agent-factory workflow for planning and comple
 - `Regenerate` 生成新种子场景，`Export PNG` 导出当前画面
 
 直接用浏览器打开 `pixel-landscape/index.html` 即可运行。
+
+## Rhythm Tap Reflex
+
+新增 `rhythm-tap/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的节奏反应游戏，包含：
+
+- 4 条轨道与固定 hit zone，使用 `D` `F` `J` `K` 击打下落音符
+- 实时分数、连击、失误次数与速度显示
+- 连击加分、失误清空连击，以及 10 次失误后的 game over
+- 基于 `requestAnimationFrame` 的滚动动画、程序化节奏生成与 Web Audio API 音效
+
+直接用浏览器打开 `rhythm-tap/index.html`，点击开始后即可游玩。
