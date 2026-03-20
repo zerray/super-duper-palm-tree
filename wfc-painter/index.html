@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wave Function Collapse Painter</title>
+  <style>
+    :root {
+      --bg: #f2efe5;
+      --panel: rgba(18, 28, 38, 0.94);
+      --surface: rgba(255, 252, 245, 0.84);
+      --surface-strong: rgba(252, 248, 238, 0.96);
+      --text: #18212a;
+      --muted: #55616d;
+      --line: rgba(30, 43, 56, 0.16);
+      --accent: #c45f2d;
+      --accent-strong: #8f3819;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.9), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(240, 222, 196, 0.8), transparent 24%),
+        linear-gradient(180deg, #ebe5d7 0%, #d9d3c7 100%);
+      padding: 20px;
+    }
+
+    .app {
+      width: min(1200px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      border-radius: 30px;
+      overflow: hidden;
+      border: 1px solid rgba(22, 32, 42, 0.14);
+      box-shadow: 0 28px 80px rgba(31, 30, 26, 0.18);
+      background: rgba(255, 250, 242, 0.66);
+      backdrop-filter: blur(10px);
+    }
+
+    .stage {
+      padding: 24px;
+      background:
+        linear-gradient(180deg, rgba(255, 253, 248, 0.92), rgba(244, 237, 224, 0.86)),
+        repeating-linear-gradient(135deg, rgba(95, 74, 45, 0.035) 0 14px, transparent 14px 28px);
+    }
+
+    .panel {
+      display: grid;
+      gap: 14px;
+      padding: 24px;
+      background: linear-gradient(180deg, rgba(16, 26, 35, 0.98), rgba(12, 20, 28, 0.98));
+      color: #f5ead5;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 4vw, 3.4rem);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+    }
+
+    .lede {
+      margin-top: 12px;
+      max-width: 64ch;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    .canvas-card {
+      margin-top: 22px;
+      padding: 18px;
+      border-radius: 24px;
+      border: 1px solid rgba(44, 56, 68, 0.12);
+      background: linear-gradient(180deg, var(--surface-strong), var(--surface));
+    }
+
+    #wfc-canvas {
+      width: 100%;
+      max-width: 780px;
+      display: block;
+      margin: 0 auto;
+      border-radius: 18px;
+      background: #f7f1e1;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      box-shadow: inset 0 0 0 1px rgba(20, 30, 40, 0.08), 0 14px 32px rgba(36, 31, 24, 0.16);
+    }
+
+    .status-bar {
+      margin-top: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: space-between;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    .card {
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255, 246, 223, 0.08);
+      border: 1px solid rgba(255, 231, 191, 0.12);
+    }
+
+    .card h2 {
+      font-size: 1rem;
+      color: #fff3d7;
+    }
+
+    label {
+      display: grid;
+      gap: 8px;
+      font-size: 0.95rem;
+      color: #f6e4c1;
+    }
+
+    .label-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    select,
+    input[type="range"],
+    button {
+      font: inherit;
+    }
+
+    select,
+    input[type="range"] {
+      width: 100%;
+    }
+
+    select {
+      min-height: 42px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 239, 212, 0.2);
+      background: rgba(255, 250, 240, 0.95);
+      color: #1b232b;
+      padding: 0 12px;
+    }
+
+    input[type="range"] {
+      accent-color: #f1ab5d;
+    }
+
+    button {
+      min-height: 44px;
+      border: 0;
+      border-radius: 999px;
+      cursor: pointer;
+      padding: 0 16px;
+      color: #fff8ed;
+      background: linear-gradient(180deg, var(--accent) 0%, var(--accent-strong) 100%);
+      box-shadow: 0 10px 18px rgba(0, 0, 0, 0.22);
+    }
+
+    button.secondary {
+      color: #271d16;
+      background: linear-gradient(180deg, #f3ddb7 0%, #dfbc83 100%);
+    }
+
+    .button-row {
+      display: grid;
+      gap: 10px;
+    }
+
+    .legend {
+      display: grid;
+      gap: 8px;
+      font-size: 0.9rem;
+      line-height: 1.45;
+      color: #e8d7b7;
+    }
+
+    .tile-preview {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    #tile-preview {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 239, 212, 0.18);
+      background: rgba(255, 252, 246, 0.92);
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="stage">
+      <h1>Wave Function Collapse Painter</h1>
+      <p class="lede">
+        Pick a tile set, pin a few cells, and watch a simple WFC solver collapse the grid one decision at a time.
+        Contradictions trigger a clean restart so the canvas never freezes, and the result can be exported as a PNG.
+      </p>
+      <div class="canvas-card">
+        <canvas id="wfc-canvas" width="720" height="720" aria-label="Wave function collapse grid"></canvas>
+        <div class="status-bar">
+          <span id="status-text">Ready</span>
+          <span id="detail-text">0 / 0 collapsed</span>
+        </div>
+      </div>
+    </section>
+    <aside class="panel">
+      <section class="card">
+        <h2>Generator</h2>
+        <label for="tileset-select">
+          <span class="label-row"><span>Tile set</span><span id="tileset-label">Pipes</span></span>
+          <select id="tileset-select"></select>
+        </label>
+        <label for="grid-size-select">
+          <span class="label-row"><span>Grid size</span><span id="grid-size-label">16 x 16</span></span>
+          <select id="grid-size-select">
+            <option value="12">12 x 12</option>
+            <option value="16" selected>16 x 16</option>
+            <option value="24">24 x 24</option>
+          </select>
+        </label>
+        <label for="speed-slider">
+          <span class="label-row"><span>Speed</span><span id="speed-label">8 steps / frame</span></span>
+          <input id="speed-slider" type="range" min="1" max="40" step="1" value="8">
+        </label>
+      </section>
+      <section class="card">
+        <h2>Pin Painter</h2>
+        <label for="pin-tile-select">
+          <span class="label-row"><span>Click action</span><span id="pin-action-label">Paint tile</span></span>
+          <select id="pin-tile-select"></select>
+        </label>
+        <div class="tile-preview">
+          <canvas id="tile-preview" width="48" height="48" aria-label="Selected tile preview"></canvas>
+          <p class="legend">Click a cell to pin the selected tile. Choose <strong>Clear Pin</strong> to remove a lock and reopen that cell.</p>
+        </div>
+      </section>
+      <section class="card">
+        <h2>Actions</h2>
+        <div class="button-row">
+          <button id="restart-button" type="button">Restart</button>
+          <button id="export-button" class="secondary" type="button">Export PNG</button>
+        </div>
+      </section>
+      <section class="card">
+        <h2>Notes</h2>
+        <div class="legend">
+          <span>The solver picks the lowest-entropy cell, collapses it, then propagates edge constraints.</span>
+          <span>Pinned cells stay fixed across restarts.</span>
+          <span>If a contradiction appears, the board automatically restarts and counts the retry.</span>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("wfc-canvas");
+    const ctx = canvas.getContext("2d");
+    const previewCanvas = document.getElementById("tile-preview");
+    const previewCtx = previewCanvas.getContext("2d");
+
+    const tilesetSelect = document.getElementById("tileset-select");
+    const gridSizeSelect = document.getElementById("grid-size-select");
+    const speedSlider = document.getElementById("speed-slider");
+    const pinTileSelect = document.getElementById("pin-tile-select");
+    const restartButton = document.getElementById("restart-button");
+    const exportButton = document.getElementById("export-button");
+
+    const tilesetLabel = document.getElementById("tileset-label");
+    const gridSizeLabel = document.getElementById("grid-size-label");
+    const speedLabel = document.getElementById("speed-label");
+    const statusText = document.getElementById("status-text");
+    const detailText = document.getElementById("detail-text");
+
+    const DIRS = [
+      { key: "N", dx: 0, dy: -1, opposite: "S" },
+      { key: "E", dx: 1, dy: 0, opposite: "W" },
+      { key: "S", dx: 0, dy: 1, opposite: "N" },
+      { key: "W", dx: -1, dy: 0, opposite: "E" }
+    ];
+
+    const TILE_LIBRARY = [
+      { id: "blank", name: "Blank", sockets: { N: 0, E: 0, S: 0, W: 0 } },
+      { id: "straight_h", name: "Horizontal", sockets: { N: 0, E: 1, S: 0, W: 1 } },
+      { id: "straight_v", name: "Vertical", sockets: { N: 1, E: 0, S: 1, W: 0 } },
+      { id: "corner_ne", name: "Corner NE", sockets: { N: 1, E: 1, S: 0, W: 0 } },
+      { id: "corner_es", name: "Corner ES", sockets: { N: 0, E: 1, S: 1, W: 0 } },
+      { id: "corner_sw", name: "Corner SW", sockets: { N: 0, E: 0, S: 1, W: 1 } },
+      { id: "corner_wn", name: "Corner WN", sockets: { N: 1, E: 0, S: 0, W: 1 } },
+      { id: "tee_n", name: "Tee North", sockets: { N: 0, E: 1, S: 1, W: 1 } },
+      { id: "tee_e", name: "Tee East", sockets: { N: 1, E: 0, S: 1, W: 1 } },
+      { id: "tee_s", name: "Tee South", sockets: { N: 1, E: 1, S: 0, W: 1 } },
+      { id: "tee_w", name: "Tee West", sockets: { N: 1, E: 1, S: 1, W: 0 } },
+      { id: "cross", name: "Cross", sockets: { N: 1, E: 1, S: 1, W: 1 } }
+    ];
+
+    const TILESETS = {
+      pipes: {
+        id: "pipes",
+        name: "Pipes",
+        background: "#efe5cf",
+        stroke: "#315469",
+        accent: "#9bc2d3",
+        fill: "#8f5a3d",
+        drawTile(targetCtx, tile, x, y, size, pinned) {
+          drawBase(targetCtx, x, y, size, "#f2ebd8", "#dcc8a8");
+          targetCtx.fillStyle = "#ad7a54";
+          targetCtx.fillRect(x + size * 0.18, y + size * 0.18, size * 0.64, size * 0.64);
+          targetCtx.strokeStyle = "#27485a";
+          targetCtx.lineWidth = Math.max(2, size * 0.11);
+          targetCtx.lineCap = "round";
+          drawConnections(targetCtx, tile, x, y, size, "#86b8cf", "#2f546a", 0.22);
+          if (tile.id === "blank") {
+            targetCtx.strokeStyle = "#cfbe9c";
+            targetCtx.lineWidth = Math.max(1, size * 0.04);
+            targetCtx.beginPath();
+            targetCtx.moveTo(x + size * 0.22, y + size * 0.78);
+            targetCtx.lineTo(x + size * 0.78, y + size * 0.22);
+            targetCtx.stroke();
+          }
+          if (pinned) {
+            drawPinBadge(targetCtx, x, y, size, "#c45f2d");
+          }
+        }
+      },
+      circuits: {
+        id: "circuits",
+        name: "Circuits",
+        background: "#0c1b1d",
+        stroke: "#6ff0ba",
+        accent: "#c6ff7b",
+        fill: "#13363b",
+        drawTile(targetCtx, tile, x, y, size, pinned) {
+          drawBase(targetCtx, x, y, size, "#0f2325", "#19353a");
+          targetCtx.fillStyle = "#132d32";
+          targetCtx.fillRect(x + size * 0.1, y + size * 0.1, size * 0.8, size * 0.8);
+          targetCtx.strokeStyle = "#61e0af";
+          targetCtx.lineWidth = Math.max(1.5, size * 0.08);
+          targetCtx.lineCap = "round";
+          drawConnections(targetCtx, tile, x, y, size, "#b6ff6c", "#61e0af", 0.12);
+          drawCircuitNodes(targetCtx, tile, x, y, size);
+          if (pinned) {
+            drawPinBadge(targetCtx, x, y, size, "#f5c24c");
+          }
+        }
+      }
+    };
+
+    const state = {
+      gridSize: 16,
+      speed: 8,
+      cells: [],
+      propagationQueue: [],
+      pinnedCells: new Map(),
+      tileset: TILESETS.pipes,
+      retryCount: 0,
+      done: false,
+      pendingRestart: false
+    };
+
+    function drawBase(targetCtx, x, y, size, fill, line) {
+      targetCtx.fillStyle = fill;
+      targetCtx.fillRect(x, y, size, size);
+      targetCtx.strokeStyle = line;
+      targetCtx.lineWidth = 1;
+      targetCtx.strokeRect(x + 0.5, y + 0.5, size - 1, size - 1);
+    }
+
+    function drawConnections(targetCtx, tile, x, y, size, glow, stroke, coreRadius) {
+      const cx = x + size / 2;
+      const cy = y + size / 2;
+      const radius = size * coreRadius;
+      targetCtx.strokeStyle = glow;
+      targetCtx.lineWidth = Math.max(2, size * 0.22);
+      DIRS.forEach((dir) => {
+        if (!tile.sockets[dir.key]) {
+          return;
+        }
+        targetCtx.beginPath();
+        targetCtx.moveTo(cx, cy);
+        targetCtx.lineTo(cx + dir.dx * size * 0.38, cy + dir.dy * size * 0.38);
+        targetCtx.stroke();
+      });
+      targetCtx.fillStyle = stroke;
+      targetCtx.beginPath();
+      targetCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+      targetCtx.fill();
+      targetCtx.fillStyle = glow;
+      targetCtx.beginPath();
+      targetCtx.arc(cx, cy, radius * 0.55, 0, Math.PI * 2);
+      targetCtx.fill();
+    }
+
+    function drawCircuitNodes(targetCtx, tile, x, y, size) {
+      const cx = x + size / 2;
+      const cy = y + size / 2;
+      targetCtx.fillStyle = "#8afad6";
+      DIRS.forEach((dir) => {
+        if (!tile.sockets[dir.key]) {
+          return;
+        }
+        targetCtx.fillRect(
+          cx + dir.dx * size * 0.28 - size * 0.05,
+          cy + dir.dy * size * 0.28 - size * 0.05,
+          size * 0.1,
+          size * 0.1
+        );
+      });
+      if (tile.id.startsWith("tee") || tile.id === "cross") {
+        targetCtx.fillStyle = "#f3f05b";
+        targetCtx.fillRect(cx - size * 0.08, cy - size * 0.08, size * 0.16, size * 0.16);
+      }
+    }
+
+    function drawPinBadge(targetCtx, x, y, size, color) {
+      targetCtx.fillStyle = color;
+      targetCtx.beginPath();
+      targetCtx.arc(x + size * 0.16, y + size * 0.16, size * 0.09, 0, Math.PI * 2);
+      targetCtx.fill();
+    }
+
+    function buildAdjacency(tiles) {
+      return tiles.map((tile) => {
+        const allowed = {};
+        DIRS.forEach((dir) => {
+          allowed[dir.key] = new Set();
+          tiles.forEach((candidate, index) => {
+            if (tile.sockets[dir.key] === candidate.sockets[dir.opposite]) {
+              allowed[dir.key].add(index);
+            }
+          });
+        });
+        return allowed;
+      });
+    }
+
+    Object.values(TILESETS).forEach((tileset) => {
+      tileset.tiles = TILE_LIBRARY.map((tile) => ({ ...tile }));
+      tileset.adjacency = buildAdjacency(tileset.tiles);
+    });
+
+    function fillTilesetOptions() {
+      tilesetSelect.innerHTML = "";
+      Object.values(TILESETS).forEach((tileset) => {
+        const option = document.createElement("option");
+        option.value = tileset.id;
+        option.textContent = tileset.name;
+        tilesetSelect.appendChild(option);
+      });
+    }
+
+    function fillPinOptions() {
+      pinTileSelect.innerHTML = "";
+      const clearOption = document.createElement("option");
+      clearOption.value = "";
+      clearOption.textContent = "Clear Pin";
+      pinTileSelect.appendChild(clearOption);
+
+      state.tileset.tiles.forEach((tile, index) => {
+        const option = document.createElement("option");
+        option.value = String(index);
+        option.textContent = tile.name;
+        pinTileSelect.appendChild(option);
+      });
+      pinTileSelect.value = state.tileset.tiles.findIndex((tile) => tile.id === "cross").toString();
+      renderPreview();
+    }
+
+    function createCell(options) {
+      return {
+        options: new Set(options),
+        pinned: false
+      };
+    }
+
+    function getCellIndex(x, y) {
+      return y * state.gridSize + x;
+    }
+
+    function getCell(x, y) {
+      return state.cells[getCellIndex(x, y)];
+    }
+
+    function initGrid() {
+      const optionIndices = state.tileset.tiles.map((_, index) => index);
+      state.cells = Array.from({ length: state.gridSize * state.gridSize }, () => createCell(optionIndices));
+      state.propagationQueue = [];
+      state.done = false;
+      state.pendingRestart = false;
+
+      for (const [key, tileIndex] of state.pinnedCells.entries()) {
+        const [x, y] = key.split(",").map(Number);
+        if (x >= state.gridSize || y >= state.gridSize) {
+          continue;
+        }
+        const cell = getCell(x, y);
+        cell.options = new Set([tileIndex]);
+        cell.pinned = true;
+        state.propagationQueue.push({ x, y });
+      }
+
+      if (!propagate()) {
+        scheduleRestart("Pinned contradiction, restarting");
+      }
+      updateStatus();
+      render();
+    }
+
+    function updateStatus(message) {
+      const collapsedCount = state.cells.filter((cell) => cell.options.size === 1).length;
+      const total = state.cells.length;
+      detailText.textContent = `${collapsedCount} / ${total} collapsed`;
+      statusText.textContent = message || (state.done ? `Finished after ${state.retryCount} restart${state.retryCount === 1 ? "" : "s"}` : `Running${state.pendingRestart ? " restart pending" : ""}`);
+    }
+
+    function propagate() {
+      while (state.propagationQueue.length > 0) {
+        const current = state.propagationQueue.shift();
+        const cell = getCell(current.x, current.y);
+        for (const dir of DIRS) {
+          const nx = current.x + dir.dx;
+          const ny = current.y + dir.dy;
+          if (nx < 0 || ny < 0 || nx >= state.gridSize || ny >= state.gridSize) {
+            continue;
+          }
+
+          const neighbor = getCell(nx, ny);
+          const allowed = new Set();
+          cell.options.forEach((optionIndex) => {
+            state.tileset.adjacency[optionIndex][dir.key].forEach((candidate) => {
+              allowed.add(candidate);
+            });
+          });
+
+          const nextOptions = new Set();
+          neighbor.options.forEach((optionIndex) => {
+            if (allowed.has(optionIndex)) {
+              nextOptions.add(optionIndex);
+            }
+          });
+
+          if (nextOptions.size === 0) {
+            return false;
+          }
+
+          if (nextOptions.size !== neighbor.options.size) {
+            neighbor.options = nextOptions;
+            state.propagationQueue.push({ x: nx, y: ny });
+          }
+        }
+      }
+      return true;
+    }
+
+    function pickCell() {
+      let best = null;
+      for (let y = 0; y < state.gridSize; y += 1) {
+        for (let x = 0; x < state.gridSize; x += 1) {
+          const cell = getCell(x, y);
+          if (cell.options.size <= 1) {
+            continue;
+          }
+          if (!best || cell.options.size < best.optionsSize) {
+            best = { x, y, optionsSize: cell.options.size };
+          }
+        }
+      }
+      return best;
+    }
+
+    function chooseOption(options) {
+      const entries = Array.from(options);
+      return entries[Math.floor(Math.random() * entries.length)];
+    }
+
+    function collapseOne() {
+      const next = pickCell();
+      if (!next) {
+        state.done = true;
+        updateStatus();
+        return;
+      }
+
+      const cell = getCell(next.x, next.y);
+      cell.options = new Set([chooseOption(cell.options)]);
+      state.propagationQueue.push({ x: next.x, y: next.y });
+
+      if (!propagate()) {
+        scheduleRestart("Contradiction detected, restarting");
+        return;
+      }
+
+      updateStatus();
+    }
+
+    function scheduleRestart(message) {
+      if (state.pendingRestart) {
+        return;
+      }
+      state.pendingRestart = true;
+      state.done = false;
+      state.retryCount += 1;
+      updateStatus(message);
+      setTimeout(() => {
+        initGrid();
+      }, 180);
+    }
+
+    function render() {
+      const cellSize = canvas.width / state.gridSize;
+      ctx.fillStyle = state.tileset.background;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (let y = 0; y < state.gridSize; y += 1) {
+        for (let x = 0; x < state.gridSize; x += 1) {
+          const cell = getCell(x, y);
+          const px = x * cellSize;
+          const py = y * cellSize;
+          if (cell.options.size === 1) {
+            const tileIndex = Array.from(cell.options)[0];
+            state.tileset.drawTile(ctx, state.tileset.tiles[tileIndex], px, py, cellSize, cell.pinned);
+          } else {
+            drawUncollapsedCell(px, py, cellSize, cell.options.size);
+          }
+        }
+      }
+
+      ctx.strokeStyle = "rgba(18, 25, 32, 0.1)";
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= state.gridSize; i += 1) {
+        const p = Math.round(i * cellSize) + 0.5;
+        ctx.beginPath();
+        ctx.moveTo(p, 0);
+        ctx.lineTo(p, canvas.height);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, p);
+        ctx.lineTo(canvas.width, p);
+        ctx.stroke();
+      }
+    }
+
+    function drawUncollapsedCell(x, y, size, entropy) {
+      ctx.fillStyle = "rgba(255, 252, 246, 0.86)";
+      ctx.fillRect(x, y, size, size);
+      ctx.fillStyle = "rgba(44, 56, 68, 0.1)";
+      ctx.beginPath();
+      ctx.arc(x + size / 2, y + size / 2, size * 0.22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(44, 56, 68, 0.52)";
+      ctx.font = `${Math.max(10, size * 0.23)}px Trebuchet MS`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(entropy), x + size / 2, y + size / 2);
+    }
+
+    function renderPreview() {
+      previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+      const value = pinTileSelect.value;
+      if (value === "") {
+        previewCtx.fillStyle = "#f7f0df";
+        previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+        previewCtx.strokeStyle = "#c45f2d";
+        previewCtx.lineWidth = 3;
+        previewCtx.beginPath();
+        previewCtx.moveTo(10, 10);
+        previewCtx.lineTo(38, 38);
+        previewCtx.moveTo(38, 10);
+        previewCtx.lineTo(10, 38);
+        previewCtx.stroke();
+        return;
+      }
+
+      const tileIndex = Number(value);
+      state.tileset.drawTile(previewCtx, state.tileset.tiles[tileIndex], 0, 0, previewCanvas.width, true);
+    }
+
+    function setTileset(tilesetId) {
+      state.tileset = TILESETS[tilesetId];
+      tilesetLabel.textContent = state.tileset.name;
+      fillPinOptions();
+      prunePinnedCells();
+      initGrid();
+    }
+
+    function prunePinnedCells() {
+      const maxIndex = state.tileset.tiles.length - 1;
+      for (const [key, value] of state.pinnedCells.entries()) {
+        if (value > maxIndex) {
+          state.pinnedCells.delete(key);
+        }
+      }
+    }
+
+    function setGridSize(size) {
+      state.gridSize = size;
+      gridSizeLabel.textContent = `${size} x ${size}`;
+      pruneOutOfBoundsPins();
+      initGrid();
+    }
+
+    function pruneOutOfBoundsPins() {
+      for (const key of Array.from(state.pinnedCells.keys())) {
+        const [x, y] = key.split(",").map(Number);
+        if (x >= state.gridSize || y >= state.gridSize) {
+          state.pinnedCells.delete(key);
+        }
+      }
+    }
+
+    function setSpeed(value) {
+      state.speed = value;
+      speedLabel.textContent = value >= 40 ? "instant" : `${value} steps / frame`;
+    }
+
+    function stepFrame() {
+      if (state.done || state.pendingRestart) {
+        return;
+      }
+      const steps = state.speed >= 40 ? state.gridSize * state.gridSize : state.speed;
+      for (let i = 0; i < steps; i += 1) {
+        if (state.done || state.pendingRestart) {
+          break;
+        }
+        collapseOne();
+      }
+    }
+
+    function frame() {
+      stepFrame();
+      render();
+      requestAnimationFrame(frame);
+    }
+
+    function handleCanvasClick(event) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = Math.floor(((event.clientX - rect.left) * scaleX) / (canvas.width / state.gridSize));
+      const y = Math.floor(((event.clientY - rect.top) * scaleY) / (canvas.height / state.gridSize));
+      if (x < 0 || y < 0 || x >= state.gridSize || y >= state.gridSize) {
+        return;
+      }
+
+      const key = `${x},${y}`;
+      if (pinTileSelect.value === "") {
+        state.pinnedCells.delete(key);
+      } else {
+        state.pinnedCells.set(key, Number(pinTileSelect.value));
+      }
+      initGrid();
+    }
+
+    function exportImage() {
+      const link = document.createElement("a");
+      link.download = `wfc-painter-${state.tileset.id}-${state.gridSize}x${state.gridSize}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    }
+
+    function bindEvents() {
+      tilesetSelect.addEventListener("change", () => setTileset(tilesetSelect.value));
+      gridSizeSelect.addEventListener("change", () => setGridSize(Number(gridSizeSelect.value)));
+      speedSlider.addEventListener("input", () => setSpeed(Number(speedSlider.value)));
+      pinTileSelect.addEventListener("change", () => renderPreview());
+      restartButton.addEventListener("click", () => initGrid());
+      exportButton.addEventListener("click", exportImage);
+      canvas.addEventListener("click", handleCanvasClick);
+    }
+
+    fillTilesetOptions();
+    bindEvents();
+    tilesetSelect.value = "pipes";
+    gridSizeSelect.value = "16";
+    setSpeed(Number(speedSlider.value));
+    setTileset(tilesetSelect.value);
+    frame();
+  </script>
+</body>
+</html>
