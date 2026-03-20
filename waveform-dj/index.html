@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Waveform DJ</title>
+  <style>
+    :root {
+      --bg-1: #07131f;
+      --bg-2: #11273c;
+      --panel: rgba(10, 20, 31, 0.76);
+      --panel-strong: rgba(8, 16, 24, 0.9);
+      --line: rgba(147, 200, 255, 0.18);
+      --text: #eef7ff;
+      --muted: #9db5cb;
+      --accent: #ff7a59;
+      --accent-2: #4ed7f1;
+      --accent-3: #ffd166;
+      --good: #67f0ad;
+      --danger: #ff708d;
+      --shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 20%, rgba(78, 215, 241, 0.16), transparent 24%),
+        radial-gradient(circle at 80% 0%, rgba(255, 122, 89, 0.14), transparent 26%),
+        linear-gradient(180deg, var(--bg-2), var(--bg-1) 65%);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1380px, calc(100% - 24px));
+      margin: 0 auto;
+      padding: 16px 0 28px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .hero {
+      padding: 20px 22px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .title {
+      margin: 0;
+      font-size: clamp(2.2rem, 5vw, 4.4rem);
+      line-height: 0.88;
+      letter-spacing: -0.05em;
+    }
+
+    .lede {
+      margin: 14px 0 0;
+      max-width: 62ch;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .transport {
+      display: grid;
+      gap: 12px;
+      padding: 18px;
+      border-radius: 20px;
+      background: var(--panel-strong);
+      border: 1px solid rgba(147, 200, 255, 0.12);
+    }
+
+    .transport-top,
+    .metric-grid,
+    .preset-grid,
+    .control-grid,
+    .field-row,
+    .meta-row {
+      display: grid;
+      gap: 10px;
+    }
+
+    .transport-top {
+      grid-template-columns: 1fr auto auto;
+      align-items: center;
+    }
+
+    .pill,
+    .ghost-button,
+    .preset-button,
+    .toggle {
+      border: 0;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+
+    .pill,
+    .ghost-button,
+    .preset-button {
+      min-height: 40px;
+      padding: 0 16px;
+      color: var(--text);
+      background: linear-gradient(180deg, rgba(255, 122, 89, 0.9), rgba(198, 77, 46, 0.9));
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.22);
+    }
+
+    .ghost-button,
+    .preset-button.save {
+      background: linear-gradient(180deg, rgba(78, 215, 241, 0.9), rgba(27, 144, 174, 0.9));
+    }
+
+    .preset-button.load {
+      background: linear-gradient(180deg, rgba(255, 209, 102, 0.9), rgba(203, 147, 33, 0.9));
+      color: #172331;
+    }
+
+    .preset-button[disabled] {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    .toggle {
+      min-height: 40px;
+      padding: 0 14px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .toggle.active {
+      background: rgba(103, 240, 173, 0.16);
+      border-color: rgba(103, 240, 173, 0.45);
+      color: #d9fff0;
+    }
+
+    .metric-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .metric,
+    .preset-card,
+    .oscillator-card,
+    .viz-card,
+    .instructions {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .metric-label,
+    .field-label,
+    .card-note,
+    .preset-status,
+    .instructions p {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .metric-value {
+      margin-top: 6px;
+      font-size: 1.35rem;
+      font-weight: 600;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.9fr);
+      gap: 16px;
+    }
+
+    .board-panel,
+    .side-panel {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .panel-heading {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+    }
+
+    .panel-heading h2,
+    .control-title {
+      margin: 0;
+      font-size: 1.15rem;
+    }
+
+    .panel-heading span {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    #patch-board {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 18px;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(78, 215, 241, 0.12), transparent 55%),
+        linear-gradient(180deg, rgba(7, 15, 24, 0.96), rgba(10, 21, 32, 0.96));
+      border: 1px solid rgba(147, 200, 255, 0.12);
+      touch-action: none;
+    }
+
+    .instructions {
+      display: grid;
+      gap: 8px;
+    }
+
+    .instructions p {
+      margin: 0;
+      line-height: 1.45;
+    }
+
+    .oscillator-list,
+    .visual-grid,
+    .preset-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .control-grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    .field-row {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+    }
+
+    .oscillator-card {
+      display: grid;
+      gap: 12px;
+    }
+
+    .meta-row {
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+    }
+
+    .swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.04);
+    }
+
+    .osc-name {
+      font-weight: 600;
+    }
+
+    .osc-state {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    input[type="range"],
+    select {
+      width: 100%;
+    }
+
+    input[type="range"] {
+      accent-color: var(--accent-2);
+    }
+
+    select {
+      min-height: 40px;
+      padding: 0 12px;
+      border-radius: 12px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .visual-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .viz-card {
+      display: grid;
+      gap: 10px;
+    }
+
+    .viz-card canvas {
+      width: 100%;
+      height: 200px;
+      display: block;
+      border-radius: 14px;
+      background: rgba(3, 8, 13, 0.95);
+      border: 1px solid rgba(147, 200, 255, 0.1);
+    }
+
+    .preset-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .preset-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .status-bar {
+      padding: 0 4px;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    @media (max-width: 1080px) {
+      .hero,
+      .main-grid,
+      .visual-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 820px) {
+      .preset-grid,
+      .control-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .transport-top {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding-bottom: 18px;
+      }
+
+      .app {
+        width: min(100% - 16px, 1380px);
+        padding-top: 10px;
+      }
+
+      .hero,
+      .board-panel,
+      .side-panel {
+        padding: 14px;
+      }
+
+      .metric-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .viz-card canvas {
+        height: 170px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel hero">
+      <div>
+        <h1 class="title">Waveform DJ</h1>
+        <p class="lede">
+          Blend four oscillator voices, route quick modulation links across the patch board, and watch the signal
+          bloom into an oscilloscope, live spectrum, and a color field driven by amplitude and dominant frequency.
+        </p>
+      </div>
+
+      <section class="transport">
+        <div class="transport-top">
+          <div>
+            <div class="metric-label">Engine</div>
+            <div id="engine-status" class="metric-value">Standby</div>
+          </div>
+          <button id="start-audio" class="pill" type="button">Start Audio</button>
+          <button id="mute-toggle" class="toggle" type="button" aria-pressed="false">Muted: Off</button>
+        </div>
+
+        <div class="metric-grid">
+          <div class="metric">
+            <div class="metric-label">Amplitude</div>
+            <div id="amplitude-meter" class="metric-value">0%</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Dominant Bin</div>
+            <div id="frequency-meter" class="metric-value">0 Hz</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Connections</div>
+            <div id="connection-count" class="metric-value">0</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Preset State</div>
+            <div id="preset-state" class="metric-value">Live</div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <section class="main-grid">
+      <section class="panel board-panel">
+        <div class="panel-heading">
+          <h2>Patch Board</h2>
+          <span>Drag nodes. Click an output ring, then an input or master ring.</span>
+        </div>
+        <svg id="patch-board" viewBox="0 0 760 420" role="img" aria-label="Audio patch board"></svg>
+        <div class="instructions">
+          <p><strong>Signal path:</strong> each oscillator always feeds the main mix when enabled.</p>
+          <p><strong>Patch links:</strong> board connections add frequency modulation from one oscillator into another.</p>
+          <p><strong>Clear link:</strong> click the same target again from the same source to remove it.</p>
+        </div>
+      </section>
+
+      <aside class="panel side-panel">
+        <div class="panel-heading">
+          <h2>Oscillators</h2>
+          <span>4 voices, 4 waveforms, independent gain and pitch</span>
+        </div>
+        <div id="oscillator-list" class="oscillator-list"></div>
+      </aside>
+    </section>
+
+    <section class="visual-grid">
+      <section class="panel viz-card">
+        <div class="panel-heading">
+          <h2>Oscilloscope</h2>
+          <span>Time-domain trace</span>
+        </div>
+        <canvas id="scope-canvas" width="420" height="220"></canvas>
+      </section>
+
+      <section class="panel viz-card">
+        <div class="panel-heading">
+          <h2>Spectrum</h2>
+          <span>Frequency bars</span>
+        </div>
+        <canvas id="spectrum-canvas" width="420" height="220"></canvas>
+      </section>
+
+      <section class="panel viz-card">
+        <div class="panel-heading">
+          <h2>Color Bloom</h2>
+          <span>Amplitude-reactive pattern</span>
+        </div>
+        <canvas id="kaleidoscope-canvas" width="420" height="220"></canvas>
+      </section>
+    </section>
+
+    <section class="panel side-panel">
+      <div class="panel-heading">
+        <h2>Preset Slots</h2>
+        <span>Saved in localStorage</span>
+      </div>
+      <div id="preset-grid" class="preset-grid"></div>
+      <div id="status-bar" class="status-bar">Preset slots are empty until saved.</div>
+    </section>
+  </main>
+
+  <script>
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    const presetStorageKey = "waveform-dj-presets-v1";
+    const waveformTypes = ["sine", "square", "sawtooth", "triangle"];
+    const oscillatorSeeds = [
+      { id: 1, label: "OSC 1", color: "#ff7a59", frequency: 220, amplitude: 0.24, type: "sine", x: 130, y: 110, enabled: true },
+      { id: 2, label: "OSC 2", color: "#4ed7f1", frequency: 330, amplitude: 0.18, type: "square", x: 300, y: 265, enabled: false },
+      { id: 3, label: "OSC 3", color: "#ffd166", frequency: 440, amplitude: 0.16, type: "triangle", x: 470, y: 130, enabled: false },
+      { id: 4, label: "OSC 4", color: "#67f0ad", frequency: 660, amplitude: 0.12, type: "sawtooth", x: 620, y: 280, enabled: false }
+    ];
+
+    const state = {
+      oscillators: oscillatorSeeds.map((seed) => ({ ...seed })),
+      connections: [],
+      audioStarted: false,
+      muted: false,
+      lastPresetAction: "Live",
+      dragId: null,
+      dragOffsetX: 0,
+      dragOffsetY: 0,
+      pendingConnection: null,
+      animationFrame: 0
+    };
+
+    let audioContext = null;
+    let analyserNode = null;
+    let outputGain = null;
+    let masterGain = null;
+    let monitorGain = null;
+    let timeDomainData = null;
+    let frequencyData = null;
+    let oscillatorNodes = [];
+
+    const startAudioButton = document.getElementById("start-audio");
+    const muteToggle = document.getElementById("mute-toggle");
+    const engineStatus = document.getElementById("engine-status");
+    const amplitudeMeter = document.getElementById("amplitude-meter");
+    const frequencyMeter = document.getElementById("frequency-meter");
+    const connectionCount = document.getElementById("connection-count");
+    const presetState = document.getElementById("preset-state");
+    const statusBar = document.getElementById("status-bar");
+    const oscillatorList = document.getElementById("oscillator-list");
+    const presetGrid = document.getElementById("preset-grid");
+    const patchBoard = document.getElementById("patch-board");
+    const scopeCanvas = document.getElementById("scope-canvas");
+    const spectrumCanvas = document.getElementById("spectrum-canvas");
+    const kaleidoscopeCanvas = document.getElementById("kaleidoscope-canvas");
+    const scopeCtx = scopeCanvas.getContext("2d");
+    const spectrumCtx = spectrumCanvas.getContext("2d");
+    const kaleidoscopeCtx = kaleidoscopeCanvas.getContext("2d");
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function formatHz(value) {
+      return value >= 1000 ? `${(value / 1000).toFixed(2)} kHz` : `${Math.round(value)} Hz`;
+    }
+
+    function getPortPosition(oscillator, kind) {
+      if (kind === "output") {
+        return { x: oscillator.x + 56, y: oscillator.y };
+      }
+      return { x: oscillator.x - 56, y: oscillator.y };
+    }
+
+    function getMasterPort() {
+      return { x: 706, y: 72 };
+    }
+
+    function initializeAudioGraph() {
+      if (!AudioContextClass || audioContext) {
+        return;
+      }
+
+      audioContext = new AudioContextClass();
+      masterGain = audioContext.createGain();
+      outputGain = audioContext.createGain();
+      monitorGain = audioContext.createGain();
+      analyserNode = audioContext.createAnalyser();
+
+      masterGain.gain.value = 0.9;
+      outputGain.gain.value = 0.9;
+      monitorGain.gain.value = 0;
+      analyserNode.fftSize = 2048;
+      analyserNode.smoothingTimeConstant = 0.82;
+
+      masterGain.connect(analyserNode);
+      analyserNode.connect(outputGain);
+      outputGain.connect(audioContext.destination);
+      analyserNode.connect(monitorGain);
+
+      timeDomainData = new Uint8Array(analyserNode.fftSize);
+      frequencyData = new Uint8Array(analyserNode.frequencyBinCount);
+
+      oscillatorNodes = state.oscillators.map((oscillator) => {
+        const source = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+
+        source.type = oscillator.type;
+        source.frequency.value = oscillator.frequency;
+        gain.gain.value = oscillator.enabled ? oscillator.amplitude : 0;
+        source.connect(gain);
+        gain.connect(masterGain);
+        source.start();
+
+        return {
+          source,
+          gain,
+          modulations: new Map()
+        };
+      });
+    }
+
+    function setStatus(message) {
+      statusBar.textContent = message;
+    }
+
+    async function ensureAudioStarted() {
+      if (!AudioContextClass) {
+        setStatus("This browser does not expose the Web Audio API.");
+        engineStatus.textContent = "Unsupported";
+        startAudioButton.disabled = true;
+        return;
+      }
+
+      initializeAudioGraph();
+      if (!audioContext) {
+        return;
+      }
+
+      await audioContext.resume();
+      state.audioStarted = true;
+      engineStatus.textContent = "Running";
+      startAudioButton.textContent = "Audio Running";
+      startAudioButton.disabled = true;
+      syncAudioState();
+      setStatus("Audio context resumed. Sliders and patch links are live.");
+    }
+
+    function syncAudioState() {
+      if (!audioContext) {
+        return;
+      }
+
+      state.oscillators.forEach((oscillator, index) => {
+        const node = oscillatorNodes[index];
+        if (!node) {
+          return;
+        }
+        node.source.type = oscillator.type;
+        node.source.frequency.setTargetAtTime(oscillator.frequency, audioContext.currentTime, 0.02);
+        const targetGain = oscillator.enabled ? oscillator.amplitude : 0;
+        node.gain.gain.setTargetAtTime(targetGain, audioContext.currentTime, 0.02);
+      });
+
+      outputGain.gain.setTargetAtTime(state.muted ? 0 : 0.9, audioContext.currentTime, 0.02);
+      updatePatchConnections();
+    }
+
+    function updatePatchConnections() {
+      if (!audioContext || !oscillatorNodes.length) {
+        return;
+      }
+
+      oscillatorNodes.forEach((node) => {
+        node.modulations.forEach((modGain) => {
+          node.source.disconnect(modGain);
+          modGain.disconnect();
+        });
+        node.modulations.clear();
+      });
+
+      state.connections.forEach((connection) => {
+        if (connection.targetId === "master") {
+          return;
+        }
+
+        const sourceIndex = state.oscillators.findIndex((oscillator) => oscillator.id === connection.sourceId);
+        const targetIndex = state.oscillators.findIndex((oscillator) => oscillator.id === connection.targetId);
+        if (sourceIndex === -1 || targetIndex === -1 || sourceIndex === targetIndex) {
+          return;
+        }
+
+        const sourceNode = oscillatorNodes[sourceIndex];
+        const targetNode = oscillatorNodes[targetIndex];
+        const modGain = audioContext.createGain();
+        modGain.gain.value = 65;
+        sourceNode.source.connect(modGain);
+        modGain.connect(targetNode.source.frequency);
+        sourceNode.modulations.set(`${connection.sourceId}-${connection.targetId}`, modGain);
+      });
+
+      connectionCount.textContent = String(state.connections.length);
+      drawPatchBoard();
+    }
+
+    function serializePreset() {
+      return {
+        oscillators: state.oscillators.map(({ id, type, frequency, amplitude, enabled, x, y }) => ({
+          id,
+          type,
+          frequency,
+          amplitude,
+          enabled,
+          x,
+          y
+        })),
+        connections: state.connections.map((connection) => ({ ...connection }))
+      };
+    }
+
+    function loadStoredPresets() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(presetStorageKey) || "{}");
+        return typeof parsed === "object" && parsed ? parsed : {};
+      } catch (error) {
+        return {};
+      }
+    }
+
+    function savePreset(slot) {
+      const presets = loadStoredPresets();
+      presets[slot] = serializePreset();
+      localStorage.setItem(presetStorageKey, JSON.stringify(presets));
+      state.lastPresetAction = `Saved S${slot}`;
+      presetState.textContent = state.lastPresetAction;
+      setStatus(`Preset slot ${slot} saved locally.`);
+      renderPresetGrid();
+    }
+
+    function applyPreset(slot) {
+      const presets = loadStoredPresets();
+      const preset = presets[slot];
+      if (!preset) {
+        setStatus(`Preset slot ${slot} is empty.`);
+        return;
+      }
+
+      state.oscillators = state.oscillators.map((oscillator) => {
+        const match = preset.oscillators.find((item) => item.id === oscillator.id);
+        if (!match) {
+          return oscillator;
+        }
+        return {
+          ...oscillator,
+          type: waveformTypes.includes(match.type) ? match.type : oscillator.type,
+          frequency: clamp(Number(match.frequency) || oscillator.frequency, 20, 2000),
+          amplitude: clamp(Number(match.amplitude) || 0, 0, 1),
+          enabled: Boolean(match.enabled),
+          x: clamp(Number(match.x) || oscillator.x, 110, 650),
+          y: clamp(Number(match.y) || oscillator.y, 72, 350)
+        };
+      });
+
+      state.connections = Array.isArray(preset.connections)
+        ? preset.connections.filter((connection) => {
+            const sourceExists = state.oscillators.some((oscillator) => oscillator.id === connection.sourceId);
+            const targetOk = connection.targetId === "master"
+              || state.oscillators.some((oscillator) => oscillator.id === connection.targetId);
+            return sourceExists && targetOk;
+          })
+        : [];
+
+      state.lastPresetAction = `Loaded S${slot}`;
+      presetState.textContent = state.lastPresetAction;
+      setStatus(`Preset slot ${slot} loaded.`);
+      renderOscillatorControls();
+      renderPresetGrid();
+      syncAudioState();
+      drawPatchBoard();
+    }
+
+    function renderPresetGrid() {
+      const presets = loadStoredPresets();
+      presetGrid.innerHTML = "";
+
+      for (let slot = 1; slot <= 3; slot += 1) {
+        const hasPreset = Boolean(presets[slot]);
+        const card = document.createElement("section");
+        card.className = "preset-card";
+
+        const title = document.createElement("div");
+        title.className = "control-title";
+        title.textContent = `Slot ${slot}`;
+
+        const note = document.createElement("div");
+        note.className = "preset-status";
+        note.textContent = hasPreset ? "Ready to load" : "Empty";
+
+        const actions = document.createElement("div");
+        actions.className = "preset-actions";
+
+        const saveButton = document.createElement("button");
+        saveButton.className = "preset-button save";
+        saveButton.type = "button";
+        saveButton.textContent = "Save";
+        saveButton.addEventListener("click", () => savePreset(slot));
+
+        const loadButton = document.createElement("button");
+        loadButton.className = "preset-button load";
+        loadButton.type = "button";
+        loadButton.textContent = "Load";
+        loadButton.disabled = !hasPreset;
+        loadButton.addEventListener("click", () => applyPreset(slot));
+
+        actions.append(saveButton, loadButton);
+        card.append(title, note, actions);
+        presetGrid.append(card);
+      }
+    }
+
+    function updateOscillator(id, field, value) {
+      const oscillator = state.oscillators.find((item) => item.id === id);
+      if (!oscillator) {
+        return;
+      }
+      oscillator[field] = value;
+      renderOscillatorControls();
+      syncAudioState();
+    }
+
+    function renderOscillatorControls() {
+      oscillatorList.innerHTML = "";
+
+      state.oscillators.forEach((oscillator) => {
+        const card = document.createElement("section");
+        card.className = "oscillator-card";
+
+        const meta = document.createElement("div");
+        meta.className = "meta-row";
+
+        const swatch = document.createElement("div");
+        swatch.className = "swatch";
+        swatch.style.background = oscillator.color;
+
+        const label = document.createElement("div");
+        label.innerHTML = `<div class="osc-name">${oscillator.label}</div><div class="card-note">Node ${oscillator.id}</div>`;
+
+        const toggle = document.createElement("button");
+        toggle.className = `toggle${oscillator.enabled ? " active" : ""}`;
+        toggle.type = "button";
+        toggle.textContent = oscillator.enabled ? "On" : "Off";
+        toggle.setAttribute("aria-pressed", String(oscillator.enabled));
+        toggle.addEventListener("click", () => updateOscillator(oscillator.id, "enabled", !oscillator.enabled));
+
+        meta.append(swatch, label, toggle);
+
+        const waveWrap = document.createElement("label");
+        waveWrap.innerHTML = `<div class="field-label">Waveform</div>`;
+        const waveSelect = document.createElement("select");
+        waveformTypes.forEach((type) => {
+          const option = document.createElement("option");
+          option.value = type;
+          option.textContent = type;
+          option.selected = oscillator.type === type;
+          waveSelect.append(option);
+        });
+        waveSelect.addEventListener("change", (event) => updateOscillator(oscillator.id, "type", event.target.value));
+        waveWrap.append(waveSelect);
+
+        const frequencyWrap = document.createElement("label");
+        const frequencyLabel = document.createElement("div");
+        frequencyLabel.className = "field-row";
+        frequencyLabel.innerHTML = `<span class="field-label">Frequency</span><span>${Math.round(oscillator.frequency)} Hz</span>`;
+        const frequencySlider = document.createElement("input");
+        frequencySlider.type = "range";
+        frequencySlider.min = "20";
+        frequencySlider.max = "2000";
+        frequencySlider.step = "1";
+        frequencySlider.value = String(oscillator.frequency);
+        frequencySlider.addEventListener("input", (event) => {
+          updateOscillator(oscillator.id, "frequency", Number(event.target.value));
+        });
+        frequencyWrap.append(frequencyLabel, frequencySlider);
+
+        const amplitudeWrap = document.createElement("label");
+        const amplitudeLabel = document.createElement("div");
+        amplitudeLabel.className = "field-row";
+        amplitudeLabel.innerHTML = `<span class="field-label">Amplitude</span><span>${Math.round(oscillator.amplitude * 100)}%</span>`;
+        const amplitudeSlider = document.createElement("input");
+        amplitudeSlider.type = "range";
+        amplitudeSlider.min = "0";
+        amplitudeSlider.max = "1";
+        amplitudeSlider.step = "0.01";
+        amplitudeSlider.value = String(oscillator.amplitude);
+        amplitudeSlider.addEventListener("input", (event) => {
+          updateOscillator(oscillator.id, "amplitude", Number(event.target.value));
+        });
+        amplitudeWrap.append(amplitudeLabel, amplitudeSlider);
+
+        const stateText = document.createElement("div");
+        stateText.className = "osc-state";
+        const incoming = state.connections.filter((connection) => connection.targetId === oscillator.id).length;
+        const outgoing = state.connections.filter((connection) => connection.sourceId === oscillator.id).length;
+        stateText.textContent = `${outgoing} outgoing patch link(s), ${incoming} incoming modulation link(s).`;
+
+        card.append(meta, waveWrap, frequencyWrap, amplitudeWrap, stateText);
+        oscillatorList.append(card);
+      });
+    }
+
+    function findInteractiveTarget(clientX, clientY) {
+      const rect = patchBoard.getBoundingClientRect();
+      const x = ((clientX - rect.left) / rect.width) * 760;
+      const y = ((clientY - rect.top) / rect.height) * 420;
+
+      const master = getMasterPort();
+      if ((x - master.x) ** 2 + (y - master.y) ** 2 <= 15 ** 2) {
+        return { kind: "master", x, y };
+      }
+
+      for (const oscillator of state.oscillators) {
+        const dx = x - oscillator.x;
+        const dy = y - oscillator.y;
+        if (Math.abs(dx) <= 50 && Math.abs(dy) <= 32) {
+          return { kind: "node", oscillator, x, y };
+        }
+
+        const output = getPortPosition(oscillator, "output");
+        if ((x - output.x) ** 2 + (y - output.y) ** 2 <= 13 ** 2) {
+          return { kind: "output", oscillator, x, y };
+        }
+
+        const input = getPortPosition(oscillator, "input");
+        if ((x - input.x) ** 2 + (y - input.y) ** 2 <= 13 ** 2) {
+          return { kind: "input", oscillator, x, y };
+        }
+      }
+
+      return { kind: "empty", x, y };
+    }
+
+    function toggleConnection(sourceId, targetId) {
+      if (targetId !== "master" && sourceId === targetId) {
+        setStatus("Self modulation is disabled to keep the graph shallow.");
+        return;
+      }
+
+      const existingIndex = state.connections.findIndex((connection) => (
+        connection.sourceId === sourceId && connection.targetId === targetId
+      ));
+
+      if (existingIndex >= 0) {
+        state.connections.splice(existingIndex, 1);
+        setStatus(`Removed patch link from OSC ${sourceId} to ${targetId === "master" ? "master" : `OSC ${targetId}`}.`);
+      } else {
+        if (targetId !== "master") {
+          const incomingCount = state.connections.filter((connection) => connection.targetId === targetId).length;
+          if (incomingCount >= 2) {
+            setStatus("Each oscillator accepts at most two incoming modulation links.");
+            return;
+          }
+        }
+        state.connections.push({ sourceId, targetId });
+        setStatus(`Added patch link from OSC ${sourceId} to ${targetId === "master" ? "master" : `OSC ${targetId}`}.`);
+      }
+
+      renderOscillatorControls();
+      syncAudioState();
+    }
+
+    function attachBoardEvents() {
+      patchBoard.addEventListener("pointerdown", (event) => {
+        const hit = findInteractiveTarget(event.clientX, event.clientY);
+        patchBoard.setPointerCapture(event.pointerId);
+
+        if (hit.kind === "node") {
+          state.dragId = hit.oscillator.id;
+          state.dragOffsetX = hit.x - hit.oscillator.x;
+          state.dragOffsetY = hit.y - hit.oscillator.y;
+          return;
+        }
+
+        if (hit.kind === "output") {
+          state.pendingConnection = { sourceId: hit.oscillator.id, x: hit.x, y: hit.y };
+          drawPatchBoard(hit);
+        }
+      });
+
+      patchBoard.addEventListener("pointermove", (event) => {
+        const hit = findInteractiveTarget(event.clientX, event.clientY);
+
+        if (state.dragId !== null) {
+          const oscillator = state.oscillators.find((item) => item.id === state.dragId);
+          if (!oscillator) {
+            return;
+          }
+          oscillator.x = clamp(hit.x - state.dragOffsetX, 110, 650);
+          oscillator.y = clamp(hit.y - state.dragOffsetY, 72, 350);
+          drawPatchBoard();
+          return;
+        }
+
+        if (state.pendingConnection) {
+          state.pendingConnection.x = hit.x;
+          state.pendingConnection.y = hit.y;
+          drawPatchBoard(hit);
+        }
+      });
+
+      patchBoard.addEventListener("pointerup", (event) => {
+        const hit = findInteractiveTarget(event.clientX, event.clientY);
+
+        if (state.dragId !== null) {
+          state.dragId = null;
+          return;
+        }
+
+        if (state.pendingConnection) {
+          const sourceId = state.pendingConnection.sourceId;
+          state.pendingConnection = null;
+
+          if (hit.kind === "input") {
+            toggleConnection(sourceId, hit.oscillator.id);
+          } else if (hit.kind === "master") {
+            toggleConnection(sourceId, "master");
+          } else {
+            drawPatchBoard();
+          }
+        }
+      });
+
+      patchBoard.addEventListener("pointercancel", () => {
+        state.dragId = null;
+        state.pendingConnection = null;
+        drawPatchBoard();
+      });
+    }
+
+    function drawPatchBoard(hoverHit) {
+      patchBoard.innerHTML = "";
+
+      const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+      defs.innerHTML = `
+        <linearGradient id="panelGlow" x1="0%" x2="100%" y1="0%" y2="100%">
+          <stop offset="0%" stop-color="rgba(78, 215, 241, 0.3)"></stop>
+          <stop offset="100%" stop-color="rgba(255, 122, 89, 0.16)"></stop>
+        </linearGradient>
+      `;
+      patchBoard.append(defs);
+
+      for (let x = 24; x < 760; x += 48) {
+        const gridLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        gridLine.setAttribute("x1", x);
+        gridLine.setAttribute("y1", 0);
+        gridLine.setAttribute("x2", x);
+        gridLine.setAttribute("y2", 420);
+        gridLine.setAttribute("stroke", "rgba(255,255,255,0.04)");
+        patchBoard.append(gridLine);
+      }
+
+      for (let y = 24; y < 420; y += 48) {
+        const gridLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        gridLine.setAttribute("x1", 0);
+        gridLine.setAttribute("y1", y);
+        gridLine.setAttribute("x2", 760);
+        gridLine.setAttribute("y2", y);
+        gridLine.setAttribute("stroke", "rgba(255,255,255,0.04)");
+        patchBoard.append(gridLine);
+      }
+
+      state.connections.forEach((connection) => {
+        const source = state.oscillators.find((oscillator) => oscillator.id === connection.sourceId);
+        if (!source) {
+          return;
+        }
+        const start = getPortPosition(source, "output");
+        const targetOscillator = connection.targetId === "master"
+          ? null
+          : state.oscillators.find((oscillator) => oscillator.id === connection.targetId);
+        const target = connection.targetId === "master"
+          ? getMasterPort()
+          : targetOscillator
+            ? getPortPosition(targetOscillator, "input")
+            : null;
+
+        if (!target) {
+          return;
+        }
+
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        const bend = Math.max(56, Math.abs(target.x - start.x) * 0.45);
+        path.setAttribute("d", `M ${start.x} ${start.y} C ${start.x + bend} ${start.y}, ${target.x - bend} ${target.y}, ${target.x} ${target.y}`);
+        path.setAttribute("fill", "none");
+        path.setAttribute("stroke", source.color);
+        path.setAttribute("stroke-width", connection.targetId === "master" ? "3" : "4");
+        path.setAttribute("stroke-linecap", "round");
+        path.setAttribute("opacity", connection.targetId === "master" ? "0.45" : "0.9");
+        patchBoard.append(path);
+      });
+
+      if (state.pendingConnection) {
+        const source = state.oscillators.find((oscillator) => oscillator.id === state.pendingConnection.sourceId);
+        const start = getPortPosition(source, "output");
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        const bend = Math.max(50, Math.abs(state.pendingConnection.x - start.x) * 0.45);
+        path.setAttribute("d", `M ${start.x} ${start.y} C ${start.x + bend} ${start.y}, ${state.pendingConnection.x - bend} ${state.pendingConnection.y}, ${state.pendingConnection.x} ${state.pendingConnection.y}`);
+        path.setAttribute("fill", "none");
+        path.setAttribute("stroke", source.color);
+        path.setAttribute("stroke-width", "3");
+        path.setAttribute("stroke-dasharray", "8 7");
+        path.setAttribute("opacity", "0.9");
+        patchBoard.append(path);
+      }
+
+      const master = getMasterPort();
+      const masterGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      masterGroup.innerHTML = `
+        <rect x="640" y="34" width="96" height="76" rx="18" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)"></rect>
+        <text x="688" y="63" fill="#eef7ff" text-anchor="middle" font-size="15" font-family="Avenir Next, Segoe UI, sans-serif">MASTER</text>
+        <text x="688" y="83" fill="#9db5cb" text-anchor="middle" font-size="11" font-family="Avenir Next, Segoe UI, sans-serif">visual monitor</text>
+      `;
+      const masterPort = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      masterPort.setAttribute("cx", master.x);
+      masterPort.setAttribute("cy", master.y);
+      masterPort.setAttribute("r", 12);
+      masterPort.setAttribute("fill", hoverHit?.kind === "master" ? "#ffd166" : "#4ed7f1");
+      masterPort.setAttribute("stroke", "#ffffff");
+      masterPort.setAttribute("stroke-width", "2");
+      masterGroup.append(masterPort);
+      patchBoard.append(masterGroup);
+
+      state.oscillators.forEach((oscillator) => {
+        const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+        const body = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        body.setAttribute("x", oscillator.x - 48);
+        body.setAttribute("y", oscillator.y - 34);
+        body.setAttribute("width", 96);
+        body.setAttribute("height", 68);
+        body.setAttribute("rx", 20);
+        body.setAttribute("fill", "rgba(8, 16, 24, 0.92)");
+        body.setAttribute("stroke", oscillator.color);
+        body.setAttribute("stroke-width", "2");
+
+        const glow = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        glow.setAttribute("x", oscillator.x - 52);
+        glow.setAttribute("y", oscillator.y - 38);
+        glow.setAttribute("width", 104);
+        glow.setAttribute("height", 76);
+        glow.setAttribute("rx", 22);
+        glow.setAttribute("fill", "none");
+        glow.setAttribute("stroke", "rgba(255,255,255,0.08)");
+
+        const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        title.setAttribute("x", oscillator.x);
+        title.setAttribute("y", oscillator.y - 6);
+        title.setAttribute("text-anchor", "middle");
+        title.setAttribute("fill", "#eef7ff");
+        title.setAttribute("font-size", "14");
+        title.setAttribute("font-family", "Avenir Next, Segoe UI, sans-serif");
+        title.textContent = oscillator.label;
+
+        const subtitle = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        subtitle.setAttribute("x", oscillator.x);
+        subtitle.setAttribute("y", oscillator.y + 14);
+        subtitle.setAttribute("text-anchor", "middle");
+        subtitle.setAttribute("fill", "#9db5cb");
+        subtitle.setAttribute("font-size", "11");
+        subtitle.setAttribute("font-family", "Avenir Next, Segoe UI, sans-serif");
+        subtitle.textContent = `${oscillator.type} · ${Math.round(oscillator.frequency)} Hz`;
+
+        const input = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        const inputPos = getPortPosition(oscillator, "input");
+        input.setAttribute("cx", inputPos.x);
+        input.setAttribute("cy", inputPos.y);
+        input.setAttribute("r", 11);
+        input.setAttribute("fill", hoverHit?.kind === "input" && hoverHit.oscillator.id === oscillator.id ? "#ffd166" : "rgba(255,255,255,0.16)");
+        input.setAttribute("stroke", "#ffffff");
+        input.setAttribute("stroke-width", "2");
+
+        const output = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        const outputPos = getPortPosition(oscillator, "output");
+        output.setAttribute("cx", outputPos.x);
+        output.setAttribute("cy", outputPos.y);
+        output.setAttribute("r", 11);
+        output.setAttribute("fill", hoverHit?.kind === "output" && hoverHit.oscillator.id === oscillator.id ? "#ffffff" : oscillator.color);
+        output.setAttribute("stroke", "#ffffff");
+        output.setAttribute("stroke-width", "2");
+
+        group.append(glow, body, title, subtitle, input, output);
+        patchBoard.append(group);
+      });
+    }
+
+    function drawScope() {
+      const width = scopeCanvas.width;
+      const height = scopeCanvas.height;
+      scopeCtx.clearRect(0, 0, width, height);
+      scopeCtx.fillStyle = "rgba(7, 15, 24, 0.95)";
+      scopeCtx.fillRect(0, 0, width, height);
+
+      scopeCtx.strokeStyle = "rgba(255,255,255,0.06)";
+      scopeCtx.lineWidth = 1;
+      for (let y = 0; y < height; y += 36) {
+        scopeCtx.beginPath();
+        scopeCtx.moveTo(0, y + 0.5);
+        scopeCtx.lineTo(width, y + 0.5);
+        scopeCtx.stroke();
+      }
+
+      scopeCtx.beginPath();
+      scopeCtx.lineWidth = 2.2;
+      scopeCtx.strokeStyle = "#4ed7f1";
+      const slice = width / timeDomainData.length;
+      for (let i = 0; i < timeDomainData.length; i += 1) {
+        const x = i * slice;
+        const y = (timeDomainData[i] / 255) * height;
+        if (i === 0) {
+          scopeCtx.moveTo(x, y);
+        } else {
+          scopeCtx.lineTo(x, y);
+        }
+      }
+      scopeCtx.stroke();
+    }
+
+    function drawSpectrum() {
+      const width = spectrumCanvas.width;
+      const height = spectrumCanvas.height;
+      spectrumCtx.clearRect(0, 0, width, height);
+      spectrumCtx.fillStyle = "rgba(7, 15, 24, 0.95)";
+      spectrumCtx.fillRect(0, 0, width, height);
+
+      const bars = 48;
+      const step = Math.floor(frequencyData.length / bars);
+
+      for (let i = 0; i < bars; i += 1) {
+        const value = frequencyData[i * step] / 255;
+        const barHeight = value * (height - 24);
+        const x = i * (width / bars);
+        const hue = 190 + i * 2.2;
+        spectrumCtx.fillStyle = `hsla(${hue}, 90%, ${46 + value * 24}%, 0.95)`;
+        spectrumCtx.fillRect(x + 2, height - barHeight - 8, width / bars - 4, barHeight);
+      }
+    }
+
+    function drawKaleidoscope(amplitude, dominantFrequency, timestamp) {
+      const width = kaleidoscopeCanvas.width;
+      const height = kaleidoscopeCanvas.height;
+      kaleidoscopeCtx.clearRect(0, 0, width, height);
+
+      const baseHue = (dominantFrequency * 0.15 + timestamp * 0.01) % 360;
+      const gradient = kaleidoscopeCtx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, `hsla(${baseHue}, 70%, 18%, 1)`);
+      gradient.addColorStop(1, `hsla(${(baseHue + 110) % 360}, 78%, 8%, 1)`);
+      kaleidoscopeCtx.fillStyle = gradient;
+      kaleidoscopeCtx.fillRect(0, 0, width, height);
+
+      kaleidoscopeCtx.save();
+      kaleidoscopeCtx.translate(width / 2, height / 2);
+      const petals = 12;
+      for (let i = 0; i < petals; i += 1) {
+        kaleidoscopeCtx.save();
+        kaleidoscopeCtx.rotate((Math.PI * 2 * i) / petals + timestamp * 0.00018);
+        const radius = 34 + amplitude * 78;
+        const hue = (baseHue + i * (360 / petals)) % 360;
+        kaleidoscopeCtx.fillStyle = `hsla(${hue}, 88%, 62%, 0.2)`;
+        kaleidoscopeCtx.beginPath();
+        kaleidoscopeCtx.moveTo(0, 0);
+        kaleidoscopeCtx.quadraticCurveTo(radius * 0.6, -14 - amplitude * 30, radius * 1.4, 0);
+        kaleidoscopeCtx.quadraticCurveTo(radius * 0.6, 14 + amplitude * 30, 0, 0);
+        kaleidoscopeCtx.fill();
+
+        kaleidoscopeCtx.strokeStyle = `hsla(${(hue + 50) % 360}, 95%, 72%, 0.8)`;
+        kaleidoscopeCtx.lineWidth = 1.4;
+        kaleidoscopeCtx.beginPath();
+        kaleidoscopeCtx.arc(radius * 0.9, 0, 10 + amplitude * 12, 0, Math.PI * 2);
+        kaleidoscopeCtx.stroke();
+        kaleidoscopeCtx.restore();
+      }
+
+      kaleidoscopeCtx.strokeStyle = `hsla(${(baseHue + 180) % 360}, 95%, 78%, 0.85)`;
+      kaleidoscopeCtx.lineWidth = 2;
+      kaleidoscopeCtx.beginPath();
+      kaleidoscopeCtx.arc(0, 0, 16 + amplitude * 24, 0, Math.PI * 2);
+      kaleidoscopeCtx.stroke();
+      kaleidoscopeCtx.restore();
+    }
+
+    function animationLoop(timestamp) {
+      state.animationFrame = requestAnimationFrame(animationLoop);
+
+      if (!analyserNode) {
+        drawIdleVisuals(timestamp);
+        return;
+      }
+
+      analyserNode.getByteTimeDomainData(timeDomainData);
+      analyserNode.getByteFrequencyData(frequencyData);
+
+      let amplitudeAccumulator = 0;
+      for (let i = 0; i < timeDomainData.length; i += 1) {
+        amplitudeAccumulator += Math.abs(timeDomainData[i] - 128);
+      }
+      const amplitude = amplitudeAccumulator / timeDomainData.length / 128;
+
+      let dominantIndex = 0;
+      for (let i = 1; i < frequencyData.length; i += 1) {
+        if (frequencyData[i] > frequencyData[dominantIndex]) {
+          dominantIndex = i;
+        }
+      }
+      const dominantFrequency = audioContext
+        ? (dominantIndex * audioContext.sampleRate) / analyserNode.fftSize
+        : 0;
+
+      amplitudeMeter.textContent = `${Math.round(amplitude * 100)}%`;
+      frequencyMeter.textContent = formatHz(dominantFrequency);
+
+      drawScope();
+      drawSpectrum();
+      drawKaleidoscope(amplitude, dominantFrequency, timestamp);
+    }
+
+    function drawIdleVisuals(timestamp) {
+      timeDomainData = timeDomainData || new Uint8Array(2048);
+      frequencyData = frequencyData || new Uint8Array(1024);
+
+      for (let i = 0; i < timeDomainData.length; i += 1) {
+        timeDomainData[i] = 128 + Math.sin(i * 0.025 + timestamp * 0.003) * 32;
+      }
+
+      for (let i = 0; i < frequencyData.length; i += 1) {
+        frequencyData[i] = Math.max(0, 100 - i * 0.12 + Math.sin(timestamp * 0.002 + i * 0.08) * 24);
+      }
+
+      amplitudeMeter.textContent = "0%";
+      frequencyMeter.textContent = "0 Hz";
+      drawScope();
+      drawSpectrum();
+      drawKaleidoscope(0.18, 180, timestamp);
+    }
+
+    startAudioButton.addEventListener("click", () => {
+      ensureAudioStarted().catch(() => {
+        setStatus("Audio start failed. Try interacting with the page again.");
+      });
+    });
+
+    muteToggle.addEventListener("click", () => {
+      state.muted = !state.muted;
+      muteToggle.classList.toggle("active", state.muted);
+      muteToggle.textContent = `Muted: ${state.muted ? "On" : "Off"}`;
+      muteToggle.setAttribute("aria-pressed", String(state.muted));
+      syncAudioState();
+      setStatus(state.muted ? "Audio muted. Visual monitor remains active." : "Audio restored.");
+    });
+
+    renderOscillatorControls();
+    renderPresetGrid();
+    drawPatchBoard();
+    attachBoardEvents();
+    presetState.textContent = state.lastPresetAction;
+    connectionCount.textContent = String(state.connections.length);
+    state.animationFrame = requestAnimationFrame(animationLoop);
+  </script>
+</body>
+</html>
