@@ -22,3 +22,14 @@ This repository contains a simple agent-factory workflow for planning and comple
 - 小鬼伏击与黑山老妖两场回合制战斗
 
 直接用浏览器打开 `nie-xiaoqian-rpg/index.html` 即可游玩。方向键或 `WASD` 移动，`Enter` / 空格确认或推进对话。
+
+## Orbital Slingshot
+
+新增 `slingshot-game/index.html`，提供一个可直接在浏览器中打开的引力弹弓玩法原型，包含：
+
+- 每关 3 到 5 个带可视化引力井的行星
+- 拖拽瞄准与实时轨迹预览
+- 发射后受引力影响的飞船轨迹与完整尾迹
+- 命中目标圈后自动进入下一关并重新生成关卡
+
+直接用浏览器打开 `slingshot-game/index.html` 即可游玩。
