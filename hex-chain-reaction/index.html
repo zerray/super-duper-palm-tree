@@ -215,6 +215,28 @@
       gap: 10px;
     }
 
+    .control-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    label {
+      font-size: 0.94rem;
+      color: var(--muted);
+    }
+
+    select {
+      min-height: 42px;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(74, 58, 40, 0.14);
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--ink);
+      font: inherit;
+    }
+
     .badge {
       padding: 8px 10px;
       border-radius: 12px;
@@ -317,7 +339,7 @@
   <div class="app">
     <section class="surface">
       <h1>Hex Chain Reaction</h1>
-      <p class="lede">Two players alternate on a compact hex grid. Click an empty hex or one you already own, then try to force overflowing chain reactions that convert neighboring cells to your color.</p>
+      <p class="lede">Play as Blue against a greedy Red AI on a compact hex grid. Click an empty hex or one you already own, then try to force overflowing chain reactions that convert neighboring cells to your color.</p>
       <div class="stats">
         <div class="chip" id="turnChip"><strong>Turn:</strong> <span id="turnLabel">Blue</span></div>
         <div class="chip"><strong>Status:</strong> <span id="statusText">Blue to move.</span></div>
@@ -332,7 +354,15 @@
     <aside class="panel">
       <div class="card">
         <h2>Match Controls</h2>
-        <p class="muted">Local hot-seat only. Chain reactions resolve one wave at a time before the turn changes.</p>
+        <p class="muted">Human vs AI. Chain reactions resolve one wave at a time before the turn changes.</p>
+        <div class="control-row">
+          <label for="sizeSelect">Grid size</label>
+          <select id="sizeSelect" aria-label="Grid size">
+            <option value="5">5 × 5</option>
+            <option value="7" selected>7 × 7</option>
+            <option value="9">9 × 9</option>
+          </select>
+        </div>
         <button class="action" id="restartButton" type="button">Restart Match</button>
       </div>
 
@@ -349,7 +379,7 @@
       <div class="card">
         <h2>Rules</h2>
         <div class="legend">
-          <div class="legend-line"><span class="swatch p1"></span><span>Blue plays first. Red is the second local player.</span></div>
+          <div class="legend-line"><span class="swatch p1"></span><span>Blue plays first. Red replies with a greedy AI move.</span></div>
           <div class="legend-line"><span class="swatch p2"></span><span>You may only place a token on an empty or friendly cell.</span></div>
           <div class="legend-line"><span class="swatch burst"></span><span>If token count exceeds neighbor count, the excess bursts outward and converts every touched neighbor.</span></div>
         </div>
@@ -367,8 +397,7 @@
 
   <script>
     const GRID_SIZE = 7;
-    const BOARD_ROWS = GRID_SIZE;
-    const BOARD_COLS = GRID_SIZE;
+    const AI_DELAY_MS = 420;
     const ANIMATION_STEP_MS = 240;
     const HEX_RADIUS = 38;
     const HEX_H_SPACING = Math.sqrt(3) * HEX_RADIUS;
@@ -402,6 +431,7 @@
     const redCount = document.getElementById("redCount");
     const cascadeCount = document.getElementById("cascadeCount");
     const detailText = document.getElementById("detailText");
+    const sizeSelect = document.getElementById("sizeSelect");
     const restartButton = document.getElementById("restartButton");
     const playAgainButton = document.getElementById("playAgainButton");
     const winnerOverlay = document.getElementById("winnerOverlay");
@@ -410,6 +440,7 @@
 
     const state = {
       currentPlayer: PLAYER_ONE,
+      gridSize: GRID_SIZE,
       board: new Map(),
       offsetCells: [],
       resolving: false,
@@ -420,7 +451,8 @@
       },
       highlightedKeys: new Set(),
       cascadeStep: 0,
-      totalMoves: 0
+      totalMoves: 0,
+      aiThinking: false
     };
 
     function sleep(ms) {
@@ -448,8 +480,8 @@
     function createBoardMap() {
       const board = new Map();
       const offsetCells = [];
-      for (let row = 0; row < BOARD_ROWS; row += 1) {
-        for (let col = 0; col < BOARD_COLS; col += 1) {
+      for (let row = 0; row < state.gridSize; row += 1) {
+        for (let col = 0; col < state.gridSize; col += 1) {
           const { q, r } = offsetToAxial(col, row);
           const key = keyFor(q, r);
           board.set(key, {
@@ -529,6 +561,122 @@
       return owners.size === 1 ? [...owners][0] : 0;
     }
 
+    function cloneBoard(board) {
+      return new Map(
+        [...board.entries()].map(([key, cell]) => [
+          key,
+          {
+            q: cell.q,
+            r: cell.r,
+            row: cell.row,
+            col: cell.col,
+            owner: cell.owner,
+            count: cell.count
+          }
+        ])
+      );
+    }
+
+    function getNeighborsFromBoard(board, q, r) {
+      const neighbors = [];
+      for (const [dq, dr] of DIRECTIONS) {
+        const neighbor = board.get(keyFor(q + dq, r + dr));
+        if (neighbor) {
+          neighbors.push(neighbor);
+        }
+      }
+      return neighbors;
+    }
+
+    function countOwnedCells(board, player) {
+      let total = 0;
+      for (const cell of board.values()) {
+        if (cell.owner === player) {
+          total += 1;
+        }
+      }
+      return total;
+    }
+
+    function resolveChainReactionOnBoard(board, activePlayer) {
+      let safety = 0;
+      while (safety < 1000) {
+        const queue = [];
+        for (const cell of board.values()) {
+          const neighborCount = getNeighborsFromBoard(board, cell.q, cell.r).length;
+          if (cell.owner !== 0 && cell.count > neighborCount) {
+            queue.push(cell);
+          }
+        }
+        if (queue.length === 0) {
+          break;
+        }
+
+        const additions = new Map();
+        for (const cell of queue) {
+          const neighbors = getNeighborsFromBoard(board, cell.q, cell.r);
+          cell.count -= neighbors.length;
+          if (cell.count <= 0) {
+            cell.count = 0;
+            cell.owner = 0;
+          }
+          for (const neighbor of neighbors) {
+            const neighborKey = keyFor(neighbor.q, neighbor.r);
+            additions.set(neighborKey, (additions.get(neighborKey) || 0) + 1);
+          }
+        }
+
+        for (const [neighborKey, amount] of additions.entries()) {
+          const target = board.get(neighborKey);
+          target.owner = activePlayer;
+          target.count += amount;
+        }
+        safety += 1;
+      }
+    }
+
+    function evaluateMove(cell, player) {
+      const simulation = cloneBoard(state.board);
+      const simulatedCell = simulation.get(keyFor(cell.q, cell.r));
+      const beforeOwned = countOwnedCells(simulation, player);
+      simulatedCell.owner = player;
+      simulatedCell.count += 1;
+      resolveChainReactionOnBoard(simulation, player);
+      const afterOwned = countOwnedCells(simulation, player);
+      return {
+        gain: afterOwned - beforeOwned,
+        cells: afterOwned,
+        tokens: [...simulation.values()]
+          .filter((entry) => entry.owner === player)
+          .reduce((sum, entry) => sum + entry.count, 0)
+      };
+    }
+
+    function chooseAiMove() {
+      let bestMove = null;
+      for (const cell of state.board.values()) {
+        if (!isLegalMove(cell, PLAYER_TWO)) {
+          continue;
+        }
+        const score = evaluateMove(cell, PLAYER_TWO);
+        if (
+          !bestMove ||
+          score.gain > bestMove.gain ||
+          (score.gain === bestMove.gain && score.cells > bestMove.cells) ||
+          (score.gain === bestMove.gain && score.cells === bestMove.cells && score.tokens > bestMove.tokens)
+        ) {
+          bestMove = {
+            q: cell.q,
+            r: cell.r,
+            gain: score.gain,
+            cells: score.cells,
+            tokens: score.tokens
+          };
+        }
+      }
+      return bestMove;
+    }
+
     function buildHexPoints(cx, cy) {
       const points = [];
       for (let index = 0; index < 6; index += 1) {
@@ -553,8 +701,8 @@
     }
 
     function renderBoard() {
-      const width = 180 + HEX_H_SPACING * (BOARD_COLS + 2);
-      const height = 160 + HEX_V_SPACING * (BOARD_ROWS - 1) + HEX_RADIUS * 2;
+      const width = 180 + HEX_H_SPACING * (state.gridSize + 2);
+      const height = 160 + HEX_V_SPACING * (state.gridSize - 1) + HEX_RADIUS * 2;
       boardSvg.setAttribute("viewBox", `0 0 ${width} ${height}`);
       boardSvg.innerHTML = "";
 
@@ -568,7 +716,7 @@
         if (cell.owner) {
           classes.push(PLAYER_CLASS[cell.owner]);
         }
-        if (!state.resolving && !state.winner && isLegalMove(cell, state.currentPlayer)) {
+        if (!state.resolving && !state.winner && !state.aiThinking && state.currentPlayer === PLAYER_ONE && isLegalMove(cell, state.currentPlayer)) {
           classes.push("clickable");
         } else {
           classes.push("blocked");
@@ -618,8 +766,10 @@
         ? `${PLAYER_NAMES[state.winner]} wins.`
         : state.resolving
           ? "Resolving chain reaction..."
-          : `${PLAYER_NAMES[state.currentPlayer]} to move.`;
-      boardLabel.textContent = `${BOARD_ROWS} × ${BOARD_COLS}`;
+          : state.aiThinking
+            ? "Red AI is evaluating moves..."
+            : `${PLAYER_NAMES[state.currentPlayer]} to move.`;
+      boardLabel.textContent = `${state.gridSize} × ${state.gridSize}`;
       moveLabel.textContent = `${state.totalMoves}`;
       blueCount.textContent = `${summary.blueOwned} cells / ${summary.blueTokens} tokens`;
       redCount.textContent = `${summary.redOwned} cells / ${summary.redTokens} tokens`;
@@ -695,7 +845,7 @@
     }
 
     async function handleCellClick(q, r) {
-      if (state.resolving || state.winner) {
+      if (state.resolving || state.winner || state.aiThinking || state.currentPlayer !== PLAYER_ONE) {
         return;
       }
       const cell = getCell(q, r);
@@ -718,7 +868,39 @@
       }
 
       state.currentPlayer = state.currentPlayer === PLAYER_ONE ? PLAYER_TWO : PLAYER_ONE;
-      detailText.textContent = `${PLAYER_NAMES[state.currentPlayer]} to move. Set up the next combo.`;
+      render();
+      window.setTimeout(takeAiTurn, AI_DELAY_MS);
+    }
+
+    async function takeAiTurn() {
+      if (state.resolving || state.winner || state.currentPlayer !== PLAYER_TWO) {
+        return;
+      }
+      state.aiThinking = true;
+      detailText.textContent = "Red AI is searching for the strongest legal move.";
+      render();
+
+      const aiMove = chooseAiMove();
+      state.aiThinking = false;
+      if (!aiMove) {
+        return;
+      }
+
+      const cell = getCell(aiMove.q, aiMove.r);
+      cell.owner = PLAYER_TWO;
+      cell.count += 1;
+      state.movesPlayed[PLAYER_TWO] += 1;
+      state.totalMoves += 1;
+      detailText.textContent = `Red AI played at axial ${aiMove.q},${aiMove.r}.`;
+      render();
+
+      await resolveChainReaction(PLAYER_TWO);
+      if (state.winner) {
+        return;
+      }
+
+      state.currentPlayer = PLAYER_ONE;
+      detailText.textContent = "Blue to move. Set up the next combo.";
       render();
     }
 
@@ -736,11 +918,17 @@
       state.highlightedKeys = new Set();
       state.cascadeStep = 0;
       state.totalMoves = 0;
+      state.aiThinking = false;
       closeWinnerOverlay();
-      detailText.textContent = "Blue begins. Corner hexes overflow later than center hexes because capacity matches live neighbor count.";
+      boardLabel.textContent = `${state.gridSize} × ${state.gridSize}`;
+      detailText.textContent = "Blue begins. Red responds automatically, and every hex overflows only after exceeding its live neighbor count.";
       render();
     }
 
+    sizeSelect.addEventListener("change", () => {
+      state.gridSize = Number(sizeSelect.value);
+      resetGame();
+    });
     restartButton.addEventListener("click", resetGame);
     playAgainButton.addEventListener("click", resetGame);
 

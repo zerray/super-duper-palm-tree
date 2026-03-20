@@ -14,17 +14,19 @@ fail() {
 
 grep -q 'Hex Chain Reaction' "$app_file" || fail "title missing"
 grep -q 'const GRID_SIZE = 7;' "$app_file" || fail "grid size missing"
-grep -q 'const BOARD_ROWS = GRID_SIZE;' "$app_file" || fail "board rows missing"
-grep -q 'const BOARD_COLS = GRID_SIZE;' "$app_file" || fail "board cols missing"
+grep -q 'const AI_DELAY_MS = 420;' "$app_file" || fail "AI delay missing"
 grep -q 'const ANIMATION_STEP_MS = 240;' "$app_file" || fail "animation timing missing"
 grep -q 'board: new Map()' "$app_file" || fail "Map-backed board state missing"
 grep -q 'function offsetToAxial' "$app_file" || fail "axial conversion missing"
 grep -q 'function getNeighbors' "$app_file" || fail "neighbor lookup missing"
 grep -q 'cell.count > getNeighborCount(cell)' "$app_file" || fail "overflow threshold missing"
 grep -q 'async function resolveChainReaction' "$app_file" || fail "animated chain reaction missing"
+grep -q 'function chooseAiMove()' "$app_file" || fail "AI move picker missing"
+grep -q 'window.setTimeout(takeAiTurn, AI_DELAY_MS)' "$app_file" || fail "AI turn scheduling missing"
+grep -q 'id="sizeSelect"' "$app_file" || fail "grid size selector missing"
 grep -q 'Restart Match' "$app_file" || fail "restart control missing"
 grep -q 'Move:' "$app_file" || fail "move counter missing"
-grep -q 'Two players alternate on a compact hex grid' "$app_file" || fail "rules copy missing"
+grep -q 'Play as Blue against a greedy Red AI' "$app_file" || fail "AI lede missing"
 grep -q 'controls all occupied cells after the final cascade' "$app_file" || fail "win condition text missing"
 
 printf 'hex chain reaction smoke test passed\n'
