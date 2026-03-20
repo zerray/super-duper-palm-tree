@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hex Color Idle Factory</title>
+  <style>
+    :root {
+      --bg: #0d1017;
+      --panel: rgba(20, 24, 34, 0.82);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --text: #eef2ff;
+      --muted: #aab3d0;
+      --red: #ff5d6c;
+      --green: #59de91;
+      --blue: #68b3ff;
+      --yellow: #ffd85e;
+      --purple: #b07cff;
+      --cyan: #5fe7eb;
+      --accent: #f8f7ff;
+      --good: #99ffb5;
+      --warn: #ffd16a;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 93, 108, 0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(95, 231, 235, 0.14), transparent 26%),
+        linear-gradient(180deg, #121826 0%, var(--bg) 55%, #090b10 100%);
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1180px, calc(100% - 24px));
+      margin: 20px auto 36px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(12px);
+    }
+
+    .hero {
+      padding: 24px;
+      display: grid;
+      gap: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none;
+      opacity: 0.4;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 7vw, 4.8rem);
+      line-height: 0.92;
+      letter-spacing: -0.05em;
+      max-width: 8ch;
+    }
+
+    .subtitle {
+      max-width: 58ch;
+      line-height: 1.55;
+      color: var(--muted);
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-stats {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .stat-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .stat-value {
+      margin-top: 8px;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(320px, 380px);
+      gap: 18px;
+    }
+
+    .factory {
+      padding: 20px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .factory-floor {
+      position: relative;
+      min-height: 420px;
+      border-radius: 22px;
+      padding: 20px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 42%),
+        linear-gradient(180deg, #111726, #0a0f18);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      overflow: hidden;
+    }
+
+    .factory-floor::before {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      height: 38%;
+      background:
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0 24px, transparent 24px 48px),
+        linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.22));
+      opacity: 0.8;
+    }
+
+    .stations {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      align-items: end;
+    }
+
+    .gen-card,
+    .mix-card,
+    .shop-card,
+    .order-card {
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .gen-card {
+      padding: 14px;
+      min-height: 176px;
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .gen-header,
+    .mix-header,
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .chip {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      box-shadow: 0 0 20px currentColor;
+      flex: 0 0 auto;
+    }
+
+    .amount {
+      font-size: 1.45rem;
+      font-weight: 700;
+    }
+
+    .rate {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .meter {
+      height: 16px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .meter-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.45), currentColor);
+      transition: width 160ms ease;
+    }
+
+    .blob-lane {
+      height: 18px;
+      position: relative;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .blob {
+      position: absolute;
+      top: 3px;
+      left: -16px;
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: currentColor;
+      box-shadow: 0 0 16px currentColor;
+      animation: flow 2.6s linear infinite;
+      opacity: 0.9;
+    }
+
+    .blob:nth-child(2) { animation-delay: 0.8s; }
+    .blob:nth-child(3) { animation-delay: 1.6s; }
+
+    .mix-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+      margin-top: 14px;
+    }
+
+    .mix-card,
+    .shop-card,
+    .order-card {
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .mix-selects {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 8px;
+      align-items: center;
+    }
+
+    select,
+    button {
+      border: 0;
+      border-radius: 14px;
+      padding: 11px 12px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    button {
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 120ms ease, background 120ms ease, opacity 120ms ease;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    .mix-result {
+      min-height: 48px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--muted);
+      text-align: center;
+      padding: 8px;
+    }
+
+    .sidebar {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .shop-list,
+    .inventory,
+    .order-requirements {
+      display: grid;
+      gap: 10px;
+    }
+
+    .shop-item,
+    .inventory-row,
+    .order-line {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .inventory-row {
+      grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+
+    .item-name {
+      font-weight: 700;
+    }
+
+    .item-meta,
+    .small-copy {
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+
+    .order-card {
+      min-height: 230px;
+    }
+
+    .order-track {
+      position: relative;
+      height: 26px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .order-cart {
+      position: absolute;
+      top: 4px;
+      left: 0;
+      width: 64px;
+      height: 18px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #dfe7ff, #90a3ff);
+      box-shadow: 0 0 18px rgba(144, 163, 255, 0.45);
+      transition: transform 200ms ease;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.84rem;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+    }
+
+    .status {
+      min-height: 22px;
+      color: var(--good);
+      font-size: 0.92rem;
+    }
+
+    .reset-button {
+      background: rgba(255, 93, 108, 0.12);
+      color: #ffc0c8;
+    }
+
+    @keyframes flow {
+      0% { transform: translateX(0) scale(0.8); opacity: 0; }
+      15% { opacity: 1; }
+      100% { transform: translateX(130px) scale(1.05); opacity: 0; }
+    }
+
+    @media (max-width: 900px) {
+      .hero-stats,
+      .main-grid,
+      .stations,
+      .mix-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        font-size: 15px;
+      }
+
+      .app {
+        width: min(100% - 16px, 1180px);
+        margin-top: 10px;
+      }
+
+      .hero,
+      .factory,
+      .sidebar {
+        padding: 16px;
+      }
+
+      .factory-floor {
+        min-height: 0;
+      }
+
+      .mix-selects {
+        grid-template-columns: 1fr;
+      }
+
+      .inventory-row,
+      .shop-item,
+      .order-line {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="hero panel">
+      <h1>Hex Color Idle Factory</h1>
+      <p class="subtitle">Run three primary dye lines, unlock mixed-color vats, stack production upgrades, and ship urgent paint orders down the conveyor for permanent factory momentum.</p>
+      <div class="hero-stats">
+        <div class="stat">
+          <div class="stat-label">Factory Output</div>
+          <div class="stat-value" id="total-rate">0 / s</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Order Multiplier</div>
+          <div class="stat-value" id="order-multiplier">x1.00</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Orders Filled</div>
+          <div class="stat-value" id="orders-filled">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Factory Score</div>
+          <div class="stat-value" id="factory-score">0</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="main-grid">
+      <section class="factory panel">
+        <div class="factory-floor">
+          <div class="stations" id="primary-generators"></div>
+          <div class="mix-row">
+            <section class="mix-card">
+              <div class="mix-header">
+                <h2>Mixing Vat</h2>
+                <span class="tag">2 primaries</span>
+              </div>
+              <div class="mix-selects">
+                <select id="mix-a"></select>
+                <span>+</span>
+                <select id="mix-b"></select>
+              </div>
+              <button id="mix-button">Unlock Mix</button>
+              <div class="mix-result" id="mix-result">Pick two different primaries to unlock a vat.</div>
+            </section>
+            <section class="mix-card">
+              <div class="mix-header">
+                <h2>Mixed Vats</h2>
+                <span class="tag">Auto output</span>
+              </div>
+              <div class="inventory" id="secondary-generators"></div>
+            </section>
+            <section class="order-card">
+              <div class="order-header">
+                <h2>Conveyor Orders</h2>
+                <span class="tag" id="order-bonus-label">+0.25x reward</span>
+              </div>
+              <div class="order-track">
+                <div class="order-cart" id="order-cart"></div>
+              </div>
+              <div class="small-copy" id="order-name">Awaiting first paint contract.</div>
+              <div class="order-requirements" id="order-lines"></div>
+              <button id="fill-order-button">Fill Order</button>
+              <div class="status" id="status-text"></div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <aside class="sidebar panel">
+        <section class="shop-card">
+          <div class="mix-header">
+            <h2>Upgrades</h2>
+            <span class="tag">3 shop lines</span>
+          </div>
+          <div class="small-copy">Each upgrade level raises output on an exponential price curve. Secondary vats benefit too after they are unlocked.</div>
+          <div class="shop-list" id="upgrade-list"></div>
+        </section>
+
+        <section class="shop-card">
+          <div class="mix-header">
+            <h2>Inventory</h2>
+            <span class="tag">Persistent save</span>
+          </div>
+          <div class="inventory" id="inventory-list"></div>
+        </section>
+
+        <section class="shop-card">
+          <div class="mix-header">
+            <h2>Factory Controls</h2>
+            <span class="tag">Mobile ready</span>
+          </div>
+          <div class="small-copy">Progress saves automatically to <code>localStorage</code>. Orders scale your long-term output, so cashing them in matters more than raw hoarding.</div>
+          <button class="reset-button" id="reset-button">Reset Factory</button>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "hex-color-idle-factory-save";
+    const primaryColors = {
+      red: { label: "Red", css: "var(--red)", hex: "#ff5d6c", baseRate: 1 },
+      green: { label: "Green", css: "var(--green)", hex: "#59de91", baseRate: 1 },
+      blue: { label: "Blue", css: "var(--blue)", hex: "#68b3ff", baseRate: 1 }
+    };
+    const secondaryRecipes = {
+      "blue+green": { id: "cyan", label: "Cyan", css: "var(--cyan)", hex: "#5fe7eb", inputs: ["blue", "green"], baseRate: 0.45, unlockCost: 24 },
+      "blue+red": { id: "purple", label: "Purple", css: "var(--purple)", hex: "#b07cff", inputs: ["blue", "red"], baseRate: 0.45, unlockCost: 24 },
+      "green+red": { id: "yellow", label: "Yellow", css: "var(--yellow)", hex: "#ffd85e", inputs: ["green", "red"], baseRate: 0.45, unlockCost: 24 }
+    };
+    const upgradeDefs = [
+      { id: "redBoost", color: "red", label: "Red Pump", description: "Boost red line throughput by 55%.", baseCost: 14, factor: 1.55 },
+      { id: "greenBoost", color: "green", label: "Green Pump", description: "Boost green line throughput by 55%.", baseCost: 14, factor: 1.55 },
+      { id: "blueBoost", color: "blue", label: "Blue Pump", description: "Boost blue line throughput by 55%.", baseCost: 14, factor: 1.55 }
+    ];
+
+    const els = {
+      primaryGenerators: document.getElementById("primary-generators"),
+      secondaryGenerators: document.getElementById("secondary-generators"),
+      upgradeList: document.getElementById("upgrade-list"),
+      inventoryList: document.getElementById("inventory-list"),
+      mixA: document.getElementById("mix-a"),
+      mixB: document.getElementById("mix-b"),
+      mixButton: document.getElementById("mix-button"),
+      mixResult: document.getElementById("mix-result"),
+      totalRate: document.getElementById("total-rate"),
+      orderMultiplier: document.getElementById("order-multiplier"),
+      ordersFilled: document.getElementById("orders-filled"),
+      factoryScore: document.getElementById("factory-score"),
+      orderName: document.getElementById("order-name"),
+      orderLines: document.getElementById("order-lines"),
+      orderBonusLabel: document.getElementById("order-bonus-label"),
+      orderCart: document.getElementById("order-cart"),
+      fillOrderButton: document.getElementById("fill-order-button"),
+      statusText: document.getElementById("status-text"),
+      resetButton: document.getElementById("reset-button")
+    };
+
+    const state = loadState();
+    let lastTime = performance.now();
+    let lastRenderAt = 0;
+    let lastSaveAt = 0;
+
+    setupSelects();
+    bindEvents();
+    ensureOrder();
+    render();
+    requestAnimationFrame(step);
+
+    function defaultState() {
+      return {
+        resources: {
+          red: 12,
+          green: 12,
+          blue: 12,
+          cyan: 0,
+          purple: 0,
+          yellow: 0
+        },
+        unlockedSecondary: {
+          cyan: false,
+          purple: false,
+          yellow: false
+        },
+        upgrades: {
+          redBoost: 0,
+          greenBoost: 0,
+          blueBoost: 0
+        },
+        orderMultiplier: 1,
+        ordersFilled: 0,
+        currentOrder: null,
+        statusText: ""
+      };
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          return defaultState();
+        }
+        const parsed = JSON.parse(raw);
+        return mergeState(defaultState(), parsed);
+      } catch (error) {
+        return defaultState();
+      }
+    }
+
+    function mergeState(base, saved) {
+      return {
+        ...base,
+        ...saved,
+        resources: { ...base.resources, ...(saved.resources || {}) },
+        unlockedSecondary: { ...base.unlockedSecondary, ...(saved.unlockedSecondary || {}) },
+        upgrades: { ...base.upgrades, ...(saved.upgrades || {}) }
+      };
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function bindEvents() {
+      els.mixButton.addEventListener("click", unlockMix);
+      els.mixA.addEventListener("change", updateMixPreview);
+      els.mixB.addEventListener("change", updateMixPreview);
+      els.fillOrderButton.addEventListener("click", fillOrder);
+      els.resetButton.addEventListener("click", () => {
+        if (!window.confirm("Reset the factory and clear the saved game?")) {
+          return;
+        }
+        const fresh = defaultState();
+        Object.assign(state, fresh);
+        ensureOrder();
+        saveState();
+        queueRender();
+      });
+      window.addEventListener("beforeunload", saveState);
+    }
+
+    function setupSelects() {
+      const options = Object.entries(primaryColors).map(([id, color]) => `<option value="${id}">${color.label}</option>`).join("");
+      els.mixA.innerHTML = options;
+      els.mixB.innerHTML = options;
+      els.mixA.value = "red";
+      els.mixB.value = "blue";
+      updateMixPreview();
+    }
+
+    function getUpgradeLevel(colorId) {
+      return state.upgrades[`${colorId}Boost`] || 0;
+    }
+
+    function getPrimaryRate(colorId) {
+      const base = primaryColors[colorId].baseRate;
+      const level = getUpgradeLevel(colorId);
+      return base * Math.pow(1.55, level) * state.orderMultiplier;
+    }
+
+    function getSecondaryRate(recipe) {
+      const avgPrimaryLevel = recipe.inputs.reduce((sum, id) => sum + getUpgradeLevel(id), 0) / recipe.inputs.length;
+      return recipe.baseRate * (1 + avgPrimaryLevel * 0.5) * state.orderMultiplier;
+    }
+
+    function totalRatePerSecond() {
+      let total = Object.keys(primaryColors).reduce((sum, id) => sum + getPrimaryRate(id), 0);
+      for (const recipe of Object.values(secondaryRecipes)) {
+        if (state.unlockedSecondary[recipe.id]) {
+          total += getSecondaryRate(recipe);
+        }
+      }
+      return total;
+    }
+
+    function step(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.25);
+      lastTime = now;
+
+      for (const id of Object.keys(primaryColors)) {
+        state.resources[id] += getPrimaryRate(id) * dt;
+      }
+
+      for (const recipe of Object.values(secondaryRecipes)) {
+        if (state.unlockedSecondary[recipe.id]) {
+          state.resources[recipe.id] += getSecondaryRate(recipe) * dt;
+        }
+      }
+
+      if (now - lastRenderAt > 120) {
+        render();
+      }
+
+      if (now - lastSaveAt > 2000) {
+        saveState();
+        lastSaveAt = now;
+      }
+
+      requestAnimationFrame(step);
+    }
+
+    function queueRender(message) {
+      if (typeof message === "string") {
+        state.statusText = message;
+      }
+      render();
+    }
+
+    function unlockMix() {
+      const colorA = els.mixA.value;
+      const colorB = els.mixB.value;
+      const key = [colorA, colorB].sort().join("+");
+      const recipe = secondaryRecipes[key];
+
+      if (!recipe) {
+        queueRender("Pick two different primary colors.");
+        return;
+      }
+
+      if (state.unlockedSecondary[recipe.id]) {
+        queueRender(`${recipe.label} vat is already online.`);
+        return;
+      }
+
+      const costPerInput = recipe.unlockCost / 2;
+      if (state.resources[colorA] < costPerInput || state.resources[colorB] < costPerInput) {
+        queueRender(`Need ${formatNumber(costPerInput)} ${primaryColors[colorA].label} and ${formatNumber(costPerInput)} ${primaryColors[colorB].label}.`);
+        return;
+      }
+
+      state.resources[colorA] -= costPerInput;
+      state.resources[colorB] -= costPerInput;
+      state.unlockedSecondary[recipe.id] = true;
+      saveState();
+      queueRender(`${recipe.label} vat unlocked.`);
+    }
+
+    function updateMixPreview() {
+      const key = [els.mixA.value, els.mixB.value].sort().join("+");
+      const recipe = secondaryRecipes[key];
+      if (!recipe) {
+        els.mixResult.textContent = "Pick two different primaries to unlock a vat.";
+        return;
+      }
+      els.mixResult.innerHTML = `${primaryColors[recipe.inputs[0]].label} + ${primaryColors[recipe.inputs[1]].label} = <strong>${recipe.label}</strong><br>Unlock cost: ${recipe.unlockCost / 2} each`;
+    }
+
+    function upgradeCost(upgrade) {
+      const level = state.upgrades[upgrade.id] || 0;
+      return Math.floor(upgrade.baseCost * Math.pow(1.75, level));
+    }
+
+    function buyUpgrade(id) {
+      const upgrade = upgradeDefs.find((item) => item.id === id);
+      const cost = upgradeCost(upgrade);
+      if (state.resources[upgrade.color] < cost) {
+        queueRender(`Need ${cost} ${primaryColors[upgrade.color].label} to buy ${upgrade.label}.`);
+        return;
+      }
+      state.resources[upgrade.color] -= cost;
+      state.upgrades[id] += 1;
+      saveState();
+      queueRender(`${upgrade.label} upgraded to level ${state.upgrades[id]}.`);
+    }
+
+    function ensureOrder() {
+      if (state.currentOrder) {
+        return;
+      }
+      state.currentOrder = buildOrder();
+    }
+
+    function buildOrder() {
+      const unlockedSecondaryIds = Object.keys(state.unlockedSecondary).filter((id) => state.unlockedSecondary[id]);
+      const pool = ["red", "green", "blue", ...unlockedSecondaryIds];
+      const picks = shuffle(pool).slice(0, pool.length > 4 ? 3 : 2);
+      const requirements = picks.map((id) => {
+        const scale = unlockedSecondaryIds.includes(id) ? 18 : 28;
+        const amount = Math.round(scale + state.ordersFilled * 5 + Math.random() * scale);
+        return { id, amount };
+      });
+      return {
+        name: `${requirements.length}-color shipment`,
+        requirements,
+        reward: 0.25 + Math.min(0.5, state.ordersFilled * 0.02)
+      };
+    }
+
+    function fillOrder() {
+      ensureOrder();
+      const order = state.currentOrder;
+      const missing = order.requirements.find((req) => state.resources[req.id] < req.amount);
+      if (missing) {
+        queueRender(`Missing ${formatNumber(reqShortfall(missing))} ${getColorLabel(missing.id)} for this order.`);
+        return;
+      }
+
+      for (const req of order.requirements) {
+        state.resources[req.id] -= req.amount;
+      }
+
+      state.ordersFilled += 1;
+      state.orderMultiplier = Number((state.orderMultiplier + order.reward).toFixed(2));
+      state.currentOrder = buildOrder();
+      saveState();
+      queueRender(`Order shipped. Factory multiplier increased by ${order.reward.toFixed(2)}x.`);
+    }
+
+    function reqShortfall(req) {
+      return Math.max(0, req.amount - state.resources[req.id]).toFixed(1);
+    }
+
+    function getColorLabel(id) {
+      return primaryColors[id]?.label || Object.values(secondaryRecipes).find((recipe) => recipe.id === id)?.label || id;
+    }
+
+    function getColorHex(id) {
+      return primaryColors[id]?.hex || Object.values(secondaryRecipes).find((recipe) => recipe.id === id)?.hex || "#ffffff";
+    }
+
+    function render() {
+      lastRenderAt = performance.now();
+      renderPrimaryGenerators();
+      renderSecondaryGenerators();
+      renderUpgrades();
+      renderInventory();
+      renderOrder();
+      updateMixPreview();
+      els.totalRate.textContent = `${formatNumber(totalRatePerSecond())} / s`;
+      els.orderMultiplier.textContent = `x${state.orderMultiplier.toFixed(2)}`;
+      els.ordersFilled.textContent = String(state.ordersFilled);
+      els.factoryScore.textContent = formatNumber(factoryScore());
+      els.statusText.textContent = state.statusText || "";
+    }
+
+    function renderPrimaryGenerators() {
+      els.primaryGenerators.innerHTML = Object.entries(primaryColors).map(([id, color]) => {
+        const amount = state.resources[id];
+        const rate = getPrimaryRate(id);
+        const meterPercent = Math.min(100, (amount / upgradeCost({ id: `${id}Boost`, baseCost: 14 })) * 100);
+        return `
+          <article class="gen-card" style="color:${color.css}">
+            <div class="gen-header">
+              <div>
+                <div class="item-name">${color.label} Line</div>
+                <div class="rate">${formatNumber(rate)} / s</div>
+              </div>
+              <span class="chip" style="color:${color.css}; background:${color.css}"></span>
+            </div>
+            <div class="amount">${formatNumber(amount)}</div>
+            <div class="meter"><div class="meter-fill" style="color:${color.css}; width:${meterPercent}%"></div></div>
+            <div class="blob-lane" aria-hidden="true" style="color:${color.css}">
+              <span class="blob"></span>
+              <span class="blob"></span>
+              <span class="blob"></span>
+            </div>
+            <div class="small-copy">Base generator running continuously.</div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function renderSecondaryGenerators() {
+      const unlocked = Object.values(secondaryRecipes).filter((recipe) => state.unlockedSecondary[recipe.id]);
+      if (!unlocked.length) {
+        els.secondaryGenerators.innerHTML = `<div class="small-copy">No vats unlocked yet. Mix two primary streams to open a secondary line.</div>`;
+        return;
+      }
+      els.secondaryGenerators.innerHTML = unlocked.map((recipe) => `
+        <div class="inventory-row">
+          <span class="chip" style="color:${recipe.css}; background:${recipe.css}"></span>
+          <div>
+            <div class="item-name">${recipe.label} Vat</div>
+            <div class="item-meta">${recipe.inputs.map(getColorLabel).join(" + ")} blend</div>
+          </div>
+          <div>
+            <div class="item-name">${formatNumber(state.resources[recipe.id])}</div>
+            <div class="item-meta">${formatNumber(getSecondaryRate(recipe))} / s</div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderUpgrades() {
+      els.upgradeList.innerHTML = upgradeDefs.map((upgrade) => {
+        const level = state.upgrades[upgrade.id];
+        const cost = upgradeCost(upgrade);
+        const color = primaryColors[upgrade.color];
+        return `
+          <div class="shop-item">
+            <div>
+              <div class="item-name">${upgrade.label} Lv.${level}</div>
+              <div class="item-meta">${upgrade.description} Cost: ${cost} ${color.label}.</div>
+            </div>
+            <button data-upgrade="${upgrade.id}" style="background:${color.hex}; color:#11131a;">Buy</button>
+          </div>
+        `;
+      }).join("");
+
+      els.upgradeList.querySelectorAll("[data-upgrade]").forEach((button) => {
+        button.addEventListener("click", () => buyUpgrade(button.dataset.upgrade));
+      });
+    }
+
+    function renderInventory() {
+      const secondaryDefs = Object.values(secondaryRecipes).map((recipe) => ({ id: recipe.id, label: recipe.label, hex: recipe.hex }));
+      const allDefs = [
+        ...Object.entries(primaryColors).map(([id, color]) => ({ id, label: color.label, hex: color.hex })),
+        ...secondaryDefs
+      ];
+
+      els.inventoryList.innerHTML = allDefs.map((entry) => `
+        <div class="inventory-row">
+          <span class="chip" style="color:${entry.hex}; background:${entry.hex}"></span>
+          <div class="item-name">${entry.label}</div>
+          <div>${formatNumber(state.resources[entry.id])}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderOrder() {
+      ensureOrder();
+      const order = state.currentOrder;
+      els.orderName.textContent = `${order.name} ready for dispatch`;
+      els.orderBonusLabel.textContent = `+${order.reward.toFixed(2)}x reward`;
+      els.orderLines.innerHTML = order.requirements.map((req) => {
+        const progress = Math.min(1, state.resources[req.id] / req.amount);
+        const hex = getColorHex(req.id);
+        return `
+          <div class="order-line">
+            <div>
+              <div class="item-name">${getColorLabel(req.id)}</div>
+              <div class="item-meta">${formatNumber(state.resources[req.id])} / ${formatNumber(req.amount)}</div>
+            </div>
+            <div class="meter" style="min-width:96px;"><div class="meter-fill" style="color:${hex}; width:${progress * 100}%"></div></div>
+          </div>
+        `;
+      }).join("");
+      const completion = order.requirements.reduce((sum, req) => sum + Math.min(1, state.resources[req.id] / req.amount), 0) / order.requirements.length;
+      els.orderCart.style.transform = `translateX(${completion * 230}px)`;
+    }
+
+    function factoryScore() {
+      return state.orderMultiplier * (state.ordersFilled + 1) * totalRatePerSecond();
+    }
+
+    function shuffle(list) {
+      const copy = [...list];
+      for (let i = copy.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function formatNumber(value) {
+      if (value >= 1000) {
+        return value.toFixed(0);
+      }
+      if (value >= 100) {
+        return value.toFixed(1);
+      }
+      return value.toFixed(2);
+    }
+  </script>
+</body>
+</html>
