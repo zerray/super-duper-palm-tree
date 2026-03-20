@@ -127,10 +127,10 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 新增 `hex-chain-reaction/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的六边形连锁反应策略游戏，包含：
 
-- 默认 7x7 的 SVG 六边形棋盘，使用轴坐标与 `Map` 保存格子状态
-- 双人热座模式：只能点击空格或己方格子落子
+- 默认 7x7、可切换到 5x5 或 9x9 的 SVG 六边形棋盘，使用轴坐标与 `Map` 保存格子状态
+- 人类蓝方对战红方贪心 AI；AI 会模拟每个合法落点的完整连锁结算后再出手
 - 当 token 数量超过该格实际邻居数时触发爆裂，并以短延迟逐步播放连锁反应
-- 当前玩家提示、重新开始按钮，以及一方占据所有已占用格子后的胜利结算
+- 当前玩家提示、AI 思考时间显示、重新开始按钮，以及一方占据所有已占用格子后的胜利结算
 
 直接用浏览器打开 `hex-chain-reaction/index.html` 即可游玩。
 
