@@ -121,3 +121,15 @@ This repository contains a simple agent-factory workflow for planning and comple
 - `Clear` 清空画布，`Export PNG` 导出当前作品
 
 直接用浏览器打开 `kaleidoscope/index.html` 即可运行。
+
+## Pixel Biome Terrarium
+
+新增 `pixel-biome-terrarium/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的像素生态箱模拟器，包含：
+
+- 64x64 网格 Canvas，区分空地、草、食草动物与捕食者
+- 持续运行的生态演化：草扩散、移动觅食、能量消耗、繁殖与死亡
+- 实时种群折线图，追踪草、食草动物、捕食者数量变化
+- 点击投放食物或生成生物，并可切换降雨来提升草生长速度
+- Tick 速度滑块，可在单个浏览器标签页内持续观察系统波动
+
+直接用浏览器打开 `pixel-biome-terrarium/index.html` 即可运行。
