@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sokoban Warehouse</title>
+  <style>
+    :root {
+      --bg-top: #f2eadf;
+      --bg-bottom: #d7c0a3;
+      --panel: rgba(255, 248, 238, 0.85);
+      --panel-strong: rgba(255, 246, 233, 0.95);
+      --border: rgba(82, 58, 35, 0.16);
+      --text: #2e2116;
+      --muted: #6f5843;
+      --accent: #b15d2b;
+      --accent-strong: #884319;
+      --accent-soft: #ecd3b8;
+      --success: #2f7a52;
+      --canvas-bg: #f7f0e5;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 20px;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.7), transparent 30%),
+        linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1100px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(280px, 360px);
+      gap: 20px;
+    }
+
+    .surface,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: 0 18px 44px rgba(78, 53, 30, 0.14);
+      backdrop-filter: blur(10px);
+    }
+
+    .surface {
+      padding: 24px;
+    }
+
+    .panel {
+      padding: 20px;
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 5vw, 4rem);
+      line-height: 0.92;
+      letter-spacing: -0.05em;
+    }
+
+    .lede {
+      margin-top: 12px;
+      max-width: 60ch;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    .status-row {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .chip {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255, 248, 240, 0.9);
+      border: 1px solid rgba(110, 78, 44, 0.12);
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .chip strong {
+      color: var(--text);
+    }
+
+    .chip.success {
+      color: var(--success);
+      border-color: rgba(47, 122, 82, 0.22);
+      background: rgba(231, 248, 238, 0.92);
+    }
+
+    .canvas-wrap {
+      margin-top: 20px;
+      padding: 18px;
+      border-radius: 22px;
+      background:
+        linear-gradient(180deg, rgba(255, 252, 248, 0.96), rgba(243, 231, 214, 0.94)),
+        repeating-linear-gradient(135deg, rgba(91, 68, 43, 0.04) 0 14px, transparent 14px 28px);
+      border: 1px solid rgba(120, 90, 57, 0.12);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      border-radius: 18px;
+      background: var(--canvas-bg);
+      box-shadow: inset 0 0 0 1px rgba(101, 75, 48, 0.1);
+      touch-action: manipulation;
+    }
+
+    .touch-controls {
+      margin-top: 18px;
+      display: none;
+      gap: 10px;
+      justify-content: center;
+      grid-template-columns: repeat(3, minmax(0, 72px));
+      grid-template-areas:
+        ". up ."
+        "left down right";
+    }
+
+    .touch-controls button:nth-child(1) { grid-area: up; }
+    .touch-controls button:nth-child(2) { grid-area: left; }
+    .touch-controls button:nth-child(3) { grid-area: down; }
+    .touch-controls button:nth-child(4) { grid-area: right; }
+
+    .card {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 18px;
+      background: var(--panel-strong);
+      border: 1px solid rgba(120, 90, 57, 0.12);
+    }
+
+    .card h2 {
+      font-size: 1rem;
+    }
+
+    .muted {
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.94rem;
+    }
+
+    .button-row {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    button.control,
+    select {
+      min-height: 44px;
+      border-radius: 999px;
+      border: 0;
+    }
+
+    button.control {
+      cursor: pointer;
+      color: #fff7f0;
+      background: linear-gradient(180deg, var(--accent) 0%, var(--accent-strong) 100%);
+      box-shadow: 0 10px 18px rgba(76, 41, 19, 0.16);
+    }
+
+    button.control.secondary,
+    .touch-controls button {
+      color: var(--text);
+      background: linear-gradient(180deg, #f7ebdb 0%, #e7cbab 100%);
+    }
+
+    button.control:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+      box-shadow: none;
+    }
+
+    select {
+      width: 100%;
+      padding: 0 16px;
+      color: var(--text);
+      background: #fffaf4;
+      border: 1px solid rgba(120, 90, 57, 0.16);
+    }
+
+    .level-list {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .level-list button {
+      min-height: 40px;
+      border-radius: 14px;
+      border: 1px solid rgba(120, 90, 57, 0.14);
+      cursor: pointer;
+      background: rgba(255, 250, 243, 0.95);
+      color: var(--text);
+    }
+
+    .level-list button.active {
+      background: linear-gradient(180deg, #ffd8b4 0%, #efb072 100%);
+      border-color: rgba(177, 93, 43, 0.4);
+    }
+
+    .level-list button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    @media (max-width: 900px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 14px;
+      }
+
+      .surface,
+      .panel {
+        border-radius: 20px;
+      }
+
+      .button-row {
+        grid-template-columns: 1fr;
+      }
+
+      .level-list {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .touch-controls {
+        display: grid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="surface">
+      <h1>Sokoban Warehouse</h1>
+      <p class="lede">
+        Push every crate onto a marked goal tile. Moves are grid-based, crates can only be pushed one step at a time,
+        and every level is stored in this file so the game opens directly in the browser.
+      </p>
+      <div class="status-row">
+        <div class="chip"><strong>Level</strong> <span id="level-label">1</span> / 10</div>
+        <div class="chip"><strong>Moves</strong> <span id="move-count">0</span></div>
+        <div class="chip"><strong>Best</strong> <span id="best-count">-</span></div>
+        <div id="status-message" class="chip">Push crates onto all goals.</div>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="game-canvas" width="640" height="640" aria-label="Sokoban game board"></canvas>
+        <div class="touch-controls" aria-label="Touch controls">
+          <button type="button" class="control secondary" data-move="0,-1">Up</button>
+          <button type="button" class="control secondary" data-move="-1,0">Left</button>
+          <button type="button" class="control secondary" data-move="0,1">Down</button>
+          <button type="button" class="control secondary" data-move="1,0">Right</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="card">
+        <h2>Level Select</h2>
+        <select id="level-select" aria-label="Select unlocked level"></select>
+        <div id="level-buttons" class="level-list" aria-label="Unlocked levels"></div>
+      </div>
+
+      <div class="card">
+        <h2>Controls</h2>
+        <div class="button-row">
+          <button id="restart-button" class="control secondary" type="button">Restart</button>
+          <button id="undo-button" class="control secondary" type="button">Undo (Z)</button>
+          <button id="prev-button" class="control secondary" type="button">Previous</button>
+          <button id="next-button" class="control" type="button">Next</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>How To Play</h2>
+        <p class="muted">
+          Use arrow keys or WASD to move. Push crates onto goal tiles, but you cannot pull them. Your latest progress,
+          unlocked levels, and best move counts are saved automatically.
+        </p>
+        <div class="legend">
+          <div>Wall: dark steel</div>
+          <div>Goal: gold ring</div>
+          <div>Crate: cedar box</div>
+          <div>Player: blue worker</div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "sokoban-warehouse-state-v1";
+    const TILE = {
+      WALL: "#",
+      FLOOR: " ",
+      GOAL: ".",
+      CRATE: "$",
+      CRATE_ON_GOAL: "*",
+      PLAYER: "@",
+      PLAYER_ON_GOAL: "+"
+    };
+
+    const levels = [
+      [
+        "#######",
+        "#     #",
+        "# .$@ #",
+        "#     #",
+        "#######"
+      ],
+      [
+        "########",
+        "#  .   #",
+        "#  $   #",
+        "# $$@  #",
+        "#  ..  #",
+        "########"
+      ],
+      [
+        "########",
+        "# .  . #",
+        "# $$   #",
+        "#  ##  #",
+        "#  @   #",
+        "########"
+      ],
+      [
+        "#########",
+        "#   . . #",
+        "# $$#   #",
+        "# . #$@ #",
+        "#   #   #",
+        "#########"
+      ],
+      [
+        "#########",
+        "#  . .  #",
+        "# $$ $$ #",
+        "#   @   #",
+        "# . .   #",
+        "#########"
+      ],
+      [
+        "##########",
+        "#  .  .  #",
+        "# $$ ##  #",
+        "#  $  $@ #",
+        "# . .    #",
+        "##########"
+      ],
+      [
+        "##########",
+        "#   .    #",
+        "# $$#$$  #",
+        "# .. . @ #",
+        "#   ##   #",
+        "##########"
+      ],
+      [
+        "###########",
+        "#  .   .  #",
+        "# $$# $$  #",
+        "#   #   @ #",
+        "#   .   . #",
+        "###########"
+      ],
+      [
+        "###########",
+        "#  . . .  #",
+        "# $$#$ $$ #",
+        "#   #   @ #",
+        "#   . .   #",
+        "###########"
+      ],
+      [
+        "############",
+        "#   . . .  #",
+        "# $$#$$#$  #",
+        "# .   . @  #",
+        "#   ###    #",
+        "############"
+      ]
+    ];
+
+    const canvas = document.getElementById("game-canvas");
+    const ctx = canvas.getContext("2d");
+    const levelLabel = document.getElementById("level-label");
+    const moveCountLabel = document.getElementById("move-count");
+    const bestCountLabel = document.getElementById("best-count");
+    const statusMessage = document.getElementById("status-message");
+    const levelSelect = document.getElementById("level-select");
+    const levelButtons = document.getElementById("level-buttons");
+    const restartButton = document.getElementById("restart-button");
+    const undoButton = document.getElementById("undo-button");
+    const prevButton = document.getElementById("prev-button");
+    const nextButton = document.getElementById("next-button");
+
+    let currentLevelIndex = 0;
+    let unlockedLevel = 0;
+    let bestMoves = Array(levels.length).fill(null);
+    let board = [];
+    let moveCount = 0;
+    let history = [];
+    let isSolved = false;
+
+    function normalizeLevelRows(rows) {
+      const width = Math.max(...rows.map((row) => row.length));
+      return rows.map((row) => row.padEnd(width, " "));
+    }
+
+    function cloneBoard(source) {
+      return source.map((row) => row.slice());
+    }
+
+    function parseLevel(levelIndex) {
+      return normalizeLevelRows(levels[levelIndex]).map((row) => row.split(""));
+    }
+
+    function findPlayerPosition(sourceBoard) {
+      for (let y = 0; y < sourceBoard.length; y += 1) {
+        for (let x = 0; x < sourceBoard[y].length; x += 1) {
+          if (sourceBoard[y][x] === TILE.PLAYER || sourceBoard[y][x] === TILE.PLAYER_ON_GOAL) {
+            return { x, y };
+          }
+        }
+      }
+      return null;
+    }
+
+    function isPassable(tile) {
+      return tile === TILE.FLOOR || tile === TILE.GOAL;
+    }
+
+    function isCrate(tile) {
+      return tile === TILE.CRATE || tile === TILE.CRATE_ON_GOAL;
+    }
+
+    function floorTileFor(tile) {
+      if (tile === TILE.PLAYER_ON_GOAL || tile === TILE.CRATE_ON_GOAL) {
+        return TILE.GOAL;
+      }
+      return TILE.FLOOR;
+    }
+
+    function playerTileFor(tile) {
+      return tile === TILE.GOAL ? TILE.PLAYER_ON_GOAL : TILE.PLAYER;
+    }
+
+    function crateTileFor(tile) {
+      return tile === TILE.GOAL ? TILE.CRATE_ON_GOAL : TILE.CRATE;
+    }
+
+    function countCratesAndGoals(sourceBoard) {
+      let crates = 0;
+      let goals = 0;
+      for (const row of sourceBoard) {
+        for (const tile of row) {
+          if (tile === TILE.CRATE || tile === TILE.CRATE_ON_GOAL) {
+            crates += 1;
+          }
+          if (tile === TILE.GOAL || tile === TILE.CRATE_ON_GOAL || tile === TILE.PLAYER_ON_GOAL) {
+            goals += 1;
+          }
+        }
+      }
+      return { crates, goals };
+    }
+
+    function isLevelComplete(sourceBoard) {
+      return sourceBoard.every((row) => row.every((tile) => tile !== TILE.CRATE));
+    }
+
+    function resetLevel(levelIndex, preserveSolvedMessage = false) {
+      currentLevelIndex = levelIndex;
+      board = parseLevel(levelIndex);
+      history = [];
+      moveCount = 0;
+      isSolved = false;
+      updateUnlockedLevel(levelIndex);
+      syncUI();
+      render();
+      if (!preserveSolvedMessage) {
+        setStatus("Push crates onto all goals.", false);
+      }
+      persistState();
+    }
+
+    function updateUnlockedLevel(index) {
+      unlockedLevel = Math.max(unlockedLevel, Math.min(index, levels.length - 1));
+    }
+
+    function saveSnapshot() {
+      history.push({
+        board: cloneBoard(board),
+        moveCount
+      });
+    }
+
+    function restoreSnapshot(snapshot) {
+      board = cloneBoard(snapshot.board);
+      moveCount = snapshot.moveCount;
+      isSolved = isLevelComplete(board);
+      syncUI();
+      render();
+      persistState();
+    }
+
+    function setStatus(message, success) {
+      statusMessage.textContent = message;
+      statusMessage.classList.toggle("success", Boolean(success));
+    }
+
+    function movePlayer(dx, dy) {
+      if (isSolved) {
+        return;
+      }
+
+      const player = findPlayerPosition(board);
+      if (!player) {
+        return;
+      }
+
+      const targetY = player.y + dy;
+      const targetX = player.x + dx;
+      const targetTile = board[targetY]?.[targetX];
+      if (typeof targetTile === "undefined" || targetTile === TILE.WALL) {
+        return;
+      }
+
+      const playerOrigin = board[player.y][player.x];
+      if (isCrate(targetTile)) {
+        const beyondY = targetY + dy;
+        const beyondX = targetX + dx;
+        const beyondTile = board[beyondY]?.[beyondX];
+        if (typeof beyondTile === "undefined" || !isPassable(beyondTile)) {
+          return;
+        }
+
+        saveSnapshot();
+        board[beyondY][beyondX] = crateTileFor(beyondTile);
+        board[targetY][targetX] = playerTileFor(floorTileFor(targetTile));
+        board[player.y][player.x] = floorTileFor(playerOrigin);
+      } else if (isPassable(targetTile)) {
+        saveSnapshot();
+        board[targetY][targetX] = playerTileFor(targetTile);
+        board[player.y][player.x] = floorTileFor(playerOrigin);
+      } else {
+        return;
+      }
+
+      moveCount += 1;
+      completeLevelIfNeeded();
+      syncUI();
+      render();
+      persistState();
+    }
+
+    function completeLevelIfNeeded() {
+      isSolved = isLevelComplete(board);
+      if (!isSolved) {
+        setStatus("Keep going. Every crate needs a goal.", false);
+        return;
+      }
+
+      const currentBest = bestMoves[currentLevelIndex];
+      if (currentBest === null || moveCount < currentBest) {
+        bestMoves[currentLevelIndex] = moveCount;
+      }
+      unlockedLevel = Math.max(unlockedLevel, Math.min(currentLevelIndex + 1, levels.length - 1));
+      setStatus("Level complete. Use Next to continue.", true);
+    }
+
+    function undoMove() {
+      const snapshot = history.pop();
+      if (!snapshot) {
+        return;
+      }
+      restoreSnapshot(snapshot);
+      setStatus("Move undone.", false);
+    }
+
+    function nextLevel() {
+      if (currentLevelIndex >= Math.min(unlockedLevel, levels.length - 1)) {
+        if (isSolved && currentLevelIndex + 1 < levels.length) {
+          resetLevel(currentLevelIndex + 1);
+        }
+        return;
+      }
+      resetLevel(currentLevelIndex + 1);
+    }
+
+    function previousLevel() {
+      if (currentLevelIndex === 0) {
+        return;
+      }
+      resetLevel(currentLevelIndex - 1);
+    }
+
+    function syncUI() {
+      levelLabel.textContent = String(currentLevelIndex + 1);
+      moveCountLabel.textContent = String(moveCount);
+      bestCountLabel.textContent = bestMoves[currentLevelIndex] === null ? "-" : String(bestMoves[currentLevelIndex]);
+      undoButton.disabled = history.length === 0;
+      prevButton.disabled = currentLevelIndex === 0;
+      nextButton.disabled = currentLevelIndex >= unlockedLevel && !isSolved;
+
+      levelSelect.innerHTML = "";
+      levels.forEach((_, index) => {
+        const option = document.createElement("option");
+        option.value = String(index);
+        option.textContent = `Level ${index + 1}${bestMoves[index] !== null ? ` (${bestMoves[index]} moves)` : ""}`;
+        option.disabled = index > unlockedLevel;
+        option.selected = index === currentLevelIndex;
+        levelSelect.appendChild(option);
+      });
+
+      levelButtons.innerHTML = "";
+      levels.forEach((_, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = String(index + 1);
+        button.disabled = index > unlockedLevel;
+        button.classList.toggle("active", index === currentLevelIndex);
+        button.addEventListener("click", () => resetLevel(index));
+        levelButtons.appendChild(button);
+      });
+    }
+
+    function render() {
+      const rows = board.length;
+      const cols = board[0].length;
+      const displayWidth = Math.min(canvas.parentElement.clientWidth - 4, 680);
+      const tileSize = Math.max(30, Math.floor(displayWidth / cols));
+      canvas.width = tileSize * cols;
+      canvas.height = tileSize * rows;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#f4ecde";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (let y = 0; y < rows; y += 1) {
+        for (let x = 0; x < cols; x += 1) {
+          const tile = board[y][x];
+          const px = x * tileSize;
+          const py = y * tileSize;
+          drawFloor(px, py, tileSize, tile);
+          if (tile === TILE.WALL) {
+            drawWall(px, py, tileSize);
+          }
+          if (tile === TILE.GOAL || tile === TILE.CRATE_ON_GOAL || tile === TILE.PLAYER_ON_GOAL) {
+            drawGoal(px, py, tileSize);
+          }
+          if (tile === TILE.CRATE || tile === TILE.CRATE_ON_GOAL) {
+            drawCrate(px, py, tileSize, tile === TILE.CRATE_ON_GOAL);
+          }
+          if (tile === TILE.PLAYER || tile === TILE.PLAYER_ON_GOAL) {
+            drawPlayer(px, py, tileSize);
+          }
+        }
+      }
+    }
+
+    function drawFloor(x, y, size, tile) {
+      ctx.fillStyle = tile === TILE.WALL ? "#5f6a73" : "#efe5d4";
+      ctx.fillRect(x, y, size, size);
+      if (tile !== TILE.WALL) {
+        ctx.strokeStyle = "rgba(126, 94, 58, 0.08)";
+        ctx.strokeRect(x + 0.5, y + 0.5, size - 1, size - 1);
+      }
+    }
+
+    function drawWall(x, y, size) {
+      ctx.fillStyle = "#5d6772";
+      ctx.fillRect(x, y, size, size);
+      ctx.fillStyle = "#71808f";
+      ctx.fillRect(x + size * 0.08, y + size * 0.08, size * 0.84, size * 0.24);
+      ctx.fillStyle = "#48525c";
+      ctx.fillRect(x + size * 0.12, y + size * 0.48, size * 0.76, size * 0.3);
+    }
+
+    function drawGoal(x, y, size) {
+      ctx.fillStyle = "#d6b15b";
+      ctx.beginPath();
+      ctx.arc(x + size / 2, y + size / 2, size * 0.18, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#8f6c1d";
+      ctx.lineWidth = Math.max(2, size * 0.08);
+      ctx.beginPath();
+      ctx.arc(x + size / 2, y + size / 2, size * 0.28, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    function drawCrate(x, y, size, onGoal) {
+      ctx.fillStyle = onGoal ? "#ba793e" : "#a3632f";
+      ctx.fillRect(x + size * 0.16, y + size * 0.16, size * 0.68, size * 0.68);
+      ctx.strokeStyle = "#70421b";
+      ctx.lineWidth = Math.max(2, size * 0.04);
+      ctx.strokeRect(x + size * 0.16, y + size * 0.16, size * 0.68, size * 0.68);
+      ctx.beginPath();
+      ctx.moveTo(x + size * 0.2, y + size * 0.2);
+      ctx.lineTo(x + size * 0.8, y + size * 0.8);
+      ctx.moveTo(x + size * 0.8, y + size * 0.2);
+      ctx.lineTo(x + size * 0.2, y + size * 0.8);
+      ctx.stroke();
+    }
+
+    function drawPlayer(x, y, size) {
+      ctx.fillStyle = "#2f5f87";
+      ctx.beginPath();
+      ctx.arc(x + size / 2, y + size * 0.34, size * 0.14, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#3c7baa";
+      ctx.beginPath();
+      ctx.roundRect(x + size * 0.28, y + size * 0.48, size * 0.44, size * 0.26, size * 0.08);
+      ctx.fill();
+      ctx.fillRect(x + size * 0.35, y + size * 0.64, size * 0.1, size * 0.16);
+      ctx.fillRect(x + size * 0.55, y + size * 0.64, size * 0.1, size * 0.16);
+    }
+
+    function persistState() {
+      const payload = {
+        currentLevelIndex,
+        unlockedLevel,
+        moveCount,
+        bestMoves,
+        history,
+        board
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    }
+
+    function restoreState() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        return false;
+      }
+
+      try {
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed.board) || !Array.isArray(parsed.bestMoves)) {
+          return false;
+        }
+
+        currentLevelIndex = Math.max(0, Math.min(Number(parsed.currentLevelIndex) || 0, levels.length - 1));
+        unlockedLevel = Math.max(currentLevelIndex, Math.min(Number(parsed.unlockedLevel) || 0, levels.length - 1));
+        moveCount = Math.max(0, Number(parsed.moveCount) || 0);
+        bestMoves = levels.map((_, index) => {
+          const value = parsed.bestMoves[index];
+          return Number.isInteger(value) && value >= 0 ? value : null;
+        });
+        history = Array.isArray(parsed.history) ? parsed.history.filter((entry) => Array.isArray(entry.board)) : [];
+        board = parsed.board.map((row) => row.slice());
+        const counts = countCratesAndGoals(board);
+        if (!findPlayerPosition(board) || counts.crates > counts.goals) {
+          return false;
+        }
+        isSolved = isLevelComplete(board);
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function bindEvents() {
+      document.addEventListener("keydown", (event) => {
+        const key = event.key.toLowerCase();
+        if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d", "z"].includes(key)) {
+          event.preventDefault();
+        }
+
+        if (key === "arrowup" || key === "w") movePlayer(0, -1);
+        if (key === "arrowdown" || key === "s") movePlayer(0, 1);
+        if (key === "arrowleft" || key === "a") movePlayer(-1, 0);
+        if (key === "arrowright" || key === "d") movePlayer(1, 0);
+        if (key === "z") undoMove();
+      });
+
+      restartButton.addEventListener("click", () => resetLevel(currentLevelIndex));
+      undoButton.addEventListener("click", undoMove);
+      prevButton.addEventListener("click", previousLevel);
+      nextButton.addEventListener("click", nextLevel);
+
+      levelSelect.addEventListener("change", (event) => {
+        const index = Number(event.target.value);
+        if (index <= unlockedLevel) {
+          resetLevel(index);
+        }
+      });
+
+      document.querySelectorAll("[data-move]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const [dx, dy] = button.dataset.move.split(",").map(Number);
+          movePlayer(dx, dy);
+        });
+      });
+
+      window.addEventListener("resize", render);
+    }
+
+    function validateLevels() {
+      levels.forEach((levelRows, index) => {
+        const parsed = parseLevel(index);
+        const counts = countCratesAndGoals(parsed);
+        if (counts.crates === 0 || counts.crates > counts.goals || !findPlayerPosition(parsed)) {
+          throw new Error(`Invalid level ${index + 1}`);
+        }
+      });
+    }
+
+    validateLevels();
+    bindEvents();
+    if (!restoreState()) {
+      resetLevel(0);
+    } else {
+      syncUI();
+      render();
+      setStatus(isSolved ? "Level complete. Use Next to continue." : "Progress restored from local storage.", isSolved);
+    }
+  </script>
+</body>
+</html>

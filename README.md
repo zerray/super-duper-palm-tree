@@ -55,3 +55,13 @@ This repository contains a simple agent-factory workflow for planning and comple
 - BPM 滑块调速、节点触发高亮，以及一键清空
 
 直接用浏览器打开 `sound-palette/index.html` 即可运行。
+
+## Sokoban Warehouse
+
+新增 `sokoban-game/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的 Sokoban 推箱子游戏，包含：
+
+- 10 个逐步加难的内置关卡与关卡选择
+- 键盘方向键 / `WASD` 移动，`Z` 撤销上一步
+- Canvas 渲染、步数统计、通关提示与已解锁关卡持久化
+
+直接用浏览器打开 `sokoban-game/index.html` 即可游玩。
