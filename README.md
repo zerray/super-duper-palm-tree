@@ -220,3 +220,14 @@ This repository contains a simple agent-factory workflow for planning and comple
 - Tempo、scale、reverb / delay 全局控制，以及基于 `localStorage` 的花园持久化
 
 直接用浏览器打开 `soundscape-garden/index.html` 即可运行。左键种植，右键移除花朵。
+
+## Beat Grid
+
+新增 `beat-grid/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的节奏点击街机游戏，包含：
+
+- 4x4 发光按垫矩阵，每拍随机点亮 1 到 3 个可点击 pad
+- 点击命中可累积 combo 与 multiplier，失误或漏点会累计 miss
+- 每 20 次成功命中或每 30 秒自动提速，5 次 miss 后结算
+- 使用 Web Audio API oscillator 实时生成节拍与反馈音效，无需音频资源文件
+
+直接用浏览器打开 `beat-grid/index.html` 即可游玩。支持桌面点击与移动端触摸。
