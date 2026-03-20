@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hex Chain</title>
+  <style>
+    :root {
+      --bg: #f3efe7;
+      --panel: rgba(255, 251, 245, 0.94);
+      --panel-border: rgba(74, 55, 35, 0.14);
+      --ink: #2f2419;
+      --muted: #766453;
+      --board: #f7f0e3;
+      --empty: #efe3cb;
+      --empty-stroke: #b69d7b;
+      --player: #2155a6;
+      --ai: #b2463e;
+      --accent: #3f7d57;
+      --shadow: rgba(53, 39, 27, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 24px;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.7), transparent 32%),
+        linear-gradient(180deg, #f9f5ee 0%, var(--bg) 100%);
+    }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(280px, 340px);
+      gap: 20px;
+    }
+
+    .surface,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      box-shadow: 0 18px 40px var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .surface {
+      padding: 24px;
+    }
+
+    .panel {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.2rem, 5vw, 4.1rem);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+      max-width: 8ch;
+    }
+
+    .lede {
+      margin-top: 12px;
+      max-width: 60ch;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    .stats {
+      margin-top: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .chip {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(74, 55, 35, 0.12);
+      background: rgba(255, 255, 255, 0.75);
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .chip strong {
+      color: var(--ink);
+    }
+
+    .chip.player strong {
+      color: var(--player);
+    }
+
+    .chip.ai strong {
+      color: var(--ai);
+    }
+
+    .board-wrap {
+      margin-top: 18px;
+      border-radius: 22px;
+      padding: 18px;
+      border: 1px solid rgba(74, 55, 35, 0.1);
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.78), rgba(246, 238, 223, 0.94)),
+        repeating-linear-gradient(135deg, rgba(74, 55, 35, 0.025) 0 16px, transparent 16px 32px);
+    }
+
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .hex {
+      fill: var(--empty);
+      stroke: var(--empty-stroke);
+      stroke-width: 1.6;
+      cursor: pointer;
+      transition: fill 140ms ease, stroke 140ms ease, transform 140ms ease;
+    }
+
+    .hex.empty:hover {
+      transform: translateY(-2px);
+    }
+
+    .hex.disabled {
+      cursor: default;
+    }
+
+    .owner-ring,
+    .owner-mark {
+      pointer-events: none;
+    }
+
+    .owner-ring.player,
+    .owner-mark.player {
+      fill: var(--player);
+      stroke: var(--player);
+    }
+
+    .owner-ring.ai,
+    .owner-mark.ai {
+      fill: var(--ai);
+      stroke: var(--ai);
+    }
+
+    .owner-ring {
+      fill: none;
+      stroke-width: 2.8;
+      opacity: 0.95;
+    }
+
+    .owner-mark {
+      stroke-width: 1.2;
+    }
+
+    .card {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(74, 55, 35, 0.1);
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .card h2 {
+      font-size: 1rem;
+    }
+
+    .muted {
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.94rem;
+    }
+
+    .palette {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .color-button {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(74, 55, 35, 0.14);
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--ink);
+      transition: border-color 120ms ease, transform 120ms ease, box-shadow 120ms ease;
+    }
+
+    .color-button:hover {
+      transform: translateY(-1px);
+    }
+
+    .color-button.selected {
+      border-color: rgba(33, 85, 166, 0.55);
+      box-shadow: 0 0 0 3px rgba(33, 85, 166, 0.12);
+    }
+
+    .swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(47, 36, 25, 0.18);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .primary {
+      padding: 11px 18px;
+      border: none;
+      border-radius: 999px;
+      color: #fff;
+      background: linear-gradient(180deg, #4a8c60 0%, var(--accent) 100%);
+      box-shadow: 0 8px 18px rgba(63, 125, 87, 0.2);
+    }
+
+    .secondary {
+      padding: 11px 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(74, 55, 35, 0.14);
+      background: rgba(255, 255, 255, 0.82);
+      color: var(--ink);
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(47, 36, 25, 0.38);
+      backdrop-filter: blur(8px);
+    }
+
+    .overlay.visible {
+      display: flex;
+    }
+
+    .modal {
+      width: min(460px, 100%);
+      padding: 26px;
+      border-radius: 24px;
+      background: rgba(255, 251, 245, 0.98);
+      border: 1px solid rgba(74, 55, 35, 0.14);
+      box-shadow: 0 18px 40px rgba(47, 36, 25, 0.2);
+      display: grid;
+      gap: 14px;
+      text-align: center;
+    }
+
+    .scoreline {
+      display: flex;
+      justify-content: center;
+      gap: 18px;
+      color: var(--muted);
+    }
+
+    .footer {
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+
+    @media (max-width: 920px) {
+      body {
+        padding: 16px;
+      }
+
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .surface,
+      .panel {
+        border-radius: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="surface">
+      <h1>Hex Chain</h1>
+      <p class="lede">
+        Place a color on an empty hex, grow same-color chains, and outscore the greedy rival.
+        Longer chains pay out exponentially, so tempo and blocking both matter.
+      </p>
+      <div class="stats">
+        <div class="chip player">You: <strong id="playerScore">0</strong></div>
+        <div class="chip ai">AI: <strong id="aiScore">0</strong></div>
+        <div class="chip">Turn: <strong id="turnLabel">Your move</strong></div>
+        <div class="chip">Move: <strong id="moveCounter">0 / 49</strong></div>
+      </div>
+      <div class="board-wrap">
+        <svg id="board" role="img" aria-label="Hex board"></svg>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <section class="card">
+        <h2>Choose Your Color</h2>
+        <p class="muted">
+          You may place any color each turn. Chains only connect tiles that share both color and owner.
+        </p>
+        <div id="palette" class="palette"></div>
+      </section>
+
+      <section class="card">
+        <h2>Status</h2>
+        <p id="statusText" class="muted">Pick a color, then click any empty hex to place your tile.</p>
+      </section>
+
+      <section class="card">
+        <h2>Rules</h2>
+        <p class="muted">
+          A matching neighbor extends your chain. Each placement scores <strong>2^(chain length - 1)</strong>,
+          so small links are cheap but a long run can swing the match fast. The board fills, then the higher score wins.
+        </p>
+      </section>
+
+      <section class="card">
+        <h2>Heuristic AI</h2>
+        <p class="muted">
+          The AI tests every empty hex and every color. It first maximizes its own immediate chain score, then breaks ties
+          by limiting your next best move.
+        </p>
+      </section>
+
+      <div class="actions">
+        <button id="newGameButton" class="primary" type="button">New Game</button>
+        <button id="clearSelectionButton" class="secondary" type="button">Reset Color</button>
+      </div>
+
+      <p class="footer">Rendered with inline SVG on a 7x7 axial-style board. No build step required.</p>
+    </aside>
+  </main>
+
+  <div id="gameOverOverlay" class="overlay" aria-live="polite">
+    <div class="modal">
+      <h2 id="winnerText">Final Score</h2>
+      <p id="summaryText" class="muted"></p>
+      <div class="scoreline">
+        <strong>You: <span id="finalPlayerScore">0</span></strong>
+        <strong>AI: <span id="finalAiScore">0</span></strong>
+      </div>
+      <button id="playAgainButton" class="primary" type="button">Play Again</button>
+    </div>
+  </div>
+
+  <script>
+    const BOARD_ROWS = 7;
+    const BOARD_COLS = 7;
+    const HEX_SIZE = 34;
+    const AI_DELAY_MS = 420;
+    const COLORS = [
+      { id: "coral", label: "Coral", fill: "#df6b57" },
+      { id: "teal", label: "Teal", fill: "#2d8a8c" },
+      { id: "gold", label: "Gold", fill: "#d2a93a" },
+      { id: "plum", label: "Plum", fill: "#855d98" }
+    ];
+    const DIRECTIONS = [
+      [1, 0],
+      [1, -1],
+      [0, -1],
+      [-1, 0],
+      [-1, 1],
+      [0, 1]
+    ];
+    const CELL_COUNT = BOARD_ROWS * BOARD_COLS;
+
+    const boardElement = document.getElementById("board");
+    const paletteElement = document.getElementById("palette");
+    const playerScoreElement = document.getElementById("playerScore");
+    const aiScoreElement = document.getElementById("aiScore");
+    const turnLabelElement = document.getElementById("turnLabel");
+    const moveCounterElement = document.getElementById("moveCounter");
+    const statusTextElement = document.getElementById("statusText");
+    const newGameButton = document.getElementById("newGameButton");
+    const clearSelectionButton = document.getElementById("clearSelectionButton");
+    const gameOverOverlay = document.getElementById("gameOverOverlay");
+    const winnerTextElement = document.getElementById("winnerText");
+    const summaryTextElement = document.getElementById("summaryText");
+    const finalPlayerScoreElement = document.getElementById("finalPlayerScore");
+    const finalAiScoreElement = document.getElementById("finalAiScore");
+    const playAgainButton = document.getElementById("playAgainButton");
+
+    const state = {
+      board: new Map(),
+      currentTurn: "player",
+      selectedColor: COLORS[0].id,
+      hoverKey: null,
+      scores: {
+        player: 0,
+        ai: 0
+      },
+      moveCount: 0,
+      gameOver: false,
+      pendingAi: 0
+    };
+
+    function cellKey(q, r) {
+      return `${q},${r}`;
+    }
+
+    function createEmptyBoard() {
+      const board = new Map();
+
+      for (let r = 0; r < BOARD_ROWS; r += 1) {
+        for (let q = 0; q < BOARD_COLS; q += 1) {
+          board.set(cellKey(q, r), { q, r, owner: null, color: null });
+        }
+      }
+
+      return board;
+    }
+
+    function colorById(colorId) {
+      return COLORS.find((entry) => entry.id === colorId);
+    }
+
+    function axialToPixel(q, r) {
+      const width = Math.sqrt(3) * HEX_SIZE;
+      const x = HEX_SIZE + width * (q + (r / 2));
+      const y = HEX_SIZE + HEX_SIZE * 1.5 * r;
+      return { x, y };
+    }
+
+    function hexPoints(cx, cy) {
+      const points = [];
+
+      for (let i = 0; i < 6; i += 1) {
+        const angle = ((60 * i) - 30) * (Math.PI / 180);
+        const x = cx + HEX_SIZE * Math.cos(angle);
+        const y = cy + HEX_SIZE * Math.sin(angle);
+        points.push(`${x.toFixed(2)},${y.toFixed(2)}`);
+      }
+
+      return points.join(" ");
+    }
+
+    function getNeighbors(q, r) {
+      return DIRECTIONS
+        .map(([dq, dr]) => ({ q: q + dq, r: r + dr }))
+        .filter(({ q: nextQ, r: nextR }) => nextQ >= 0 && nextQ < BOARD_COLS && nextR >= 0 && nextR < BOARD_ROWS);
+    }
+
+    function getChain(board, q, r) {
+      const start = board.get(cellKey(q, r));
+
+      if (!start || !start.owner || !start.color) {
+        return [];
+      }
+
+      const seen = new Set([cellKey(q, r)]);
+      const queue = [{ q, r }];
+      const chain = [];
+
+      while (queue.length > 0) {
+        const current = queue.shift();
+        const currentCell = board.get(cellKey(current.q, current.r));
+        chain.push(currentCell);
+
+        for (const neighbor of getNeighbors(current.q, current.r)) {
+          const neighborKey = cellKey(neighbor.q, neighbor.r);
+          const neighborCell = board.get(neighborKey);
+
+          if (
+            !seen.has(neighborKey) &&
+            neighborCell &&
+            neighborCell.owner === start.owner &&
+            neighborCell.color === start.color
+          ) {
+            seen.add(neighborKey);
+            queue.push(neighbor);
+          }
+        }
+      }
+
+      return chain;
+    }
+
+    function getChainScore(chainLength) {
+      return 2 ** Math.max(0, chainLength - 1);
+    }
+
+    function placeTile(board, q, r, owner, color) {
+      const current = board.get(cellKey(q, r));
+
+      if (!current || current.owner) {
+        return null;
+      }
+
+      board.set(cellKey(q, r), { q, r, owner, color });
+      const chain = getChain(board, q, r);
+
+      return {
+        chain,
+        chainLength: chain.length,
+        score: getChainScore(chain.length)
+      };
+    }
+
+    function simulatePlacement(board, q, r, owner, color) {
+      const simulatedBoard = new Map();
+
+      for (const [key, value] of board.entries()) {
+        simulatedBoard.set(key, { ...value });
+      }
+
+      return placeTile(simulatedBoard, q, r, owner, color);
+    }
+
+    function getBestPotentialChainScore(board, owner) {
+      let bestScore = 0;
+
+      for (const cell of board.values()) {
+        if (cell.owner) {
+          continue;
+        }
+
+        for (const color of COLORS) {
+          const result = simulatePlacement(board, cell.q, cell.r, owner, color.id);
+          if (result && result.score > bestScore) {
+            bestScore = result.score;
+          }
+        }
+      }
+
+      return bestScore;
+    }
+
+    function chooseAiMove() {
+      let bestMove = null;
+
+      for (const cell of state.board.values()) {
+        if (cell.owner) {
+          continue;
+        }
+
+        for (const color of COLORS) {
+          const simulation = simulatePlacement(state.board, cell.q, cell.r, "ai", color.id);
+
+          if (!simulation) {
+            continue;
+          }
+
+          const simulatedBoard = new Map();
+          for (const [key, value] of state.board.entries()) {
+            simulatedBoard.set(key, { ...value });
+          }
+          placeTile(simulatedBoard, cell.q, cell.r, "ai", color.id);
+
+          const playerBestReply = getBestPotentialChainScore(simulatedBoard, "player");
+          const move = {
+            q: cell.q,
+            r: cell.r,
+            color: color.id,
+            chainLength: simulation.chainLength,
+            score: simulation.score,
+            playerBestReply
+          };
+
+          if (
+            !bestMove ||
+            move.score > bestMove.score ||
+            (move.score === bestMove.score && move.playerBestReply < bestMove.playerBestReply) ||
+            (
+              move.score === bestMove.score &&
+              move.playerBestReply === bestMove.playerBestReply &&
+              move.chainLength > bestMove.chainLength
+            )
+          ) {
+            bestMove = move;
+          }
+        }
+      }
+
+      return bestMove;
+    }
+
+    function endGame() {
+      state.gameOver = true;
+      state.currentTurn = "game-over";
+      const { player, ai } = state.scores;
+
+      let winnerText = "Draw Game";
+      if (player > ai) {
+        winnerText = "You Win";
+      } else if (ai > player) {
+        winnerText = "AI Wins";
+      }
+
+      winnerTextElement.textContent = winnerText;
+      summaryTextElement.textContent = `Board full after ${state.moveCount} placements. Final chains decide the match.`;
+      finalPlayerScoreElement.textContent = player;
+      finalAiScoreElement.textContent = ai;
+      gameOverOverlay.classList.add("visible");
+      render();
+    }
+
+    function handleCompletedMove(owner, color, result) {
+      state.scores[owner] += result.score;
+      state.moveCount += 1;
+
+      const ownerLabel = owner === "player" ? "You" : "AI";
+      const colorLabel = colorById(color).label;
+      statusTextElement.textContent = `${ownerLabel} placed ${colorLabel} for a chain of ${result.chainLength} and scored +${result.score}.`;
+
+      if (state.moveCount >= CELL_COUNT) {
+        endGame();
+        return;
+      }
+
+      state.currentTurn = owner === "player" ? "ai" : "player";
+      render();
+
+      if (state.currentTurn === "ai") {
+        const aiTicket = state.pendingAi + 1;
+        state.pendingAi = aiTicket;
+        window.setTimeout(() => {
+          if (state.pendingAi !== aiTicket || state.gameOver) {
+            return;
+          }
+          takeAiTurn();
+        }, AI_DELAY_MS);
+      }
+    }
+
+    function handlePlayerMove(q, r) {
+      if (state.gameOver || state.currentTurn !== "player") {
+        return;
+      }
+
+      const target = state.board.get(cellKey(q, r));
+      if (!target || target.owner) {
+        return;
+      }
+
+      const result = placeTile(state.board, q, r, "player", state.selectedColor);
+      if (!result) {
+        return;
+      }
+
+      handleCompletedMove("player", state.selectedColor, result);
+    }
+
+    function takeAiTurn() {
+      if (state.gameOver || state.currentTurn !== "ai") {
+        return;
+      }
+
+      const bestMove = chooseAiMove();
+      if (!bestMove) {
+        endGame();
+        return;
+      }
+
+      const result = placeTile(state.board, bestMove.q, bestMove.r, "ai", bestMove.color);
+      if (!result) {
+        return;
+      }
+
+      handleCompletedMove("ai", bestMove.color, result);
+    }
+
+    function renderPalette() {
+      paletteElement.innerHTML = "";
+
+      for (const color of COLORS) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `color-button${state.selectedColor === color.id ? " selected" : ""}`;
+        button.innerHTML = `<span class="swatch" style="background:${color.fill}"></span><span>${color.label}</span>`;
+        button.addEventListener("click", () => {
+          state.selectedColor = color.id;
+          renderPalette();
+          render();
+        });
+        paletteElement.appendChild(button);
+      }
+    }
+
+    function ownerGlyphMarkup(cell, cx, cy) {
+      if (!cell.owner) {
+        return "";
+      }
+
+      const ring = `<circle class="owner-ring ${cell.owner}" cx="${cx}" cy="${cy}" r="${(HEX_SIZE * 0.44).toFixed(2)}"></circle>`;
+
+      if (cell.owner === "player") {
+        return `${ring}<circle class="owner-mark player" cx="${cx}" cy="${cy}" r="${(HEX_SIZE * 0.14).toFixed(2)}"></circle>`;
+      }
+
+      const markSize = (HEX_SIZE * 0.18).toFixed(2);
+      return `${ring}<rect class="owner-mark ai" x="${(cx - markSize / 2).toFixed(2)}" y="${(cy - markSize / 2).toFixed(2)}" width="${markSize}" height="${markSize}" rx="2"></rect>`;
+    }
+
+    function renderBoard() {
+      const positions = [];
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minY = Infinity;
+      let maxY = -Infinity;
+
+      for (const cell of state.board.values()) {
+        const position = axialToPixel(cell.q, cell.r);
+        positions.push({ cell, ...position });
+        minX = Math.min(minX, position.x - HEX_SIZE - 4);
+        maxX = Math.max(maxX, position.x + HEX_SIZE + 4);
+        minY = Math.min(minY, position.y - HEX_SIZE - 4);
+        maxY = Math.max(maxY, position.y + HEX_SIZE + 4);
+      }
+
+      const width = maxX - minX;
+      const height = maxY - minY;
+      boardElement.setAttribute("viewBox", `${minX} ${minY} ${width} ${height}`);
+
+      const selectedFill = colorById(state.selectedColor).fill;
+      const markup = positions.map(({ cell, x, y }) => {
+        const isEmpty = !cell.owner;
+        const isHover = state.hoverKey === cellKey(cell.q, cell.r) && isEmpty && state.currentTurn === "player" && !state.gameOver;
+        const fill = isEmpty ? (isHover ? selectedFill : "var(--empty)") : colorById(cell.color).fill;
+        const opacity = isHover ? 0.45 : 1;
+        const classes = ["hex", isEmpty ? "empty" : "filled", (!isEmpty || state.currentTurn !== "player" || state.gameOver) ? "disabled" : ""]
+          .filter(Boolean)
+          .join(" ");
+
+        return `
+          <g class="cell" data-q="${cell.q}" data-r="${cell.r}">
+            <polygon
+              class="${classes}"
+              data-key="${cellKey(cell.q, cell.r)}"
+              points="${hexPoints(x, y)}"
+              fill="${fill}"
+              fill-opacity="${opacity}"
+            ></polygon>
+            ${ownerGlyphMarkup(cell, x, y)}
+          </g>
+        `;
+      }).join("");
+
+      boardElement.innerHTML = markup;
+
+      for (const polygon of boardElement.querySelectorAll("polygon[data-key]")) {
+        polygon.addEventListener("mouseenter", () => {
+          state.hoverKey = polygon.dataset.key;
+          renderBoard();
+        });
+        polygon.addEventListener("mouseleave", () => {
+          if (state.hoverKey === polygon.dataset.key) {
+            state.hoverKey = null;
+            renderBoard();
+          }
+        });
+        polygon.addEventListener("click", () => {
+          const q = Number.parseInt(polygon.parentElement.dataset.q, 10);
+          const r = Number.parseInt(polygon.parentElement.dataset.r, 10);
+          handlePlayerMove(q, r);
+        });
+      }
+    }
+
+    function render() {
+      playerScoreElement.textContent = state.scores.player;
+      aiScoreElement.textContent = state.scores.ai;
+      moveCounterElement.textContent = `${state.moveCount} / ${CELL_COUNT}`;
+
+      if (state.gameOver) {
+        turnLabelElement.textContent = "Game over";
+      } else if (state.currentTurn === "player") {
+        turnLabelElement.textContent = "Your move";
+      } else {
+        turnLabelElement.textContent = "AI thinking";
+      }
+
+      renderPalette();
+      renderBoard();
+    }
+
+    function startNewGame() {
+      state.board = createEmptyBoard();
+      state.currentTurn = "player";
+      state.selectedColor = COLORS[0].id;
+      state.hoverKey = null;
+      state.scores.player = 0;
+      state.scores.ai = 0;
+      state.moveCount = 0;
+      state.gameOver = false;
+      state.pendingAi += 1;
+      statusTextElement.textContent = "Pick a color, then click any empty hex to place your tile.";
+      gameOverOverlay.classList.remove("visible");
+      render();
+    }
+
+    newGameButton.addEventListener("click", startNewGame);
+    playAgainButton.addEventListener("click", startNewGame);
+    clearSelectionButton.addEventListener("click", () => {
+      state.selectedColor = COLORS[0].id;
+      render();
+    });
+
+    startNewGame();
+  </script>
+</body>
+</html>
