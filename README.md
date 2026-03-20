@@ -231,3 +231,14 @@ This repository contains a simple agent-factory workflow for planning and comple
 - 使用 Web Audio API oscillator 实时生成节拍与反馈音效，无需音频资源文件
 
 直接用浏览器打开 `beat-grid/index.html` 即可游玩。支持桌面点击与移动端触摸。
+
+## Hex Colony
+
+新增 `hex-colony/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的轻量六边形回合策略原型，包含：
+
+- 半径 7 的 SVG 六边形棋盘，中心聚落开局并显示回合、金币、领土与 blight HUD
+- 每回合选择放置 farm、tower 或 wall 各一种建筑，且必须紧邻己方领土
+- Farm 每回合产出 1 金币，Tower 在 2 回合后转化相邻中立格，Wall 可阻挡边缘蔓延而来的 blight
+- 控制 50 格获胜；若 blight 吞没中心 settlement 则失败
+
+直接用浏览器打开 `hex-colony/index.html` 即可游玩。
