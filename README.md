@@ -88,3 +88,15 @@ This repository contains a simple agent-factory workflow for planning and comple
 - 随时间提升滚动速度与音符密度，失误达到上限后显示结算界面
 
 直接用浏览器打开 `rhythm-tap/index.html` 即可游玩。
+
+## Gem Mine Clicker
+
+新增 `gem-mine-clicker/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的放置挖矿点击游戏，包含：
+
+- 点击矿脉获得宝石，并带有粒子爆发和浮动数字反馈
+- 4 个可购买升级，分别提升每次点击产量或每秒被动产量
+- 基于 `requestAnimationFrame` 的被动收入与动画循环
+- Prestige 重置机制，重开矿井后获得永久倍率加成
+- 使用 `localStorage` 持久化保存进度，并用 K / M / B 等缩写显示大数字
+
+直接用浏览器打开 `gem-mine-clicker/index.html` 即可游玩。

@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gem Mine Clicker</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #120f1f;
+      --panel: rgba(24, 20, 41, 0.88);
+      --panel-strong: rgba(33, 27, 56, 0.96);
+      --accent: #72f2d4;
+      --accent-2: #4da8ff;
+      --accent-3: #ff82d1;
+      --text: #f5f2ff;
+      --muted: #b5aed0;
+      --danger: #ff758f;
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(77, 168, 255, 0.2), transparent 28%),
+        radial-gradient(circle at bottom left, rgba(255, 130, 209, 0.18), transparent 30%),
+        linear-gradient(160deg, #09070e 0%, #120f1f 45%, #1a1430 100%);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: radial-gradient(circle at center, black 55%, transparent 100%);
+    }
+
+    main {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 40px;
+    }
+
+    .hero {
+      display: grid;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(2.4rem, 5vw, 4.8rem);
+      line-height: 0.95;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 760px;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(320px, 1.1fr) minmax(320px, 0.9fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .mine-panel {
+      padding: 24px;
+      position: sticky;
+      top: 18px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .stat-card {
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .stat-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .stat-card strong {
+      display: block;
+      margin-top: 8px;
+      font-size: 1.4rem;
+    }
+
+    .mine-wrap {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-height: 380px;
+      margin-bottom: 18px;
+      overflow: hidden;
+      border-radius: 28px;
+      background:
+        radial-gradient(circle at 50% 30%, rgba(114, 242, 212, 0.12), transparent 35%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01));
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .mine-button {
+      position: relative;
+      width: min(280px, 78vw);
+      aspect-ratio: 1;
+      border: 0;
+      border-radius: 32px;
+      cursor: pointer;
+      background:
+        radial-gradient(circle at 35% 28%, #d8f9ff 0%, #7cf0da 20%, #257bc4 50%, #141126 82%),
+        linear-gradient(160deg, rgba(255, 255, 255, 0.25), rgba(0, 0, 0, 0.25));
+      box-shadow:
+        inset 0 3px 18px rgba(255, 255, 255, 0.2),
+        0 24px 55px rgba(0, 0, 0, 0.42);
+      transition: transform 120ms ease, box-shadow 120ms ease;
+    }
+
+    .mine-button::before,
+    .mine-button::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      inset: 14%;
+      border: 2px solid rgba(255, 255, 255, 0.14);
+      transform: rotate(18deg);
+    }
+
+    .mine-button::after {
+      inset: 26%;
+      transform: rotate(-15deg);
+    }
+
+    .mine-button:hover {
+      transform: translateY(-3px) scale(1.01);
+      box-shadow:
+        inset 0 3px 18px rgba(255, 255, 255, 0.26),
+        0 28px 64px rgba(8, 10, 32, 0.55);
+    }
+
+    .mine-button:active {
+      transform: scale(0.97);
+    }
+
+    .mine-label {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(9, 7, 18, 0.64);
+      color: var(--text);
+      font-size: 0.92rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .floating-text,
+    .particle {
+      position: absolute;
+      pointer-events: none;
+      left: 50%;
+      top: 50%;
+      will-change: transform, opacity;
+    }
+
+    .floating-text {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #fff5b7;
+      text-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+      animation: rise 850ms ease-out forwards;
+    }
+
+    .particle {
+      width: 12px;
+      height: 12px;
+      border-radius: 4px;
+      background: linear-gradient(135deg, #ebfaff, var(--accent), var(--accent-3));
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
+      animation: burst 700ms ease-out forwards;
+    }
+
+    .purchase-strip {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 0.96rem;
+    }
+
+    .shop-panel {
+      padding: 22px;
+    }
+
+    .shop-panel h2,
+    .mine-panel h2 {
+      margin: 0 0 14px;
+      font-size: 1.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .upgrade-list {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .upgrade {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      padding: 16px;
+      border-radius: 18px;
+      background: var(--panel-strong);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      align-items: center;
+    }
+
+    .upgrade h3 {
+      margin: 0 0 6px;
+      font-size: 1.05rem;
+    }
+
+    .upgrade p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .upgrade button,
+    .prestige-button {
+      min-width: 132px;
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 14px;
+      color: #0b1020;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 120ms ease, filter 120ms ease, opacity 120ms ease;
+    }
+
+    .upgrade button:disabled,
+    .prestige-button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      filter: grayscale(0.35);
+    }
+
+    .upgrade button:not(:disabled):hover,
+    .prestige-button:not(:disabled):hover {
+      transform: translateY(-2px);
+      filter: brightness(1.06);
+    }
+
+    .prestige-box {
+      padding: 18px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(255, 130, 209, 0.16), rgba(77, 168, 255, 0.12));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .prestige-box p {
+      margin: 0 0 14px;
+      color: var(--muted);
+    }
+
+    .footnote {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    @keyframes rise {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, 0) scale(0.8);
+      }
+      12% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--drift-x, 0px)), -112px) scale(1.15);
+      }
+    }
+
+    @keyframes burst {
+      0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(0.2) rotate(0deg);
+      }
+      100% {
+        opacity: 0;
+        transform:
+          translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, 0px)))
+          scale(1.35)
+          rotate(var(--rot, 90deg));
+      }
+    }
+
+    @media (max-width: 860px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .mine-panel {
+        position: static;
+      }
+
+      .stats {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      main {
+        width: min(100% - 20px, 1120px);
+        padding-top: 18px;
+      }
+
+      .mine-panel,
+      .shop-panel {
+        padding: 18px;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .upgrade {
+        grid-template-columns: 1fr;
+      }
+
+      .upgrade button,
+      .prestige-button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <h1>Gem Mine Clicker</h1>
+      <p>Carve gems out of a glowing crystal seam, snowball your income with miners and drills, then prestige into deeper shafts for a permanent multiplier.</p>
+    </section>
+
+    <section class="layout">
+      <div class="panel mine-panel">
+        <div class="stats">
+          <div class="stat-card">
+            <span>Total Gems</span>
+            <strong id="gemsDisplay">0</strong>
+          </div>
+          <div class="stat-card">
+            <span>Per Second</span>
+            <strong id="gpsDisplay">0</strong>
+          </div>
+          <div class="stat-card">
+            <span>Per Click</span>
+            <strong id="gpcDisplay">1</strong>
+          </div>
+          <div class="stat-card">
+            <span>Prestige Multiplier</span>
+            <strong id="multiplierDisplay">x1.00</strong>
+          </div>
+        </div>
+
+        <div class="mine-wrap" id="mineWrap">
+          <button class="mine-button" id="mineButton" type="button" aria-label="Mine gems">
+            <span class="mine-label">Mine Gems</span>
+          </button>
+        </div>
+
+        <div class="purchase-strip">
+          <span id="statusText">The vein is fresh. Start digging.</span>
+          <span id="saveText">Autosave ready</span>
+        </div>
+      </div>
+
+      <div class="panel shop-panel">
+        <h2>Upgrades</h2>
+        <div class="upgrade-list" id="upgradeList"></div>
+
+        <div class="prestige-box">
+          <h2>Prestige</h2>
+          <p id="prestigeText">Reach 10K gems to collapse the mine and bank a permanent bonus.</p>
+          <button class="prestige-button" id="prestigeButton" type="button">Prestige Mine</button>
+        </div>
+
+        <div class="footnote">
+          Progress saves automatically with <code>localStorage</code>. Keep the tab open and passive income keeps flowing.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "gem-mine-clicker-save-v1";
+    const SAVE_INTERVAL_MS = 4000;
+    const PRESTIGE_THRESHOLD = 10000;
+
+    const upgradeConfigs = [
+      {
+        id: "pickaxe",
+        name: "Better Pickaxe",
+        description: "+1 base gem per click",
+        baseCost: 15,
+        growth: 1.6,
+        type: "click",
+        amount: 1
+      },
+      {
+        id: "miner",
+        name: "Auto Miner",
+        description: "+1 base gem per second",
+        baseCost: 40,
+        growth: 1.72,
+        type: "idle",
+        amount: 1
+      },
+      {
+        id: "drill",
+        name: "Gem Drill",
+        description: "+6 base gems per second",
+        baseCost: 260,
+        growth: 1.88,
+        type: "idle",
+        amount: 6
+      },
+      {
+        id: "laser",
+        name: "Prism Laser",
+        description: "+8 base gems per click",
+        baseCost: 900,
+        growth: 2.05,
+        type: "click",
+        amount: 8
+      }
+    ];
+
+    const defaultState = () => ({
+      gems: 0,
+      totalClicks: 0,
+      prestigeCount: 0,
+      upgrades: Object.fromEntries(upgradeConfigs.map((upgrade) => [upgrade.id, 0]))
+    });
+
+    let state = loadState();
+    let dirty = false;
+    let lastFrame = performance.now();
+    let lastSaveAt = performance.now();
+
+    const gemsDisplay = document.getElementById("gemsDisplay");
+    const gpsDisplay = document.getElementById("gpsDisplay");
+    const gpcDisplay = document.getElementById("gpcDisplay");
+    const multiplierDisplay = document.getElementById("multiplierDisplay");
+    const upgradeList = document.getElementById("upgradeList");
+    const prestigeText = document.getElementById("prestigeText");
+    const prestigeButton = document.getElementById("prestigeButton");
+    const mineButton = document.getElementById("mineButton");
+    const mineWrap = document.getElementById("mineWrap");
+    const statusText = document.getElementById("statusText");
+    const saveText = document.getElementById("saveText");
+
+    function clampNumber(value, fallback = 0) {
+      return Number.isFinite(value) ? value : fallback;
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          return defaultState();
+        }
+        const parsed = JSON.parse(raw);
+        const loaded = defaultState();
+        loaded.gems = Math.max(0, clampNumber(parsed.gems, 0));
+        loaded.totalClicks = Math.max(0, clampNumber(parsed.totalClicks, 0));
+        loaded.prestigeCount = Math.max(0, Math.floor(clampNumber(parsed.prestigeCount, 0)));
+
+        if (parsed.upgrades && typeof parsed.upgrades === "object") {
+          for (const config of upgradeConfigs) {
+            loaded.upgrades[config.id] = Math.max(0, Math.floor(clampNumber(parsed.upgrades[config.id], 0)));
+          }
+        }
+
+        return loaded;
+      } catch (error) {
+        console.warn("Failed to load Gem Mine Clicker save:", error);
+        return defaultState();
+      }
+    }
+
+    function saveState(force = false) {
+      const now = performance.now();
+      if (!force && (!dirty || now - lastSaveAt < SAVE_INTERVAL_MS)) {
+        return;
+      }
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      dirty = false;
+      lastSaveAt = now;
+      saveText.textContent = "Saved";
+      window.clearTimeout(saveState._labelTimer);
+      saveState._labelTimer = window.setTimeout(() => {
+        saveText.textContent = "Autosave ready";
+      }, 1200);
+    }
+
+    function markDirty() {
+      dirty = true;
+      saveText.textContent = "Unsaved progress";
+    }
+
+    function getPrestigeMultiplier() {
+      return 1 + state.prestigeCount * 0.5;
+    }
+
+    function getBaseClickPower() {
+      return 1
+        + state.upgrades.pickaxe * 1
+        + state.upgrades.laser * 8;
+    }
+
+    function getBaseIdlePower() {
+      return state.upgrades.miner * 1
+        + state.upgrades.drill * 6;
+    }
+
+    function getGemsPerClick() {
+      return getBaseClickPower() * getPrestigeMultiplier();
+    }
+
+    function getGemsPerSecond() {
+      return getBaseIdlePower() * getPrestigeMultiplier();
+    }
+
+    function getUpgradeCost(config) {
+      const owned = state.upgrades[config.id];
+      return Math.floor(config.baseCost * Math.pow(config.growth, owned));
+    }
+
+    function formatNumber(value) {
+      if (value < 1000) {
+        return value.toFixed(value >= 100 ? 0 : value >= 10 ? 1 : 2).replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1");
+      }
+
+      const suffixes = ["K", "M", "B", "T", "Qa", "Qi"];
+      let scaled = value;
+      let suffixIndex = -1;
+
+      while (scaled >= 1000 && suffixIndex < suffixes.length - 1) {
+        scaled /= 1000;
+        suffixIndex += 1;
+      }
+
+      const decimals = scaled >= 100 ? 0 : scaled >= 10 ? 1 : 2;
+      return `${scaled.toFixed(decimals).replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1")}${suffixes[suffixIndex]}`;
+    }
+
+    function updateStatusText() {
+      const gps = getGemsPerSecond();
+      if (gps >= 1000) {
+        statusText.textContent = "The mine hums on its own now.";
+      } else if (gps >= 100) {
+        statusText.textContent = "Automation is chewing through the crystal wall.";
+      } else if (gps > 0) {
+        statusText.textContent = "Your hired miners keep the shaft busy.";
+      } else {
+        statusText.textContent = "The vein is fresh. Start digging.";
+      }
+    }
+
+    function renderUpgrades() {
+      upgradeList.innerHTML = "";
+
+      for (const config of upgradeConfigs) {
+        const cost = getUpgradeCost(config);
+        const owned = state.upgrades[config.id];
+        const canAfford = state.gems >= cost;
+
+        const card = document.createElement("article");
+        card.className = "upgrade";
+
+        const details = document.createElement("div");
+        const title = document.createElement("h3");
+        title.textContent = `${config.name} (${owned})`;
+
+        const description = document.createElement("p");
+        description.textContent = `${config.description} • Cost: ${formatNumber(cost)} gems`;
+
+        details.append(title, description);
+
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = canAfford ? "Buy" : "Need More";
+        button.disabled = !canAfford;
+        button.addEventListener("click", () => buyUpgrade(config.id));
+
+        card.append(details, button);
+        upgradeList.append(card);
+      }
+    }
+
+    function render() {
+      gemsDisplay.textContent = formatNumber(state.gems);
+      gpsDisplay.textContent = formatNumber(getGemsPerSecond());
+      gpcDisplay.textContent = formatNumber(getGemsPerClick());
+      multiplierDisplay.textContent = `x${getPrestigeMultiplier().toFixed(2)}`;
+
+      const canPrestige = state.gems >= PRESTIGE_THRESHOLD;
+      const nextMultiplier = 1 + (state.prestigeCount + 1) * 0.5;
+      prestigeButton.disabled = !canPrestige;
+      prestigeText.textContent = canPrestige
+        ? `Reset now for a permanent x${nextMultiplier.toFixed(2)} multiplier on every gem source.`
+        : `Reach ${formatNumber(PRESTIGE_THRESHOLD)} gems to prestige. Current permanent bonus: x${getPrestigeMultiplier().toFixed(2)}.`;
+
+      updateStatusText();
+      renderUpgrades();
+    }
+
+    function addGems(amount) {
+      state.gems = Math.max(0, state.gems + amount);
+    }
+
+    function buyUpgrade(id) {
+      const config = upgradeConfigs.find((upgrade) => upgrade.id === id);
+      if (!config) {
+        return;
+      }
+
+      const cost = getUpgradeCost(config);
+      if (state.gems < cost) {
+        return;
+      }
+
+      state.gems -= cost;
+      state.upgrades[id] += 1;
+      markDirty();
+      render();
+      saveState();
+    }
+
+    function createFloatingText(amount, x, y) {
+      const label = document.createElement("div");
+      label.className = "floating-text";
+      label.textContent = `+${formatNumber(amount)}`;
+      label.style.left = `${x}px`;
+      label.style.top = `${y}px`;
+      label.style.setProperty("--drift-x", `${(Math.random() - 0.5) * 48}px`);
+      label.addEventListener("animationend", () => label.remove());
+      mineWrap.append(label);
+    }
+
+    function createParticles(x, y) {
+      for (let index = 0; index < 9; index += 1) {
+        const particle = document.createElement("div");
+        particle.className = "particle";
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 36 + Math.random() * 92;
+        particle.style.left = `${x}px`;
+        particle.style.top = `${y}px`;
+        particle.style.setProperty("--dx", `${Math.cos(angle) * distance}px`);
+        particle.style.setProperty("--dy", `${Math.sin(angle) * distance}px`);
+        particle.style.setProperty("--rot", `${Math.random() * 240 - 120}deg`);
+        particle.addEventListener("animationend", () => particle.remove());
+        mineWrap.append(particle);
+      }
+    }
+
+    function mineGem(event) {
+      const rect = mineWrap.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const amount = getGemsPerClick();
+
+      addGems(amount);
+      state.totalClicks += 1;
+      markDirty();
+      createFloatingText(amount, x, y);
+      createParticles(x, y);
+      render();
+      saveState();
+    }
+
+    function performPrestige() {
+      if (state.gems < PRESTIGE_THRESHOLD) {
+        return;
+      }
+
+      state = {
+        ...defaultState(),
+        prestigeCount: state.prestigeCount + 1
+      };
+      markDirty();
+      render();
+      saveState(true);
+    }
+
+    function tick(now) {
+      const deltaSeconds = Math.min((now - lastFrame) / 1000, 0.25);
+      lastFrame = now;
+
+      const gemsPerSecond = getGemsPerSecond();
+      if (gemsPerSecond > 0) {
+        addGems(gemsPerSecond * deltaSeconds);
+        markDirty();
+      }
+
+      render();
+      saveState();
+      requestAnimationFrame(tick);
+    }
+
+    mineButton.addEventListener("click", mineGem);
+    prestigeButton.addEventListener("click", performPrestige);
+    window.addEventListener("beforeunload", () => saveState(true));
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") {
+        saveState(true);
+      }
+    });
+
+    render();
+    requestAnimationFrame((now) => {
+      lastFrame = now;
+      requestAnimationFrame(tick);
+    });
+  </script>
+</body>
+</html>
