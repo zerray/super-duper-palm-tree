@@ -363,7 +363,7 @@
   <div class="app">
     <section class="surface">
       <h1>Hex Chain Reaction</h1>
-      <p class="lede">Place tokens on empty or friendly hexes. If a stack reaches that hex's neighbor-count capacity, it bursts into every adjacent hex and can trigger a full cascade.</p>
+      <p class="lede">Place tokens on empty or friendly hexes. If a stack exceeds that hex's neighbor-count capacity, it bursts into every adjacent hex and can trigger a full cascade.</p>
       <div class="stats">
         <div class="chip" id="turnChip"><strong>Turn:</strong> <span id="turnLabel">Blue</span></div>
         <div class="chip"><strong>Status:</strong> <span id="statusText">Blue to move.</span></div>
@@ -412,7 +412,7 @@
         <div class="legend">
           <div class="legend-line"><span class="swatch p1"></span><span>Blue moves first. Red is the second player or the AI.</span></div>
           <div class="legend-line"><span class="swatch p2"></span><span>You may only place on an empty hex or one you already control.</span></div>
-          <div class="legend-line"><span class="swatch" style="background:#fff2c8;border-color:#f4b942;"></span><span>When count reaches capacity, the hex explodes and sends one token to each neighbor.</span></div>
+          <div class="legend-line"><span class="swatch" style="background:#fff2c8;border-color:#f4b942;"></span><span>When count exceeds capacity, the hex explodes and sends one token to each neighbor.</span></div>
         </div>
       </div>
     </aside>
@@ -611,7 +611,7 @@
     }
 
     function findOverflowingCells(cells) {
-      return cells.filter((cell) => cell.owner !== 0 && cell.count >= getCapacity(cell));
+      return cells.filter((cell) => cell.owner !== 0 && cell.count > getCapacity(cell));
     }
 
     function summarizeBoard(cells) {
