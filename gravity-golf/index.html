@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gravity Golf</title>
+  <style>
+    :root {
+      --bg-0: #040814;
+      --bg-1: #0b1630;
+      --panel: rgba(7, 14, 29, 0.84);
+      --border: rgba(157, 201, 255, 0.18);
+      --text: #eff6ff;
+      --muted: #9ab4d7;
+      --accent: #ffd166;
+      --accent-2: #7ae3ff;
+      --danger: #ff8f8f;
+      --success: #89f3b4;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow: hidden;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 18%, rgba(122, 227, 255, 0.14), transparent 24%),
+        radial-gradient(circle at 80% 14%, rgba(255, 209, 102, 0.14), transparent 18%),
+        linear-gradient(180deg, var(--bg-1) 0%, var(--bg-0) 60%, #02040a 100%);
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      cursor: crosshair;
+    }
+
+    .hud {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      right: 16px;
+      display: grid;
+      grid-template-columns: minmax(320px, 420px) minmax(240px, 320px);
+      justify-content: space-between;
+      gap: 16px;
+      pointer-events: none;
+    }
+
+    .panel {
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 20px 42px rgba(0, 0, 0, 0.3);
+      pointer-events: auto;
+    }
+
+    h1,
+    p,
+    label {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(1.7rem, 3vw, 2.5rem);
+      letter-spacing: 0.03em;
+    }
+
+    .subtle,
+    .status,
+    .legend,
+    .field small {
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .controls {
+      margin-top: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .mode-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button,
+    select,
+    input[type="range"] {
+      font: inherit;
+    }
+
+    button,
+    select {
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 14px;
+      cursor: pointer;
+    }
+
+    button {
+      font-weight: 700;
+      color: #05111d;
+      background: linear-gradient(135deg, #f4fbff, #7ae3ff);
+    }
+
+    button.secondary {
+      color: var(--text);
+      background: rgba(154, 180, 215, 0.12);
+      border: 1px solid rgba(154, 180, 215, 0.2);
+    }
+
+    button.active {
+      background: linear-gradient(135deg, #ffe8a6, #ffd166);
+    }
+
+    select {
+      min-width: 130px;
+      color: var(--text);
+      background: rgba(154, 180, 215, 0.14);
+      border: 1px solid rgba(154, 180, 215, 0.2);
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .stats {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      justify-items: end;
+      text-align: right;
+    }
+
+    .stats strong {
+      color: var(--accent);
+    }
+
+    .banner {
+      position: fixed;
+      left: 16px;
+      bottom: 16px;
+      max-width: min(480px, calc(100vw - 32px));
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(157, 201, 255, 0.16);
+      background: rgba(7, 14, 29, 0.76);
+      color: var(--muted);
+      backdrop-filter: blur(10px);
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      background: rgba(3, 7, 18, 0.5);
+      backdrop-filter: blur(5px);
+    }
+
+    .overlay.show {
+      display: grid;
+    }
+
+    .overlay-card {
+      width: min(420px, calc(100vw - 32px));
+      padding: 24px;
+      border-radius: 22px;
+      border: 1px solid rgba(137, 243, 180, 0.2);
+      background: rgba(7, 14, 29, 0.94);
+      text-align: center;
+      box-shadow: 0 24px 50px rgba(0, 0, 0, 0.35);
+    }
+
+    .overlay-card h2 {
+      margin: 0;
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+    }
+
+    .overlay-card p {
+      margin-top: 10px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .overlay-card .actions {
+      margin-top: 18px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 820px) {
+      .hud {
+        grid-template-columns: 1fr;
+      }
+
+      .stats {
+        justify-items: start;
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div class="hud">
+    <section class="panel">
+      <h1>Gravity Golf</h1>
+      <p class="subtle">Place gravity wells, tune their strength, then bend a single shot through a hostile star field and into the hole.</p>
+      <div class="controls">
+        <div class="field">
+          <label>Mode</label>
+          <div class="mode-group">
+            <button id="place-mode" class="active" type="button">Place Wells</button>
+            <button id="launch-mode" class="secondary" type="button">Launch Ball</button>
+            <button id="reset-button" class="secondary" type="button">Reset Level</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="well-select">Selected well</label>
+          <div class="field-row">
+            <select id="well-select">
+              <option value="">No well selected</option>
+            </select>
+            <button id="remove-well" class="secondary" type="button">Remove</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="strength-slider">Gravity strength <strong id="strength-value">160</strong></label>
+          <input id="strength-slider" type="range" min="60" max="320" step="10" value="160">
+          <small>Positive wells attract. Negative wells repel.</small>
+        </div>
+        <div class="field">
+          <label for="well-type">Well type</label>
+          <select id="well-type">
+            <option value="attractor">Attractor</option>
+            <option value="repulsor">Repulsor</option>
+          </select>
+        </div>
+        <p class="status" id="status">Click the canvas to place up to 2 gravity wells, then switch to launch mode and drag from the ball.</p>
+      </div>
+    </section>
+    <section class="panel stats">
+      <p>Level <strong id="level-label">1 / 5</strong></p>
+      <p>Par Route <strong id="route-label">0</strong></p>
+      <p>Wells Left <strong id="wells-left-label">0</strong></p>
+      <p>Strokes <strong id="strokes-label">0</strong></p>
+      <p>Ball Speed <strong id="speed-label">0</strong></p>
+    </section>
+  </div>
+  <div class="banner"><strong>Controls:</strong> place wells by clicking empty space, select a well to tune strength, switch to launch mode, drag backward from the ball, and release to fire. Asteroids block shots, black holes absorb them.</div>
+  <div id="win-overlay" class="overlay">
+    <div class="overlay-card">
+      <h2 id="overlay-title">Level Complete</h2>
+      <p id="overlay-copy">You bent the shot home.</p>
+      <div class="actions">
+        <button id="next-level" type="button">Next Level</button>
+        <button id="replay-level" class="secondary" type="button">Replay</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const placeModeButton = document.getElementById("place-mode");
+    const launchModeButton = document.getElementById("launch-mode");
+    const resetButton = document.getElementById("reset-button");
+    const removeWellButton = document.getElementById("remove-well");
+    const wellSelect = document.getElementById("well-select");
+    const strengthSlider = document.getElementById("strength-slider");
+    const strengthValue = document.getElementById("strength-value");
+    const wellType = document.getElementById("well-type");
+    const statusLabel = document.getElementById("status");
+    const levelLabel = document.getElementById("level-label");
+    const routeLabel = document.getElementById("route-label");
+    const wellsLeftLabel = document.getElementById("wells-left-label");
+    const strokesLabel = document.getElementById("strokes-label");
+    const speedLabel = document.getElementById("speed-label");
+    const winOverlay = document.getElementById("win-overlay");
+    const overlayTitle = document.getElementById("overlay-title");
+    const overlayCopy = document.getElementById("overlay-copy");
+    const nextLevelButton = document.getElementById("next-level");
+    const replayLevelButton = document.getElementById("replay-level");
+
+    const state = {
+      width: 0,
+      height: 0,
+      dpr: 1,
+      levelIndex: 0,
+      levels: [],
+      stars: [],
+      wells: [],
+      selectedWellId: "",
+      ball: null,
+      hole: null,
+      asteroids: [],
+      blackHoles: [],
+      trajectory: [],
+      aiming: false,
+      mode: "place",
+      pointer: null,
+      strokes: 0,
+      fixedDt: 1 / 120,
+      accumulator: 0,
+      lastFrame: 0,
+      messageTimer: 0,
+      completed: false
+    };
+
+    const levelCount = 5;
+    const G = 2400;
+    const launchPower = 2.3;
+    const maxLaunchSpeed = 520;
+    const trailLimit = 300;
+    const exitMargin = 100;
+
+    function createRng(seed) {
+      let value = seed >>> 0;
+      return function rand() {
+        value = (value * 1664525 + 1013904223) >>> 0;
+        return value / 4294967296;
+      };
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function distance(a, b) {
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function setStatus(message, duration = 0) {
+      statusLabel.textContent = message;
+      state.messageTimer = duration;
+    }
+
+    function resize() {
+      state.dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      state.width = window.innerWidth;
+      state.height = window.innerHeight;
+      canvas.width = Math.floor(state.width * state.dpr);
+      canvas.height = Math.floor(state.height * state.dpr);
+      ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+      state.stars = buildStars();
+      state.levels = generateLevels(levelCount);
+      loadLevel(state.levelIndex);
+    }
+
+    function buildStars() {
+      const rng = createRng(Math.floor(state.width * 17 + state.height * 31));
+      const stars = [];
+      const count = Math.max(120, Math.floor((state.width * state.height) / 7000));
+      for (let i = 0; i < count; i += 1) {
+        stars.push({
+          x: rng() * state.width,
+          y: rng() * state.height,
+          radius: 0.6 + rng() * 1.8,
+          alpha: 0.25 + rng() * 0.75
+        });
+      }
+      return stars;
+    }
+
+    function makeBall(origin) {
+      return {
+        startX: origin.x,
+        startY: origin.y,
+        x: origin.x,
+        y: origin.y,
+        vx: 0,
+        vy: 0,
+        radius: 10,
+        moving: false
+      };
+    }
+
+    function generateLevels(count) {
+      const levels = [];
+      for (let index = 0; index < count; index += 1) {
+        levels.push(generateLevel(index + 1));
+      }
+      return levels;
+    }
+
+    function generateLevel(levelNumber) {
+      const width = state.width;
+      const height = state.height;
+      const maxWells = Math.min(2 + Math.floor((levelNumber - 1) / 2), 4);
+      const referenceWellCount = Math.min(2 + Math.floor(levelNumber / 2), maxWells);
+      const seedBase = 4100 + levelNumber * 197;
+
+      for (let attempt = 0; attempt < 90; attempt += 1) {
+        const rng = createRng(seedBase + attempt * 997);
+        const start = {
+          x: 100 + rng() * Math.max(60, width * 0.08),
+          y: clamp(height * (0.24 + rng() * 0.52), 90, height - 90)
+        };
+        const hole = {
+          x: width - (130 + rng() * Math.max(70, width * 0.08)),
+          y: clamp(height * (0.2 + rng() * 0.56), 90, height - 90),
+          radius: clamp(18 - Math.floor(levelNumber / 2), 14, 18)
+        };
+
+        const asteroids = [];
+        const asteroidCount = Math.min(levelNumber, 4);
+        let guard = 0;
+        while (asteroids.length < asteroidCount && guard < 1000) {
+          guard += 1;
+          const candidate = {
+            x: width * (0.28 + rng() * 0.44),
+            y: height * (0.14 + rng() * 0.72),
+            radius: 24 + rng() * 18,
+            rotation: rng() * Math.PI * 2,
+            spin: (rng() - 0.5) * 0.9,
+            points: Array.from({ length: 7 }, (_, pointIndex) => {
+              const angle = (Math.PI * 2 * pointIndex) / 7;
+              return { angle, radius: 0.72 + rng() * 0.35 };
+            })
+          };
+          const overlapsEndpoints =
+            distance(candidate, start) < candidate.radius + 120 ||
+            distance(candidate, hole) < candidate.radius + 130;
+          const overlapsOther = asteroids.some((asteroid) => distance(asteroid, candidate) < asteroid.radius + candidate.radius + 38);
+          if (!overlapsEndpoints && !overlapsOther) {
+            asteroids.push(candidate);
+          }
+        }
+
+        const blackHoles = [];
+        const blackHoleCount = levelNumber >= 3 ? Math.min(levelNumber - 2, 2) : 0;
+        guard = 0;
+        while (blackHoles.length < blackHoleCount && guard < 1000) {
+          guard += 1;
+          const candidate = {
+            x: width * (0.32 + rng() * 0.38),
+            y: height * (0.18 + rng() * 0.64),
+            radius: 18 + rng() * 8
+          };
+          const overlapsEndpoints =
+            distance(candidate, start) < candidate.radius + 130 ||
+            distance(candidate, hole) < candidate.radius + 140;
+          const overlapsObstacles = asteroids.some((asteroid) => distance(asteroid, candidate) < asteroid.radius + candidate.radius + 28);
+          const overlapsBlackHole = blackHoles.some((blackHole) => distance(blackHole, candidate) < blackHole.radius + candidate.radius + 40);
+          if (!overlapsEndpoints && !overlapsObstacles && !overlapsBlackHole) {
+            blackHoles.push(candidate);
+          }
+        }
+
+        const referenceWells = [];
+        for (let wellIndex = 0; wellIndex < referenceWellCount; wellIndex += 1) {
+          let tries = 0;
+          while (tries < 400) {
+            tries += 1;
+            const x = width * (0.22 + rng() * 0.56);
+            const y = height * (0.12 + rng() * 0.76);
+            const magnitude = 120 + rng() * 160 + levelNumber * 10;
+            const type = rng() < 0.72 ? 1 : -1;
+            const candidate = {
+              id: `ref-${levelNumber}-${wellIndex}`,
+              x,
+              y,
+              strength: Math.round(magnitude / 10) * 10 * type,
+              radius: 18
+            };
+            const invalid =
+              distance(candidate, start) < 140 ||
+              distance(candidate, hole) < 130 ||
+              asteroids.some((asteroid) => distance(asteroid, candidate) < asteroid.radius + 44) ||
+              blackHoles.some((blackHole) => distance(blackHole, candidate) < blackHole.radius + 42) ||
+              referenceWells.some((well) => distance(well, candidate) < 70);
+            if (!invalid) {
+              referenceWells.push(candidate);
+              break;
+            }
+          }
+        }
+
+        if (referenceWells.length < 2) {
+          continue;
+        }
+
+        const angle = -0.18 + rng() * 0.36;
+        const speed = 220 + rng() * 80 + levelNumber * 16;
+        const velocity = {
+          x: Math.cos(angle) * speed,
+          y: Math.sin(angle) * speed
+        };
+
+        const solution = simulateReferenceShot({
+          start,
+          velocity,
+          hole,
+          asteroids,
+          blackHoles,
+          wells: referenceWells
+        });
+
+        if (solution.success) {
+          return {
+            levelNumber,
+            maxWells,
+            parRoute: `${referenceWells.length} wells`,
+            start,
+            hole,
+            asteroids,
+            blackHoles,
+            referenceWells
+          };
+        }
+      }
+
+      return {
+        levelNumber,
+        maxWells,
+        parRoute: "2 wells",
+        start: { x: 120, y: state.height * 0.5 },
+        hole: { x: state.width - 140, y: state.height * 0.5, radius: 18 },
+        asteroids: [],
+        blackHoles: [],
+        referenceWells: []
+      };
+    }
+
+    function simulateReferenceShot(setup) {
+      const body = {
+        x: setup.start.x,
+        y: setup.start.y,
+        vx: setup.velocity.x,
+        vy: setup.velocity.y,
+        radius: 10
+      };
+
+      for (let step = 0; step < 1600; step += 1) {
+        const accel = computeGravity(body, setup.wells, setup.blackHoles);
+        body.vx += accel.x * state.fixedDt;
+        body.vy += accel.y * state.fixedDt;
+        body.x += body.vx * state.fixedDt;
+        body.y += body.vy * state.fixedDt;
+
+        if (distance(body, setup.hole) < setup.hole.radius + body.radius + 2) {
+          return { success: true };
+        }
+
+        if (
+          collidesWithAsteroid(body, setup.asteroids) ||
+          collidesWithBlackHole(body, setup.blackHoles) ||
+          body.x < -exitMargin ||
+          body.x > state.width + exitMargin ||
+          body.y < -exitMargin ||
+          body.y > state.height + exitMargin
+        ) {
+          break;
+        }
+      }
+
+      return { success: false };
+    }
+
+    function loadLevel(levelIndex) {
+      state.levelIndex = levelIndex;
+      const level = state.levels[levelIndex];
+      state.wells = [];
+      state.selectedWellId = "";
+      state.ball = makeBall(level.start);
+      state.hole = { ...level.hole };
+      state.asteroids = level.asteroids.map((asteroid) => ({ ...asteroid, points: asteroid.points.map((point) => ({ ...point })) }));
+      state.blackHoles = level.blackHoles.map((blackHole) => ({ ...blackHole }));
+      state.trajectory = [];
+      state.aiming = false;
+      state.pointer = null;
+      state.strokes = 0;
+      state.accumulator = 0;
+      state.completed = false;
+      winOverlay.classList.remove("show");
+      syncHud();
+      refreshWellControls();
+      switchMode("place");
+      setStatus(`Level ${level.levelNumber}: place up to ${level.maxWells} wells, then drag from the ball to fire.`, 0);
+    }
+
+    function syncHud() {
+      const level = state.levels[state.levelIndex];
+      levelLabel.textContent = `${level.levelNumber} / ${state.levels.length}`;
+      routeLabel.textContent = level.parRoute;
+      wellsLeftLabel.textContent = Math.max(0, level.maxWells - state.wells.length);
+      strokesLabel.textContent = String(state.strokes);
+      speedLabel.textContent = Math.round(Math.hypot(state.ball.vx, state.ball.vy)).toString();
+    }
+
+    function refreshWellControls() {
+      const previous = state.selectedWellId;
+      wellSelect.innerHTML = '<option value="">No well selected</option>';
+      state.wells.forEach((well, index) => {
+        const option = document.createElement("option");
+        option.value = well.id;
+        option.textContent = `Well ${index + 1} (${well.strength > 0 ? "attractor" : "repulsor"})`;
+        wellSelect.appendChild(option);
+      });
+
+      if (previous && state.wells.some((well) => well.id === previous)) {
+        state.selectedWellId = previous;
+        wellSelect.value = previous;
+      } else {
+        state.selectedWellId = state.wells[0] ? state.wells[0].id : "";
+        wellSelect.value = state.selectedWellId;
+      }
+
+      updateSelectedWellControls();
+      syncHud();
+    }
+
+    function updateSelectedWellControls() {
+      const well = state.wells.find((item) => item.id === state.selectedWellId);
+      const disabled = !well;
+      strengthSlider.disabled = disabled;
+      wellType.disabled = disabled;
+      removeWellButton.disabled = disabled;
+
+      if (well) {
+        strengthSlider.value = String(Math.abs(well.strength));
+        strengthValue.textContent = String(Math.abs(well.strength));
+        wellType.value = well.strength >= 0 ? "attractor" : "repulsor";
+      } else {
+        strengthValue.textContent = strengthSlider.value;
+      }
+    }
+
+    function switchMode(mode) {
+      state.mode = mode;
+      placeModeButton.classList.toggle("active", mode === "place");
+      launchModeButton.classList.toggle("active", mode === "launch");
+      placeModeButton.classList.toggle("secondary", mode !== "place");
+      launchModeButton.classList.toggle("secondary", mode !== "launch");
+
+      if (mode === "place") {
+        setStatus("Click empty space to place wells. Select one to change strength or swap attractor and repulsor.", 0);
+      } else {
+        setStatus("Drag backward from the ball to aim and release to launch. Click a well to select it without leaving launch mode.", 0);
+      }
+    }
+
+    function pointerPosition(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      };
+    }
+
+    function canPlaceWell(point) {
+      const level = state.levels[state.levelIndex];
+      if (state.wells.length >= level.maxWells) {
+        setStatus(`This level only allows ${level.maxWells} gravity wells.`, 2);
+        return false;
+      }
+
+      const tooClose =
+        distance(point, state.ball) < 60 ||
+        distance(point, state.hole) < 60 ||
+        state.asteroids.some((asteroid) => distance(point, asteroid) < asteroid.radius + 26) ||
+        state.blackHoles.some((blackHole) => distance(point, blackHole) < blackHole.radius + 28) ||
+        state.wells.some((well) => distance(point, well) < 44);
+
+      if (tooClose) {
+        setStatus("Place wells in open space, away from the ball, hole, and hazards.", 2);
+        return false;
+      }
+
+      return true;
+    }
+
+    function addWell(point) {
+      if (!canPlaceWell(point)) {
+        return;
+      }
+
+      const magnitude = Number(strengthSlider.value);
+      const signedStrength = wellType.value === "attractor" ? magnitude : -magnitude;
+      const well = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        x: point.x,
+        y: point.y,
+        strength: signedStrength,
+        radius: 18
+      };
+      state.wells.push(well);
+      state.selectedWellId = well.id;
+      refreshWellControls();
+      setStatus(`${signedStrength > 0 ? "Attractor" : "Repulsor"} placed. Tune it or add another well.`, 2);
+    }
+
+    function selectWellAt(point) {
+      const hit = [...state.wells].reverse().find((well) => distance(point, well) <= well.radius + 10);
+      if (!hit) {
+        return false;
+      }
+      state.selectedWellId = hit.id;
+      refreshWellControls();
+      setStatus("Well selected. Adjust its strength or type from the panel.", 2);
+      return true;
+    }
+
+    function computeGravity(position, wells = state.wells, blackHoles = state.blackHoles) {
+      let ax = 0;
+      let ay = 0;
+
+      wells.forEach((well) => {
+        const dx = well.x - position.x;
+        const dy = well.y - position.y;
+        const distSq = Math.max(1200, dx * dx + dy * dy);
+        const force = (G * well.strength) / distSq;
+        const invDist = 1 / Math.sqrt(distSq);
+        ax += dx * invDist * force;
+        ay += dy * invDist * force;
+      });
+
+      blackHoles.forEach((blackHole) => {
+        const dx = blackHole.x - position.x;
+        const dy = blackHole.y - position.y;
+        const distSq = Math.max(700, dx * dx + dy * dy);
+        const force = (G * 260) / distSq;
+        const invDist = 1 / Math.sqrt(distSq);
+        ax += dx * invDist * force;
+        ay += dy * invDist * force;
+      });
+
+      return {
+        x: clamp(ax, -1600, 1600),
+        y: clamp(ay, -1600, 1600)
+      };
+    }
+
+    function collidesWithAsteroid(body, asteroids = state.asteroids) {
+      return asteroids.some((asteroid) => distance(body, asteroid) < asteroid.radius + body.radius);
+    }
+
+    function collidesWithBlackHole(body, blackHoles = state.blackHoles) {
+      return blackHoles.some((blackHole) => distance(body, blackHole) < blackHole.radius + body.radius);
+    }
+
+    function resetBallOnly() {
+      state.ball.x = state.ball.startX;
+      state.ball.y = state.ball.startY;
+      state.ball.vx = 0;
+      state.ball.vy = 0;
+      state.ball.moving = false;
+      state.trajectory = [];
+      state.aiming = false;
+      syncHud();
+    }
+
+    function resetLevel() {
+      loadLevel(state.levelIndex);
+    }
+
+    function launchBall(pointer) {
+      const dx = state.ball.x - pointer.x;
+      const dy = state.ball.y - pointer.y;
+      const vx = clamp(dx * launchPower, -maxLaunchSpeed, maxLaunchSpeed);
+      const vy = clamp(dy * launchPower, -maxLaunchSpeed, maxLaunchSpeed);
+      const speed = Math.hypot(vx, vy);
+      if (speed < 40) {
+        setStatus("Drag farther from the ball to create a valid shot.", 2);
+        return;
+      }
+
+      state.ball.vx = vx;
+      state.ball.vy = vy;
+      state.ball.moving = true;
+      state.strokes += 1;
+      state.trajectory = [{ x: state.ball.x, y: state.ball.y }];
+      syncHud();
+      setStatus(`Shot ${state.strokes} launched. Gravity will curve the path from here.`, 2);
+    }
+
+    function completeLevel() {
+      state.completed = true;
+      state.ball.moving = false;
+      syncHud();
+      const finalLevel = state.levelIndex === state.levels.length - 1;
+      overlayTitle.textContent = finalLevel ? "Course Cleared" : "Level Complete";
+      overlayCopy.textContent = finalLevel
+        ? `All 5 levels cleared in ${state.strokes} stroke${state.strokes === 1 ? "" : "s"} on the final hole.`
+        : `Hole made in ${state.strokes} stroke${state.strokes === 1 ? "" : "s"}. Move on when ready.`;
+      nextLevelButton.textContent = finalLevel ? "Play Again" : "Next Level";
+      winOverlay.classList.add("show");
+      setStatus("Ball sunk. Choose the next level or replay this one.", 0);
+    }
+
+    function updateSimulation(dt) {
+      if (!state.ball.moving || state.completed) {
+        return;
+      }
+
+      const accel = computeGravity(state.ball);
+      state.ball.vx += accel.x * dt;
+      state.ball.vy += accel.y * dt;
+      state.ball.x += state.ball.vx * dt;
+      state.ball.y += state.ball.vy * dt;
+      state.trajectory.push({ x: state.ball.x, y: state.ball.y });
+      if (state.trajectory.length > trailLimit) {
+        state.trajectory.shift();
+      }
+
+      if (distance(state.ball, state.hole) < state.hole.radius + state.ball.radius + 1) {
+        completeLevel();
+        return;
+      }
+
+      if (collidesWithAsteroid(state.ball)) {
+        setStatus("The shot clipped an asteroid. Try a different field setup.", 2);
+        resetBallOnly();
+        return;
+      }
+
+      if (collidesWithBlackHole(state.ball)) {
+        setStatus("The ball fell into a black hole. Reset your angle or well layout.", 2);
+        resetBallOnly();
+        return;
+      }
+
+      if (
+        state.ball.x < -exitMargin ||
+        state.ball.x > state.width + exitMargin ||
+        state.ball.y < -exitMargin ||
+        state.ball.y > state.height + exitMargin
+      ) {
+        setStatus("Shot lost in deep space. The ball has been reset.", 2);
+        resetBallOnly();
+      }
+    }
+
+    function drawStars() {
+      state.stars.forEach((star) => {
+        ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function drawAsteroid(asteroid) {
+      ctx.save();
+      ctx.translate(asteroid.x, asteroid.y);
+      ctx.rotate(asteroid.rotation);
+      ctx.beginPath();
+      asteroid.points.forEach((point, index) => {
+        const x = Math.cos(point.angle) * asteroid.radius * point.radius;
+        const y = Math.sin(point.angle) * asteroid.radius * point.radius;
+        if (index === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+      ctx.closePath();
+      ctx.fillStyle = "#5e708f";
+      ctx.strokeStyle = "rgba(218, 232, 255, 0.32)";
+      ctx.lineWidth = 2;
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawBlackHole(blackHole) {
+      const gradient = ctx.createRadialGradient(
+        blackHole.x,
+        blackHole.y,
+        blackHole.radius * 0.25,
+        blackHole.x,
+        blackHole.y,
+        blackHole.radius * 2.2
+      );
+      gradient.addColorStop(0, "rgba(0, 0, 0, 0.95)");
+      gradient.addColorStop(0.4, "rgba(82, 31, 120, 0.7)");
+      gradient.addColorStop(1, "rgba(82, 31, 120, 0)");
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(blackHole.x, blackHole.y, blackHole.radius * 2.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#020207";
+      ctx.beginPath();
+      ctx.arc(blackHole.x, blackHole.y, blackHole.radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawHole() {
+      ctx.fillStyle = "rgba(255, 209, 102, 0.14)";
+      ctx.beginPath();
+      ctx.arc(state.hole.x, state.hole.y, state.hole.radius + 14, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#ffd166";
+      ctx.beginPath();
+      ctx.arc(state.hole.x, state.hole.y, state.hole.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#7c4f00";
+      ctx.beginPath();
+      ctx.arc(state.hole.x, state.hole.y, Math.max(4, state.hole.radius - 7), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawBall() {
+      ctx.fillStyle = "#eff6ff";
+      ctx.beginPath();
+      ctx.arc(state.ball.x, state.ball.y, state.ball.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(122, 227, 255, 0.45)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(state.ball.startX, state.ball.startY, 18, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    function drawTrajectory() {
+      if (state.trajectory.length < 2) {
+        return;
+      }
+
+      ctx.strokeStyle = "rgba(122, 227, 255, 0.65)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      state.trajectory.forEach((point, index) => {
+        if (index === 0) {
+          ctx.moveTo(point.x, point.y);
+        } else {
+          ctx.lineTo(point.x, point.y);
+        }
+      });
+      ctx.stroke();
+    }
+
+    function drawAimGuide() {
+      if (!state.aiming || !state.pointer || state.ball.moving) {
+        return;
+      }
+
+      ctx.strokeStyle = "rgba(255, 209, 102, 0.8)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 8]);
+      ctx.beginPath();
+      ctx.moveTo(state.ball.x, state.ball.y);
+      ctx.lineTo(state.pointer.x, state.pointer.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    function drawGravityWell(well) {
+      const positive = well.strength >= 0;
+      const outer = positive ? "rgba(122, 227, 255, 0.22)" : "rgba(255, 143, 143, 0.22)";
+      const inner = positive ? "#7ae3ff" : "#ff8f8f";
+      ctx.fillStyle = outer;
+      ctx.beginPath();
+      ctx.arc(well.x, well.y, well.radius + Math.abs(well.strength) * 0.05, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = inner;
+      ctx.beginPath();
+      ctx.arc(well.x, well.y, well.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = state.selectedWellId === well.id ? "#ffd166" : "rgba(255, 255, 255, 0.35)";
+      ctx.lineWidth = state.selectedWellId === well.id ? 3 : 1.5;
+      ctx.beginPath();
+      ctx.arc(well.x, well.y, well.radius + 3, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.strokeStyle = "#06101c";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(well.x - 8, well.y);
+      ctx.lineTo(well.x + 8, well.y);
+      if (positive) {
+        ctx.moveTo(well.x, well.y - 8);
+        ctx.lineTo(well.x, well.y + 8);
+      }
+      ctx.stroke();
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, state.width, state.height);
+      drawStars();
+      state.blackHoles.forEach(drawBlackHole);
+      state.asteroids.forEach(drawAsteroid);
+      drawHole();
+      state.wells.forEach(drawGravityWell);
+      drawTrajectory();
+      drawAimGuide();
+      drawBall();
+    }
+
+    function frame(timestamp) {
+      if (!state.lastFrame) {
+        state.lastFrame = timestamp;
+      }
+
+      const deltaSeconds = Math.min(0.033, (timestamp - state.lastFrame) / 1000);
+      state.lastFrame = timestamp;
+      state.accumulator += deltaSeconds;
+
+      if (state.messageTimer > 0) {
+        state.messageTimer = Math.max(0, state.messageTimer - deltaSeconds);
+        if (state.messageTimer === 0) {
+          switchMode(state.mode);
+        }
+      }
+
+      while (state.accumulator >= state.fixedDt) {
+        updateSimulation(state.fixedDt);
+        state.asteroids.forEach((asteroid) => {
+          asteroid.rotation += asteroid.spin * state.fixedDt;
+        });
+        state.accumulator -= state.fixedDt;
+      }
+
+      render();
+      requestAnimationFrame(frame);
+    }
+
+    canvas.addEventListener("pointerdown", (event) => {
+      if (state.completed) {
+        return;
+      }
+      const point = pointerPosition(event);
+      if (selectWellAt(point)) {
+        return;
+      }
+
+      if (state.mode === "place" && !state.ball.moving) {
+        addWell(point);
+        return;
+      }
+
+      if (state.mode === "launch" && !state.ball.moving && distance(point, state.ball) <= state.ball.radius + 22) {
+        state.aiming = true;
+        state.pointer = point;
+      }
+    });
+
+    canvas.addEventListener("pointermove", (event) => {
+      if (!state.aiming) {
+        return;
+      }
+      state.pointer = pointerPosition(event);
+    });
+
+    canvas.addEventListener("pointerup", (event) => {
+      if (!state.aiming) {
+        return;
+      }
+      state.pointer = pointerPosition(event);
+      state.aiming = false;
+      launchBall(state.pointer);
+    });
+
+    canvas.addEventListener("pointerleave", () => {
+      state.aiming = false;
+      state.pointer = null;
+    });
+
+    placeModeButton.addEventListener("click", () => {
+      if (!state.ball.moving) {
+        switchMode("place");
+      }
+    });
+
+    launchModeButton.addEventListener("click", () => {
+      if (!state.ball.moving) {
+        switchMode("launch");
+      }
+    });
+
+    resetButton.addEventListener("click", resetLevel);
+
+    removeWellButton.addEventListener("click", () => {
+      if (!state.selectedWellId) {
+        return;
+      }
+      state.wells = state.wells.filter((well) => well.id !== state.selectedWellId);
+      state.selectedWellId = "";
+      refreshWellControls();
+      setStatus("Selected gravity well removed.", 2);
+    });
+
+    wellSelect.addEventListener("change", () => {
+      state.selectedWellId = wellSelect.value;
+      updateSelectedWellControls();
+    });
+
+    strengthSlider.addEventListener("input", () => {
+      strengthValue.textContent = strengthSlider.value;
+      const well = state.wells.find((item) => item.id === state.selectedWellId);
+      if (!well) {
+        return;
+      }
+      const sign = well.strength >= 0 ? 1 : -1;
+      well.strength = Number(strengthSlider.value) * sign;
+    });
+
+    wellType.addEventListener("change", () => {
+      const well = state.wells.find((item) => item.id === state.selectedWellId);
+      if (!well) {
+        return;
+      }
+      const magnitude = Math.abs(well.strength);
+      well.strength = wellType.value === "attractor" ? magnitude : -magnitude;
+      refreshWellControls();
+    });
+
+    nextLevelButton.addEventListener("click", () => {
+      if (state.levelIndex === state.levels.length - 1) {
+        loadLevel(0);
+      } else {
+        loadLevel(state.levelIndex + 1);
+      }
+    });
+
+    replayLevelButton.addEventListener("click", () => {
+      loadLevel(state.levelIndex);
+    });
+
+    window.addEventListener("keydown", (event) => {
+      if (event.key.toLowerCase() === "r") {
+        resetLevel();
+      }
+      if (event.key === " ") {
+        event.preventDefault();
+        if (!state.ball.moving) {
+          switchMode(state.mode === "place" ? "launch" : "place");
+        }
+      }
+    });
+
+    window.addEventListener("resize", resize);
+
+    resize();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>

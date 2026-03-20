@@ -177,6 +177,17 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `particle-life/index.html` 即可运行。
 
+## Gravity Golf
+
+新增 `gravity-golf/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的重力高尔夫物理游戏，包含：
+
+- 至少 5 个程序化生成的关卡，含星空背景、球的起点、洞口、陨石障碍与黑洞危险区
+- 点击画布放置至少 2 个 gravity wells，并可通过滑块调节引力强度、切换 attractor / repulsor
+- 拖拽瞄准发射小球，使用 inverse-square gravity 与 `requestAnimationFrame` 驱动轨迹模拟
+- 每关 stroke counter、重置按钮，以及进洞后的过关提示与下一关流程
+
+直接用浏览器打开 `gravity-golf/index.html` 即可游玩。
+
 ## Pixel Pulse Sequencer
 
 新增 `pixel-pulse-sequencer/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的像素步进音序器玩具，包含：
