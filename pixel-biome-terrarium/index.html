@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pixel Biome Terrarium</title>
+  <style>
+    :root {
+      --bg: #e7e0c9;
+      --panel: #2c2419;
+      --panel-soft: #f7f0de;
+      --border: #8d7759;
+      --text: #211a11;
+      --muted: #675744;
+      --accent: #4c84cc;
+      --accent-2: #7ab35d;
+      --danger: #c25b4b;
+      --grass: #66a64a;
+      --herbivore: #e8c870;
+      --predator: #c8645a;
+      --empty: #18231b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.45), transparent 35%),
+        linear-gradient(180deg, #efe8d3 0%, #d7ccb0 100%);
+      padding: 20px;
+    }
+
+    .app {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      border: 1px solid rgba(74, 56, 35, 0.22);
+      border-radius: 26px;
+      overflow: hidden;
+      background: rgba(255, 249, 238, 0.88);
+      box-shadow: 0 22px 60px rgba(63, 45, 22, 0.16);
+    }
+
+    .stage {
+      padding: 24px;
+      background:
+        linear-gradient(180deg, rgba(255, 252, 245, 0.9), rgba(247, 238, 220, 0.88)),
+        repeating-linear-gradient(45deg, rgba(119, 92, 49, 0.04) 0 14px, transparent 14px 28px);
+    }
+
+    .panel {
+      padding: 22px;
+      display: grid;
+      gap: 14px;
+      background: linear-gradient(180deg, #33291d 0%, #241c14 100%);
+      color: #f9eed8;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 4vw, 3.1rem);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+    }
+
+    .lede {
+      margin-top: 10px;
+      max-width: 65ch;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+    .canvas-shell,
+    .chart-shell {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 22px;
+      border: 1px solid rgba(96, 74, 44, 0.18);
+      background: rgba(255, 252, 246, 0.75);
+    }
+
+    #world-canvas,
+    #population-chart {
+      display: block;
+      width: 100%;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      border-radius: 14px;
+      background: #101814;
+    }
+
+    #world-canvas {
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    #population-chart {
+      margin-top: 10px;
+      background: #f2e9d1;
+      border: 1px solid rgba(96, 74, 44, 0.12);
+    }
+
+    .stats {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      font-size: 0.92rem;
+    }
+
+    .stat {
+      padding: 10px;
+      border-radius: 14px;
+      background: rgba(44, 36, 25, 0.06);
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 1.1rem;
+      margin-top: 4px;
+    }
+
+    .card {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 236, 204, 0.12);
+      background: rgba(255, 245, 224, 0.08);
+    }
+
+    .card h2 {
+      font-size: 1rem;
+      color: #fff0ca;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 0.94rem;
+    }
+
+    label {
+      display: grid;
+      gap: 8px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: #f0bd64;
+    }
+
+    .tools {
+      display: grid;
+      gap: 8px;
+    }
+
+    .tools label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.95rem;
+    }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+      min-height: 42px;
+      border: 0;
+      border-radius: 999px;
+      padding: 0 14px;
+      color: #fff8ea;
+      background: linear-gradient(180deg, var(--accent) 0%, #31598d 100%);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    button.secondary {
+      background: linear-gradient(180deg, var(--accent-2) 0%, #4d7c39 100%);
+    }
+
+    button[data-active="true"] {
+      background: linear-gradient(180deg, #7bb8ff 0%, #4473b4 100%);
+    }
+
+    .legend {
+      display: grid;
+      gap: 8px;
+      font-size: 0.92rem;
+      color: #ecd9b6;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .hint {
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: #dcc9a5;
+    }
+
+    @media (max-width: 960px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="stage">
+      <h1>Pixel Biome Terrarium</h1>
+      <p class="lede">
+        Watch a compact ecosystem oscillate in real time. Grass spreads across the terrarium, herbivores graze and reproduce, predators chase the herd, and rain can temporarily kick plant growth into overdrive.
+      </p>
+      <div class="canvas-shell">
+        <canvas id="world-canvas" width="384" height="384" aria-label="Pixel biome terrarium"></canvas>
+        <div class="stats">
+          <div class="stat">Tick rate<strong id="tick-rate-label">10.0 tps</strong></div>
+          <div class="stat">Grass<strong id="grass-count">0</strong></div>
+          <div class="stat">Herbivores<strong id="herbivore-count">0</strong></div>
+          <div class="stat">Predators<strong id="predator-count">0</strong></div>
+        </div>
+      </div>
+      <div class="chart-shell">
+        <div class="row">
+          <h2>Population History</h2>
+          <span id="weather-label">Weather: Clear</span>
+        </div>
+        <canvas id="population-chart" width="640" height="180" aria-label="Population chart"></canvas>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <section class="card">
+        <h2>Simulation</h2>
+        <label for="tick-speed">
+          <span class="row"><span>Tick speed</span><span id="tick-ms-label">100 ms</span></span>
+          <input id="tick-speed" type="range" min="40" max="300" step="10" value="100">
+        </label>
+        <div class="row">
+          <span>Rain boost</span>
+          <button id="rain-toggle" class="secondary" type="button" data-active="false">Enable Rain</button>
+        </div>
+        <div class="row">
+          <span>Reset biome</span>
+          <button id="reset-button" type="button">Re-seed World</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Click Tool</h2>
+        <div class="tools">
+          <label><input type="radio" name="tool" value="grass" checked> Drop food</label>
+          <label><input type="radio" name="tool" value="herbivore"> Spawn herbivore</label>
+          <label><input type="radio" name="tool" value="predator"> Spawn predator</label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Legend</h2>
+        <div class="legend">
+          <span><i class="swatch" style="background: var(--empty)"></i> Empty soil</span>
+          <span><i class="swatch" style="background: var(--grass)"></i> Grass / food</span>
+          <span><i class="swatch" style="background: var(--herbivore)"></i> Herbivore</span>
+          <span><i class="swatch" style="background: var(--predator)"></i> Predator</span>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Rules</h2>
+        <p class="hint">
+          Herbivores prioritize nearby grass. Predators prioritize nearby herbivores. Every creature loses energy each tick, gains energy when eating, reproduces above a threshold, and dies if energy reaches zero.
+        </p>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    const GRID_SIZE = 64;
+    const CELL_SIZE = 6;
+    const EMPTY = 0;
+    const GRASS = 1;
+    const HERBIVORE = 2;
+    const PREDATOR = 3;
+    const NEIGHBOR_OFFSETS = [
+      [0, -1],
+      [1, 0],
+      [0, 1],
+      [-1, 0]
+    ];
+    const ALL_NEIGHBOR_OFFSETS = [
+      [-1, -1], [0, -1], [1, -1],
+      [-1, 0],            [1, 0],
+      [-1, 1],  [0, 1],   [1, 1]
+    ];
+    const SETTINGS = {
+      grassSpreadBase: 0.028,
+      rainMultiplier: 2.4,
+      herbivoreStartEnergy: 16,
+      herbivoreMoveCost: 1,
+      herbivoreEatGain: 9,
+      herbivoreReproduceEnergy: 25,
+      herbivoreBirthEnergy: 12,
+      predatorStartEnergy: 20,
+      predatorMoveCost: 1,
+      predatorEatGain: 14,
+      predatorReproduceEnergy: 32,
+      predatorBirthEnergy: 14
+    };
+
+    const worldCanvas = document.getElementById("world-canvas");
+    const worldCtx = worldCanvas.getContext("2d");
+    worldCtx.imageSmoothingEnabled = false;
+
+    const chartCanvas = document.getElementById("population-chart");
+    const chartCtx = chartCanvas.getContext("2d");
+    chartCtx.imageSmoothingEnabled = false;
+
+    const tickSpeedInput = document.getElementById("tick-speed");
+    const tickMsLabel = document.getElementById("tick-ms-label");
+    const tickRateLabel = document.getElementById("tick-rate-label");
+    const rainToggleButton = document.getElementById("rain-toggle");
+    const resetButton = document.getElementById("reset-button");
+    const weatherLabel = document.getElementById("weather-label");
+    const grassCountLabel = document.getElementById("grass-count");
+    const herbivoreCountLabel = document.getElementById("herbivore-count");
+    const predatorCountLabel = document.getElementById("predator-count");
+
+    const state = {
+      grass: new Uint8Array(GRID_SIZE * GRID_SIZE),
+      creatureGrid: new Int16Array(GRID_SIZE * GRID_SIZE),
+      creatures: [],
+      tickMs: Number(tickSpeedInput.value),
+      accumulator: 0,
+      lastFrameTime: 0,
+      rainEnabled: false,
+      history: [],
+      mouseDown: false
+    };
+
+    function createEmptyCreatureGrid() {
+      const grid = new Int16Array(GRID_SIZE * GRID_SIZE);
+      grid.fill(-1);
+      return grid;
+    }
+
+    function randomInt(max) {
+      return Math.floor(Math.random() * max);
+    }
+
+    function indexFor(x, y) {
+      return y * GRID_SIZE + x;
+    }
+
+    function inBounds(x, y) {
+      return x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE;
+    }
+
+    function shuffleOffsets(offsets) {
+      const copy = offsets.slice();
+      for (let i = copy.length - 1; i > 0; i -= 1) {
+        const j = randomInt(i + 1);
+        const temp = copy[i];
+        copy[i] = copy[j];
+        copy[j] = temp;
+      }
+      return copy;
+    }
+
+    function seedWorld() {
+      state.grass = new Uint8Array(GRID_SIZE * GRID_SIZE);
+      state.creatureGrid = createEmptyCreatureGrid();
+      state.creatures = [];
+      state.history = [];
+
+      for (let y = 0; y < GRID_SIZE; y += 1) {
+        for (let x = 0; x < GRID_SIZE; x += 1) {
+          const idx = indexFor(x, y);
+          const distanceToCenter = Math.hypot(x - GRID_SIZE / 2, y - GRID_SIZE / 2) / (GRID_SIZE * 0.75);
+          const fertility = 0.5 - distanceToCenter * 0.22 + Math.random() * 0.24;
+          state.grass[idx] = fertility > 0.32 ? 1 : 0;
+        }
+      }
+
+      for (let i = 0; i < 22; i += 1) {
+        spawnCreature(HERBIVORE, randomInt(GRID_SIZE), randomInt(GRID_SIZE), SETTINGS.herbivoreStartEnergy + randomInt(6), false);
+      }
+
+      for (let i = 0; i < 7; i += 1) {
+        spawnCreature(PREDATOR, randomInt(GRID_SIZE), randomInt(GRID_SIZE), SETTINGS.predatorStartEnergy + randomInt(6), false);
+      }
+
+      recordHistory();
+      render();
+    }
+
+    function spawnCreature(type, x, y, energy, renderNow = true) {
+      if (!inBounds(x, y)) {
+        return false;
+      }
+      const idx = indexFor(x, y);
+      if (state.creatureGrid[idx] !== -1) {
+        return false;
+      }
+      const creature = { type, x, y, energy };
+      state.creatureGrid[idx] = state.creatures.length;
+      state.creatures.push(creature);
+      if (renderNow) {
+        updateCounts();
+        drawWorld();
+        drawChart();
+      }
+      return true;
+    }
+
+    function getSelectedTool() {
+      return document.querySelector('input[name="tool"]:checked').value;
+    }
+
+    function applyTool(clientX, clientY) {
+      const rect = worldCanvas.getBoundingClientRect();
+      const scaleX = worldCanvas.width / rect.width;
+      const scaleY = worldCanvas.height / rect.height;
+      const x = Math.floor((clientX - rect.left) * scaleX / CELL_SIZE);
+      const y = Math.floor((clientY - rect.top) * scaleY / CELL_SIZE);
+      if (!inBounds(x, y)) {
+        return;
+      }
+      const idx = indexFor(x, y);
+      const tool = getSelectedTool();
+      if (tool === "grass") {
+        state.grass[idx] = 1;
+      } else if (tool === "herbivore") {
+        spawnCreature(HERBIVORE, x, y, SETTINGS.herbivoreStartEnergy);
+      } else if (tool === "predator") {
+        spawnCreature(PREDATOR, x, y, SETTINGS.predatorStartEnergy);
+      }
+      render();
+    }
+
+    function chooseTarget(creature, creatureGrid, grass, consumed) {
+      const shuffledCardinals = shuffleOffsets(NEIGHBOR_OFFSETS);
+      const preyType = creature.type === HERBIVORE ? GRASS : HERBIVORE;
+      const candidates = [];
+      const fallback = [];
+
+      for (const [dx, dy] of shuffledCardinals) {
+        const nx = creature.x + dx;
+        const ny = creature.y + dy;
+        if (!inBounds(nx, ny)) {
+          continue;
+        }
+        const idx = indexFor(nx, ny);
+        fallback.push({ x: nx, y: ny, idx });
+        if (preyType === GRASS && grass[idx] === 1) {
+          candidates.push({ x: nx, y: ny, idx });
+        } else if (preyType === HERBIVORE) {
+          const preyIndex = creatureGrid[idx];
+          if (preyIndex !== -1 && !consumed[preyIndex] && preyIndex !== undefined) {
+            const prey = state.creatures[preyIndex];
+            if (prey && prey.type === HERBIVORE) {
+              candidates.push({ x: nx, y: ny, idx, preyIndex });
+            }
+          }
+        }
+      }
+
+      if (candidates.length > 0) {
+        return candidates[0];
+      }
+
+      for (const option of fallback) {
+        if (creatureGrid[option.idx] === -1) {
+          return option;
+        }
+      }
+
+      return { x: creature.x, y: creature.y, idx: indexFor(creature.x, creature.y) };
+    }
+
+    function findBirthCell(x, y, nextCreatureGrid) {
+      const shuffled = shuffleOffsets(ALL_NEIGHBOR_OFFSETS);
+      for (const [dx, dy] of shuffled) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (!inBounds(nx, ny)) {
+          continue;
+        }
+        const idx = indexFor(nx, ny);
+        if (nextCreatureGrid[idx] === -1) {
+          return { x: nx, y: ny, idx };
+        }
+      }
+      return null;
+    }
+
+    function placeCreature(nextCreatures, nextCreatureGrid, creature) {
+      const idx = indexFor(creature.x, creature.y);
+      if (nextCreatureGrid[idx] !== -1) {
+        return false;
+      }
+      nextCreatureGrid[idx] = nextCreatures.length;
+      nextCreatures.push(creature);
+      return true;
+    }
+
+    function updateGrass(nextGrass) {
+      const spreadChance = SETTINGS.grassSpreadBase * (state.rainEnabled ? SETTINGS.rainMultiplier : 1);
+      for (let y = 0; y < GRID_SIZE; y += 1) {
+        for (let x = 0; x < GRID_SIZE; x += 1) {
+          const idx = indexFor(x, y);
+          if (state.grass[idx] === 1) {
+            continue;
+          }
+          let grassNeighbors = 0;
+          for (const [dx, dy] of NEIGHBOR_OFFSETS) {
+            const nx = x + dx;
+            const ny = y + dy;
+            if (inBounds(nx, ny) && state.grass[indexFor(nx, ny)] === 1) {
+              grassNeighbors += 1;
+            }
+          }
+          if (grassNeighbors > 0 && Math.random() < spreadChance * grassNeighbors) {
+            nextGrass[idx] = 1;
+          }
+        }
+      }
+    }
+
+    function tick() {
+      const nextGrass = state.grass.slice();
+      const nextCreatureGrid = createEmptyCreatureGrid();
+      const nextCreatures = [];
+      const consumed = new Uint8Array(state.creatures.length);
+
+      updateGrass(nextGrass);
+
+      for (let i = 0; i < state.creatures.length; i += 1) {
+        const creature = state.creatures[i];
+        if (!creature || consumed[i]) {
+          continue;
+        }
+
+        let energy = creature.energy - (creature.type === HERBIVORE ? SETTINGS.herbivoreMoveCost : SETTINGS.predatorMoveCost);
+        if (energy <= 0) {
+          continue;
+        }
+
+        const target = chooseTarget(creature, state.creatureGrid, state.grass, consumed);
+        let nextX = target.x;
+        let nextY = target.y;
+        let nextIndex = target.idx;
+
+        if (creature.type === HERBIVORE) {
+          if (state.grass[nextIndex] === 1 || nextGrass[nextIndex] === 1) {
+            nextGrass[nextIndex] = 0;
+            energy += SETTINGS.herbivoreEatGain;
+          }
+        } else {
+          const preyIndex = target.preyIndex;
+          if (preyIndex !== undefined && !consumed[preyIndex]) {
+            consumed[preyIndex] = 1;
+            energy += SETTINGS.predatorEatGain;
+          }
+        }
+
+        if (nextCreatureGrid[nextIndex] !== -1) {
+          nextX = creature.x;
+          nextY = creature.y;
+          nextIndex = indexFor(nextX, nextY);
+          if (nextCreatureGrid[nextIndex] !== -1) {
+            continue;
+          }
+        }
+
+        const moved = { type: creature.type, x: nextX, y: nextY, energy };
+        if (!placeCreature(nextCreatures, nextCreatureGrid, moved)) {
+          continue;
+        }
+
+        const reproduceThreshold = creature.type === HERBIVORE ? SETTINGS.herbivoreReproduceEnergy : SETTINGS.predatorReproduceEnergy;
+        const birthEnergy = creature.type === HERBIVORE ? SETTINGS.herbivoreBirthEnergy : SETTINGS.predatorBirthEnergy;
+        if (moved.energy >= reproduceThreshold) {
+          const birthCell = findBirthCell(moved.x, moved.y, nextCreatureGrid);
+          if (birthCell) {
+            moved.energy -= birthEnergy;
+            placeCreature(nextCreatures, nextCreatureGrid, {
+              type: creature.type,
+              x: birthCell.x,
+              y: birthCell.y,
+              energy: birthEnergy
+            });
+          }
+        }
+      }
+
+      state.grass = nextGrass;
+      state.creatures = nextCreatures;
+      state.creatureGrid = nextCreatureGrid;
+      recordHistory();
+      render();
+    }
+
+    function recordHistory() {
+      let grassCount = 0;
+      for (let i = 0; i < state.grass.length; i += 1) {
+        grassCount += state.grass[i];
+      }
+      let herbivoreCount = 0;
+      let predatorCount = 0;
+      for (const creature of state.creatures) {
+        if (creature.type === HERBIVORE) {
+          herbivoreCount += 1;
+        } else if (creature.type === PREDATOR) {
+          predatorCount += 1;
+        }
+      }
+      state.history.push({ grass: grassCount, herbivore: herbivoreCount, predator: predatorCount });
+      if (state.history.length > 240) {
+        state.history.shift();
+      }
+    }
+
+    function updateCounts() {
+      let grassCount = 0;
+      for (let i = 0; i < state.grass.length; i += 1) {
+        grassCount += state.grass[i];
+      }
+      let herbivoreCount = 0;
+      let predatorCount = 0;
+      for (const creature of state.creatures) {
+        if (creature.type === HERBIVORE) {
+          herbivoreCount += 1;
+        } else if (creature.type === PREDATOR) {
+          predatorCount += 1;
+        }
+      }
+      grassCountLabel.textContent = String(grassCount);
+      herbivoreCountLabel.textContent = String(herbivoreCount);
+      predatorCountLabel.textContent = String(predatorCount);
+      tickMsLabel.textContent = `${state.tickMs} ms`;
+      tickRateLabel.textContent = `${(1000 / state.tickMs).toFixed(1)} tps`;
+      weatherLabel.textContent = `Weather: ${state.rainEnabled ? "Rain" : "Clear"}`;
+    }
+
+    function drawWorld() {
+      worldCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--empty").trim();
+      worldCtx.fillRect(0, 0, worldCanvas.width, worldCanvas.height);
+
+      for (let y = 0; y < GRID_SIZE; y += 1) {
+        for (let x = 0; x < GRID_SIZE; x += 1) {
+          const idx = indexFor(x, y);
+          const px = x * CELL_SIZE;
+          const py = y * CELL_SIZE;
+          if (state.grass[idx] === 1) {
+            worldCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--grass").trim();
+            worldCtx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
+          } else {
+            worldCtx.fillStyle = "#1a241b";
+            worldCtx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
+          }
+        }
+      }
+
+      for (const creature of state.creatures) {
+        worldCtx.fillStyle = creature.type === HERBIVORE
+          ? getComputedStyle(document.documentElement).getPropertyValue("--herbivore").trim()
+          : getComputedStyle(document.documentElement).getPropertyValue("--predator").trim();
+        worldCtx.fillRect(creature.x * CELL_SIZE, creature.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+      }
+    }
+
+    function drawSeries(seriesKey, color, maxValue) {
+      if (state.history.length < 2) {
+        return;
+      }
+      const width = chartCanvas.width;
+      const height = chartCanvas.height;
+      chartCtx.strokeStyle = color;
+      chartCtx.lineWidth = 2;
+      chartCtx.beginPath();
+      state.history.forEach((entry, index) => {
+        const x = 20 + (index / Math.max(state.history.length - 1, 1)) * (width - 30);
+        const y = height - 18 - ((entry[seriesKey] || 0) / Math.max(maxValue, 1)) * (height - 34);
+        if (index === 0) {
+          chartCtx.moveTo(x, y);
+        } else {
+          chartCtx.lineTo(x, y);
+        }
+      });
+      chartCtx.stroke();
+    }
+
+    function drawChart() {
+      const width = chartCanvas.width;
+      const height = chartCanvas.height;
+      chartCtx.fillStyle = "#f2e9d1";
+      chartCtx.fillRect(0, 0, width, height);
+
+      chartCtx.strokeStyle = "rgba(73, 54, 31, 0.18)";
+      chartCtx.lineWidth = 1;
+      for (let i = 0; i < 4; i += 1) {
+        const y = 14 + ((height - 30) / 3) * i;
+        chartCtx.beginPath();
+        chartCtx.moveTo(20, y);
+        chartCtx.lineTo(width - 10, y);
+        chartCtx.stroke();
+      }
+
+      const maxValue = state.history.reduce((max, entry) => {
+        return Math.max(max, entry.grass, entry.herbivore, entry.predator);
+      }, 1);
+
+      drawSeries("grass", "#5ca246", maxValue);
+      drawSeries("herbivore", "#c59d34", maxValue);
+      drawSeries("predator", "#ba5649", maxValue);
+
+      chartCtx.fillStyle = "#4b3a25";
+      chartCtx.font = "12px Trebuchet MS";
+      chartCtx.fillText("Grass", 22, 16);
+      chartCtx.fillText("Herbivores", 80, 16);
+      chartCtx.fillText("Predators", 172, 16);
+    }
+
+    function render() {
+      updateCounts();
+      drawWorld();
+      drawChart();
+    }
+
+    function frame(now) {
+      if (state.lastFrameTime === 0) {
+        state.lastFrameTime = now;
+      }
+      const delta = now - state.lastFrameTime;
+      state.lastFrameTime = now;
+      state.accumulator += delta;
+
+      while (state.accumulator >= state.tickMs) {
+        tick();
+        state.accumulator -= state.tickMs;
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    tickSpeedInput.addEventListener("input", () => {
+      state.tickMs = Number(tickSpeedInput.value);
+      updateCounts();
+    });
+
+    rainToggleButton.addEventListener("click", () => {
+      state.rainEnabled = !state.rainEnabled;
+      rainToggleButton.dataset.active = String(state.rainEnabled);
+      rainToggleButton.textContent = state.rainEnabled ? "Disable Rain" : "Enable Rain";
+      updateCounts();
+    });
+
+    resetButton.addEventListener("click", () => {
+      seedWorld();
+    });
+
+    worldCanvas.addEventListener("mousedown", (event) => {
+      state.mouseDown = true;
+      applyTool(event.clientX, event.clientY);
+    });
+
+    window.addEventListener("mouseup", () => {
+      state.mouseDown = false;
+    });
+
+    worldCanvas.addEventListener("mousemove", (event) => {
+      if (state.mouseDown && getSelectedTool() === "grass") {
+        applyTool(event.clientX, event.clientY);
+      }
+    });
+
+    worldCanvas.addEventListener("touchstart", (event) => {
+      const touch = event.touches[0];
+      if (!touch) {
+        return;
+      }
+      state.mouseDown = true;
+      applyTool(touch.clientX, touch.clientY);
+      event.preventDefault();
+    }, { passive: false });
+
+    worldCanvas.addEventListener("touchmove", (event) => {
+      if (!state.mouseDown || getSelectedTool() !== "grass") {
+        return;
+      }
+      const touch = event.touches[0];
+      if (!touch) {
+        return;
+      }
+      applyTool(touch.clientX, touch.clientY);
+      event.preventDefault();
+    }, { passive: false });
+
+    window.addEventListener("touchend", () => {
+      state.mouseDown = false;
+    });
+
+    seedWorld();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
