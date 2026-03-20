@@ -221,6 +221,17 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `soundscape-garden/index.html` 即可运行。左键种植，右键移除花朵。
 
+## Idle Ecosystem
+
+新增 `idle-ecosystem/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的生态主题 idle game，包含：
+
+- 自动累积的 sunlight / soil 基础资源，以及基于时间戳补算的离线进度
+- plants、herbivores、predators 三层食物网，使用简化离散种群方程持续演化
+- 可视化的动植物 emoji 精灵带，以及会永久提升全局倍率的 prestige reset
+- 使用 `localStorage` 持久化保存生态状态
+
+直接用浏览器打开 `idle-ecosystem/index.html` 即可运行。
+
 ## Beat Grid
 
 新增 `beat-grid/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的节奏点击街机游戏，包含：

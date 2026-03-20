@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Idle Ecosystem</title>
+  <style>
+    :root {
+      --bg: #f3efe0;
+      --bg-deep: #d9e7c5;
+      --panel: rgba(250, 248, 239, 0.82);
+      --panel-border: rgba(69, 90, 44, 0.18);
+      --text: #27311f;
+      --muted: #58644a;
+      --accent: #2f8f53;
+      --accent-2: #a5c85f;
+      --accent-3: #d9853b;
+      --danger: #9d4a3f;
+      --shadow: rgba(37, 42, 24, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 24px;
+      font-family: Georgia, "Trebuchet MS", serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 244, 195, 0.85), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(120, 173, 89, 0.28), transparent 28%),
+        linear-gradient(180deg, var(--bg), var(--bg-deep));
+    }
+
+    .app {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(320px, 420px);
+      gap: 22px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 26px;
+      box-shadow: 0 18px 48px var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .hero {
+      padding: 28px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(120deg, rgba(255, 255, 255, 0.4), transparent 35%),
+        linear-gradient(90deg, rgba(54, 72, 28, 0.05) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(54, 72, 28, 0.05) 1px, transparent 1px);
+      background-size: auto, 24px 24px, 24px 24px;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      font-size: clamp(3rem, 7vw, 5.2rem);
+      line-height: 0.9;
+      letter-spacing: -0.06em;
+      max-width: 6ch;
+    }
+
+    .lede {
+      margin-top: 14px;
+      max-width: 56ch;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+    .top-stats {
+      margin-top: 22px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .stat {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.5);
+      border: 1px solid rgba(69, 90, 44, 0.12);
+    }
+
+    .stat-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .stat-value {
+      margin-top: 8px;
+      font-size: 1.45rem;
+      font-weight: 700;
+    }
+
+    .ecosystem-stage {
+      position: relative;
+      z-index: 1;
+      margin-top: 24px;
+      padding: 20px;
+      border-radius: 24px;
+      background:
+        linear-gradient(180deg, rgba(171, 218, 255, 0.8), rgba(228, 242, 198, 0.92) 48%, rgba(133, 109, 74, 0.92) 48%, rgba(107, 85, 52, 0.95));
+      min-height: 440px;
+      overflow: hidden;
+      border: 1px solid rgba(69, 90, 44, 0.12);
+    }
+
+    .ecosystem-stage::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 18% 18%, rgba(255, 248, 199, 0.85), transparent 9%),
+        radial-gradient(circle at 72% 20%, rgba(255, 255, 255, 0.52), transparent 18%),
+        radial-gradient(circle at 80% 26%, rgba(255, 255, 255, 0.45), transparent 13%);
+      opacity: 0.95;
+    }
+
+    .stripe {
+      position: absolute;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: end;
+      gap: 8px;
+      padding-inline: 14px;
+      overflow: hidden;
+    }
+
+    .stripe.plants {
+      bottom: 124px;
+      min-height: 102px;
+    }
+
+    .stripe.herbivores {
+      bottom: 92px;
+      min-height: 78px;
+    }
+
+    .stripe.predators {
+      bottom: 58px;
+      min-height: 72px;
+    }
+
+    .sprite {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transform-origin: center bottom;
+      animation: bob 2.8s ease-in-out infinite;
+      filter: drop-shadow(0 8px 8px rgba(0, 0, 0, 0.16));
+      will-change: transform;
+    }
+
+    .sprite.plant {
+      font-size: 2.2rem;
+    }
+
+    .sprite.herbivore {
+      font-size: 1.9rem;
+    }
+
+    .sprite.predator {
+      font-size: 2rem;
+    }
+
+    .status-banner {
+      position: absolute;
+      inset: auto 16px 16px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(250, 248, 239, 0.86);
+      border: 1px solid rgba(69, 90, 44, 0.14);
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.45;
+    }
+
+    .side {
+      padding: 20px;
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+
+    .section {
+      padding: 18px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.45);
+      border: 1px solid rgba(69, 90, 44, 0.12);
+    }
+
+    .section h2 {
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .section-copy {
+      margin-top: 8px;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 0.95rem;
+    }
+
+    .resource-grid,
+    .species-grid {
+      margin-top: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .resource-row,
+    .species-card,
+    .upgrade-row {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.58);
+      border: 1px solid rgba(69, 90, 44, 0.1);
+    }
+
+    .resource-row,
+    .upgrade-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .resource-meta,
+    .upgrade-meta {
+      min-width: 0;
+    }
+
+    .resource-name,
+    .species-name,
+    .upgrade-name {
+      font-weight: 700;
+    }
+
+    .resource-sub,
+    .species-sub,
+    .upgrade-sub {
+      margin-top: 4px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .resource-value,
+    .species-value {
+      font-size: 1.22rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .species-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .species-card {
+      display: grid;
+      gap: 12px;
+    }
+
+    .species-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .species-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .mini-stat {
+      padding: 10px;
+      border-radius: 14px;
+      background: rgba(47, 143, 83, 0.08);
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+
+    .mini-stat strong {
+      display: block;
+      color: var(--text);
+      font-size: 1rem;
+      margin-top: 4px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 11px 16px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      color: #f4f6ea;
+      background: linear-gradient(180deg, var(--accent), #276b44);
+      box-shadow: 0 10px 20px rgba(47, 143, 83, 0.24);
+      transition: transform 120ms ease, opacity 120ms ease, box-shadow 120ms ease;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 22px rgba(47, 143, 83, 0.28);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+      box-shadow: none;
+    }
+
+    .subtle {
+      background: linear-gradient(180deg, #cb8b4c, #9f5f31);
+      box-shadow: 0 10px 20px rgba(157, 74, 63, 0.2);
+    }
+
+    .ghost {
+      background: linear-gradient(180deg, #7b8f59, #55653b);
+      box-shadow: 0 10px 20px rgba(85, 101, 59, 0.16);
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+
+    .warning {
+      color: var(--danger);
+      font-weight: 700;
+    }
+
+    @keyframes bob {
+      0%, 100% {
+        transform: translateY(0) scale(1);
+      }
+      50% {
+        transform: translateY(-5px) scale(1.03);
+      }
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .top-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 14px;
+      }
+
+      .hero,
+      .side {
+        padding: 16px;
+      }
+
+      .species-stats {
+        grid-template-columns: 1fr;
+      }
+
+      .resource-row,
+      .upgrade-row,
+      .species-head {
+        flex-direction: column;
+        align-items: start;
+      }
+
+      .resource-value,
+      .species-value {
+        white-space: normal;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel hero">
+      <h1>Idle Ecosystem</h1>
+      <p class="lede">
+        Cultivate a tiny food web that keeps running while you are away. Build fertile plant beds, unlock grazers and predators,
+        then decide when to collapse the biome and return with a stronger long-term adaptation bonus.
+      </p>
+
+      <div class="top-stats">
+        <div class="stat">
+          <div class="stat-label">Biome Bonus</div>
+          <div class="stat-value" id="biome-bonus-stat">1.00x</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Prestige</div>
+          <div class="stat-value" id="prestige-stat">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Offline Gain</div>
+          <div class="stat-value" id="offline-stat">0s</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Stability</div>
+          <div class="stat-value" id="stability-stat">Settled</div>
+        </div>
+      </div>
+
+      <div class="ecosystem-stage" aria-label="ecosystem visuals">
+        <div class="stripe plants" id="plant-sprites"></div>
+        <div class="stripe herbivores" id="herbivore-sprites"></div>
+        <div class="stripe predators" id="predator-sprites"></div>
+        <div class="status-banner" id="status-banner"></div>
+      </div>
+    </section>
+
+    <aside class="panel side">
+      <section class="section">
+        <h2>Base Resources</h2>
+        <p class="section-copy">Sunlight and soil tick upward automatically. You can also nudge the system with manual boosts early on.</p>
+        <div class="resource-grid">
+          <div class="resource-row">
+            <div class="resource-meta">
+              <div class="resource-name">Sunlight</div>
+              <div class="resource-sub">Drives plant photosynthesis</div>
+            </div>
+            <div class="resource-value" id="sunlight-value">0</div>
+          </div>
+          <div class="resource-row">
+            <div class="resource-meta">
+              <div class="resource-name">Soil</div>
+              <div class="resource-sub">Feeds plant beds and recovers over time</div>
+            </div>
+            <div class="resource-value" id="soil-value">0</div>
+          </div>
+        </div>
+        <div class="resource-grid">
+          <div class="resource-row">
+            <div class="resource-meta">
+              <div class="resource-name">Manual boost</div>
+              <div class="resource-sub">Short-term kick for a weak biome</div>
+            </div>
+            <div>
+              <button id="gather-sunlight">Gather Light</button>
+              <button id="turn-soil" class="ghost">Turn Soil</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Food Web</h2>
+        <p class="section-copy">Each tier depends on the one below it. Oversupply of predators can collapse herbivores, which then starves the plants and crashes the entire ecosystem.</p>
+        <div class="species-grid">
+          <article class="species-card">
+            <div class="species-head">
+              <div>
+                <div class="species-name">Plants</div>
+                <div class="species-sub">Unlocked from the start. Convert sunlight and soil into biomass.</div>
+              </div>
+              <div class="species-value" id="plants-value">0</div>
+            </div>
+            <div class="species-stats">
+              <div class="mini-stat">Growth per second<strong id="plants-rate">0/s</strong></div>
+              <div class="mini-stat">Carrying capacity<strong id="plants-cap">0</strong></div>
+              <div class="mini-stat">Infrastructure<strong id="plant-beds-value">0 beds</strong></div>
+            </div>
+            <button id="seed-plants">Seed Plant Bed</button>
+          </article>
+
+          <article class="species-card">
+            <div class="species-head">
+              <div>
+                <div class="species-name">Herbivores</div>
+                <div class="species-sub">Unlock at 12 plants. Thrive only when enough plant biomass is available.</div>
+              </div>
+              <div class="species-value" id="herbivores-value">0</div>
+            </div>
+            <div class="species-stats">
+              <div class="mini-stat">Growth per second<strong id="herbivores-rate">0/s</strong></div>
+              <div class="mini-stat">Food pressure<strong id="herbivores-food">0%</strong></div>
+              <div class="mini-stat">Population boost<strong id="grazer-herds-value">0 herds</strong></div>
+            </div>
+            <button id="introduce-herbivores">Introduce Grazers</button>
+          </article>
+
+          <article class="species-card">
+            <div class="species-head">
+              <div>
+                <div class="species-name">Predators</div>
+                <div class="species-sub">Unlock at 8 herbivores. Keep herbivores in check, but starve quickly if prey thins out.</div>
+              </div>
+              <div class="species-value" id="predators-value">0</div>
+            </div>
+            <div class="species-stats">
+              <div class="mini-stat">Growth per second<strong id="predators-rate">0/s</strong></div>
+              <div class="mini-stat">Prey pressure<strong id="predators-food">0%</strong></div>
+              <div class="mini-stat">Population boost<strong id="predator-packs-value">0 packs</strong></div>
+            </div>
+            <button id="introduce-predators">Introduce Predators</button>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Adaptations</h2>
+        <p class="section-copy">Small upgrades stabilize growth before you decide to prestige and restart the biome.</p>
+        <div class="resource-grid" id="upgrade-list"></div>
+      </section>
+
+      <section class="section">
+        <h2>Biome Reset</h2>
+        <p class="section-copy">Prestige becomes available after reaching 90 plants, 35 herbivores, and 12 predators. The ecosystem resets, but future runs receive a permanent multiplier.</p>
+        <div class="resource-grid">
+          <div class="upgrade-row">
+            <div class="upgrade-meta">
+              <div class="upgrade-name">Prestige / Reset</div>
+              <div class="upgrade-sub" id="prestige-copy">Reach a mature food web to earn your first biome adaptation.</div>
+            </div>
+            <button id="prestige-button" class="subtle">Reset Ecosystem</button>
+          </div>
+        </div>
+        <p class="footer-note" id="save-status">Autosaving locally with localStorage.</p>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "idle-ecosystem-save";
+    const TICK_SECONDS = 0.25;
+    const MAX_OFFLINE_SECONDS = 8 * 60 * 60;
+
+    const upgradeDefinitions = [
+      {
+        key: "sunCanopy",
+        name: "Solar Canopy",
+        description: "More passive sunlight and stronger plant growth.",
+        cost: { sunlight: 28, soil: 18 },
+      },
+      {
+        key: "compost",
+        name: "Rich Compost",
+        description: "More passive soil recovery and better plant support.",
+        cost: { sunlight: 18, soil: 28 },
+      },
+      {
+        key: "roots",
+        name: "Root Lattice",
+        description: "Raises plant carrying capacity and reduces collapse risk.",
+        cost: { plants: 26 },
+      },
+      {
+        key: "migration",
+        name: "Migration Trails",
+        description: "Improves herbivore births when plant food is abundant.",
+        cost: { plants: 34, herbivores: 6 },
+      },
+      {
+        key: "ambush",
+        name: "Den Instinct",
+        description: "Makes predator hunting more efficient.",
+        cost: { herbivores: 12, predators: 4 },
+      },
+    ];
+
+    function createDefaultState() {
+      return {
+        sunlight: 18,
+        soil: 18,
+        plants: 4,
+        herbivores: 0,
+        predators: 0,
+        plantBeds: 1,
+        grazerHerds: 0,
+        predatorPacks: 0,
+        herbivoreUnlocked: false,
+        predatorUnlocked: false,
+        prestigeCount: 0,
+        biomeBonus: 1,
+        offlineAppliedSeconds: 0,
+        lastTickSummary: null,
+        upgrades: {
+          sunCanopy: 0,
+          compost: 0,
+          roots: 0,
+          migration: 0,
+          ambush: 0,
+        },
+        lastTimestamp: Date.now(),
+      };
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function formatNumber(value) {
+      if (value >= 1000) {
+        return value.toFixed(0);
+      }
+      if (value >= 100) {
+        return value.toFixed(1);
+      }
+      return value.toFixed(2);
+    }
+
+    function formatRate(value) {
+      const prefix = value > 0.004 ? "+" : value < -0.004 ? "" : "";
+      return prefix + value.toFixed(2) + "/s";
+    }
+
+    function formatPercent(value) {
+      return Math.round(value * 100) + "%";
+    }
+
+    function costToText(cost) {
+      return Object.entries(cost).map(([key, value]) => value + " " + key).join(", ");
+    }
+
+    function computeBiomeBonus(prestigeCount) {
+      return 1 + prestigeCount * 0.12;
+    }
+
+    function loadGame() {
+      const fresh = createDefaultState();
+
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          return fresh;
+        }
+
+        const parsed = JSON.parse(raw);
+        const merged = {
+          ...fresh,
+          ...parsed,
+          upgrades: {
+            ...fresh.upgrades,
+            ...(parsed.upgrades || {}),
+          },
+        };
+
+        merged.biomeBonus = computeBiomeBonus(merged.prestigeCount || 0);
+        merged.lastTimestamp = Number.isFinite(merged.lastTimestamp) ? merged.lastTimestamp : Date.now();
+        return merged;
+      } catch (error) {
+        console.warn("Failed to load idle ecosystem save", error);
+        return fresh;
+      }
+    }
+
+    let state = loadGame();
+    let lastFrameTime = performance.now();
+    let lastAutoSave = performance.now();
+    let lastSaveLabel = "Autosaving locally with localStorage.";
+
+    function saveGame() {
+      state.lastTimestamp = Date.now();
+      state.biomeBonus = computeBiomeBonus(state.prestigeCount);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      lastSaveLabel = "Saved ecosystem state to localStorage at " + new Date(state.lastTimestamp).toLocaleTimeString();
+    }
+
+    function canAfford(cost) {
+      return Object.entries(cost).every(([key, value]) => (state[key] || 0) >= value);
+    }
+
+    function spend(cost) {
+      if (!canAfford(cost)) {
+        return false;
+      }
+
+      Object.entries(cost).forEach(([key, value]) => {
+        state[key] -= value;
+      });
+      return true;
+    }
+
+    function updateUnlocks() {
+      if (!state.herbivoreUnlocked && state.plants >= 12) {
+        state.herbivoreUnlocked = true;
+      }
+      if (!state.predatorUnlocked && state.herbivores >= 8) {
+        state.predatorUnlocked = true;
+      }
+    }
+
+    function computeTickSummary() {
+      const bonus = computeBiomeBonus(state.prestigeCount);
+      const plantCapacity = 18 + state.plantBeds * 18 + state.upgrades.roots * 16;
+      const plantSupport = clamp(0.35 + Math.min(1, state.sunlight / 70) * 0.35 + Math.min(1, state.soil / 70) * 0.3, 0.15, 1);
+      const herbivoreFoodRatio = state.plants / Math.max(1, state.herbivores * 5);
+      const predatorFoodRatio = state.herbivores / Math.max(1, state.predators * 3.5);
+
+      const sunlightRate = (0.9 + state.upgrades.sunCanopy * 0.32 + state.plants * 0.012) * bonus;
+      const soilRate = (0.62 + state.upgrades.compost * 0.24 + state.herbivores * 0.018) * bonus;
+      const plantBirthRate = (0.95 + state.plantBeds * 0.46 + state.upgrades.roots * 0.18) * plantSupport * bonus;
+      const plantDecayRate = state.plants * 0.04 + Math.max(0, state.plants - plantCapacity) * 0.28 + state.herbivores * (0.28 + state.upgrades.migration * 0.02);
+
+      const herbivoreBirthRate = state.herbivores <= 0
+        ? 0
+        : state.herbivores * 0.17 * clamp(herbivoreFoodRatio, 0, 1.6) * (1 + state.upgrades.migration * 0.1) * bonus;
+      const herbivoreLossRate = state.herbivores * (0.08 + Math.max(0, 0.85 - herbivoreFoodRatio) * 0.3)
+        + state.predators * (0.15 + state.upgrades.ambush * 0.03);
+
+      const predatorBirthRate = state.predators <= 0
+        ? 0
+        : state.predators * 0.15 * clamp(predatorFoodRatio, 0, 1.5) * (1 + state.upgrades.ambush * 0.12) * bonus;
+      const predatorLossRate = state.predators * (0.12 + Math.max(0, 0.9 - predatorFoodRatio) * 0.34);
+
+      const plantsDeltaRate = plantBirthRate - plantDecayRate;
+      const herbivoreDeltaRate = herbivoreBirthRate - herbivoreLossRate;
+      const predatorDeltaRate = predatorBirthRate - predatorLossRate;
+
+      return {
+        bonus,
+        plantCapacity,
+        herbivoreFoodRatio,
+        predatorFoodRatio,
+        sunlightRate,
+        soilRate,
+        plantsDeltaRate,
+        herbivoreDeltaRate,
+        predatorDeltaRate,
+      };
+    }
+
+    function stepSimulation(seconds) {
+      updateUnlocks();
+      const summary = computeTickSummary();
+
+      state.sunlight += summary.sunlightRate * seconds;
+      state.soil += summary.soilRate * seconds;
+
+      const nextPlants = clamp(state.plants + summary.plantsDeltaRate * seconds, 0, summary.plantCapacity + 14);
+      const plantGrowthSpent = Math.max(0, nextPlants - state.plants);
+      state.sunlight = Math.max(0, state.sunlight - plantGrowthSpent * 0.28);
+      state.soil = Math.max(0, state.soil - plantGrowthSpent * 0.22);
+      state.plants = nextPlants;
+
+      state.herbivores = clamp(state.herbivores + summary.herbivoreDeltaRate * seconds, 0, 999);
+      state.predators = clamp(state.predators + summary.predatorDeltaRate * seconds, 0, 999);
+
+      updateUnlocks();
+      state.lastTickSummary = summary;
+    }
+
+    function simulateSeconds(totalSeconds) {
+      let remaining = totalSeconds;
+      while (remaining > 0) {
+        const slice = Math.min(TICK_SECONDS, remaining);
+        stepSimulation(slice);
+        remaining -= slice;
+      }
+    }
+
+    function getUpgradeCost(definition) {
+      const level = state.upgrades[definition.key] || 0;
+      const multiplier = Math.pow(1.65, level);
+      const scaled = {};
+
+      Object.entries(definition.cost).forEach(([key, value]) => {
+        scaled[key] = Math.ceil(value * multiplier);
+      });
+
+      return scaled;
+    }
+
+    function describeBalance() {
+      if (state.predators > state.herbivores * 0.9 && state.predators > 3) {
+        return "Predator pressure is high. Herbivores are being harvested faster than they can recover.";
+      }
+      if (state.herbivores > state.plants * 0.65 && state.herbivores > 6) {
+        return "Grazers are stripping the canopy. Plant biomass is falling under herd demand.";
+      }
+      if (state.plants < 8) {
+        return "The ecosystem is fragile. Seed more plant beds before adding higher tiers.";
+      }
+      if (state.predators > 0 && state.herbivores > 0 && state.plants > 0) {
+        return "The full food web is active. Watch for oscillations before triggering prestige.";
+      }
+      return "The biome is settling into a stable loop. Keep building the base layer.";
+    }
+
+    function getStabilityLabel() {
+      if (state.predators > state.herbivores * 0.9 && state.predators > 3) {
+        return "Crash Risk";
+      }
+      if (state.herbivores > state.plants * 0.65 && state.herbivores > 6) {
+        return "Overgrazed";
+      }
+      if (state.plants > 0 && state.herbivores > 0 && state.predators > 0) {
+        return "Dynamic";
+      }
+      return "Settled";
+    }
+
+    function renderSprites(element, icon, count, className) {
+      const spriteCount = Math.max(1, Math.min(14, count));
+      let html = "";
+      for (let index = 0; index < spriteCount; index += 1) {
+        const delay = (index % 7) * 0.24;
+        const opacity = 0.62 + (index % 5) * 0.08;
+        html += '<span class="sprite ' + className + '" style="animation-delay:-' + delay + 's;opacity:' + opacity + '">' + icon + "</span>";
+      }
+      element.innerHTML = html;
+    }
+
+    function prestigeReady() {
+      return state.plants >= 90 && state.herbivores >= 35 && state.predators >= 12;
+    }
+
+    function render() {
+      const summary = state.lastTickSummary || computeTickSummary();
+
+      document.getElementById("sunlight-value").textContent = formatNumber(state.sunlight);
+      document.getElementById("soil-value").textContent = formatNumber(state.soil);
+      document.getElementById("plants-value").textContent = formatNumber(state.plants);
+      document.getElementById("herbivores-value").textContent = formatNumber(state.herbivores);
+      document.getElementById("predators-value").textContent = formatNumber(state.predators);
+      document.getElementById("plants-rate").textContent = formatRate(summary.plantsDeltaRate);
+      document.getElementById("herbivores-rate").textContent = formatRate(summary.herbivoreDeltaRate);
+      document.getElementById("predators-rate").textContent = formatRate(summary.predatorDeltaRate);
+      document.getElementById("plants-cap").textContent = formatNumber(summary.plantCapacity);
+      document.getElementById("plant-beds-value").textContent = state.plantBeds + " beds";
+      document.getElementById("grazer-herds-value").textContent = state.grazerHerds + " herds";
+      document.getElementById("predator-packs-value").textContent = state.predatorPacks + " packs";
+      document.getElementById("herbivores-food").textContent = formatPercent(clamp(summary.herbivoreFoodRatio / 1.2, 0, 1.5));
+      document.getElementById("predators-food").textContent = formatPercent(clamp(summary.predatorFoodRatio / 1.2, 0, 1.5));
+      document.getElementById("biome-bonus-stat").textContent = summary.bonus.toFixed(2) + "x";
+      document.getElementById("prestige-stat").textContent = String(state.prestigeCount);
+      document.getElementById("offline-stat").textContent = Math.round(state.offlineAppliedSeconds) + "s";
+      document.getElementById("stability-stat").textContent = getStabilityLabel();
+      document.getElementById("status-banner").textContent = describeBalance();
+      document.getElementById("save-status").textContent = lastSaveLabel;
+
+      const prestigeMessage = prestigeReady()
+        ? "Prestige ready. Reset now for +" + (computeBiomeBonus(state.prestigeCount + 1) - computeBiomeBonus(state.prestigeCount)).toFixed(2) + "x more global growth."
+        : "Need 90 plants, 35 herbivores, and 12 predators. Current: " + Math.floor(state.plants) + " / " + Math.floor(state.herbivores) + " / " + Math.floor(state.predators) + ".";
+      document.getElementById("prestige-copy").textContent = prestigeMessage;
+
+      renderSprites(document.getElementById("plant-sprites"), "🌿", Math.ceil(state.plants / 6), "plant");
+      renderSprites(document.getElementById("herbivore-sprites"), "🐇", Math.ceil(state.herbivores / 2), "herbivore");
+      renderSprites(document.getElementById("predator-sprites"), "🦊", Math.ceil(state.predators / 1.5), "predator");
+
+      const seedPlantCost = { sunlight: Math.ceil(14 + state.plantBeds * 9), soil: Math.ceil(12 + state.plantBeds * 7) };
+      const herbivoreCost = { plants: Math.ceil(18 + state.grazerHerds * 10) };
+      const predatorCost = { herbivores: Math.ceil(10 + state.predatorPacks * 6) };
+
+      const seedButton = document.getElementById("seed-plants");
+      seedButton.textContent = "Seed Plant Bed (" + costToText(seedPlantCost) + ")";
+      seedButton.disabled = !canAfford(seedPlantCost);
+
+      const herbivoreButton = document.getElementById("introduce-herbivores");
+      herbivoreButton.textContent = state.herbivoreUnlocked
+        ? "Introduce Grazers (" + costToText(herbivoreCost) + ")"
+        : "Introduce Grazers (unlock at 12 plants)";
+      herbivoreButton.disabled = !state.herbivoreUnlocked || !canAfford(herbivoreCost);
+
+      const predatorButton = document.getElementById("introduce-predators");
+      predatorButton.textContent = state.predatorUnlocked
+        ? "Introduce Predators (" + costToText(predatorCost) + ")"
+        : "Introduce Predators (unlock at 8 herbivores)";
+      predatorButton.disabled = !state.predatorUnlocked || !canAfford(predatorCost);
+
+      document.getElementById("prestige-button").disabled = !prestigeReady();
+
+      const upgrades = document.getElementById("upgrade-list");
+      upgrades.innerHTML = upgradeDefinitions.map((definition) => {
+        const level = state.upgrades[definition.key] || 0;
+        const cost = getUpgradeCost(definition);
+        const disabled = canAfford(cost) ? "" : "disabled";
+        return (
+          '<div class="upgrade-row">' +
+            '<div class="upgrade-meta">' +
+              '<div class="upgrade-name">' + definition.name + " Lv." + level + "</div>" +
+              '<div class="upgrade-sub">' + definition.description + " Cost: " + costToText(cost) + "</div>" +
+            "</div>" +
+            '<button data-upgrade="' + definition.key + '" ' + disabled + '>Adapt</button>' +
+          "</div>"
+        );
+      }).join("");
+
+      upgrades.querySelectorAll("button[data-upgrade]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const definition = upgradeDefinitions.find((item) => item.key === button.dataset.upgrade);
+          const cost = getUpgradeCost(definition);
+          if (!spend(cost)) {
+            return;
+          }
+          state.upgrades[definition.key] += 1;
+          render();
+        });
+      });
+    }
+
+    function applyOfflineProgress() {
+      const now = Date.now();
+      const elapsedSeconds = clamp((now - state.lastTimestamp) / 1000, 0, MAX_OFFLINE_SECONDS);
+      if (elapsedSeconds > 0.25) {
+        simulateSeconds(elapsedSeconds);
+      }
+      state.offlineAppliedSeconds = elapsedSeconds;
+      state.lastTimestamp = now;
+    }
+
+    document.getElementById("gather-sunlight").addEventListener("click", () => {
+      state.sunlight += 10 * computeBiomeBonus(state.prestigeCount);
+      render();
+    });
+
+    document.getElementById("turn-soil").addEventListener("click", () => {
+      state.soil += 8 * computeBiomeBonus(state.prestigeCount);
+      render();
+    });
+
+    document.getElementById("seed-plants").addEventListener("click", () => {
+      const cost = { sunlight: Math.ceil(14 + state.plantBeds * 9), soil: Math.ceil(12 + state.plantBeds * 7) };
+      if (!spend(cost)) {
+        return;
+      }
+      state.plantBeds += 1;
+      state.plants += 4;
+      render();
+    });
+
+    document.getElementById("introduce-herbivores").addEventListener("click", () => {
+      const cost = { plants: Math.ceil(18 + state.grazerHerds * 10) };
+      if (!state.herbivoreUnlocked || !spend(cost)) {
+        return;
+      }
+      state.grazerHerds += 1;
+      state.herbivores += 3;
+      render();
+    });
+
+    document.getElementById("introduce-predators").addEventListener("click", () => {
+      const cost = { herbivores: Math.ceil(10 + state.predatorPacks * 6) };
+      if (!state.predatorUnlocked || !spend(cost)) {
+        return;
+      }
+      state.predatorPacks += 1;
+      state.predators += 2;
+      render();
+    });
+
+    document.getElementById("prestige-button").addEventListener("click", () => {
+      if (!prestigeReady()) {
+        return;
+      }
+
+      const nextPrestige = state.prestigeCount + 1;
+      state = createDefaultState();
+      state.prestigeCount = nextPrestige;
+      state.biomeBonus = computeBiomeBonus(nextPrestige);
+      state.lastTimestamp = Date.now();
+      state.offlineAppliedSeconds = 0;
+      lastSaveLabel = "Biome reset complete. New permanent multiplier: " + state.biomeBonus.toFixed(2) + "x.";
+      saveGame();
+      render();
+    });
+
+    function frame(now) {
+      const deltaSeconds = clamp((now - lastFrameTime) / 1000, 0, 5);
+      lastFrameTime = now;
+      simulateSeconds(deltaSeconds);
+      render();
+
+      if (now - lastAutoSave > 5000) {
+        saveGame();
+        lastAutoSave = now;
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    window.addEventListener("beforeunload", saveGame);
+
+    applyOfflineProgress();
+    render();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
