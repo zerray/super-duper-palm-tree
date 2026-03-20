@@ -3,27 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hex Territory Capture</title>
+  <title>Hex Territory Strategy</title>
   <style>
     :root {
-      --bg-top: #e8efe1;
-      --bg-bottom: #c8d8bb;
-      --panel: rgba(250, 252, 246, 0.88);
-      --panel-strong: rgba(255, 255, 252, 0.92);
-      --border: rgba(53, 72, 44, 0.14);
-      --text: #223121;
-      --muted: #5d6c58;
-      --player: #3f7be0;
-      --player-soft: #d8e4fb;
-      --ai: #d95454;
-      --ai-soft: #f8dddd;
-      --neutral: #e8ecde;
-      --neutral-edge: #a9b69b;
-      --hover-free: #f4d35e;
-      --hover-jump: #f29d52;
-      --button: #355d3f;
-      --button-strong: #24432d;
-      --warn: #8f4b18;
+      --bg: #f3efe4;
+      --panel: rgba(255, 251, 243, 0.92);
+      --panel-border: rgba(73, 57, 39, 0.16);
+      --ink: #35271b;
+      --muted: #6e5e50;
+      --player: #2c7be5;
+      --player-soft: #d9e9ff;
+      --ai: #d65c4f;
+      --ai-soft: #ffdcd7;
+      --empty: #efe4cb;
+      --empty-edge: #bca98a;
+      --highlight: #f3c969;
+      --button: #4d7a49;
+      --button-dark: #395f36;
     }
 
     * {
@@ -33,32 +29,33 @@
     body {
       margin: 0;
       min-height: 100vh;
-      padding: 20px;
+      padding: 24px;
       font-family: "Trebuchet MS", "Segoe UI", sans-serif;
-      color: var(--text);
+      color: var(--ink);
       background:
-        radial-gradient(circle at top, rgba(255, 255, 255, 0.72), transparent 30%),
-        linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.75), transparent 30%),
+        linear-gradient(180deg, #f8f3ea 0%, var(--bg) 100%);
     }
 
     button {
       font: inherit;
+      cursor: pointer;
     }
 
     .app {
-      width: min(1180px, 100%);
+      width: min(1200px, 100%);
       margin: 0 auto;
       display: grid;
-      grid-template-columns: minmax(0, 1.5fr) minmax(280px, 360px);
+      grid-template-columns: minmax(0, 1.55fr) minmax(280px, 340px);
       gap: 20px;
     }
 
     .surface,
     .panel {
-      border-radius: 24px;
-      border: 1px solid var(--border);
       background: var(--panel);
-      box-shadow: 0 18px 44px rgba(45, 62, 37, 0.12);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      box-shadow: 0 18px 40px rgba(53, 39, 27, 0.1);
       backdrop-filter: blur(10px);
     }
 
@@ -67,9 +64,9 @@
     }
 
     .panel {
-      padding: 20px;
+      padding: 18px;
       display: grid;
-      gap: 16px;
+      gap: 14px;
       align-content: start;
     }
 
@@ -80,21 +77,21 @@
     }
 
     h1 {
-      font-size: clamp(2.3rem, 5vw, 4.1rem);
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      line-height: 0.95;
       letter-spacing: -0.05em;
-      line-height: 0.94;
       max-width: 10ch;
     }
 
     .lede {
       margin-top: 12px;
-      max-width: 62ch;
+      max-width: 60ch;
       line-height: 1.5;
       color: var(--muted);
     }
 
-    .status-row {
-      margin-top: 20px;
+    .stats {
+      margin-top: 18px;
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
@@ -103,14 +100,14 @@
     .chip {
       padding: 10px 14px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.74);
-      border: 1px solid rgba(63, 82, 54, 0.12);
+      border: 1px solid rgba(73, 57, 39, 0.12);
+      background: rgba(255, 255, 255, 0.7);
       color: var(--muted);
       font-size: 0.95rem;
     }
 
     .chip strong {
-      color: var(--text);
+      color: var(--ink);
     }
 
     .chip.player strong {
@@ -121,25 +118,25 @@
       color: var(--ai);
     }
 
-    .board-shell {
-      margin-top: 20px;
-      padding: 16px;
-      border-radius: 22px;
+    .board-wrap {
+      margin-top: 18px;
+      border-radius: 20px;
+      border: 1px solid rgba(73, 57, 39, 0.1);
       background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(239, 245, 232, 0.95)),
-        repeating-linear-gradient(135deg, rgba(63, 82, 54, 0.03) 0 16px, transparent 16px 32px);
-      border: 1px solid rgba(63, 82, 54, 0.12);
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.75), rgba(245, 236, 221, 0.92)),
+        repeating-linear-gradient(135deg, rgba(73, 57, 39, 0.025) 0 16px, transparent 16px 32px);
+      padding: 16px;
     }
 
     svg {
-      display: block;
       width: 100%;
       height: auto;
+      display: block;
     }
 
     .hex {
-      fill: var(--neutral);
-      stroke: var(--neutral-edge);
+      fill: var(--empty);
+      stroke: var(--empty-edge);
       stroke-width: 1.5;
       cursor: pointer;
       transition: fill 120ms ease, stroke 120ms ease, transform 120ms ease;
@@ -148,47 +145,44 @@
     .hex.player {
       fill: var(--player-soft);
       stroke: var(--player);
+      stroke-width: 2.4;
     }
 
     .hex.ai {
       fill: var(--ai-soft);
       stroke: var(--ai);
+      stroke-width: 2.4;
     }
 
-    .hex.hover-free {
-      fill: #f9e6a5;
-      stroke: var(--hover-free);
+    .hex.hover {
+      fill: #f8edbf;
+      stroke: var(--highlight);
       stroke-width: 3;
     }
 
-    .hex.hover-jump {
-      fill: #f8dcc0;
-      stroke: var(--hover-jump);
-      stroke-width: 3;
+    .hex.disabled {
+      cursor: default;
     }
 
-    .hex.invalid {
-      stroke: #b89d7a;
-      stroke-dasharray: 4 4;
-    }
-
-    .hex-label {
-      font-size: 12px;
-      font-weight: 700;
-      text-anchor: middle;
-      dominant-baseline: middle;
-      fill: rgba(34, 49, 33, 0.82);
+    .stone {
       pointer-events: none;
-      user-select: none;
+    }
+
+    .stone.player {
+      fill: var(--player);
+    }
+
+    .stone.ai {
+      fill: var(--ai);
     }
 
     .card {
       display: grid;
-      gap: 12px;
+      gap: 10px;
       padding: 14px;
       border-radius: 18px;
-      background: var(--panel-strong);
-      border: 1px solid rgba(63, 82, 54, 0.12);
+      border: 1px solid rgba(73, 57, 39, 0.1);
+      background: rgba(255, 255, 255, 0.72);
     }
 
     .card h2 {
@@ -205,7 +199,7 @@
       display: grid;
       gap: 8px;
       color: var(--muted);
-      font-size: 0.92rem;
+      font-size: 0.93rem;
     }
 
     .legend-item {
@@ -218,7 +212,7 @@
       width: 18px;
       height: 18px;
       border-radius: 999px;
-      border: 1px solid rgba(34, 49, 33, 0.2);
+      border: 1px solid rgba(53, 39, 27, 0.18);
     }
 
     .swatch.player {
@@ -231,487 +225,421 @@
       border-color: var(--ai);
     }
 
-    .swatch.jump {
-      background: #f8dcc0;
-      border-color: var(--hover-jump);
+    .swatch.empty {
+      background: var(--empty);
+      border-color: var(--empty-edge);
     }
 
-    .swatch.free {
-      background: #f9e6a5;
-      border-color: var(--hover-free);
-    }
-
-    button.control {
+    .control {
       min-height: 46px;
       border: 0;
       border-radius: 999px;
-      cursor: pointer;
-      color: #f7fbf4;
-      background: linear-gradient(180deg, var(--button), var(--button-strong));
-      box-shadow: 0 10px 18px rgba(36, 67, 45, 0.18);
+      color: #f7f5ee;
+      background: linear-gradient(180deg, var(--button), var(--button-dark));
+      box-shadow: 0 10px 16px rgba(57, 95, 54, 0.18);
     }
 
-    .callout {
-      color: var(--warn);
-      font-weight: 700;
-      min-height: 1.4em;
+    .status {
+      min-height: 3.2em;
+      color: var(--muted);
+      line-height: 1.45;
     }
 
     @media (max-width: 920px) {
+      body {
+        padding: 16px;
+      }
+
       .app {
         grid-template-columns: 1fr;
-      }
-    }
-
-    @media (max-width: 640px) {
-      body {
-        padding: 14px;
-      }
-
-      .surface,
-      .panel {
-        border-radius: 20px;
       }
     }
   </style>
 </head>
 <body>
-  <main class="app">
-    <section class="surface">
-      <h1>Hex Territory Capture</h1>
+  <div class="app">
+    <main class="surface">
+      <h1>Hex Territory Strategy</h1>
       <p class="lede">
-        Expand from your blue territory. Adjacent claims are free, but jumping to a distant hex spends one jump point.
-        When the board is full, the side with more territory wins.
+        Claim empty hexes, surround enemy clusters, and flip them to your color. You place blue stones,
+        the AI places red stones, and the fuller board decides the winner.
       </p>
-      <div class="status-row">
-        <div class="chip"><strong id="turn-indicator">Player turn</strong></div>
-        <div class="chip player">Player hexes: <strong id="player-count">1</strong></div>
-        <div class="chip ai">AI hexes: <strong id="ai-count">1</strong></div>
-        <div class="chip">Player jump points: <strong id="player-points">3</strong></div>
-        <div class="chip">AI jump points: <strong id="ai-points">3</strong></div>
+      <div class="stats">
+        <div class="chip">Turn: <strong id="turn-label">Player</strong></div>
+        <div class="chip player">Blue: <strong id="player-count">0</strong></div>
+        <div class="chip ai">Red: <strong id="ai-count">0</strong></div>
+        <div class="chip">Empty: <strong id="empty-count">127</strong></div>
       </div>
-      <div class="board-shell">
-        <svg id="board" aria-label="Hex territory board"></svg>
+      <div class="board-wrap">
+        <svg id="board" viewBox="0 0 900 820" aria-label="Hex territory board"></svg>
       </div>
-    </section>
+    </main>
 
     <aside class="panel">
-      <div class="card">
-        <h2>Turn Log</h2>
-        <p id="message" class="muted">Claim an unowned hex. Hover to preview whether the move is free or costs 1 point.</p>
-        <p id="callout" class="callout"></p>
-      </div>
-
-      <div class="card">
-        <h2>Controls</h2>
-        <button id="reset-button" class="control" type="button">Reset match</button>
-      </div>
-
-      <div class="card">
-        <h2>Legend</h2>
-        <div class="legend">
-          <div class="legend-item"><span class="swatch player"></span><span>Player territory</span></div>
-          <div class="legend-item"><span class="swatch ai"></span><span>AI territory</span></div>
-          <div class="legend-item"><span class="swatch free"></span><span>Free adjacent move</span></div>
-          <div class="legend-item"><span class="swatch jump"></span><span>Jump move costs 1 point</span></div>
-        </div>
-      </div>
-
-      <div class="card">
+      <section class="card">
         <h2>Rules</h2>
         <p class="muted">
-          The AI uses a greedy heuristic: it prefers the affordable move that touches the most of its own neighbors.
-          Ties favor free moves, then center control.
+          Click any empty hex on your turn. After each move, any adjacent enemy cluster with no path to an
+          empty hex is captured and changes color.
         </p>
-      </div>
+      </section>
+
+      <section class="card">
+        <h2>Legend</h2>
+        <div class="legend">
+          <div class="legend-item"><span class="swatch player"></span><span>Your territory</span></div>
+          <div class="legend-item"><span class="swatch ai"></span><span>AI territory</span></div>
+          <div class="legend-item"><span class="swatch empty"></span><span>Empty hex</span></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Status</h2>
+        <p class="status" id="status-text">Your turn. Pick any empty hex to start expanding.</p>
+      </section>
+
+      <button class="control" id="new-game" type="button">New Game</button>
     </aside>
-  </main>
+  </div>
 
   <script>
-    const CONFIG = {
-      cols: 7,
-      rows: 7,
-      hexSize: 34,
-      startJumpPoints: 3,
-      aiDelayMs: 380
-    };
-
-    const EVEN_ROW_NEIGHBORS = [
-      [1, 0], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1]
+    const BOARD_RADIUS = 6;
+    const HEX_SIZE = 34;
+    const CENTER_X = 450;
+    const CENTER_Y = 410;
+    const AI_DELAY_MS = 500;
+    const DIRECTIONS = [
+      [1, 0, -1],
+      [1, -1, 0],
+      [0, -1, 1],
+      [-1, 0, 1],
+      [-1, 1, 0],
+      [0, 1, -1]
     ];
-    const ODD_ROW_NEIGHBORS = [
-      [1, 0], [1, 1], [0, 1], [-1, 0], [0, -1], [1, -1]
-    ];
 
-    const board = document.getElementById("board");
-    const turnIndicator = document.getElementById("turn-indicator");
+    const boardEl = document.getElementById("board");
+    const turnLabelEl = document.getElementById("turn-label");
     const playerCountEl = document.getElementById("player-count");
     const aiCountEl = document.getElementById("ai-count");
-    const playerPointsEl = document.getElementById("player-points");
-    const aiPointsEl = document.getElementById("ai-points");
-    const messageEl = document.getElementById("message");
-    const calloutEl = document.getElementById("callout");
-    const resetButton = document.getElementById("reset-button");
+    const emptyCountEl = document.getElementById("empty-count");
+    const statusTextEl = document.getElementById("status-text");
+    const newGameButton = document.getElementById("new-game");
 
-    const state = {
-      owners: {},
-      turn: "player",
-      hoverKey: null,
-      gameOver: false,
-      playerJumpPoints: CONFIG.startJumpPoints,
-      aiJumpPoints: CONFIG.startJumpPoints
-    };
+    const cells = [];
+    const cellMap = new Map();
+    let state = new Map();
+    let currentTurn = "player";
+    let aiTimer = null;
+    let gameOver = false;
 
-    function keyFor(col, row) {
-      return `${col},${row}`;
+    function keyFor(q, r) {
+      return `${q},${r}`;
     }
 
-    function inBounds(col, row) {
-      return col >= 0 && col < CONFIG.cols && row >= 0 && row < CONFIG.rows;
+    function ownerName(owner) {
+      return owner === "player" ? "Player" : "AI";
     }
 
-    function getOwner(col, row) {
-      return state.owners[keyFor(col, row)] || null;
+    function otherOwner(owner) {
+      return owner === "player" ? "ai" : "player";
     }
 
-    function setOwner(col, row, owner) {
-      state.owners[keyFor(col, row)] = owner;
-    }
-
-    function getNeighbors(col, row) {
-      const offsets = row % 2 === 0 ? EVEN_ROW_NEIGHBORS : ODD_ROW_NEIGHBORS;
-      return offsets
-        .map(([dc, dr]) => ({ col: col + dc, row: row + dr }))
-        .filter((cell) => inBounds(cell.col, cell.row));
-    }
-
-    function countOwnedNeighbors(col, row, owner) {
-      return getNeighbors(col, row).filter((cell) => getOwner(cell.col, cell.row) === owner).length;
-    }
-
-    function getMoveCost(col, row, owner) {
-      if (getOwner(col, row) !== null) {
-        return null;
-      }
-
-      return countOwnedNeighbors(col, row, owner) > 0 ? 0 : 1;
-    }
-
-    function canAfford(owner, cost) {
-      if (cost === null) {
-        return false;
-      }
-
-      if (cost === 0) {
-        return true;
-      }
-
-      return owner === "player" ? state.playerJumpPoints > 0 : state.aiJumpPoints > 0;
-    }
-
-    function getCounts() {
-      let player = 0;
-      let ai = 0;
-      let unclaimed = 0;
-
-      for (let row = 0; row < CONFIG.rows; row += 1) {
-        for (let col = 0; col < CONFIG.cols; col += 1) {
-          const owner = getOwner(col, row);
-          if (owner === "player") {
-            player += 1;
-          } else if (owner === "ai") {
-            ai += 1;
-          } else {
-            unclaimed += 1;
-          }
+    function generateBoardCells() {
+      for (let q = -BOARD_RADIUS; q <= BOARD_RADIUS; q += 1) {
+        const rMin = Math.max(-BOARD_RADIUS, -q - BOARD_RADIUS);
+        const rMax = Math.min(BOARD_RADIUS, -q + BOARD_RADIUS);
+        for (let r = rMin; r <= rMax; r += 1) {
+          const s = -q - r;
+          cells.push({ q, r, s, key: keyFor(q, r) });
         }
       }
-
-      return { player, ai, unclaimed };
     }
 
-    function polygonPoints(cx, cy, size) {
+    function axialToPixel(q, r) {
+      const x = CENTER_X + HEX_SIZE * Math.sqrt(3) * (q + r / 2);
+      const y = CENTER_Y + HEX_SIZE * 1.5 * r;
+      return { x, y };
+    }
+
+    function hexagonPoints(cx, cy) {
       const points = [];
       for (let i = 0; i < 6; i += 1) {
-        const angle = ((60 * i) - 30) * Math.PI / 180;
-        points.push(`${cx + size * Math.cos(angle)},${cy + size * Math.sin(angle)}`);
+        const angle = (Math.PI / 180) * (60 * i - 30);
+        const x = cx + HEX_SIZE * Math.cos(angle);
+        const y = cy + HEX_SIZE * Math.sin(angle);
+        points.push(`${x.toFixed(2)},${y.toFixed(2)}`);
       }
       return points.join(" ");
     }
 
-    function hexCenter(col, row) {
-      const width = Math.sqrt(3) * CONFIG.hexSize;
-      const verticalStep = CONFIG.hexSize * 1.5;
-      const x = 26 + width / 2 + col * width + (row % 2) * (width / 2);
-      const y = 26 + CONFIG.hexSize + row * verticalStep;
-      return { x, y };
+    function neighborsOf(cell) {
+      return DIRECTIONS
+        .map(([dq, dr]) => cellMap.get(keyFor(cell.q + dq, cell.r + dr)))
+        .filter(Boolean);
     }
 
-    function getHoverClass(col, row) {
-      if (state.hoverKey !== keyFor(col, row) || state.turn !== "player" || state.gameOver) {
-        return "";
+    function countOwnedNeighbors(stateMap, cell, owner) {
+      return neighborsOf(cell).filter((neighbor) => stateMap.get(neighbor.key) === owner).length;
+    }
+
+    function findClusterAndLiberties(stateMap, startCell, owner) {
+      const visited = new Set([startCell.key]);
+      const queue = [startCell];
+      const cluster = [];
+      let touchesEmpty = false;
+
+      while (queue.length > 0) {
+        const cell = queue.pop();
+        cluster.push(cell);
+
+        for (const neighbor of neighborsOf(cell)) {
+          const neighborOwner = stateMap.get(neighbor.key);
+          if (neighborOwner === null) {
+            touchesEmpty = true;
+            continue;
+          }
+          if (neighborOwner !== owner || visited.has(neighbor.key)) {
+            continue;
+          }
+          visited.add(neighbor.key);
+          queue.push(neighbor);
+        }
       }
 
-      const cost = getMoveCost(col, row, "player");
-      if (cost === null) {
-        return "";
+      return { cluster, touchesEmpty };
+    }
+
+    function applyCaptures(stateMap, placedCell, owner) {
+      const opponent = otherOwner(owner);
+      const checked = new Set();
+      const capturedKeys = new Set();
+
+      for (const neighbor of neighborsOf(placedCell)) {
+        if (stateMap.get(neighbor.key) !== opponent || checked.has(neighbor.key)) {
+          continue;
+        }
+
+        const { cluster, touchesEmpty } = findClusterAndLiberties(stateMap, neighbor, opponent);
+        for (const member of cluster) {
+          checked.add(member.key);
+        }
+
+        if (!touchesEmpty) {
+          for (const member of cluster) {
+            stateMap.set(member.key, owner);
+            capturedKeys.add(member.key);
+          }
+        }
       }
 
-      if (!canAfford("player", cost)) {
-        return "invalid";
+      return capturedKeys;
+    }
+
+    function simulateMove(stateMap, cell, owner) {
+      if (stateMap.get(cell.key) !== null) {
+        return null;
+      }
+      const nextState = new Map(stateMap);
+      nextState.set(cell.key, owner);
+      const capturedKeys = applyCaptures(nextState, cell, owner);
+      return { nextState, capturedKeys };
+    }
+
+    function countTiles(stateMap) {
+      let player = 0;
+      let ai = 0;
+      let empty = 0;
+
+      for (const value of stateMap.values()) {
+        if (value === "player") {
+          player += 1;
+        } else if (value === "ai") {
+          ai += 1;
+        } else {
+          empty += 1;
+        }
       }
 
-      return cost === 0 ? "hover-free" : "hover-jump";
+      return { player, ai, empty };
+    }
+
+    function chooseAiMove() {
+      let bestMove = null;
+
+      for (const cell of cells) {
+        if (state.get(cell.key) !== null) {
+          continue;
+        }
+
+        const simulated = simulateMove(state, cell, "ai");
+        const captures = simulated.capturedKeys.size;
+        const adjacency = countOwnedNeighbors(simulated.nextState, cell, "ai");
+        const distance = Math.abs(cell.q) + Math.abs(cell.r) + Math.abs(cell.s);
+
+        if (
+          !bestMove ||
+          captures > bestMove.captures ||
+          (captures === bestMove.captures && adjacency > bestMove.adjacency) ||
+          (captures === bestMove.captures && adjacency === bestMove.adjacency && distance < bestMove.distance)
+        ) {
+          bestMove = { cell, captures, adjacency, distance };
+        }
+      }
+
+      return bestMove;
     }
 
     function updateHud() {
-      const counts = getCounts();
-      const filled = counts.unclaimed === 0;
+      const counts = countTiles(state);
+      turnLabelEl.textContent = gameOver ? "Finished" : ownerName(currentTurn);
       playerCountEl.textContent = counts.player;
       aiCountEl.textContent = counts.ai;
-      playerPointsEl.textContent = state.playerJumpPoints;
-      aiPointsEl.textContent = state.aiJumpPoints;
+      emptyCountEl.textContent = counts.empty;
+    }
 
-      if (filled) {
-        state.gameOver = true;
-        if (counts.player > counts.ai) {
-          turnIndicator.textContent = "Player wins";
-        } else if (counts.ai > counts.player) {
-          turnIndicator.textContent = "AI wins";
+    function setStatus(message) {
+      statusTextEl.textContent = message;
+    }
+
+    function renderBoard(highlightKey = null) {
+      boardEl.innerHTML = "";
+
+      for (const cell of cells) {
+        const { x, y } = axialToPixel(cell.q, cell.r);
+        const owner = state.get(cell.key);
+        const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        const hex = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+        hex.setAttribute("points", hexagonPoints(x, y));
+        hex.setAttribute("class", `hex ${owner || ""}`.trim());
+        hex.dataset.key = cell.key;
+        hex.dataset.hexagon = "true";
+
+        if (highlightKey && highlightKey === cell.key && owner === null && currentTurn === "player" && !gameOver) {
+          hex.classList.add("hover");
+        }
+
+        if (owner !== null || currentTurn !== "player" || gameOver) {
+          hex.classList.add("disabled");
         } else {
-          turnIndicator.textContent = "Draw game";
+          hex.addEventListener("mouseenter", () => renderBoard(cell.key));
+          hex.addEventListener("mouseleave", () => renderBoard());
+          hex.addEventListener("click", () => handlePlayerMove(cell));
         }
-        messageEl.textContent = `Board full: player ${counts.player}, AI ${counts.ai}.`;
-        calloutEl.textContent = "Reset to play another match.";
-        return;
-      }
 
-      turnIndicator.textContent = state.turn === "player" ? "Player turn" : "AI turn";
+        group.appendChild(hex);
+
+        if (owner !== null) {
+          const stone = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          stone.setAttribute("cx", x);
+          stone.setAttribute("cy", y);
+          stone.setAttribute("r", HEX_SIZE * 0.52);
+          stone.setAttribute("class", `stone ${owner}`);
+          group.appendChild(stone);
+        }
+
+        boardEl.appendChild(group);
+      }
     }
 
-    function renderBoard() {
-      const width = Math.sqrt(3) * CONFIG.hexSize * (CONFIG.cols + 0.5) + 52;
-      const height = CONFIG.hexSize * 1.5 * (CONFIG.rows - 1) + CONFIG.hexSize * 2 + 52;
-      board.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    function finishGame() {
+      gameOver = true;
+      currentTurn = "player";
+      const counts = countTiles(state);
 
-      const fragments = [];
-      for (let row = 0; row < CONFIG.rows; row += 1) {
-        for (let col = 0; col < CONFIG.cols; col += 1) {
-          const key = keyFor(col, row);
-          const owner = getOwner(col, row);
-          const classes = ["hex"];
-          if (owner) {
-            classes.push(owner);
-          }
-          const hoverClass = getHoverClass(col, row);
-          if (hoverClass) {
-            classes.push(hoverClass);
-          }
-
-          const { x, y } = hexCenter(col, row);
-          fragments.push(`
-            <g data-key="${key}" data-col="${col}" data-row="${row}">
-              <polygon class="${classes.join(" ")}" points="${polygonPoints(x, y, CONFIG.hexSize)}"></polygon>
-              <text class="hex-label" x="${x}" y="${y}">${owner === "player" ? "P" : owner === "ai" ? "A" : ""}</text>
-            </g>
-          `);
-        }
+      if (counts.player > counts.ai) {
+        setStatus(`Board full. You win ${counts.player} to ${counts.ai}.`);
+      } else if (counts.ai > counts.player) {
+        setStatus(`Board full. AI wins ${counts.ai} to ${counts.player}.`);
+      } else {
+        setStatus(`Board full. Draw game at ${counts.player} each.`);
       }
 
-      board.innerHTML = fragments.join("");
-    }
-
-    function render() {
-      renderBoard();
       updateHud();
+      renderBoard();
     }
 
-    function spendJumpPoint(owner) {
-      if (owner === "player") {
-        state.playerJumpPoints -= 1;
+    function evaluateGameState() {
+      const counts = countTiles(state);
+      if (counts.empty === 0) {
+        finishGame();
+        return true;
+      }
+      return false;
+    }
+
+    function commitMove(cell, owner) {
+      const result = simulateMove(state, cell, owner);
+      state = result.nextState;
+      updateHud();
+      renderBoard();
+
+      const captures = result.capturedKeys.size;
+      if (captures > 0) {
+        setStatus(`${ownerName(owner)} placed at ${cell.q}, ${cell.r} and captured ${captures} hex${captures === 1 ? "" : "es"}.`);
       } else {
-        state.aiJumpPoints -= 1;
+        setStatus(`${ownerName(owner)} placed at ${cell.q}, ${cell.r}. No captures this turn.`);
       }
+
+      return captures;
     }
 
-    function applyMove(col, row, owner) {
-      const cost = getMoveCost(col, row, owner);
-      if (!canAfford(owner, cost)) {
-        return false;
-      }
-
-      setOwner(col, row, owner);
-      if (cost === 1) {
-        spendJumpPoint(owner);
-      }
-      return true;
-    }
-
-    function finishTurn() {
-      const counts = getCounts();
-      if (counts.unclaimed === 0) {
-        render();
+    function handlePlayerMove(cell) {
+      if (currentTurn !== "player" || gameOver || state.get(cell.key) !== null) {
         return;
       }
 
-      state.turn = state.turn === "player" ? "ai" : "player";
-      render();
-
-      if (state.turn === "ai" && !state.gameOver) {
-        window.setTimeout(runAiTurn, CONFIG.aiDelayMs);
-      }
-    }
-
-    function describeHover(col, row) {
-      const owner = getOwner(col, row);
-      if (owner === "player") {
-        calloutEl.textContent = "Already yours.";
-        return;
-      }
-      if (owner === "ai") {
-        calloutEl.textContent = "Already controlled by the AI.";
+      commitMove(cell, "player");
+      if (evaluateGameState()) {
         return;
       }
 
-      const cost = getMoveCost(col, row, "player");
-      if (cost === 0) {
-        calloutEl.textContent = "Free expansion: adjacent to your territory.";
-      } else if (canAfford("player", cost)) {
-        calloutEl.textContent = "Jump move: costs 1 player jump point.";
-      } else {
-        calloutEl.textContent = "No jump points left for distant claims.";
-      }
+      currentTurn = "ai";
+      updateHud();
+      setStatus("AI is evaluating the board...");
+      renderBoard();
+      aiTimer = window.setTimeout(takeAiTurn, AI_DELAY_MS);
     }
 
-    function handlePlayerMove(col, row) {
-      if (state.turn !== "player" || state.gameOver) {
+    function takeAiTurn() {
+      if (gameOver) {
         return;
       }
 
-      const cost = getMoveCost(col, row, "player");
-      if (!canAfford("player", cost)) {
-        messageEl.textContent = cost === null ? "That hex is already claimed." : "You need a jump point for that move.";
-        render();
-        return;
-      }
-
-      applyMove(col, row, "player");
-      messageEl.textContent = cost === 0
-        ? `Player expanded to ${col}, ${row} for free.`
-        : `Player jumped to ${col}, ${row} and spent 1 point.`;
-      calloutEl.textContent = "";
-      finishTurn();
-    }
-
-    function scoreAiMove(move) {
-      const centerCol = (CONFIG.cols - 1) / 2;
-      const centerRow = (CONFIG.rows - 1) / 2;
-      const distanceToCenter = Math.abs(move.col - centerCol) + Math.abs(move.row - centerRow);
-      return {
-        neighborScore: move.neighborScore,
-        freeBias: move.cost === 0 ? 1 : 0,
-        centerBias: -distanceToCenter,
-        rowBias: -move.row,
-        colBias: -move.col
-      };
-    }
-
-    function compareAiMoves(a, b) {
-      const aScore = scoreAiMove(a);
-      const bScore = scoreAiMove(b);
-      return (
-        bScore.neighborScore - aScore.neighborScore ||
-        bScore.freeBias - aScore.freeBias ||
-        bScore.centerBias - aScore.centerBias ||
-        bScore.rowBias - aScore.rowBias ||
-        bScore.colBias - aScore.colBias
-      );
-    }
-
-    function pickAiMove() {
-      const candidates = [];
-      for (let row = 0; row < CONFIG.rows; row += 1) {
-        for (let col = 0; col < CONFIG.cols; col += 1) {
-          const cost = getMoveCost(col, row, "ai");
-          if (!canAfford("ai", cost)) {
-            continue;
-          }
-          candidates.push({
-            col,
-            row,
-            cost,
-            neighborScore: countOwnedNeighbors(col, row, "ai")
-          });
-        }
-      }
-
-      candidates.sort(compareAiMoves);
-      return candidates[0] || null;
-    }
-
-    function runAiTurn() {
-      if (state.turn !== "ai" || state.gameOver) {
-        return;
-      }
-
-      const move = pickAiMove();
+      const move = chooseAiMove();
       if (!move) {
-        messageEl.textContent = "AI has no legal move.";
-        finishTurn();
+        finishGame();
         return;
       }
 
-      applyMove(move.col, move.row, "ai");
-      messageEl.textContent = move.cost === 0
-        ? `AI expanded to ${move.col}, ${move.row} for free.`
-        : `AI jumped to ${move.col}, ${move.row} and spent 1 point.`;
-      finishTurn();
+      commitMove(move.cell, "ai");
+      if (evaluateGameState()) {
+        return;
+      }
+
+      currentTurn = "player";
+      updateHud();
+      setStatus(`Your turn. AI preferred ${move.captures} captures and ${move.adjacency} adjacent allies.`);
+      renderBoard();
     }
 
     function resetGame() {
-      state.owners = {};
-      state.turn = "player";
-      state.hoverKey = null;
-      state.gameOver = false;
-      state.playerJumpPoints = CONFIG.startJumpPoints;
-      state.aiJumpPoints = CONFIG.startJumpPoints;
-
-      const playerStart = { col: 1, row: Math.floor(CONFIG.rows / 2) };
-      const aiStart = { col: CONFIG.cols - 2, row: Math.floor(CONFIG.rows / 2) };
-      setOwner(playerStart.col, playerStart.row, "player");
-      setOwner(aiStart.col, aiStart.row, "ai");
-
-      messageEl.textContent = "Claim an unowned hex. Hover to preview whether the move is free or costs 1 point.";
-      calloutEl.textContent = "";
-      render();
+      if (aiTimer !== null) {
+        window.clearTimeout(aiTimer);
+      }
+      state = new Map(cells.map((cell) => [cell.key, null]));
+      currentTurn = "player";
+      gameOver = false;
+      updateHud();
+      setStatus("Your turn. Pick any empty hex to start expanding.");
+      renderBoard();
     }
 
-    board.addEventListener("pointermove", (event) => {
-      const cell = event.target.closest("g[data-key]");
-      if (!cell) {
-        return;
-      }
-      state.hoverKey = cell.dataset.key;
-      describeHover(Number(cell.dataset.col), Number(cell.dataset.row));
-      render();
-    });
+    newGameButton.addEventListener("click", resetGame);
 
-    board.addEventListener("pointerleave", () => {
-      state.hoverKey = null;
-      calloutEl.textContent = "";
-      render();
-    });
-
-    board.addEventListener("click", (event) => {
-      const cell = event.target.closest("g[data-key]");
-      if (!cell) {
-        return;
-      }
-      handlePlayerMove(Number(cell.dataset.col), Number(cell.dataset.row));
-    });
-
-    resetButton.addEventListener("click", resetGame);
-
+    generateBoardCells();
+    for (const cell of cells) {
+      cellMap.set(cell.key, cell);
+    }
     resetGame();
   </script>
 </body>
