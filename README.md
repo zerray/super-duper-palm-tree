@@ -188,6 +188,18 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `gravity-golf/index.html` 即可游玩。
 
+## Hex Color Idle Factory
+
+新增 `hex-color-idle-factory/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的颜色混合 idle factory，包含：
+
+- 红、绿、蓝三条主色生产线，基于时间自动累积资源
+- 选择两条主色流解锁紫、黄、青等二级混色产线
+- 至少 3 种可购买升级，按指数成本曲线提升产出效率
+- 订单传送带系统，完成发货后获得全局生产倍率奖励
+- 使用 `localStorage` 持久化保存进度，并适配移动端窄屏布局
+
+直接用浏览器打开 `hex-color-idle-factory/index.html` 即可游玩。
+
 ## Pixel Pulse Sequencer
 
 新增 `pixel-pulse-sequencer/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的像素步进音序器玩具，包含：
