@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gem Mine Clicker</title>
+  <style>
+    :root {
+      --bg-1: #09111f;
+      --bg-2: #13233d;
+      --panel: rgba(9, 18, 34, 0.88);
+      --panel-border: rgba(142, 210, 255, 0.16);
+      --text: #f0f7ff;
+      --muted: #9ab3cc;
+      --cyan: #7ae7ff;
+      --teal: #29c7b6;
+      --gold: #ffd56a;
+      --pink: #ff7ab6;
+      --danger: #ff8f80;
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(82, 149, 255, 0.2), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(41, 199, 182, 0.18), transparent 28%),
+        linear-gradient(160deg, var(--bg-1) 0%, var(--bg-2) 100%);
+      padding: 24px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      color: inherit;
+      font: inherit;
+    }
+
+    .app {
+      width: min(1100px, 100%);
+      display: grid;
+      gap: 20px;
+      grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .main-panel {
+      padding: 28px;
+      display: grid;
+      gap: 20px;
+      align-content: start;
+    }
+
+    .title {
+      display: grid;
+      gap: 8px;
+    }
+
+    .eyebrow {
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.78rem;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      line-height: 0.95;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      max-width: 50ch;
+      line-height: 1.5;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .stat {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-bottom: 8px;
+    }
+
+    .stat strong {
+      font-size: clamp(1.25rem, 3vw, 1.75rem);
+    }
+
+    .mine-wrap {
+      position: relative;
+      min-height: 360px;
+      border-radius: 28px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 22%),
+        radial-gradient(circle at 50% 15%, rgba(122, 231, 255, 0.2), transparent 22%),
+        linear-gradient(180deg, #10203c 0%, #0a1224 100%);
+    }
+
+    .mine-glow,
+    .mine-ground {
+      position: absolute;
+      inset: auto 0 0 0;
+      pointer-events: none;
+    }
+
+    .mine-glow {
+      top: 0;
+      background:
+        radial-gradient(circle at 22% 65%, rgba(255, 122, 182, 0.22), transparent 12%),
+        radial-gradient(circle at 78% 52%, rgba(122, 231, 255, 0.2), transparent 14%),
+        radial-gradient(circle at 52% 32%, rgba(255, 213, 106, 0.16), transparent 13%);
+    }
+
+    .mine-ground {
+      height: 30%;
+      background:
+        radial-gradient(circle at 20% 18%, rgba(255, 213, 106, 0.4), transparent 10%),
+        radial-gradient(circle at 70% 35%, rgba(122, 231, 255, 0.45), transparent 10%),
+        linear-gradient(180deg, #1a2238 0%, #0f1320 100%);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .mine-button {
+      position: absolute;
+      left: 50%;
+      top: 52%;
+      width: min(290px, 68%);
+      aspect-ratio: 1;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 30% 30%, #dffbff 0%, #7ae7ff 22%, #2d71c2 58%, #132448 100%);
+      box-shadow:
+        inset 0 10px 28px rgba(255, 255, 255, 0.25),
+        inset 0 -22px 40px rgba(8, 14, 28, 0.45),
+        0 0 42px rgba(122, 231, 255, 0.22);
+      transition: transform 100ms ease, box-shadow 120ms ease;
+    }
+
+    .mine-button:hover {
+      box-shadow:
+        inset 0 10px 28px rgba(255, 255, 255, 0.28),
+        inset 0 -22px 40px rgba(8, 14, 28, 0.45),
+        0 0 56px rgba(122, 231, 255, 0.32);
+    }
+
+    .mine-button:active,
+    .mine-button.pressed {
+      transform: translate(-50%, -48%) scale(0.96);
+    }
+
+    .mine-button::before,
+    .mine-button::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      inset: 16%;
+      border: 2px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .mine-button::after {
+      inset: 32%;
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
+    .mine-label {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-weight: 700;
+      text-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+    }
+
+    .mine-label strong {
+      display: block;
+      font-size: clamp(1.8rem, 4vw, 2.4rem);
+      letter-spacing: 0.06em;
+    }
+
+    .mine-label span {
+      display: block;
+      margin-top: 6px;
+      font-size: 0.86rem;
+    }
+
+    .floating-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .particle,
+    .floating-number {
+      position: absolute;
+      left: 0;
+      top: 0;
+      transform: translate(-50%, -50%);
+      will-change: transform, opacity;
+    }
+
+    .particle {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px 8px 5px 9px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), var(--particle-color, var(--cyan)));
+      box-shadow: 0 0 12px rgba(122, 231, 255, 0.5);
+      animation: particle-burst 700ms ease-out forwards;
+    }
+
+    .floating-number {
+      color: var(--gold);
+      font-weight: 700;
+      font-size: 1.1rem;
+      text-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
+      animation: number-rise 850ms ease-out forwards;
+    }
+
+    .sidebar {
+      padding: 24px;
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+
+    .shop-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: end;
+    }
+
+    .shop-header p {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .upgrade-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .upgrade-card {
+      width: 100%;
+      text-align: left;
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.045);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: transform 120ms ease, border-color 120ms ease, opacity 120ms ease;
+    }
+
+    .upgrade-card:hover:not(:disabled) {
+      transform: translateY(-2px);
+      border-color: rgba(122, 231, 255, 0.26);
+    }
+
+    .upgrade-card:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .upgrade-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .upgrade-name {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .upgrade-owned {
+      color: var(--cyan);
+      font-size: 0.82rem;
+    }
+
+    .upgrade-desc {
+      color: var(--muted);
+      line-height: 1.4;
+      font-size: 0.92rem;
+    }
+
+    .upgrade-cost {
+      margin-top: 12px;
+      color: var(--gold);
+      font-weight: 700;
+    }
+
+    .prestige-box {
+      padding: 18px;
+      border-radius: 20px;
+      background:
+        linear-gradient(135deg, rgba(255, 213, 106, 0.12), rgba(255, 122, 182, 0.08)),
+        rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 213, 106, 0.18);
+      display: grid;
+      gap: 12px;
+    }
+
+    .prestige-box p {
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.92rem;
+    }
+
+    .prestige-button {
+      padding: 14px 18px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #f0b84d, #ff7ab6);
+      color: #08101e;
+      font-weight: 800;
+    }
+
+    .prestige-button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 0.84rem;
+      text-align: center;
+    }
+
+    @keyframes particle-burst {
+      from {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(0.6);
+      }
+
+      to {
+        opacity: 0;
+        transform:
+          translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, 0px)))
+          rotate(var(--spin, 0deg))
+          scale(1.25);
+      }
+    }
+
+    @keyframes number-rise {
+      from {
+        opacity: 0;
+        transform: translate(-50%, -36%) scale(0.8);
+      }
+
+      15% {
+        opacity: 1;
+      }
+
+      to {
+        opacity: 0;
+        transform: translate(-50%, calc(-50% - 80px)) scale(1.08);
+      }
+    }
+
+    @media (max-width: 920px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .mine-wrap {
+        min-height: 320px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel main-panel">
+      <div class="title">
+        <span class="eyebrow">Idle Gem Economy</span>
+        <h1>Gem Mine Clicker</h1>
+        <p class="subtitle">Click the crystal core to mine gems, expand your auto-miners, then prestige for a permanent production multiplier.</p>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <span>Total Gems</span>
+          <strong id="gems-count">0</strong>
+        </div>
+        <div class="stat">
+          <span>Per Click</span>
+          <strong id="gpc-count">1</strong>
+        </div>
+        <div class="stat">
+          <span>Per Second</span>
+          <strong id="gps-count">0</strong>
+        </div>
+      </div>
+
+      <div class="mine-wrap">
+        <div class="mine-glow"></div>
+        <button id="mine-button" class="mine-button" type="button" aria-label="Mine gems">
+          <div class="mine-label">
+            <div>
+              <strong>Mine</strong>
+              <span>Tap for gems</span>
+            </div>
+          </div>
+        </button>
+        <div class="floating-layer" id="floating-layer" aria-hidden="true"></div>
+        <div class="mine-ground"></div>
+      </div>
+    </section>
+
+    <aside class="panel sidebar">
+      <div class="shop-header">
+        <div>
+          <h2>Upgrades</h2>
+          <p>Three scalable purchases drive click and idle income.</p>
+        </div>
+      </div>
+
+      <div id="upgrade-list" class="upgrade-list"></div>
+
+      <section class="prestige-box">
+        <div>
+          <h2>Prestige</h2>
+          <p id="prestige-summary">Reset everything for a permanent multiplier once your mine is producing enough gems.</p>
+        </div>
+        <button id="prestige-button" class="prestige-button" type="button">Prestige</button>
+      </section>
+
+      <p class="footer-note">Progress autosaves to localStorage.</p>
+    </aside>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "gem-mine-clicker-save";
+    const PRESTIGE_THRESHOLD = 1000;
+    const SAVE_INTERVAL = 2000;
+    const upgrades = [
+      {
+        id: "pickaxe",
+        name: "Better Pickaxe",
+        description: "+1 gem per click",
+        baseCost: 15,
+        growth: 1.55,
+        type: "click",
+        amount: 1
+      },
+      {
+        id: "miner",
+        name: "Auto-Miner",
+        description: "+1 gem per second",
+        baseCost: 40,
+        growth: 1.6,
+        type: "idle",
+        amount: 1
+      },
+      {
+        id: "drill",
+        name: "Deep Core Drill",
+        description: "+6 gems per second",
+        baseCost: 220,
+        growth: 1.75,
+        type: "idle",
+        amount: 6
+      },
+      {
+        id: "laser",
+        name: "Prism Resonator",
+        description: "+8 gems per click",
+        baseCost: 500,
+        growth: 1.82,
+        type: "click",
+        amount: 8
+      }
+    ];
+
+    const gemsCount = document.getElementById("gems-count");
+    const gpcCount = document.getElementById("gpc-count");
+    const gpsCount = document.getElementById("gps-count");
+    const mineButton = document.getElementById("mine-button");
+    const floatingLayer = document.getElementById("floating-layer");
+    const upgradeList = document.getElementById("upgrade-list");
+    const prestigeSummary = document.getElementById("prestige-summary");
+    const prestigeButton = document.getElementById("prestige-button");
+
+    function createDefaultState() {
+      return {
+        gems: 0,
+        baseClick: 1,
+        baseIdle: 0,
+        owned: Object.fromEntries(upgrades.map((upgrade) => [upgrade.id, 0])),
+        prestigeCount: 0,
+        prestigeMultiplier: 1,
+        lifetimeGems: 0,
+        updatedAt: Date.now()
+      };
+    }
+
+    function sanitizeState(rawState) {
+      const state = createDefaultState();
+      if (!rawState || typeof rawState !== "object") {
+        return state;
+      }
+
+      state.gems = Number.isFinite(rawState.gems) ? Math.max(0, rawState.gems) : 0;
+      state.baseClick = Number.isFinite(rawState.baseClick) ? Math.max(1, rawState.baseClick) : 1;
+      state.baseIdle = Number.isFinite(rawState.baseIdle) ? Math.max(0, rawState.baseIdle) : 0;
+      state.prestigeCount = Number.isFinite(rawState.prestigeCount) ? Math.max(0, rawState.prestigeCount) : 0;
+      state.prestigeMultiplier = Number.isFinite(rawState.prestigeMultiplier) ? Math.max(1, rawState.prestigeMultiplier) : 1;
+      state.lifetimeGems = Number.isFinite(rawState.lifetimeGems) ? Math.max(0, rawState.lifetimeGems) : state.gems;
+      state.updatedAt = Number.isFinite(rawState.updatedAt) ? rawState.updatedAt : Date.now();
+
+      if (rawState.owned && typeof rawState.owned === "object") {
+        upgrades.forEach((upgrade) => {
+          const owned = Number(rawState.owned[upgrade.id]);
+          state.owned[upgrade.id] = Number.isFinite(owned) ? Math.max(0, Math.floor(owned)) : 0;
+        });
+      }
+
+      return state;
+    }
+
+    function loadState() {
+      try {
+        const saved = window.localStorage.getItem(STORAGE_KEY);
+        return saved ? sanitizeState(JSON.parse(saved)) : createDefaultState();
+      } catch (error) {
+        return createDefaultState();
+      }
+    }
+
+    const state = loadState();
+
+    function getPrestigeMultiplier(prestigeCount) {
+      return 1 + prestigeCount * 0.5;
+    }
+
+    function recalculateDerivedStats() {
+      let click = 1;
+      let idle = 0;
+
+      upgrades.forEach((upgrade) => {
+        const owned = state.owned[upgrade.id];
+        if (upgrade.type === "click") {
+          click += upgrade.amount * owned;
+        } else {
+          idle += upgrade.amount * owned;
+        }
+      });
+
+      state.baseClick = click;
+      state.baseIdle = idle;
+      state.prestigeMultiplier = getPrestigeMultiplier(state.prestigeCount);
+    }
+
+    function currentGemsPerClick() {
+      return state.baseClick * state.prestigeMultiplier;
+    }
+
+    function currentGemsPerSecond() {
+      return state.baseIdle * state.prestigeMultiplier;
+    }
+
+    function formatNumber(value) {
+      const suffixes = ["", "K", "M", "B", "T", "Qa"];
+      if (value < 1000) {
+        return value >= 100 ? value.toFixed(0) : value.toFixed(1).replace(/\.0$/, "");
+      }
+
+      let scaled = value;
+      let suffixIndex = 0;
+      while (scaled >= 1000 && suffixIndex < suffixes.length - 1) {
+        scaled /= 1000;
+        suffixIndex += 1;
+      }
+
+      const digits = scaled >= 100 ? 0 : scaled >= 10 ? 1 : 2;
+      return scaled.toFixed(digits).replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1") + suffixes[suffixIndex];
+    }
+
+    function addGems(amount) {
+      state.gems += amount;
+      state.lifetimeGems += amount;
+    }
+
+    function saveState() {
+      state.updatedAt = Date.now();
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function costForUpgrade(upgrade) {
+      const owned = state.owned[upgrade.id];
+      return Math.floor(upgrade.baseCost * Math.pow(upgrade.growth, owned));
+    }
+
+    function createParticleBurst(x, y) {
+      const colors = ["#7ae7ff", "#ffd56a", "#ff7ab6", "#29c7b6"];
+      for (let index = 0; index < 10; index += 1) {
+        const particle = document.createElement("span");
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 28 + Math.random() * 64;
+        particle.className = "particle";
+        particle.style.left = x + "px";
+        particle.style.top = y + "px";
+        particle.style.setProperty("--dx", Math.cos(angle) * distance + "px");
+        particle.style.setProperty("--dy", Math.sin(angle) * distance + "px");
+        particle.style.setProperty("--spin", (Math.random() * 240 - 120) + "deg");
+        particle.style.setProperty("--particle-color", colors[index % colors.length]);
+        particle.addEventListener("animationend", () => particle.remove(), { once: true });
+        floatingLayer.appendChild(particle);
+      }
+    }
+
+    function createFloatingNumber(x, y, amount) {
+      const floatingNumber = document.createElement("span");
+      floatingNumber.className = "floating-number";
+      floatingNumber.textContent = "+" + formatNumber(amount);
+      floatingNumber.style.left = x + "px";
+      floatingNumber.style.top = y + "px";
+      floatingNumber.addEventListener("animationend", () => floatingNumber.remove(), { once: true });
+      floatingLayer.appendChild(floatingNumber);
+    }
+
+    function renderUpgrades() {
+      upgradeList.innerHTML = "";
+      upgrades.forEach((upgrade) => {
+        const owned = state.owned[upgrade.id];
+        const cost = costForUpgrade(upgrade);
+        const card = document.createElement("button");
+        card.type = "button";
+        card.className = "upgrade-card";
+        card.disabled = state.gems < cost;
+        card.innerHTML = `
+          <div class="upgrade-top">
+            <div class="upgrade-name">${upgrade.name}</div>
+            <div class="upgrade-owned">Owned: ${owned}</div>
+          </div>
+          <div class="upgrade-desc">${upgrade.description}</div>
+          <div class="upgrade-cost">Cost: ${formatNumber(cost)} gems</div>
+        `;
+        card.addEventListener("click", () => {
+          if (state.gems < cost) {
+            return;
+          }
+          state.gems -= cost;
+          state.owned[upgrade.id] += 1;
+          recalculateDerivedStats();
+          render();
+          saveState();
+        });
+        upgradeList.appendChild(card);
+      });
+    }
+
+    function nextPrestigeGain() {
+      return Math.max(0, Math.floor(Math.sqrt(state.lifetimeGems / PRESTIGE_THRESHOLD)));
+    }
+
+    function renderPrestige() {
+      const gain = nextPrestigeGain();
+      const nextMultiplier = getPrestigeMultiplier(state.prestigeCount + gain);
+      prestigeButton.disabled = gain < 1;
+      prestigeButton.textContent = gain > 0
+        ? `Prestige for +${gain} rank${gain > 1 ? "s" : ""}`
+        : `Prestige locked until ${formatNumber(PRESTIGE_THRESHOLD)} lifetime gems`;
+      prestigeSummary.textContent =
+        `Current multiplier x${state.prestigeMultiplier.toFixed(1)}. Prestige will reset gems and upgrades, then raise you to x${nextMultiplier.toFixed(1)}.`;
+    }
+
+    function render() {
+      gemsCount.textContent = formatNumber(state.gems);
+      gpcCount.textContent = formatNumber(currentGemsPerClick());
+      gpsCount.textContent = formatNumber(currentGemsPerSecond());
+      renderUpgrades();
+      renderPrestige();
+    }
+
+    function handleMine(event) {
+      const rect = floatingLayer.getBoundingClientRect();
+      const amount = currentGemsPerClick();
+      const clientX = event.clientX ?? rect.left + rect.width / 2;
+      const clientY = event.clientY ?? rect.top + rect.height / 2;
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+
+      addGems(amount);
+      render();
+      saveState();
+
+      mineButton.classList.add("pressed");
+      window.setTimeout(() => mineButton.classList.remove("pressed"), 90);
+
+      createParticleBurst(x, y);
+      createFloatingNumber(x, y - 12, amount);
+    }
+
+    mineButton.addEventListener("click", handleMine);
+
+    prestigeButton.addEventListener("click", () => {
+      const gain = nextPrestigeGain();
+      if (gain < 1) {
+        return;
+      }
+
+      const preservedLifetimeGems = state.lifetimeGems;
+      state.gems = 0;
+      state.owned = Object.fromEntries(upgrades.map((upgrade) => [upgrade.id, 0]));
+      state.prestigeCount += gain;
+      state.lifetimeGems = preservedLifetimeGems;
+      recalculateDerivedStats();
+      render();
+      saveState();
+    });
+
+    recalculateDerivedStats();
+    render();
+
+    let previousTime = performance.now();
+    let saveAccumulator = 0;
+
+    function tick(now) {
+      const deltaSeconds = Math.min((now - previousTime) / 1000, 0.25);
+      previousTime = now;
+
+      const passiveIncome = currentGemsPerSecond();
+      if (passiveIncome > 0) {
+        addGems(passiveIncome * deltaSeconds);
+      }
+
+      saveAccumulator += deltaSeconds;
+      if (saveAccumulator >= SAVE_INTERVAL / 1000) {
+        saveAccumulator = 0;
+        saveState();
+      }
+
+      render();
+      window.requestAnimationFrame(tick);
+    }
+
+    window.requestAnimationFrame(tick);
+    window.addEventListener("beforeunload", saveState);
+  </script>
+</body>
+</html>
