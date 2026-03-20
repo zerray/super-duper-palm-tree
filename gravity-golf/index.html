@@ -39,6 +39,7 @@
       width: 100vw;
       height: 100vh;
       cursor: crosshair;
+      touch-action: none;
     }
 
     .hud {
@@ -624,8 +625,12 @@
         if (well.active === false) {
           continue;
         }
-        if (well.kind === "black-hole" && distance(body, well) <= (well.absorbRadius || well.radius) + body.radius) {
+        const gap = distance(body, well);
+        if (well.kind === "black-hole" && gap <= (well.absorbRadius || well.radius) + body.radius) {
           return "absorbed";
+        }
+        if (well.kind !== "gravity-toggle" && gap <= well.radius + body.radius) {
+          return "surface";
         }
       }
       return "";
@@ -760,8 +765,14 @@
       wallBounce(state.ball);
       checkToggleCollisions(state.ball);
 
-      if (checkWellCollision(state.ball) === "absorbed") {
+      const collision = checkWellCollision(state.ball);
+      if (collision === "absorbed") {
         setStatus("Black hole ate the shot. Reset and try a safer angle.");
+        resetShot();
+        return;
+      }
+      if (collision === "surface") {
+        setStatus("Planet collision. The ball is lost, so the shot resets.");
         resetShot();
         return;
       }
@@ -969,6 +980,7 @@
     }
 
     canvas.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
       if (state.holeComplete || state.ball.moving || overlay.classList.contains("show")) {
         return;
       }
@@ -982,6 +994,7 @@
     });
 
     canvas.addEventListener("pointermove", (event) => {
+      event.preventDefault();
       if (!state.aiming) {
         return;
       }
@@ -990,6 +1003,7 @@
     });
 
     canvas.addEventListener("pointerup", (event) => {
+      event.preventDefault();
       if (!state.aiming) {
         return;
       }
