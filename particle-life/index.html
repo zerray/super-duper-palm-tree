@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Particle Life Explorer</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07111f;
+      --panel: rgba(10, 21, 38, 0.88);
+      --panel-border: rgba(165, 204, 255, 0.18);
+      --text: #eef6ff;
+      --muted: #8ea7c5;
+      --accent: #91f0ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(74, 122, 194, 0.3), transparent 36%),
+        linear-gradient(180deg, #08111c 0%, #03060b 100%);
+      display: grid;
+      place-items: center;
+    }
+
+    .shell {
+      width: min(1200px, 100vw);
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+      gap: 18px;
+      padding: 18px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(10px);
+    }
+
+    .controls {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    h1, h2, p { margin: 0; }
+    h1 { font-size: 1.7rem; }
+    h2 { font-size: 1rem; color: var(--accent); }
+    .lede { color: var(--muted); line-height: 1.4; }
+    .stack { display: flex; flex-wrap: wrap; gap: 10px; }
+    button, select {
+      border: 1px solid rgba(145, 240, 255, 0.28);
+      background: rgba(17, 33, 55, 0.92);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:hover, select:hover { border-color: rgba(145, 240, 255, 0.6); }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stat {
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .stat-label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .matrix-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .matrix-tip {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    #matrix-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .matrix-cell {
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 12px;
+      min-height: 62px;
+      padding: 8px 6px;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 6px;
+      user-select: none;
+      touch-action: none;
+      cursor: ns-resize;
+    }
+
+    .matrix-cell strong {
+      font-size: 0.82rem;
+      letter-spacing: 0.03em;
+    }
+
+    .matrix-cell span {
+      font-variant-numeric: tabular-nums;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .legend {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .legend-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      box-shadow: 0 0 10px currentColor;
+    }
+
+    .viewport {
+      padding: 14px;
+      display: flex;
+    }
+
+    canvas {
+      width: 100%;
+      height: calc(100vh - 46px);
+      border-radius: 20px;
+      display: block;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(65, 104, 162, 0.18), transparent 24%),
+        radial-gradient(circle at 80% 10%, rgba(49, 190, 255, 0.08), transparent 30%),
+        rgba(1, 5, 12, 0.95);
+    }
+
+    @media (max-width: 960px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      canvas {
+        height: min(70vh, 760px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="panel controls">
+      <div>
+        <h1>Particle Life Explorer</h1>
+        <p class="lede">Five species, 360 particles, real-time attraction rules, and instant random rule sets. Drag inside matrix cells up or down to tune each interaction.</p>
+      </div>
+
+      <div class="stack">
+        <button id="randomize-button" type="button">Randomize Rules</button>
+        <button id="reset-button" type="button">Reset Particles</button>
+        <select id="boundary-select" aria-label="Boundary mode">
+          <option value="wrap">Wrap Edges</option>
+          <option value="bounce">Bounce Walls</option>
+        </select>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-label">Particles</span>
+          <strong id="particle-count">360</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Boundary</span>
+          <strong id="boundary-label">Wrap</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">FPS</span>
+          <strong id="fps-value">0</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Drag</span>
+          <strong>0.92 damping</strong>
+        </div>
+      </div>
+
+      <div>
+        <div class="matrix-header">
+          <h2>Attraction Matrix</h2>
+          <div class="matrix-tip">Blue attracts, red repels</div>
+        </div>
+        <div id="matrix-grid" aria-label="Attraction matrix"></div>
+      </div>
+
+      <div class="legend" id="species-legend"></div>
+    </section>
+
+    <section class="panel viewport">
+      <canvas id="particle-canvas" width="960" height="720"></canvas>
+    </section>
+  </div>
+
+  <script>
+    const SPECIES = [
+      { name: "A", color: "#5ad1ff" },
+      { name: "B", color: "#ff6b9a" },
+      { name: "C", color: "#ffd166" },
+      { name: "D", color: "#7bf1a8" },
+      { name: "E", color: "#c59bff" }
+    ];
+    const PARTICLE_COUNT = 360;
+    const interactionRadius = 92;
+    const repulsionRadius = 12;
+    const maxSpeed = 2.6;
+    const damping = 0.92;
+    const speciesCount = SPECIES.length;
+
+    const canvas = document.getElementById("particle-canvas");
+    const ctx = canvas.getContext("2d");
+    const matrixGrid = document.getElementById("matrix-grid");
+    const randomizeButton = document.getElementById("randomize-button");
+    const resetButton = document.getElementById("reset-button");
+    const boundarySelect = document.getElementById("boundary-select");
+    const boundaryLabel = document.getElementById("boundary-label");
+    const particleCountLabel = document.getElementById("particle-count");
+    const fpsValue = document.getElementById("fps-value");
+    const speciesLegend = document.getElementById("species-legend");
+
+    let width = canvas.width;
+    let height = canvas.height;
+    let boundaryMode = "wrap";
+    let particles = [];
+    let attractionMatrix = [];
+    let matrixCells = [];
+    let dragState = null;
+    let spatialGrid = [];
+    let gridCols = 0;
+    let gridRows = 0;
+    let lastFrameTime = 0;
+    let fpsSampleTime = 0;
+    let fpsFrames = 0;
+
+    function createParticle(species, x = Math.random() * width, y = Math.random() * height) {
+      return {
+        species,
+        x,
+        y,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: (Math.random() - 0.5) * 0.4
+      };
+    }
+
+    function resetParticles() {
+      particles = [];
+      for (let i = 0; i < PARTICLE_COUNT; i += 1) {
+        particles.push(createParticle(i % speciesCount));
+      }
+      particleCountLabel.textContent = String(particles.length);
+    }
+
+    function randomBetween(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function randomizeMatrix() {
+      attractionMatrix = Array.from({ length: speciesCount }, (_, row) =>
+        Array.from({ length: speciesCount }, (_, col) => {
+          if (row === col) {
+            return randomBetween(0.2, 0.95);
+          }
+          return randomBetween(-1, 1);
+        })
+      );
+      renderMatrix();
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function forceKernel(distance, rule) {
+      if (distance < 0.001 || distance > interactionRadius) {
+        return 0;
+      }
+      if (distance < repulsionRadius) {
+        return -1.4 * (1 - distance / repulsionRadius);
+      }
+      const normalized = distance / interactionRadius;
+      const envelope = 1 - normalized;
+      return rule * envelope;
+    }
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const devicePixelRatio = window.devicePixelRatio || 1;
+      width = Math.max(640, Math.round(rect.width * devicePixelRatio));
+      height = Math.max(480, Math.round(rect.height * devicePixelRatio));
+      canvas.width = width;
+      canvas.height = height;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+
+    function buildSpatialGrid() {
+      const cellSize = interactionRadius;
+      gridCols = Math.ceil(width / cellSize);
+      gridRows = Math.ceil(height / cellSize);
+      spatialGrid = Array.from({ length: gridCols * gridRows }, () => []);
+
+      for (let i = 0; i < particles.length; i += 1) {
+        const particle = particles[i];
+        const cellX = clamp(Math.floor(particle.x / cellSize), 0, gridCols - 1);
+        const cellY = clamp(Math.floor(particle.y / cellSize), 0, gridRows - 1);
+        spatialGrid[cellY * gridCols + cellX].push(i);
+      }
+    }
+
+    function getNeighborIndexes(particle) {
+      const cellSize = interactionRadius;
+      const baseX = clamp(Math.floor(particle.x / cellSize), 0, gridCols - 1);
+      const baseY = clamp(Math.floor(particle.y / cellSize), 0, gridRows - 1);
+      const indexes = [];
+
+      for (let dy = -1; dy <= 1; dy += 1) {
+        for (let dx = -1; dx <= 1; dx += 1) {
+          let cellX = baseX + dx;
+          let cellY = baseY + dy;
+
+          if (boundaryMode === "wrap") {
+            cellX = (cellX + gridCols) % gridCols;
+            cellY = (cellY + gridRows) % gridRows;
+          } else if (cellX < 0 || cellY < 0 || cellX >= gridCols || cellY >= gridRows) {
+            continue;
+          }
+
+          indexes.push(...spatialGrid[cellY * gridCols + cellX]);
+        }
+      }
+
+      return indexes;
+    }
+
+    function applyBoundary(particle) {
+      if (boundaryMode === "wrap") {
+        if (particle.x < 0) particle.x += width;
+        if (particle.x >= width) particle.x -= width;
+        if (particle.y < 0) particle.y += height;
+        if (particle.y >= height) particle.y -= height;
+        return;
+      }
+
+      if (particle.x <= 0 || particle.x >= width) {
+        particle.vx *= -0.9;
+        particle.x = clamp(particle.x, 0, width);
+      }
+      if (particle.y <= 0 || particle.y >= height) {
+        particle.vy *= -0.9;
+        particle.y = clamp(particle.y, 0, height);
+      }
+    }
+
+    function updateSimulation(dt) {
+      buildSpatialGrid();
+      const timeScale = Math.min(1.5, dt * 60);
+
+      for (let i = 0; i < particles.length; i += 1) {
+        const particle = particles[i];
+        let ax = 0;
+        let ay = 0;
+        const neighbors = getNeighborIndexes(particle);
+
+        for (let n = 0; n < neighbors.length; n += 1) {
+          const otherIndex = neighbors[n];
+          if (otherIndex === i) continue;
+
+          const other = particles[otherIndex];
+          let dx = other.x - particle.x;
+          let dy = other.y - particle.y;
+
+          if (boundaryMode === "wrap") {
+            if (dx > width * 0.5) dx -= width;
+            if (dx < -width * 0.5) dx += width;
+            if (dy > height * 0.5) dy -= height;
+            if (dy < -height * 0.5) dy += height;
+          }
+
+          const distanceSquared = dx * dx + dy * dy;
+          if (distanceSquared === 0 || distanceSquared > interactionRadius * interactionRadius) {
+            continue;
+          }
+
+          const distance = Math.sqrt(distanceSquared);
+          const force = forceKernel(distance, attractionMatrix[particle.species][other.species]);
+          const scale = force / distance;
+          ax += dx * scale;
+          ay += dy * scale;
+        }
+
+        particle.vx = (particle.vx + ax * 0.045 * timeScale) * damping;
+        particle.vy = (particle.vy + ay * 0.045 * timeScale) * damping;
+
+        const speed = Math.hypot(particle.vx, particle.vy);
+        if (speed > maxSpeed) {
+          particle.vx = particle.vx / speed * maxSpeed;
+          particle.vy = particle.vy / speed * maxSpeed;
+        }
+      }
+
+      for (const particle of particles) {
+        particle.x += particle.vx * timeScale;
+        particle.y += particle.vy * timeScale;
+        applyBoundary(particle);
+      }
+    }
+
+    function drawParticle(particle) {
+      const species = SPECIES[particle.species];
+      ctx.save();
+      ctx.fillStyle = species.color;
+      ctx.shadowBlur = 14;
+      ctx.shadowColor = species.color;
+      ctx.beginPath();
+      ctx.arc(particle.x, particle.y, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function renderFrame() {
+      ctx.fillStyle = "rgba(2, 8, 18, 0.16)";
+      ctx.fillRect(0, 0, width, height);
+
+      for (const particle of particles) {
+        drawParticle(particle);
+      }
+    }
+
+    function tick(timestamp) {
+      if (!lastFrameTime) {
+        lastFrameTime = timestamp;
+        fpsSampleTime = timestamp;
+      }
+
+      const dt = Math.min(0.033, (timestamp - lastFrameTime) / 1000);
+      lastFrameTime = timestamp;
+
+      updateSimulation(dt);
+      renderFrame();
+
+      fpsFrames += 1;
+      if (timestamp - fpsSampleTime >= 500) {
+        const elapsed = (timestamp - fpsSampleTime) / 1000;
+        fpsValue.textContent = String(Math.round(fpsFrames / elapsed));
+        fpsFrames = 0;
+        fpsSampleTime = timestamp;
+      }
+
+      requestAnimationFrame(tick);
+    }
+
+    function matrixColor(value) {
+      const hue = value >= 0 ? 197 : 6;
+      const saturation = 80;
+      const lightness = value >= 0 ? 36 + value * 16 : 36 + Math.abs(value) * 10;
+      const alpha = 0.28 + Math.abs(value) * 0.5;
+      return `hsla(${hue}, ${saturation}%, ${lightness}%, ${alpha})`;
+    }
+
+    function updateMatrixCell(cell, row, col) {
+      const value = attractionMatrix[row][col];
+      cell.style.background = matrixColor(value);
+      cell.querySelector("span").textContent = value.toFixed(2);
+      cell.setAttribute("aria-valuenow", value.toFixed(2));
+    }
+
+    function renderMatrix() {
+      if (!matrixCells.length) {
+        matrixGrid.innerHTML = "";
+        for (let row = 0; row < speciesCount; row += 1) {
+          for (let col = 0; col < speciesCount; col += 1) {
+            const cell = document.createElement("div");
+            cell.className = "matrix-cell";
+            cell.dataset.row = String(row);
+            cell.dataset.col = String(col);
+            cell.innerHTML = `<strong>${SPECIES[row].name}→${SPECIES[col].name}</strong><span>0.00</span>`;
+            cell.addEventListener("pointerdown", beginMatrixDrag);
+            matrixGrid.appendChild(cell);
+            matrixCells.push(cell);
+          }
+        }
+      }
+
+      for (const cell of matrixCells) {
+        const row = Number(cell.dataset.row);
+        const col = Number(cell.dataset.col);
+        updateMatrixCell(cell, row, col);
+      }
+    }
+
+    function setMatrixValue(row, col, value) {
+      attractionMatrix[row][col] = clamp(value, -1, 1);
+      updateMatrixCell(matrixCells[row * speciesCount + col], row, col);
+    }
+
+    function beginMatrixDrag(event) {
+      const cell = event.currentTarget;
+      dragState = {
+        row: Number(cell.dataset.row),
+        col: Number(cell.dataset.col),
+        startY: event.clientY,
+        startValue: attractionMatrix[Number(cell.dataset.row)][Number(cell.dataset.col)]
+      };
+      cell.setPointerCapture(event.pointerId);
+      applyMatrixDrag(event);
+    }
+
+    function applyMatrixDrag(event) {
+      if (!dragState) return;
+      const delta = (dragState.startY - event.clientY) / 120;
+      setMatrixValue(dragState.row, dragState.col, dragState.startValue + delta);
+    }
+
+    function endMatrixDrag() {
+      dragState = null;
+    }
+
+    function buildLegend() {
+      speciesLegend.innerHTML = "";
+      for (const species of SPECIES) {
+        const chip = document.createElement("div");
+        chip.className = "legend-chip";
+        chip.innerHTML = `<span class="dot" style="color:${species.color}; background:${species.color};"></span>${species.name} ${species.color}`;
+        speciesLegend.appendChild(chip);
+      }
+    }
+
+    function handleRandomizeClick() {
+      randomizeMatrix();
+      resetParticles();
+    }
+
+    function handleResetClick() {
+      resetParticles();
+    }
+
+    function setBoundaryMode(mode) {
+      boundaryMode = mode;
+      boundaryLabel.textContent = mode === "wrap" ? "Wrap" : "Bounce";
+    }
+
+    document.addEventListener("pointermove", applyMatrixDrag);
+    document.addEventListener("pointerup", endMatrixDrag);
+    window.addEventListener("resize", () => {
+      resizeCanvas();
+      resetParticles();
+    });
+    randomizeButton.addEventListener("click", handleRandomizeClick);
+    resetButton.addEventListener("click", handleResetClick);
+    boundarySelect.addEventListener("change", (event) => {
+      setBoundaryMode(event.target.value);
+    });
+
+    resizeCanvas();
+    buildLegend();
+    randomizeMatrix();
+    resetParticles();
+    setBoundaryMode(boundarySelect.value);
+    renderFrame();
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>
