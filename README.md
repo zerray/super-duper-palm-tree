@@ -111,6 +111,16 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `gravity-slingshot/index.html` 即可游玩。
 
+## Gravity Well Sandbox
+
+新增 `gravity-well-sandbox/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的 2D 引力沙盒，包含：
+
+- 点击放置 attractor / repulsor 节点，并通过滑块调整质量
+- 在空白区域点击拖拽发射粒子束，实时观察轨道、弹弓与混沌路径
+- 可切换粒子 trails、独立清空 particles 或 nodes，并显示粒子数 / 节点数 / FPS
+
+直接用浏览器打开 `gravity-well-sandbox/index.html` 即可运行。
+
 ## Gem Mine Clicker
 
 新增 `gem-mine-clicker/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的 idle gem mine clicker，包含：
