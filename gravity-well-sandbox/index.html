@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gravity Well Sandbox</title>
+  <style>
+    :root {
+      --bg: #07111f;
+      --bg-soft: rgba(7, 17, 31, 0.82);
+      --panel: rgba(9, 20, 35, 0.92);
+      --line: rgba(148, 163, 184, 0.2);
+      --text: #e5eefc;
+      --muted: #93a4bf;
+      --accent: #7dd3fc;
+      --warm: #fb7185;
+      --cool: #60a5fa;
+      --good: #34d399;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(96, 165, 250, 0.16), transparent 28%),
+        radial-gradient(circle at top right, rgba(251, 113, 133, 0.16), transparent 24%),
+        linear-gradient(180deg, #0b1830 0%, #040913 68%, #02050b 100%);
+    }
+
+    #sim {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      cursor: crosshair;
+    }
+
+    .panel {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      width: min(340px, calc(100vw - 32px));
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+    }
+
+    h1,
+    p,
+    label {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      line-height: 1.1;
+      margin-bottom: 8px;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.45;
+    }
+
+    .controls {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .row {
+      display: grid;
+      gap: 6px;
+    }
+
+    .row-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 0.95rem;
+    }
+
+    .value {
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      margin: 0;
+      accent-color: var(--accent);
+    }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 14px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      color: #04111f;
+      background: linear-gradient(135deg, #dbeafe, #7dd3fc);
+      transition: transform 120ms ease, opacity 120ms ease;
+    }
+
+    button.alt {
+      color: var(--text);
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 64, 175, 0.8));
+      border: 1px solid rgba(125, 211, 252, 0.18);
+    }
+
+    button.danger {
+      color: #fff1f2;
+      background: linear-gradient(135deg, #be123c, #fb7185);
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .stat {
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: var(--bg-soft);
+      border: 1px solid var(--line);
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .stat-value {
+      margin-top: 6px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .footer {
+      position: fixed;
+      bottom: 16px;
+      left: 16px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(4, 9, 19, 0.74);
+      color: var(--muted);
+      font-size: 0.92rem;
+      max-width: min(520px, calc(100vw - 32px));
+    }
+
+    .footer strong {
+      color: var(--text);
+    }
+
+    @media (max-width: 720px) {
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="sim"></canvas>
+  <section class="panel">
+    <h1>Gravity Well Sandbox</h1>
+    <p class="hint">Click to place a node. Drag on open space to launch particles. Attractors pull inward, repulsors push outward, and trails can be toggled live.</p>
+    <div class="controls">
+      <label class="row" for="mass-slider">
+        <span class="row-head">
+          <span>Node Mass</span>
+          <span class="value" id="mass-value">160</span>
+        </span>
+        <input id="mass-slider" type="range" min="40" max="480" step="10" value="160">
+      </label>
+      <label class="row" for="particle-slider">
+        <span class="row-head">
+          <span>Launch Count</span>
+          <span class="value" id="particle-value">18</span>
+        </span>
+        <input id="particle-slider" type="range" min="1" max="60" step="1" value="18">
+      </label>
+      <div class="buttons">
+        <button id="mode-toggle" class="alt" type="button">Mode: Attractor</button>
+        <button id="trail-toggle" class="alt" type="button">Trails: On</button>
+        <button id="clear-particles" type="button">Clear Particles</button>
+        <button id="clear-nodes" class="danger" type="button">Clear Nodes</button>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-label">Particles</div>
+        <div class="stat-value" id="particle-count">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Nodes</div>
+        <div class="stat-value" id="node-count">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">FPS</div>
+        <div class="stat-value" id="fps-value">60</div>
+      </div>
+    </div>
+  </section>
+  <div class="footer"><strong>Controls:</strong> drag on empty space to launch, click to place a node, right-click a node to remove it.</div>
+
+  <script>
+    const canvas = document.getElementById("sim");
+    const ctx = canvas.getContext("2d");
+
+    const massSlider = document.getElementById("mass-slider");
+    const massValue = document.getElementById("mass-value");
+    const particleSlider = document.getElementById("particle-slider");
+    const particleValue = document.getElementById("particle-value");
+    const modeToggle = document.getElementById("mode-toggle");
+    const trailToggle = document.getElementById("trail-toggle");
+    const clearParticlesButton = document.getElementById("clear-particles");
+    const clearNodesButton = document.getElementById("clear-nodes");
+    const particleCountLabel = document.getElementById("particle-count");
+    const nodeCountLabel = document.getElementById("node-count");
+    const fpsValue = document.getElementById("fps-value");
+
+    const nodes = [];
+    const particles = [];
+    const MAX_PARTICLES = 480;
+    const PARTICLE_RADIUS = 2.4;
+    const NODE_RADIUS = 12;
+    const SOFTENING = 120;
+    const FORCE_LIMIT = 1800;
+    const BOUNDS_MARGIN = 140;
+
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let mode = 1;
+    let trailsEnabled = true;
+    let dragState = null;
+    let lastFrame = performance.now();
+    let fpsSample = 60;
+
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = width + "px";
+      canvas.style.height = height + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function updateLabels() {
+      massValue.textContent = massSlider.value;
+      particleValue.textContent = particleSlider.value;
+      particleCountLabel.textContent = String(particles.length);
+      nodeCountLabel.textContent = String(nodes.length);
+      modeToggle.textContent = mode > 0 ? "Mode: Attractor" : "Mode: Repulsor";
+      trailToggle.textContent = trailsEnabled ? "Trails: On" : "Trails: Off";
+    }
+
+    function getPointerPosition(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      };
+    }
+
+    function distanceSquared(ax, ay, bx, by) {
+      const dx = ax - bx;
+      const dy = ay - by;
+      return dx * dx + dy * dy;
+    }
+
+    function findNodeAt(x, y) {
+      for (let index = nodes.length - 1; index >= 0; index -= 1) {
+        const node = nodes[index];
+        if (distanceSquared(x, y, node.x, node.y) <= (NODE_RADIUS + 6) * (NODE_RADIUS + 6)) {
+          return index;
+        }
+      }
+      return -1;
+    }
+
+    function addNode(x, y) {
+      nodes.push({
+        x,
+        y,
+        mass: Number(massSlider.value),
+        polarity: mode
+      });
+      updateLabels();
+    }
+
+    function removeNode(index) {
+      if (index >= 0) {
+        nodes.splice(index, 1);
+        updateLabels();
+      }
+    }
+
+    function createParticle(x, y, vx, vy) {
+      return {
+        x,
+        y,
+        px: x - vx / 60,
+        py: y - vy / 60,
+        vx,
+        vy,
+        speed: Math.hypot(vx, vy)
+      };
+    }
+
+    function spawnBurst(origin, velocity) {
+      const count = Math.min(Number(particleSlider.value), MAX_PARTICLES);
+      for (let index = 0; index < count; index += 1) {
+        if (particles.length >= MAX_PARTICLES) {
+          particles.shift();
+        }
+        const spread = (index - (count - 1) / 2) * 0.12;
+        const jitter = (Math.random() - 0.5) * 16;
+        const cos = Math.cos(spread);
+        const sin = Math.sin(spread);
+        const vx = velocity.x * cos - velocity.y * sin + jitter;
+        const vy = velocity.x * sin + velocity.y * cos + jitter;
+        particles.push(createParticle(origin.x, origin.y, vx, vy));
+      }
+      updateLabels();
+    }
+
+    function accelerationAt(x, y) {
+      let ax = 0;
+      let ay = 0;
+      for (const node of nodes) {
+        const dx = node.x - x;
+        const dy = node.y - y;
+        const distanceSq = dx * dx + dy * dy + SOFTENING;
+        const distance = Math.sqrt(distanceSq);
+        const strength = Math.min(FORCE_LIMIT, node.mass * 900 / distanceSq) * node.polarity;
+        ax += (dx / distance) * strength;
+        ay += (dy / distance) * strength;
+      }
+      return { ax, ay };
+    }
+
+    function updateParticles(dt) {
+      const step = Math.min(dt, 1 / 30);
+      for (let index = particles.length - 1; index >= 0; index -= 1) {
+        const particle = particles[index];
+        const currentVx = (particle.x - particle.px) / step;
+        const currentVy = (particle.y - particle.py) / step;
+        const { ax, ay } = accelerationAt(particle.x, particle.y);
+
+        const nextX = particle.x + (particle.x - particle.px) + ax * step * step;
+        const nextY = particle.y + (particle.y - particle.py) + ay * step * step;
+
+        particle.px = particle.x;
+        particle.py = particle.y;
+        particle.x = nextX;
+        particle.y = nextY;
+        particle.vx = currentVx + ax * step;
+        particle.vy = currentVy + ay * step;
+        particle.speed = Math.hypot(particle.vx, particle.vy);
+
+        if (
+          particle.x < -BOUNDS_MARGIN ||
+          particle.x > width + BOUNDS_MARGIN ||
+          particle.y < -BOUNDS_MARGIN ||
+          particle.y > height + BOUNDS_MARGIN
+        ) {
+          particles.splice(index, 1);
+        }
+      }
+    }
+
+    function speedColor(speed) {
+      const t = Math.min(1, speed / 520);
+      const hue = 210 - t * 170;
+      const light = 68 - t * 10;
+      return "hsl(" + hue + " 92% " + light + "%)";
+    }
+
+    function drawBackground() {
+      if (trailsEnabled) {
+        ctx.fillStyle = "rgba(4, 9, 19, 0.16)";
+        ctx.fillRect(0, 0, width, height);
+      } else {
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = "rgba(4, 9, 19, 1)";
+        ctx.fillRect(0, 0, width, height);
+      }
+    }
+
+    function drawNodes() {
+      for (const node of nodes) {
+        const color = node.polarity > 0 ? "#7dd3fc" : "#fb7185";
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, NODE_RADIUS + Math.min(14, node.mass * 0.03), 0, Math.PI * 2);
+        ctx.fillStyle = node.polarity > 0 ? "rgba(125, 211, 252, 0.08)" : "rgba(251, 113, 133, 0.08)";
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, NODE_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.strokeStyle = "rgba(255,255,255,0.9)";
+        ctx.lineWidth = 2;
+        ctx.moveTo(node.x - 5, node.y);
+        ctx.lineTo(node.x + 5, node.y);
+        if (node.polarity > 0) {
+          ctx.moveTo(node.x, node.y - 5);
+          ctx.lineTo(node.x, node.y + 5);
+        }
+        ctx.stroke();
+      }
+    }
+
+    function drawParticles() {
+      for (const particle of particles) {
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, PARTICLE_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = speedColor(particle.speed);
+        ctx.fill();
+      }
+    }
+
+    function drawLaunchPreview() {
+      if (!dragState) {
+        return;
+      }
+      const dx = dragState.current.x - dragState.start.x;
+      const dy = dragState.current.y - dragState.start.y;
+      ctx.beginPath();
+      ctx.moveTo(dragState.start.x, dragState.start.y);
+      ctx.lineTo(dragState.current.x, dragState.current.y);
+      ctx.strokeStyle = "rgba(226, 232, 240, 0.9)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 6]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.beginPath();
+      ctx.arc(dragState.start.x, dragState.start.y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.fill();
+
+      const magnitude = Math.hypot(dx, dy) * 2.4;
+      ctx.fillStyle = "rgba(229, 238, 252, 0.92)";
+      ctx.font = "12px Trebuchet MS";
+      ctx.fillText("v=" + magnitude.toFixed(0), dragState.current.x + 10, dragState.current.y - 10);
+    }
+
+    function render() {
+      drawBackground();
+      drawParticles();
+      drawNodes();
+      drawLaunchPreview();
+    }
+
+    function tick(now) {
+      const dt = Math.min(0.033, (now - lastFrame) / 1000 || 0.016);
+      lastFrame = now;
+      fpsSample += (1 / dt - fpsSample) * 0.12;
+      fpsValue.textContent = Math.round(fpsSample).toString();
+      updateParticles(dt);
+      updateLabels();
+      render();
+      requestAnimationFrame(tick);
+    }
+
+    canvas.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) {
+        return;
+      }
+      const point = getPointerPosition(event);
+      if (findNodeAt(point.x, point.y) !== -1) {
+        return;
+      }
+      dragState = {
+        pointerId: event.pointerId,
+        start: point,
+        current: point
+      };
+      canvas.setPointerCapture(event.pointerId);
+    });
+
+    canvas.addEventListener("pointermove", (event) => {
+      if (!dragState || dragState.pointerId !== event.pointerId) {
+        return;
+      }
+      dragState.current = getPointerPosition(event);
+    });
+
+    canvas.addEventListener("pointerup", (event) => {
+      if (!dragState || dragState.pointerId !== event.pointerId) {
+        return;
+      }
+      const release = getPointerPosition(event);
+      const dx = release.x - dragState.start.x;
+      const dy = release.y - dragState.start.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance < 6) {
+        addNode(release.x, release.y);
+      } else {
+        spawnBurst(dragState.start, {
+          x: -dx * 2.4,
+          y: -dy * 2.4
+        });
+      }
+      dragState = null;
+    });
+
+    canvas.addEventListener("pointercancel", () => {
+      dragState = null;
+    });
+
+    canvas.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+      const point = getPointerPosition(event);
+      removeNode(findNodeAt(point.x, point.y));
+    });
+
+    massSlider.addEventListener("input", updateLabels);
+    particleSlider.addEventListener("input", updateLabels);
+    modeToggle.addEventListener("click", () => {
+      mode *= -1;
+      updateLabels();
+    });
+    trailToggle.addEventListener("click", () => {
+      trailsEnabled = !trailsEnabled;
+      if (!trailsEnabled) {
+        ctx.clearRect(0, 0, width, height);
+      }
+      updateLabels();
+    });
+    clearParticlesButton.addEventListener("click", () => {
+      particles.length = 0;
+      updateLabels();
+    });
+    clearNodesButton.addEventListener("click", () => {
+      nodes.length = 0;
+      updateLabels();
+    });
+    window.addEventListener("resize", resize);
+
+    resize();
+    updateLabels();
+    ctx.fillStyle = "rgba(4, 9, 19, 1)";
+    ctx.fillRect(0, 0, width, height);
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>
