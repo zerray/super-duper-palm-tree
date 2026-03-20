@@ -244,6 +244,17 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `beat-grid/index.html` 即可游玩。支持桌面点击与移动端触摸。
 
+## Waveform DJ
+
+新增 `waveform-dj/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的音频可视化创意玩具，包含：
+
+- 4 个可独立开关的振荡器，支持 sine、square、sawtooth、triangle 四种波形
+- 频率与振幅滑块，以及可拖拽节点的简化 patch board，用于添加振荡器间的频率调制连接
+- 基于 `AnalyserNode` 的实时 oscilloscope、frequency spectrum 与彩色反应式图案
+- 3 个基于 `localStorage` 的 preset 存档位，以及静音但不停视觉监视器的 mute 开关
+
+直接用浏览器打开 `waveform-dj/index.html` 即可运行。
+
 ## Hex Colony
 
 新增 `hex-colony/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的轻量六边形回合策略原型，包含：
