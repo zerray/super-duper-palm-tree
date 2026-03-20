@@ -2,6 +2,17 @@
 
 This repository contains a simple agent-factory workflow for planning and completing repository tasks with Claude and Codex agents.
 
+## Conway's Game of Life
+
+新增 `game-of-life/index.html`，提供一个可直接在浏览器中打开的康威生命游戏模拟器，包含：
+
+- 可缩放、可平移的大型 Canvas 网格
+- 点击或拖拽绘制/擦除细胞
+- 播放、暂停、单步、随机填充、清空等控制
+- 经典图案下拉菜单，可放置 Glider、Pulsar、Gosper Glider Gun 等种子
+
+直接用浏览器打开 `game-of-life/index.html` 即可运行。
+
 ## 聂小倩 HD-2D RPG
 
 新增 `nie-xiaoqian-rpg/index.html`，提供一个可直接在浏览器中打开的轻量 RPG 原型，包含：
