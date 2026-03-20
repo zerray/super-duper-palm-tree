@@ -220,3 +220,15 @@ This repository contains a simple agent-factory workflow for planning and comple
 - Tempo、scale、reverb / delay 全局控制，以及基于 `localStorage` 的花园持久化
 
 直接用浏览器打开 `soundscape-garden/index.html` 即可运行。左键种植，右键移除花朵。
+
+## Hex Colony
+
+新增 `hex-colony/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的极简六边形回合策略游戏，包含：
+
+- 至少 169 格的六边形棋盘与 SVG 渲染
+- 每回合选择放置 farm、tower 或 wall，其费用分别为 2 / 3 / 1 gold
+- Farm 每回合产出 1 gold，Tower 在 2 回合后吞并相邻中立地块
+- 边缘 blight 每 3 回合向内蔓延，wall 可阻挡其进入该格
+- HUD 显示 turn、gold、territory 进度，达到 50 格领土获胜，blight 触及 settlement 则失败
+
+直接用浏览器打开 `hex-colony/index.html` 即可游玩。

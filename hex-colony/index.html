@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hex Colony</title>
+  <style>
+    :root {
+      --bg: #f3efe0;
+      --panel: rgba(255, 250, 240, 0.94);
+      --line: #7b6d59;
+      --ink: #2d251d;
+      --muted: #6c6154;
+      --neutral: #e8dbc1;
+      --territory: #cfe7c1;
+      --settlement: #4f7d39;
+      --farm: #d9b84b;
+      --tower: #8f6bc7;
+      --wall: #8c6552;
+      --blight: #6b2d77;
+      --highlight: #f2a94a;
+      --danger: #a33e53;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 20px;
+      color: var(--ink);
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.9), transparent 28%),
+        linear-gradient(180deg, #f8f5ec 0%, var(--bg) 100%);
+    }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(1240px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) minmax(300px, 360px);
+      gap: 20px;
+    }
+
+    .surface,
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(45, 37, 29, 0.12);
+      border-radius: 24px;
+      box-shadow: 0 20px 40px rgba(45, 37, 29, 0.1);
+      backdrop-filter: blur(8px);
+    }
+
+    .surface {
+      padding: 24px;
+    }
+
+    .panel {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.3rem, 4vw, 4rem);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+      max-width: 9ch;
+    }
+
+    .lede,
+    .muted {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .hud {
+      margin-top: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .chip {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(45, 37, 29, 0.12);
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--muted);
+    }
+
+    .chip strong {
+      color: var(--ink);
+    }
+
+    .board-wrap {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(45, 37, 29, 0.1);
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.8), rgba(244, 236, 220, 0.96)),
+        repeating-linear-gradient(135deg, rgba(45, 37, 29, 0.03) 0 18px, transparent 18px 36px);
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .hex {
+      fill: var(--neutral);
+      stroke: rgba(123, 109, 89, 0.9);
+      stroke-width: 1.35;
+      transition: fill 120ms ease, stroke 120ms ease, transform 120ms ease;
+    }
+
+    .hex.territory {
+      fill: var(--territory);
+      stroke: rgba(79, 125, 57, 0.7);
+    }
+
+    .hex.blight {
+      fill: rgba(107, 45, 119, 0.9);
+      stroke: #4f175b;
+    }
+
+    .hex.valid {
+      fill: #f8e8b8;
+      stroke: var(--highlight);
+      stroke-width: 2.4;
+      cursor: pointer;
+    }
+
+    .hex.blocked {
+      cursor: default;
+    }
+
+    .icon,
+    .label {
+      pointer-events: none;
+      user-select: none;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+
+    .icon {
+      font-size: 17px;
+    }
+
+    .label {
+      font-size: 9px;
+      font-weight: 700;
+      fill: rgba(45, 37, 29, 0.85);
+    }
+
+    .card {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(45, 37, 29, 0.1);
+      background: rgba(255, 255, 255, 0.74);
+    }
+
+    .options {
+      display: grid;
+      gap: 10px;
+    }
+
+    .option {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(45, 37, 29, 0.12);
+      background: rgba(255, 255, 255, 0.85);
+      color: var(--ink);
+      text-align: left;
+    }
+
+    .option.active {
+      border-color: transparent;
+      color: #fff8ee;
+      background: linear-gradient(180deg, #7f6345, #5d4430);
+      box-shadow: 0 10px 18px rgba(93, 68, 48, 0.22);
+    }
+
+    .option small {
+      display: block;
+      margin-top: 4px;
+      color: inherit;
+      opacity: 0.86;
+    }
+
+    .status {
+      min-height: 3.2em;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    .legend {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(45, 37, 29, 0.18);
+    }
+
+    .swatch.territory {
+      background: var(--territory);
+      border-color: rgba(79, 125, 57, 0.7);
+    }
+
+    .swatch.neutral {
+      background: var(--neutral);
+    }
+
+    .swatch.blight {
+      background: var(--blight);
+      border-color: #4f175b;
+    }
+
+    .status.win {
+      color: var(--settlement);
+      font-weight: 700;
+    }
+
+    .status.lose {
+      color: var(--danger);
+      font-weight: 700;
+    }
+
+    @media (max-width: 920px) {
+      body {
+        padding: 16px;
+      }
+
+      .app {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <main class="surface">
+      <h1>Hex Colony</h1>
+      <p class="lede">Place one structure per turn, grow your border, and keep the blight away from the settlement long enough to claim 50 hexes.</p>
+      <div class="hud">
+        <div class="chip">Turn <strong id="turnValue">1</strong></div>
+        <div class="chip">Gold <strong id="goldValue">5</strong></div>
+        <div class="chip">Territory <strong id="territoryValue">1 / 50</strong></div>
+        <div class="chip">Blight in <strong id="blightTimerValue">3</strong></div>
+      </div>
+      <div class="board-wrap">
+        <svg id="board" viewBox="0 0 1260 1120" aria-label="Hex Colony board"></svg>
+      </div>
+    </main>
+
+    <aside class="panel">
+      <section class="card">
+        <h2>Build</h2>
+        <div class="options" id="buildOptions"></div>
+        <p class="muted">You can only build on neutral hexes adjacent to your territory. Farms generate 1 gold per turn, towers claim adjacent neutral hexes after 2 turns, and walls stop blight from entering that hex.</p>
+      </section>
+
+      <section class="card">
+        <h2>Status</h2>
+        <p class="status" id="statusText">Select a structure, then click a highlighted hex next to your territory.</p>
+      </section>
+
+      <section class="card">
+        <h2>Legend</h2>
+        <div class="legend">
+          <div class="legend-item"><span class="swatch territory"></span> Your territory and structures</div>
+          <div class="legend-item"><span class="swatch neutral"></span> Neutral land available to claim</div>
+          <div class="legend-item"><span class="swatch blight"></span> Blight that creeps inward every 3 turns</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Rules</h2>
+        <p class="muted">Costs: farm 2 gold, tower 3 gold, wall 1 gold. Blight spreads from edge blight tiles into unoccupied hexes every 3 turns. You lose if blight reaches the settlement.</p>
+      </section>
+    </aside>
+  </div>
+
+  <script>
+    const BOARD_RADIUS = 7;
+    const HEX_SIZE = 38;
+    const SVG_CENTER_X = 630;
+    const SVG_CENTER_Y = 550;
+    const TARGET_TERRITORY = 50;
+    const BLIGHT_INTERVAL = 3;
+    const STARTING_GOLD = 5;
+    const BUILD_TYPES = {
+      farm: { label: "Farm", cost: 2, icon: "🌾", className: "farm" },
+      tower: { label: "Tower", cost: 3, icon: "🗼", className: "tower" },
+      wall: { label: "Wall", cost: 1, icon: "🧱", className: "wall" }
+    };
+    const DIRECTIONS = [
+      [1, 0],
+      [1, -1],
+      [0, -1],
+      [-1, 0],
+      [-1, 1],
+      [0, 1]
+    ];
+
+    const board = document.getElementById("board");
+    const turnValue = document.getElementById("turnValue");
+    const goldValue = document.getElementById("goldValue");
+    const territoryValue = document.getElementById("territoryValue");
+    const blightTimerValue = document.getElementById("blightTimerValue");
+    const statusText = document.getElementById("statusText");
+    const buildOptions = document.getElementById("buildOptions");
+
+    const cells = new Map();
+    let turn = 1;
+    let gold = STARTING_GOLD;
+    let selectedBuild = "farm";
+    let pendingStatus = "";
+    let gameOver = false;
+
+    function keyFor(q, r) {
+      return `${q},${r}`;
+    }
+
+    function isInsideBoard(q, r) {
+      const s = -q - r;
+      return Math.max(Math.abs(q), Math.abs(r), Math.abs(s)) <= BOARD_RADIUS;
+    }
+
+    function createCell(q, r) {
+      const distance = Math.max(Math.abs(q), Math.abs(r), Math.abs(-q - r));
+      return {
+        q,
+        r,
+        owner: null,
+        structure: null,
+        timer: 0,
+        blight: false,
+        edge: distance === BOARD_RADIUS
+      };
+    }
+
+    function axialToPixel(q, r) {
+      return {
+        x: SVG_CENTER_X + HEX_SIZE * Math.sqrt(3) * (q + r / 2),
+        y: SVG_CENTER_Y + HEX_SIZE * 1.5 * r
+      };
+    }
+
+    function hexPoints(cx, cy) {
+      const points = [];
+      for (let i = 0; i < 6; i += 1) {
+        const angle = ((60 * i) - 30) * Math.PI / 180;
+        points.push(`${cx + HEX_SIZE * Math.cos(angle)},${cy + HEX_SIZE * Math.sin(angle)}`);
+      }
+      return points.join(" ");
+    }
+
+    function neighborsOf(cell) {
+      return DIRECTIONS
+        .map(([dq, dr]) => cells.get(keyFor(cell.q + dq, cell.r + dr)))
+        .filter(Boolean);
+    }
+
+    function hasAdjacentTerritory(cell) {
+      return neighborsOf(cell).some((neighbor) => neighbor.owner === "player" && !neighbor.blight);
+    }
+
+    function isBuildable(cell) {
+      return !gameOver
+        && !cell.blight
+        && cell.owner === null
+        && cell.structure === null
+        && hasAdjacentTerritory(cell)
+        && gold >= BUILD_TYPES[selectedBuild].cost;
+    }
+
+    function getTerritoryCount() {
+      let count = 0;
+      for (const cell of cells.values()) {
+        if (cell.owner === "player" && !cell.blight) {
+          count += 1;
+        }
+      }
+      return count;
+    }
+
+    function claimCell(cell) {
+      cell.owner = "player";
+      cell.blight = false;
+    }
+
+    function initializeBoard() {
+      for (let q = -BOARD_RADIUS; q <= BOARD_RADIUS; q += 1) {
+        for (let r = -BOARD_RADIUS; r <= BOARD_RADIUS; r += 1) {
+          if (!isInsideBoard(q, r)) {
+            continue;
+          }
+          const cell = createCell(q, r);
+          cells.set(keyFor(q, r), cell);
+        }
+      }
+
+      const settlement = cells.get(keyFor(0, 0));
+      settlement.owner = "player";
+      settlement.structure = "settlement";
+
+      const edgeSeeds = [
+        [BOARD_RADIUS, 0],
+        [-BOARD_RADIUS, 0],
+        [0, BOARD_RADIUS],
+        [0, -BOARD_RADIUS],
+        [BOARD_RADIUS, -BOARD_RADIUS],
+        [-BOARD_RADIUS, BOARD_RADIUS]
+      ];
+
+      for (const [q, r] of edgeSeeds) {
+        const seed = cells.get(keyFor(q, r));
+        if (seed) {
+          seed.blight = true;
+          seed.owner = null;
+          seed.structure = null;
+        }
+      }
+    }
+
+    function buildOptionButton(type, config) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "option";
+      button.dataset.type = type;
+      button.innerHTML = `${config.icon} ${config.label} (${config.cost}g)<small>${type === "farm" ? "Earns 1 gold every turn." : type === "tower" ? "Claims adjacent neutral hexes after 2 turns." : "Stops blight from entering this hex."}</small>`;
+      button.addEventListener("click", () => {
+        if (gameOver) {
+          return;
+        }
+        selectedBuild = type;
+        pendingStatus = `${config.label} selected. Click a highlighted neutral hex next to your territory.`;
+        render();
+      });
+      buildOptions.appendChild(button);
+    }
+
+    function buildOptionsUi() {
+      for (const [type, config] of Object.entries(BUILD_TYPES)) {
+        buildOptionButton(type, config);
+      }
+    }
+
+    function setStatus(message, className = "") {
+      statusText.textContent = message;
+      statusText.className = `status${className ? ` ${className}` : ""}`;
+    }
+
+    function collectFarmIncome() {
+      let income = 0;
+      for (const cell of cells.values()) {
+        if (cell.owner === "player" && cell.structure === "farm" && !cell.blight) {
+          income += 1;
+        }
+      }
+      gold += income;
+      return income;
+    }
+
+    function resolveTowers() {
+      let converted = 0;
+      for (const cell of cells.values()) {
+        if (cell.owner !== "player" || cell.structure !== "tower" || cell.blight) {
+          continue;
+        }
+        cell.timer += 1;
+        if (cell.timer < 2) {
+          continue;
+        }
+        for (const neighbor of neighborsOf(cell)) {
+          if (neighbor.owner === null && !neighbor.blight && neighbor.structure === null) {
+            claimCell(neighbor);
+            converted += 1;
+          }
+        }
+        cell.timer = 0;
+      }
+      return converted;
+    }
+
+    function spreadBlight() {
+      const newBlight = [];
+      for (const cell of cells.values()) {
+        if (!cell.blight) {
+          continue;
+        }
+        for (const neighbor of neighborsOf(cell)) {
+          if (neighbor.blight) {
+            continue;
+          }
+          if (neighbor.structure === "wall") {
+            continue;
+          }
+          if (neighbor.structure !== null && neighbor.structure !== "settlement") {
+            continue;
+          }
+          newBlight.push(neighbor);
+        }
+      }
+
+      for (const cell of newBlight) {
+        cell.blight = true;
+        cell.owner = null;
+      }
+
+      return newBlight.length;
+    }
+
+    function checkGameState() {
+      const settlement = cells.get(keyFor(0, 0));
+      if (settlement.blight) {
+        gameOver = true;
+        setStatus("The blight reached the settlement. Your kingdom falls.", "lose");
+        return;
+      }
+
+      if (getTerritoryCount() >= TARGET_TERRITORY) {
+        gameOver = true;
+        setStatus("You claimed 50 hexes and secured the colony.", "win");
+      }
+    }
+
+    function advanceTurn() {
+      turn += 1;
+      const income = collectFarmIncome();
+      const converted = resolveTowers();
+      let blightCount = 0;
+      if (turn % BLIGHT_INTERVAL === 0) {
+        blightCount = spreadBlight();
+      }
+      checkGameState();
+
+      if (gameOver) {
+        render();
+        return;
+      }
+
+      const parts = [];
+      parts.push(income > 0 ? `Farms generated ${income} gold.` : "No farm income this turn.");
+      if (converted > 0) {
+        parts.push(`Towers claimed ${converted} neutral hex${converted === 1 ? "" : "es"}.`);
+      }
+      if (blightCount > 0) {
+        parts.push(`Blight consumed ${blightCount} hex${blightCount === 1 ? "" : "es"}.`);
+      } else if (turn % BLIGHT_INTERVAL === 0) {
+        parts.push("Blight pressed forward but walls and structures held it back.");
+      }
+      pendingStatus = parts.join(" ");
+      render();
+    }
+
+    function placeStructure(cell) {
+      if (!isBuildable(cell)) {
+        return;
+      }
+      const config = BUILD_TYPES[selectedBuild];
+      gold -= config.cost;
+      claimCell(cell);
+      cell.structure = selectedBuild;
+      cell.timer = 0;
+      pendingStatus = `${config.label} placed at ${cell.q}, ${cell.r}.`;
+      advanceTurn();
+    }
+
+    function renderBoard() {
+      board.innerHTML = "";
+      const sortedCells = Array.from(cells.values()).sort((a, b) => (a.q + a.r) - (b.q + b.r) || a.q - b.q);
+
+      for (const cell of sortedCells) {
+        const { x, y } = axialToPixel(cell.q, cell.r);
+        const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+        polygon.setAttribute("points", hexPoints(x, y));
+
+        const classes = ["hex"];
+        if (cell.blight) {
+          classes.push("blight");
+        } else if (cell.owner === "player") {
+          classes.push("territory");
+        }
+        if (isBuildable(cell)) {
+          classes.push("valid");
+          polygon.addEventListener("click", () => placeStructure(cell));
+        } else {
+          classes.push("blocked");
+        }
+        polygon.setAttribute("class", classes.join(" "));
+        board.appendChild(polygon);
+
+        let icon = "";
+        if (cell.blight) {
+          icon = "✹";
+        } else if (cell.structure === "settlement") {
+          icon = "🏠";
+        } else if (cell.structure === "farm") {
+          icon = "🌾";
+        } else if (cell.structure === "tower") {
+          icon = "🗼";
+        } else if (cell.structure === "wall") {
+          icon = "🧱";
+        }
+
+        if (icon) {
+          const iconText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          iconText.setAttribute("x", x);
+          iconText.setAttribute("y", y - 2);
+          iconText.setAttribute("class", "icon");
+          iconText.textContent = icon;
+          board.appendChild(iconText);
+        }
+
+        if (cell.structure === "tower" && !cell.blight) {
+          const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          label.setAttribute("x", x);
+          label.setAttribute("y", y + 16);
+          label.setAttribute("class", "label");
+          label.textContent = `${2 - cell.timer}t`;
+          board.appendChild(label);
+        }
+      }
+    }
+
+    function renderHud() {
+      turnValue.textContent = String(turn);
+      goldValue.textContent = String(gold);
+      territoryValue.textContent = `${getTerritoryCount()} / ${TARGET_TERRITORY}`;
+      blightTimerValue.textContent = String(BLIGHT_INTERVAL - ((turn - 1) % BLIGHT_INTERVAL));
+
+      for (const button of buildOptions.querySelectorAll(".option")) {
+        const type = button.dataset.type;
+        button.classList.toggle("active", type === selectedBuild);
+        button.disabled = gameOver;
+      }
+
+      if (!gameOver) {
+        const selected = BUILD_TYPES[selectedBuild];
+        const message = gold >= selected.cost
+          ? pendingStatus || `${selected.label} selected. Click a highlighted neutral hex next to your territory.`
+          : `Not enough gold for ${selected.label}. Farms generate 1 gold per turn.`;
+        setStatus(message);
+      }
+    }
+
+    function render() {
+      renderBoard();
+      renderHud();
+    }
+
+    initializeBoard();
+    buildOptionsUi();
+    render();
+  </script>
+</body>
+</html>
