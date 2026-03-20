@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orbital Slingshot</title>
+  <style>
+    :root {
+      --bg-1: #07111f;
+      --bg-2: #02060d;
+      --panel: rgba(8, 14, 24, 0.84);
+      --panel-border: rgba(168, 207, 255, 0.14);
+      --text: #edf5ff;
+      --muted: #90a5c0;
+      --accent: #7ad7ff;
+      --accent-2: #ffd46c;
+      --danger: #ff7d7d;
+      --success: #89f0a8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 20%, rgba(63, 122, 255, 0.16), transparent 30%),
+        radial-gradient(circle at 80% 10%, rgba(122, 255, 207, 0.1), transparent 24%),
+        linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 18px;
+      padding: 18px;
+    }
+
+    .surface,
+    .panel {
+      border-radius: 24px;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(14px);
+    }
+
+    .surface {
+      position: relative;
+      overflow: hidden;
+      padding: 18px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 14px;
+    }
+
+    .surface::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.2;
+      pointer-events: none;
+    }
+
+    .hero,
+    .panel {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero h1,
+    .hero p,
+    .panel h2,
+    .panel p {
+      margin: 0;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.4rem, 5vw, 4.8rem);
+      line-height: 0.9;
+      letter-spacing: -0.06em;
+    }
+
+    .hero p {
+      margin-top: 10px;
+      max-width: 60ch;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .status-bar {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .pill {
+      border-radius: 18px;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .pill span {
+      display: block;
+    }
+
+    .pill .label {
+      color: var(--muted);
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .pill .value {
+      margin-top: 6px;
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    .game-shell {
+      position: relative;
+      min-height: 620px;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background:
+        radial-gradient(circle at top, rgba(74, 124, 255, 0.16), transparent 42%),
+        linear-gradient(180deg, rgba(5, 9, 18, 0.96), rgba(9, 15, 28, 0.96));
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+    }
+
+    .panel {
+      padding: 18px;
+      display: grid;
+      align-content: start;
+      gap: 14px;
+    }
+
+    .panel h2 {
+      font-size: 1.05rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .panel p,
+    .panel li {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .panel ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .legend {
+      display: grid;
+      gap: 10px;
+    }
+
+    .legend-row {
+      display: grid;
+      grid-template-columns: 18px 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+
+    .footer-note {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    @media (max-width: 920px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .game-shell {
+        min-height: 520px;
+      }
+
+      .status-bar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="surface">
+      <header class="hero">
+        <h1>Orbital Slingshot</h1>
+        <p>
+          Drag from the launch ring to set angle and power, then bend your route around gravity wells to hit the target zone.
+          Each clear adds another planet and re-rolls the orbital puzzle.
+        </p>
+        <div class="status-bar">
+          <div class="pill">
+            <span class="label">Level</span>
+            <span class="value" id="level-value">1</span>
+          </div>
+          <div class="pill">
+            <span class="label">Planets</span>
+            <span class="value" id="planet-value">3</span>
+          </div>
+          <div class="pill">
+            <span class="label">Power</span>
+            <span class="value" id="power-value">0%</span>
+          </div>
+          <div class="pill">
+            <span class="label">Status</span>
+            <span class="value" id="status-value">Aim</span>
+          </div>
+        </div>
+      </header>
+      <div class="game-shell">
+        <canvas id="game-canvas" width="1280" height="720" aria-label="Orbital slingshot game"></canvas>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <h2>Flight Notes</h2>
+      <p>Preview lines are simulated ahead of launch with the same gravity solver used in real flight.</p>
+      <div class="legend">
+        <div class="legend-row">
+          <span class="swatch" style="background:#7ad7ff;"></span>
+          <span>Launch pad and live ship trail</span>
+        </div>
+        <div class="legend-row">
+          <span class="swatch" style="background:#ffd46c;"></span>
+          <span>Target zone</span>
+        </div>
+        <div class="legend-row">
+          <span class="swatch" style="background:#ff7d7d;"></span>
+          <span>Planet core and collision body</span>
+        </div>
+      </div>
+      <ul>
+        <li>Planets spawn with visible gravity well rings.</li>
+        <li>Leaving the arena or hitting a planet resets the current level.</li>
+        <li>Clearing the target advances immediately to the next procedural layout.</li>
+      </ul>
+      <p class="footer-note">No build step required. Open this file in a modern browser.</p>
+    </aside>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("game-canvas");
+    const ctx = canvas.getContext("2d");
+    const hud = {
+      level: document.getElementById("level-value"),
+      planets: document.getElementById("planet-value"),
+      power: document.getElementById("power-value"),
+      status: document.getElementById("status-value")
+    };
+
+    const state = {
+      width: canvas.width,
+      height: canvas.height,
+      level: 1,
+      phase: "aiming",
+      planets: [],
+      launchPoint: { x: 120, y: canvas.height * 0.5 },
+      target: { x: canvas.width - 120, y: canvas.height * 0.5, radius: 38 },
+      projectile: null,
+      trail: [],
+      ghostTrajectory: [],
+      isDragging: false,
+      dragPoint: null,
+      aimVector: { x: 0, y: 0 },
+      levelMessage: "Drag to launch",
+      statusTone: "idle",
+      levelTimer: 0
+    };
+
+    const PLANET_COLORS = ["#ff8f70", "#7ef0c4", "#7bb8ff", "#c89dff", "#ffd166"];
+    const G = 240000;
+    const FIXED_DT = 1 / 120;
+    const PREVIEW_STEPS = 420;
+    const MAX_TRAIL_POINTS = 320;
+    const MAX_POWER = 620;
+    const MIN_ORBIT_DISTANCE = 22;
+
+    function resizeCanvas() {
+      const shell = canvas.parentElement;
+      const rect = shell.getBoundingClientRect();
+      const ratio = window.devicePixelRatio || 1;
+      canvas.width = Math.max(960, Math.floor(rect.width * ratio));
+      canvas.height = Math.max(540, Math.floor(rect.height * ratio));
+      state.width = canvas.width;
+      state.height = canvas.height;
+      state.launchPoint = { x: state.width * 0.11, y: state.height * 0.5 };
+      if (state.phase === "aiming") {
+        generateLevel(state.level);
+      }
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function distance(a, b) {
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function createProjectile(position, velocity) {
+      return {
+        position: { x: position.x, y: position.y },
+        velocity: { x: velocity.x, y: velocity.y },
+        radius: 8,
+        active: true
+      };
+    }
+
+    function updateHud() {
+      hud.level.textContent = String(state.level);
+      hud.planets.textContent = String(state.planets.length);
+      const power = Math.min(100, Math.round((Math.hypot(state.aimVector.x, state.aimVector.y) / MAX_POWER) * 100));
+      hud.power.textContent = `${power}%`;
+      hud.status.textContent = state.phase === "aiming" ? "Aim" : state.phase === "flying" ? "Flying" : state.phase === "settled" ? "Reset" : "Win";
+    }
+
+    function randomRange(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function generateLevel(levelNumber) {
+      const bodyCount = Math.min(5, 2 + levelNumber);
+      const planets = [];
+      const padding = 110;
+      const safeRadius = 120;
+      let attempts = 0;
+
+      while (planets.length < bodyCount && attempts < 800) {
+        attempts += 1;
+        const radius = randomRange(28, 58);
+        const planet = {
+          x: randomRange(state.width * 0.28, state.width * 0.76),
+          y: randomRange(padding, state.height - padding),
+          radius,
+          mass: radius * randomRange(120, 190),
+          color: PLANET_COLORS[planets.length % PLANET_COLORS.length]
+        };
+
+        const overlapsPlanet = planets.some((other) => distance(planet, other) < planet.radius + other.radius + 72);
+        const tooCloseToLaunch = distance(planet, state.launchPoint) < safeRadius + planet.radius;
+        const targetAnchor = { x: state.width * 0.89, y: state.height * 0.5 };
+        const tooCloseToTarget = distance(planet, targetAnchor) < safeRadius + planet.radius;
+
+        if (!overlapsPlanet && !tooCloseToLaunch && !tooCloseToTarget) {
+          planets.push(planet);
+        }
+      }
+
+      state.planets = planets;
+      state.target = {
+        x: state.width * 0.89,
+        y: randomRange(state.height * 0.25, state.height * 0.75),
+        radius: 40
+      };
+      state.phase = "aiming";
+      state.projectile = null;
+      state.trail = [];
+      state.ghostTrajectory = [];
+      state.isDragging = false;
+      state.dragPoint = null;
+      state.aimVector = { x: 0, y: 0 };
+      state.levelMessage = "Drag to launch";
+      state.statusTone = "idle";
+      state.levelTimer = 0;
+      updateHud();
+    }
+
+    function getCanvasPoint(event) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      return {
+        x: (event.clientX - rect.left) * scaleX,
+        y: (event.clientY - rect.top) * scaleY
+      };
+    }
+
+    function getAimVelocity() {
+      const drag = state.dragPoint || state.launchPoint;
+      const vector = {
+        x: state.launchPoint.x - drag.x,
+        y: state.launchPoint.y - drag.y
+      };
+      const power = clamp(Math.hypot(vector.x, vector.y), 0, MAX_POWER);
+      const angle = Math.atan2(vector.y, vector.x);
+      return {
+        x: Math.cos(angle) * power * 1.65,
+        y: Math.sin(angle) * power * 1.65
+      };
+    }
+
+    function computeGravityAcceleration(position) {
+      let ax = 0;
+      let ay = 0;
+
+      for (const planet of state.planets) {
+        const dx = planet.x - position.x;
+        const dy = planet.y - position.y;
+        const distanceSq = dx * dx + dy * dy;
+        const minDistance = planet.radius + MIN_ORBIT_DISTANCE;
+        const safeDistanceSq = Math.max(distanceSq, minDistance * minDistance);
+        const distanceValue = Math.sqrt(safeDistanceSq);
+        const force = G * planet.mass / safeDistanceSq;
+        ax += (dx / distanceValue) * force;
+        ay += (dy / distanceValue) * force;
+      }
+
+      return { x: ax, y: ay };
+    }
+
+    function stepSimulation(simProjectile, dt) {
+      const acceleration = computeGravityAcceleration(simProjectile.position);
+      simProjectile.velocity.x += acceleration.x * dt;
+      simProjectile.velocity.y += acceleration.y * dt;
+      simProjectile.position.x += simProjectile.velocity.x * dt;
+      simProjectile.position.y += simProjectile.velocity.y * dt;
+      return simProjectile;
+    }
+
+    function buildGhostTrajectory() {
+      if (!state.isDragging || !state.dragPoint) {
+        state.ghostTrajectory = [];
+        return;
+      }
+
+      const velocity = getAimVelocity();
+      const simProjectile = createProjectile(state.launchPoint, velocity);
+      const points = [];
+
+      for (let i = 0; i < PREVIEW_STEPS; i += 1) {
+        stepSimulation(simProjectile, FIXED_DT);
+        points.push({ x: simProjectile.position.x, y: simProjectile.position.y });
+
+        if (hasProjectileHitPlanet(simProjectile) || hasProjectileLeftBounds(simProjectile) || hasProjectileReachedTarget(simProjectile)) {
+          break;
+        }
+      }
+
+      state.ghostTrajectory = points;
+    }
+
+    function hasProjectileHitPlanet(projectile) {
+      return state.planets.some((planet) => distance(projectile.position, planet) <= planet.radius + projectile.radius);
+    }
+
+    function hasProjectileLeftBounds(projectile) {
+      return projectile.position.x < -60 || projectile.position.x > state.width + 60 || projectile.position.y < -60 || projectile.position.y > state.height + 60;
+    }
+
+    function hasProjectileReachedTarget(projectile) {
+      return distance(projectile.position, state.target) <= state.target.radius + projectile.radius;
+    }
+
+    function resetCurrentLevel(message, tone) {
+      state.phase = "settled";
+      state.projectile = null;
+      state.ghostTrajectory = [];
+      state.isDragging = false;
+      state.dragPoint = null;
+      state.levelMessage = message;
+      state.statusTone = tone;
+      state.levelTimer = 1.05;
+      updateHud();
+    }
+
+    function advanceLevel() {
+      state.phase = "won";
+      state.projectile = null;
+      state.levelMessage = "Target reached";
+      state.statusTone = "success";
+      state.levelTimer = 1.15;
+      updateHud();
+    }
+
+    function launchProjectile() {
+      const velocity = getAimVelocity();
+      state.projectile = createProjectile(state.launchPoint, velocity);
+      state.phase = "flying";
+      state.trail = [{ x: state.launchPoint.x, y: state.launchPoint.y }];
+      state.ghostTrajectory = [];
+      state.levelMessage = "Flight active";
+      state.statusTone = "active";
+      updateHud();
+    }
+
+    function onPointerDown(event) {
+      if (state.phase !== "aiming") {
+        return;
+      }
+
+      const point = getCanvasPoint(event);
+      if (distance(point, state.launchPoint) > 56) {
+        return;
+      }
+
+      state.isDragging = true;
+      state.dragPoint = point;
+      state.aimVector = {
+        x: state.launchPoint.x - point.x,
+        y: state.launchPoint.y - point.y
+      };
+      buildGhostTrajectory();
+    }
+
+    function onPointerMove(event) {
+      if (!state.isDragging || state.phase !== "aiming") {
+        return;
+      }
+
+      const point = getCanvasPoint(event);
+      const dx = point.x - state.launchPoint.x;
+      const dy = point.y - state.launchPoint.y;
+      const dragDistance = Math.hypot(dx, dy);
+      const limitedDistance = Math.min(dragDistance, MAX_POWER);
+      const angle = Math.atan2(dy, dx);
+      const limitedPoint = {
+        x: state.launchPoint.x + Math.cos(angle) * limitedDistance,
+        y: state.launchPoint.y + Math.sin(angle) * limitedDistance
+      };
+
+      state.dragPoint = limitedPoint;
+      state.aimVector = {
+        x: state.launchPoint.x - limitedPoint.x,
+        y: state.launchPoint.y - limitedPoint.y
+      };
+      buildGhostTrajectory();
+      updateHud();
+    }
+
+    function onPointerUp() {
+      if (!state.isDragging || state.phase !== "aiming") {
+        return;
+      }
+
+      state.isDragging = false;
+      if (Math.hypot(state.aimVector.x, state.aimVector.y) < 12) {
+        state.dragPoint = null;
+        state.ghostTrajectory = [];
+        state.aimVector = { x: 0, y: 0 };
+        updateHud();
+        return;
+      }
+
+      launchProjectile();
+    }
+
+    function updateFlight(dt) {
+      if (state.phase === "flying" && state.projectile) {
+        const steps = Math.max(1, Math.round(dt / FIXED_DT));
+        const substep = dt / steps;
+
+        for (let i = 0; i < steps; i += 1) {
+          stepSimulation(state.projectile, substep);
+          state.trail.push({ x: state.projectile.position.x, y: state.projectile.position.y });
+          if (state.trail.length > MAX_TRAIL_POINTS) {
+            state.trail.shift();
+          }
+
+          if (hasProjectileReachedTarget(state.projectile)) {
+            advanceLevel();
+            break;
+          }
+
+          if (hasProjectileHitPlanet(state.projectile)) {
+            resetCurrentLevel("Impact detected", "danger");
+            break;
+          }
+
+          if (hasProjectileLeftBounds(state.projectile)) {
+            resetCurrentLevel("Lost in deep space", "danger");
+            break;
+          }
+        }
+      } else if ((state.phase === "settled" || state.phase === "won") && state.levelTimer > 0) {
+        state.levelTimer -= dt;
+        if (state.levelTimer <= 0) {
+          if (state.phase === "won") {
+            state.level += 1;
+          }
+          generateLevel(state.level);
+        }
+      }
+    }
+
+    function drawBackgroundStars() {
+      for (let i = 0; i < 80; i += 1) {
+        const x = (i * 139) % state.width;
+        const y = (i * 283) % state.height;
+        const alpha = 0.18 + ((i * 17) % 10) / 24;
+        ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+        ctx.fillRect(x, y, 2, 2);
+      }
+    }
+
+    function drawGravityWells(planet) {
+      for (let ring = 3; ring >= 1; ring -= 1) {
+        const radius = planet.radius + ring * 28;
+        ctx.beginPath();
+        ctx.arc(planet.x, planet.y, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(122, 215, 255, ${0.05 + ring * 0.035})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      const gradient = ctx.createRadialGradient(planet.x, planet.y, planet.radius * 0.2, planet.x, planet.y, planet.radius * 2.2);
+      gradient.addColorStop(0, `${planet.color}cc`);
+      gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(planet.x, planet.y, planet.radius * 2.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawPlanets() {
+      for (const planet of state.planets) {
+        drawGravityWells(planet);
+        const core = ctx.createRadialGradient(planet.x - planet.radius * 0.35, planet.y - planet.radius * 0.4, 4, planet.x, planet.y, planet.radius);
+        core.addColorStop(0, "#ffffff");
+        core.addColorStop(0.2, planet.color);
+        core.addColorStop(1, "rgba(13, 18, 34, 0.94)");
+        ctx.fillStyle = core;
+        ctx.beginPath();
+        ctx.arc(planet.x, planet.y, planet.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawTarget() {
+      ctx.save();
+      ctx.translate(state.target.x, state.target.y);
+      ctx.strokeStyle = "rgba(255, 212, 108, 0.95)";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(0, 0, state.target.radius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, 0, state.target.radius - 12, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255, 212, 108, 0.12)";
+      ctx.beginPath();
+      ctx.arc(0, 0, state.target.radius - 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawLaunchPad() {
+      ctx.strokeStyle = "rgba(122, 215, 255, 0.95)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(state.launchPoint.x, state.launchPoint.y, 28, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(state.launchPoint.x, state.launchPoint.y, 12, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(122, 215, 255, 0.12)";
+      ctx.beginPath();
+      ctx.arc(state.launchPoint.x, state.launchPoint.y, 28, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawTrajectoryPreview() {
+      if (state.ghostTrajectory.length < 2) {
+        return;
+      }
+
+      ctx.save();
+      ctx.setLineDash([10, 10]);
+      ctx.strokeStyle = "rgba(122, 215, 255, 0.78)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(state.launchPoint.x, state.launchPoint.y);
+      for (const point of state.ghostTrajectory) {
+        ctx.lineTo(point.x, point.y);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawAimVector() {
+      if (!state.isDragging || !state.dragPoint) {
+        return;
+      }
+
+      ctx.strokeStyle = "rgba(255,255,255,0.8)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(state.launchPoint.x, state.launchPoint.y);
+      ctx.lineTo(state.dragPoint.x, state.dragPoint.y);
+      ctx.stroke();
+    }
+
+    function drawTrailRendering() {
+      if (state.trail.length < 2) {
+        return;
+      }
+
+      ctx.save();
+      ctx.lineWidth = 3;
+      for (let i = 1; i < state.trail.length; i += 1) {
+        const prev = state.trail[i - 1];
+        const point = state.trail[i];
+        const alpha = i / state.trail.length;
+        ctx.strokeStyle = `rgba(122, 215, 255, ${alpha * 0.9})`;
+        ctx.beginPath();
+        ctx.moveTo(prev.x, prev.y);
+        ctx.lineTo(point.x, point.y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawProjectile() {
+      if (!state.projectile) {
+        return;
+      }
+
+      const { x, y } = state.projectile.position;
+      ctx.save();
+      ctx.translate(x, y);
+      const angle = Math.atan2(state.projectile.velocity.y, state.projectile.velocity.x);
+      ctx.rotate(angle);
+      ctx.fillStyle = "#f7fbff";
+      ctx.beginPath();
+      ctx.moveTo(12, 0);
+      ctx.lineTo(-10, -7);
+      ctx.lineTo(-4, 0);
+      ctx.lineTo(-10, 7);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "rgba(122, 215, 255, 0.75)";
+      ctx.beginPath();
+      ctx.moveTo(-8, 0);
+      ctx.lineTo(-16, -4);
+      ctx.lineTo(-16, 4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawMessage() {
+      ctx.save();
+      ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+      ctx.font = `${Math.max(20, Math.round(state.width * 0.02))}px Trebuchet MS`;
+      ctx.fillText(state.levelMessage, 26, 40);
+      ctx.fillStyle = "rgba(144, 165, 192, 0.9)";
+      ctx.font = `${Math.max(15, Math.round(state.width * 0.013))}px Trebuchet MS`;
+      ctx.fillText("Aim from the left ring and use the wells to bend into the golden target.", 26, 66);
+      ctx.restore();
+    }
+
+    function drawStatusBanner() {
+      if (state.phase !== "settled" && state.phase !== "won") {
+        return;
+      }
+
+      const toneColor = state.statusTone === "success" ? "rgba(137, 240, 168, 0.92)" : "rgba(255, 125, 125, 0.92)";
+      ctx.save();
+      ctx.fillStyle = "rgba(3, 8, 16, 0.78)";
+      ctx.fillRect(state.width * 0.3, state.height * 0.38, state.width * 0.4, state.height * 0.16);
+      ctx.strokeStyle = toneColor;
+      ctx.lineWidth = 3;
+      ctx.strokeRect(state.width * 0.3, state.height * 0.38, state.width * 0.4, state.height * 0.16);
+      ctx.fillStyle = toneColor;
+      ctx.font = `${Math.max(24, Math.round(state.width * 0.024))}px Trebuchet MS`;
+      ctx.textAlign = "center";
+      ctx.fillText(state.levelMessage, state.width * 0.5, state.height * 0.455);
+      ctx.fillStyle = "rgba(237, 245, 255, 0.9)";
+      ctx.font = `${Math.max(16, Math.round(state.width * 0.014))}px Trebuchet MS`;
+      ctx.fillText(state.phase === "won" ? "Generating next orbit..." : "Resetting current layout...", state.width * 0.5, state.height * 0.495);
+      ctx.restore();
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, state.width, state.height);
+      drawBackgroundStars();
+      drawTarget();
+      drawPlanets();
+      drawLaunchPad();
+      drawTrajectoryPreview();
+      drawAimVector();
+      drawTrailRendering();
+      drawProjectile();
+      drawMessage();
+      drawStatusBanner();
+    }
+
+    let lastFrame = performance.now();
+    function gameLoop(now) {
+      const dt = Math.min(1 / 30, (now - lastFrame) / 1000);
+      lastFrame = now;
+      updateFlight(dt);
+      render();
+      requestAnimationFrame(gameLoop);
+    }
+
+    canvas.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("resize", resizeCanvas);
+
+    resizeCanvas();
+    generateLevel(1);
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>

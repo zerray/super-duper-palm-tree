@@ -88,3 +88,14 @@ This repository contains a simple agent-factory workflow for planning and comple
 - 随时间提升滚动速度与音符密度，失误达到上限后显示结算界面
 
 直接用浏览器打开 `rhythm-tap/index.html` 即可游玩。
+
+## Orbital Slingshot
+
+新增 `slingshot-game/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的重力弹弓物理玩具，包含：
+
+- 至少 3 个程序化生成的行星与可视化引力井
+- 拖拽瞄准发射飞船，实时受牛顿引力影响弯折飞行
+- 发射前幽灵轨迹预览，以及发射后的完整拖尾渲染
+- 抵达目标区后自动进入下一关，并增加行星数量
+
+直接用浏览器打开 `slingshot-game/index.html` 即可游玩。
