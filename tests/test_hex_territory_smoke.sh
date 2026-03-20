@@ -13,12 +13,13 @@ fail() {
 [ -f "$app_file" ] || fail "hex-territory/index.html is missing"
 
 grep -q '<svg id="board"' "$app_file" || fail "svg board missing"
-grep -q 'const CONFIG = {' "$app_file" || fail "config missing"
-grep -q 'getMoveCost(col, row, owner)' "$app_file" || fail "move cost logic missing"
-grep -q 'function pickAiMove()' "$app_file" || fail "AI move picker missing"
-grep -q 'neighborScore: countOwnedNeighbors(col, row, "ai")' "$app_file" || fail "greedy AI heuristic missing"
-grep -q 'Player jump points:' "$app_file" || fail "jump point UI missing"
-grep -q 'Hex Territory Capture' "$app_file" || fail "game title missing"
-grep -q 'Hover to preview whether the move is free or costs 1 point' "$app_file" || fail "hover guidance missing"
+grep -q 'const BOARD_RADIUS = 6;' "$app_file" || fail "board radius missing"
+grep -q 'function findClusterAndLiberties' "$app_file" || fail "capture flood fill missing"
+grep -q 'function applyCaptures' "$app_file" || fail "capture application missing"
+grep -q 'function chooseAiMove()' "$app_file" || fail "AI move picker missing"
+grep -q 'captures === bestMove.captures && adjacency > bestMove.adjacency' "$app_file" || fail "greedy AI tiebreak missing"
+grep -q 'window.setTimeout(takeAiTurn, AI_DELAY_MS)' "$app_file" || fail "AI delay missing"
+grep -q 'Hex Territory Strategy' "$app_file" || fail "game title missing"
+grep -q 'captured and changes color' "$app_file" || fail "capture rules text missing"
 
 printf 'hex territory smoke test passed\n'

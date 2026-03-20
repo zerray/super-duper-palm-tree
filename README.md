@@ -70,10 +70,10 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 新增 `hex-territory/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的回合制六边形领土争夺游戏，包含：
 
-- 默认 7x7 六边形棋盘与 SVG 渲染
-- 相邻扩张免费，跨区跳跃消耗 jump point
-- 使用贪心启发式的简单 AI 对手
-- 实时显示双方领地数量、剩余 jump points、当前回合与胜负结果
+- 约 127 格的小型六边形棋盘与 SVG 渲染
+- 点击空白六边形落子，被完全包围的敌方连通块会被翻转占领
+- 使用“优先最大化吃子，其次最大化己方邻接数”的贪心 AI 对手
+- 棋盘填满后自动结算胜负，并支持 `New Game` 立即重开
 
 直接用浏览器打开 `hex-territory/index.html` 即可游玩。
 
