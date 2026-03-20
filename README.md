@@ -76,3 +76,14 @@ This repository contains a simple agent-factory workflow for planning and comple
 - 实时显示双方领地数量、剩余 jump points、当前回合与胜负结果
 
 直接用浏览器打开 `hex-territory/index.html` 即可游玩。
+
+## Gem Mine Clicker
+
+新增 `gem-mine-clicker/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的放置增量点击游戏，包含：
+
+- 点击矿脉获取 gems，并带有粒子爆发和浮动数值反馈
+- 至少 4 种可购买升级，分别提升每次点击收益与被动每秒收益
+- Prestige 重置机制，重开后获得永久倍率加成
+- 使用 `localStorage` 持久化进度，刷新页面后继续游玩
+
+直接用浏览器打开 `gem-mine-clicker/index.html` 即可运行。
