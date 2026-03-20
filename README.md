@@ -76,3 +76,14 @@ This repository contains a simple agent-factory workflow for planning and comple
 - 实时显示双方领地数量、剩余 jump points、当前回合与胜负结果
 
 直接用浏览器打开 `hex-territory/index.html` 即可游玩。
+
+## Orbital Slingshot
+
+新增 `slingshot-game/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的重力弹弓物理玩具，包含：
+
+- 每关 3 到 5 颗程序化行星与可视化引力井
+- 拖拽设定发射角度与力度，实时预览预测轨迹
+- 飞船受牛顿引力影响飞行，并保留完整尾迹
+- 命中目标区域后自动进入下一关
+
+直接用浏览器打开 `slingshot-game/index.html` 即可运行。
