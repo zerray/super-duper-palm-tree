@@ -205,7 +205,7 @@
   <div class="hud">
     <section class="panel">
       <h1>Gravity Well Sandbox</h1>
-      <p class="subtle">Left-click to place attractors, right-click to place repulsors, then let the particle stream bend into orbits, rebounds, and slingshots.</p>
+      <p class="subtle">Click to place attractors, Shift+click or right-click to place repulsors, then let the particle stream bend into orbits, rebounds, and slingshots. On touch screens, use the mode toggle.</p>
       <div class="controls">
         <label class="control-row" for="gravity-slider">
           <span class="control-head">
@@ -231,6 +231,7 @@
       </div>
       <div class="button-row">
         <button id="clear-button" type="button">Clear</button>
+        <button id="mode-button" class="secondary" type="button">Touch: Attractor</button>
         <button id="save-button" class="secondary" type="button">Save PNG</button>
       </div>
     </section>
@@ -270,9 +271,10 @@
     const repulsorCountLabel = document.getElementById("repulsor-count");
     const fpsReadout = document.getElementById("fps-readout");
     const clearButton = document.getElementById("clear-button");
+    const modeButton = document.getElementById("mode-button");
     const saveButton = document.getElementById("save-button");
 
-    const MAX_PARTICLES = 200;
+    const MAX_PARTICLES = 720;
     const MAX_SOURCES = 24;
     const PARTICLE_RADIUS = 2.2;
     const SOURCE_RADIUS = 16;
@@ -293,7 +295,8 @@
       lastFrame: 0,
       fpsAccumulator: 0,
       fpsFrames: 0,
-      fps: 0
+      fps: 0,
+      touchPolarity: 1
     };
 
     function clamp(value, min, max) {
@@ -317,6 +320,7 @@
       gravityValue.textContent = `${getGravityStrength().toFixed(2)}x`;
       spawnValue.textContent = `${getSpawnRate()}/s`;
       trailValue.textContent = `${trailSlider.value}%`;
+      modeButton.textContent = `Touch: ${state.touchPolarity > 0 ? "Attractor" : "Repulsor"}`;
       particleCountLabel.textContent = String(state.particles.length);
       attractorCountLabel.textContent = String(state.sources.filter((source) => source.polarity > 0).length);
       repulsorCountLabel.textContent = String(state.sources.filter((source) => source.polarity < 0).length);
@@ -597,7 +601,7 @@
 
     canvas.addEventListener("click", (event) => {
       const { x, y } = getPointerPosition(event);
-      addSource(x, y, 1);
+      addSource(x, y, event.shiftKey ? -1 : 1);
     });
 
     canvas.addEventListener("contextmenu", (event) => {
@@ -606,11 +610,25 @@
       addSource(x, y, -1);
     });
 
+    canvas.addEventListener("touchstart", (event) => {
+      event.preventDefault();
+      const touch = event.changedTouches[0];
+      if (!touch) {
+        return;
+      }
+      const { x, y } = getPointerPosition(touch);
+      addSource(x, y, state.touchPolarity);
+    }, { passive: false });
+
     [gravitySlider, spawnSlider, trailSlider].forEach((input) => {
       input.addEventListener("input", updateLabels);
     });
 
     clearButton.addEventListener("click", clearScene);
+    modeButton.addEventListener("click", () => {
+      state.touchPolarity *= -1;
+      updateLabels();
+    });
     saveButton.addEventListener("click", saveScreenshot);
     window.addEventListener("resize", resize);
 
