@@ -3,28 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hex Colony</title>
+  <title>Hex Colony: One-Page Strategy Sandbox</title>
   <style>
     :root {
-      --bg: #f4efe3;
-      --panel: rgba(255, 250, 240, 0.92);
-      --panel-border: rgba(73, 56, 38, 0.16);
-      --ink: #2f2419;
-      --muted: #6d5e4d;
-      --neutral: #e6dcc4;
-      --neutral-edge: #af9d80;
-      --territory: #d7efe2;
-      --territory-edge: #4f8967;
-      --farm: #f3d87b;
-      --tower: #8aa0d9;
-      --wall: #b8997e;
-      --settlement: #f29b6f;
-      --blight: #7c4d8f;
-      --blight-edge: #472453;
-      --highlight: #f3c15d;
-      --button: #567d57;
-      --button-dark: #3b5d3d;
-      --danger: #a44848;
+      --bg: #f1ead8;
+      --panel: rgba(255, 250, 240, 0.94);
+      --panel-border: rgba(75, 61, 44, 0.16);
+      --ink: #2c241d;
+      --muted: #6d5d4f;
+      --accent: #c86f34;
+      --accent-deep: #8f4420;
+      --line: #7a654d;
+      --empty: #e8dcc4;
+      --forest: #5f8d4e;
+      --farm: #d9b34b;
+      --village: #d7775a;
+      --mine: #6d7484;
+      --lake: #5a95c7;
+      --synergy: #f4d77e;
+      --win: #4d8f61;
+      --lose: #a95246;
     }
 
     * {
@@ -34,12 +32,11 @@
     body {
       margin: 0;
       min-height: 100vh;
-      padding: 20px;
       font-family: "Trebuchet MS", "Segoe UI", sans-serif;
       color: var(--ink);
       background:
-        radial-gradient(circle at top, rgba(255, 255, 255, 0.72), transparent 28%),
-        linear-gradient(180deg, #faf5ea 0%, var(--bg) 100%);
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.72), transparent 34%),
+        linear-gradient(180deg, #fbf5e8 0%, var(--bg) 100%);
     }
 
     button {
@@ -48,8 +45,9 @@
     }
 
     .app {
-      width: min(1220px, 100%);
+      width: min(1220px, calc(100% - 24px));
       margin: 0 auto;
+      padding: 16px 0 24px;
       display: grid;
       grid-template-columns: minmax(0, 1.5fr) minmax(280px, 360px);
       gap: 18px;
@@ -60,12 +58,12 @@
       background: var(--panel);
       border: 1px solid var(--panel-border);
       border-radius: 24px;
-      box-shadow: 0 18px 36px rgba(47, 36, 25, 0.1);
-      backdrop-filter: blur(12px);
+      box-shadow: 0 18px 36px rgba(44, 36, 29, 0.11);
+      backdrop-filter: blur(10px);
     }
 
     .surface {
-      padding: 24px;
+      padding: 20px;
     }
 
     .panel {
@@ -82,200 +80,322 @@
     }
 
     h1 {
-      font-size: clamp(2.4rem, 5vw, 4.2rem);
-      line-height: 0.92;
+      font-size: clamp(2.4rem, 5vw, 4rem);
+      line-height: 0.94;
       letter-spacing: -0.05em;
       max-width: 8ch;
     }
 
     .lede {
-      margin-top: 12px;
+      margin-top: 10px;
+      max-width: 64ch;
       color: var(--muted);
       line-height: 1.5;
-      max-width: 60ch;
     }
 
     .hud {
       margin-top: 18px;
-      display: flex;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 10px;
     }
 
     .chip {
-      padding: 10px 14px;
-      border-radius: 999px;
-      border: 1px solid rgba(73, 56, 38, 0.12);
-      background: rgba(255, 255, 255, 0.72);
+      padding: 11px 12px;
+      border-radius: 18px;
+      border: 1px solid rgba(75, 61, 44, 0.12);
+      background: rgba(255, 255, 255, 0.74);
       color: var(--muted);
       font-size: 0.95rem;
     }
 
     .chip strong {
+      display: block;
+      margin-top: 4px;
       color: var(--ink);
+      font-size: 1.15rem;
     }
 
     .board-wrap {
+      position: relative;
       margin-top: 18px;
-      padding: 16px;
+      padding: 12px;
       border-radius: 20px;
-      border: 1px solid rgba(73, 56, 38, 0.1);
+      border: 1px solid rgba(75, 61, 44, 0.1);
       background:
-        radial-gradient(circle at top, rgba(255, 255, 255, 0.75), rgba(242, 233, 217, 0.95)),
-        repeating-linear-gradient(135deg, rgba(73, 56, 38, 0.03) 0 14px, transparent 14px 28px);
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.76), rgba(242, 233, 217, 0.96)),
+        repeating-linear-gradient(135deg, rgba(75, 61, 44, 0.035) 0 14px, transparent 14px 28px);
+      overflow: hidden;
+    }
+
+    #burst-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
     }
 
     svg {
       display: block;
       width: 100%;
       height: auto;
+      touch-action: manipulation;
     }
 
     .hex {
-      stroke: var(--neutral-edge);
-      stroke-width: 1.5;
-      fill: var(--neutral);
-      transition: fill 120ms ease, stroke 120ms ease, transform 120ms ease;
+      fill: var(--empty);
+      stroke: var(--line);
+      stroke-width: 1.6;
+      transition: transform 120ms ease, fill 120ms ease, stroke 120ms ease, opacity 120ms ease;
     }
 
-    .hex.territory {
-      fill: var(--territory);
-      stroke: var(--territory-edge);
-      stroke-width: 2;
+    .hex.playable {
+      fill: #f4ead2;
+      stroke: var(--accent);
+      stroke-width: 2.6;
     }
 
-    .hex.blight {
-      fill: var(--blight);
-      stroke: var(--blight-edge);
-      stroke-width: 2.4;
+    .hex.hovered {
+      transform: translateY(-2px);
+      filter: brightness(1.04);
     }
 
-    .hex.highlight {
-      fill: #f8e6af;
-      stroke: var(--highlight);
-      stroke-width: 3;
-    }
+    .hex.forest { fill: var(--forest); }
+    .hex.farm { fill: var(--farm); }
+    .hex.village { fill: var(--village); }
+    .hex.mine { fill: var(--mine); }
+    .hex.lake { fill: var(--lake); }
 
-    .hex.blocked {
-      cursor: default;
-    }
-
-    .glyph {
-      font-size: 16px;
+    .hex-text,
+    .hex-coord {
+      pointer-events: none;
       text-anchor: middle;
+    }
+
+    .hex-text {
+      font-size: 18px;
       dominant-baseline: middle;
+    }
+
+    .hex-coord {
+      font-size: 8px;
+      fill: rgba(44, 36, 29, 0.45);
+      dominant-baseline: hanging;
+    }
+
+    .synergy-line {
+      stroke: var(--synergy);
+      stroke-width: 5;
+      stroke-linecap: round;
+      opacity: 0;
+      animation: pulse-line 1.1s ease-out forwards;
       pointer-events: none;
     }
 
-    .cell-label {
-      font-size: 9px;
-      fill: rgba(47, 36, 25, 0.58);
-      text-anchor: middle;
-      dominant-baseline: hanging;
+    .score-burst {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      font-weight: 700;
+      color: var(--accent-deep);
+      background: rgba(255, 247, 219, 0.94);
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(143, 68, 32, 0.22);
+      box-shadow: 0 10px 18px rgba(44, 36, 29, 0.12);
       pointer-events: none;
+      animation: float-up 1.25s ease-out forwards;
+    }
+
+    @keyframes pulse-line {
+      0% { opacity: 0; }
+      20% { opacity: 1; }
+      70% { opacity: 0.8; }
+      100% { opacity: 0; }
+    }
+
+    @keyframes float-up {
+      0% { opacity: 0; transform: translate(-50%, -20%); }
+      18% { opacity: 1; transform: translate(-50%, -50%); }
+      100% { opacity: 0; transform: translate(-50%, -130%); }
     }
 
     .card {
       display: grid;
-      gap: 10px;
+      gap: 12px;
       padding: 14px;
       border-radius: 18px;
-      border: 1px solid rgba(73, 56, 38, 0.1);
-      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(75, 61, 44, 0.1);
+      background: rgba(255, 255, 255, 0.76);
     }
 
     .muted {
       color: var(--muted);
       line-height: 1.45;
-      font-size: 0.94rem;
+      font-size: 0.95rem;
     }
 
-    .controls {
+    .tile-draw {
       display: grid;
       gap: 10px;
     }
 
-    .build-row {
+    .tile-options {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
+      gap: 10px;
     }
 
-    .build-button,
-    .reset-button {
-      min-height: 50px;
-      border: 0;
+    .tile-option {
+      width: 100%;
+      padding: 12px;
+      text-align: left;
       border-radius: 16px;
-      color: #f9f5ee;
-      background: linear-gradient(180deg, var(--button), var(--button-dark));
-      box-shadow: 0 10px 16px rgba(59, 93, 61, 0.2);
+      border: 2px solid transparent;
+      background: #fff8ee;
+      color: var(--ink);
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 8px 14px rgba(44, 36, 29, 0.08);
     }
 
-    .build-button.active {
-      outline: 3px solid rgba(243, 193, 93, 0.7);
+    .tile-option.active {
+      border-color: var(--accent);
       transform: translateY(-1px);
     }
 
-    .reset-button {
-      background: linear-gradient(180deg, #aa6661, var(--danger));
-      box-shadow: 0 10px 16px rgba(164, 72, 72, 0.22);
+    .tile-swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(44, 36, 29, 0.18);
+    }
+
+    .tile-meta strong {
+      display: block;
+      font-size: 1rem;
+    }
+
+    .tile-meta span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.88rem;
+      margin-top: 2px;
     }
 
     .status {
       min-height: 4.2em;
       color: var(--muted);
-      line-height: 1.45;
+      line-height: 1.48;
+    }
+
+    .synergy-log {
+      min-height: 3.8em;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(244, 215, 126, 0.24);
+      color: #6f5422;
+      font-size: 0.92rem;
+      line-height: 1.42;
     }
 
     .legend {
       display: grid;
       gap: 8px;
       color: var(--muted);
-      font-size: 0.93rem;
+      font-size: 0.92rem;
     }
 
     .legend-item {
       display: flex;
-      align-items: center;
       gap: 10px;
+      align-items: flex-start;
     }
 
-    .swatch {
-      width: 18px;
-      height: 18px;
-      border-radius: 999px;
-      border: 1px solid rgba(47, 36, 25, 0.18);
+    .rules-grid {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.92rem;
     }
 
-    .swatch.territory {
-      background: var(--territory);
-      border-color: var(--territory-edge);
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
     }
 
-    .swatch.farm {
-      background: var(--farm);
+    .button {
+      border: 0;
+      border-radius: 16px;
+      padding: 12px 16px;
+      color: #fbf6ef;
+      background: linear-gradient(180deg, var(--accent), var(--accent-deep));
+      box-shadow: 0 10px 18px rgba(143, 68, 32, 0.22);
     }
 
-    .swatch.tower {
-      background: var(--tower);
+    .button.secondary {
+      background: linear-gradient(180deg, #738673, #536653);
+      box-shadow: 0 10px 18px rgba(83, 102, 83, 0.2);
     }
 
-    .swatch.wall {
-      background: var(--wall);
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      background: rgba(31, 25, 19, 0.42);
+      padding: 20px;
     }
 
-    .swatch.blight {
-      background: var(--blight);
-      border-color: var(--blight-edge);
+    .overlay.show {
+      display: grid;
     }
+
+    .overlay-card {
+      width: min(460px, 100%);
+      padding: 24px;
+      border-radius: 24px;
+      background: rgba(255, 249, 239, 0.98);
+      border: 1px solid rgba(75, 61, 44, 0.14);
+      box-shadow: 0 22px 48px rgba(31, 25, 19, 0.22);
+      display: grid;
+      gap: 14px;
+    }
+
+    .overlay-card.win h2 { color: var(--win); }
+    .overlay-card.lose h2 { color: var(--lose); }
 
     @media (max-width: 920px) {
-      body {
+      .app {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .app {
+        width: min(100%, calc(100% - 12px));
+        padding-top: 10px;
+      }
+
+      .surface,
+      .panel {
+        border-radius: 18px;
+      }
+
+      .surface {
         padding: 14px;
       }
 
-      .app {
-        grid-template-columns: 1fr;
+      .panel {
+        padding: 14px;
+      }
+
+      .hud {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .board-wrap {
+        padding: 8px;
       }
     }
   </style>
@@ -284,102 +404,136 @@
   <div class="app">
     <main class="surface">
       <h1>Hex Colony</h1>
-      <p class="lede">Grow a tiny kingdom one hex at a time. Farms fund expansion, towers claim nearby land after two turns, and walls are the only reliable answer when blight creeps in from the rim.</p>
+      <p class="lede">Place random terrain tiles onto an expanding hex board, chain adjacency synergies, and push your population past the target before your placements run out.</p>
+
       <div class="hud">
-        <div class="chip">Turn <strong id="turn-display">1</strong></div>
-        <div class="chip">Gold <strong id="gold-display">5</strong></div>
-        <div class="chip">Territory <strong id="territory-display">1 / 50</strong></div>
-        <div class="chip">Blight <strong id="blight-display">6</strong></div>
+        <div class="chip">Score<strong id="score-display">0</strong></div>
+        <div class="chip">Target<strong id="target-display">48</strong></div>
+        <div class="chip">Placements Left<strong id="placements-display">18</strong></div>
+        <div class="chip">Draw Size<strong id="draw-display">0</strong></div>
       </div>
+
       <div class="board-wrap">
-        <svg id="board" viewBox="0 0 1200 980" aria-label="Hex colony board"></svg>
+        <svg id="board" viewBox="0 0 900 760" aria-label="Hex colony board"></svg>
+        <div id="burst-layer" aria-hidden="true"></div>
       </div>
     </main>
 
     <aside class="panel">
-      <section class="card">
-        <h2>Build</h2>
-        <p class="muted">Choose one structure, then click an empty hex adjacent to your territory. Every placement ends the turn.</p>
+      <section class="card tile-draw">
+        <h2>Turn Draw</h2>
+        <p class="muted">Each turn deals a random hand of 2-3 terrain tiles. Pick one tile, then tap or click any empty playable hex.</p>
+        <div class="tile-options" id="tile-options"></div>
         <div class="controls">
-          <div class="build-row">
-            <button class="build-button active" data-build="farm" type="button">Farm<br>2g</button>
-            <button class="build-button" data-build="tower" type="button">Tower<br>3g</button>
-            <button class="build-button" data-build="wall" type="button">Wall<br>1g</button>
-          </div>
-          <button class="reset-button" id="reset-button" type="button">Restart Colony</button>
+          <button class="button secondary" id="new-game-button" type="button">New Game</button>
         </div>
       </section>
 
       <section class="card">
         <h2>Status</h2>
-        <p class="status" id="status-text">Place your first tile next to the settlement. Reach 50 controlled hexes before blight reaches home.</p>
+        <p class="status" id="status-text">Select a tile from the draw, then place it on the highlighted frontier.</p>
+        <div class="synergy-log" id="synergy-log">Adjacency bonuses appear here after each placement.</div>
       </section>
 
       <section class="card">
-        <h2>Rules</h2>
+        <h2>Terrain Rules</h2>
         <div class="legend">
-          <div class="legend-item"><span class="swatch territory"></span>Owned empty territory can still be consumed by blight.</div>
-          <div class="legend-item"><span class="swatch farm"></span>Farms earn 1 gold at the end of every turn.</div>
-          <div class="legend-item"><span class="swatch tower"></span>Towers convert adjacent neutral hexes to player territory after 2 turns.</div>
-          <div class="legend-item"><span class="swatch wall"></span>Walls stop blight from entering that hex.</div>
-          <div class="legend-item"><span class="swatch blight"></span>Blight spreads from the edges every 3 turns.</div>
+          <div class="legend-item"><span class="tile-swatch" style="background: var(--forest);"></span><span><strong>Forest</strong> grants +2 lumber with Village and +1 growth when paired with Forest.</span></div>
+          <div class="legend-item"><span class="tile-swatch" style="background: var(--farm);"></span><span><strong>Farm</strong> gains +3 food by Lake and +2 growth by Village.</span></div>
+          <div class="legend-item"><span class="tile-swatch" style="background: var(--village);"></span><span><strong>Village</strong> gains +2 lumber by Forest, +2 growth by Farm, and +3 ore trade by Mine.</span></div>
+          <div class="legend-item"><span class="tile-swatch" style="background: var(--mine);"></span><span><strong>Mine</strong> gains +3 ore trade by Village and +2 springs by Lake.</span></div>
+          <div class="legend-item"><span class="tile-swatch" style="background: var(--lake);"></span><span><strong>Lake</strong> feeds Farms and cools Mines for bonus value.</span></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Sandbox Rules</h2>
+        <div class="rules-grid">
+          <div>Board radius uses cube coordinates for six-way adjacency.</div>
+          <div>Tiles can be placed on any empty hex that touches your colony.</div>
+          <div>Synergy connections flash between the new tile and matching neighbors.</div>
+          <div>Reach the target population score before the placement limit ends.</div>
         </div>
       </section>
     </aside>
   </div>
 
+  <div class="overlay" id="end-overlay" aria-live="polite">
+    <div class="overlay-card" id="overlay-card">
+      <h2 id="overlay-title">Colony Complete</h2>
+      <p id="overlay-body"></p>
+      <div class="controls">
+        <button class="button" id="overlay-new-game" type="button">New Game</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    const BOARD_RADIUS = 7;
+    const BOARD_RADIUS = 4;
     const HEX_SIZE = 34;
     const SQRT3 = Math.sqrt(3);
-    const STARTING_GOLD = 5;
-    const TARGET_TERRITORY = 50;
-    const BLIGHT_INTERVAL = 3;
-    const TILE_COSTS = { farm: 2, tower: 3, wall: 1 };
-    const TILE_GLYPHS = { settlement: "🏠", farm: "🌾", tower: "🗼", wall: "🧱", blight: "☠" };
+    const MAX_PLACEMENTS = 18;
+    const TARGET_SCORE = 48;
+    const TILE_LIBRARY = {
+      forest: { name: "Forest", icon: "🌲", color: "forest", weight: 5, baseScore: 2 },
+      farm: { name: "Farm", icon: "🌾", color: "farm", weight: 5, baseScore: 2 },
+      village: { name: "Village", icon: "🏠", color: "village", weight: 4, baseScore: 3 },
+      mine: { name: "Mine", icon: "⛏", color: "mine", weight: 3, baseScore: 3 },
+      lake: { name: "Lake", icon: "💧", color: "lake", weight: 3, baseScore: 2 }
+    };
+    const SYNERGY_RULES = {
+      "farm|lake": { points: 3, label: "Food surge" },
+      "village|forest": { points: 2, label: "Lumber route" },
+      "mine|village": { points: 3, label: "Ore market" },
+      "forest|forest": { points: 1, label: "Canopy growth" },
+      "farm|village": { points: 2, label: "Population boom" },
+      "mine|lake": { points: 2, label: "Cool springs" }
+    };
     const DIRECTIONS = [
-      [1, 0],
-      [1, -1],
-      [0, -1],
-      [-1, 0],
-      [-1, 1],
-      [0, 1]
+      [1, 0, -1],
+      [1, -1, 0],
+      [0, -1, 1],
+      [-1, 0, 1],
+      [-1, 1, 0],
+      [0, 1, -1]
     ];
 
     const board = document.getElementById("board");
-    const turnDisplay = document.getElementById("turn-display");
-    const goldDisplay = document.getElementById("gold-display");
-    const territoryDisplay = document.getElementById("territory-display");
-    const blightDisplay = document.getElementById("blight-display");
+    const tileOptions = document.getElementById("tile-options");
     const statusText = document.getElementById("status-text");
-    const buildButtons = Array.from(document.querySelectorAll(".build-button"));
-    const resetButton = document.getElementById("reset-button");
+    const synergyLog = document.getElementById("synergy-log");
+    const scoreDisplay = document.getElementById("score-display");
+    const targetDisplay = document.getElementById("target-display");
+    const placementsDisplay = document.getElementById("placements-display");
+    const drawDisplay = document.getElementById("draw-display");
+    const burstLayer = document.getElementById("burst-layer");
+    const newGameButton = document.getElementById("new-game-button");
+    const endOverlay = document.getElementById("end-overlay");
+    const overlayCard = document.getElementById("overlay-card");
+    const overlayTitle = document.getElementById("overlay-title");
+    const overlayBody = document.getElementById("overlay-body");
+    const overlayNewGame = document.getElementById("overlay-new-game");
 
-    let selectedBuild = "farm";
-    let hoverKey = null;
-    let state = null;
     let boardCells = [];
     let boardLookup = new Map();
-    let edgeKeys = [];
+    let state = null;
+    let hoveredKey = null;
+    let feedbackTimer = 0;
 
-    function keyFor(q, r) {
-      return `${q},${r}`;
+    function keyFor(q, r, s) {
+      return `${q},${r},${s}`;
     }
 
     function parseKey(key) {
-      const [q, r] = key.split(",").map(Number);
-      return { q, r };
+      const [q, r, s] = key.split(",").map(Number);
+      return { q, r, s };
     }
 
-    function axialDistance(q, r) {
-      return Math.max(Math.abs(q), Math.abs(r), Math.abs(-q - r));
+    function cubeDistance(q, r, s) {
+      return Math.max(Math.abs(q), Math.abs(r), Math.abs(s));
     }
 
-    function getNeighbors(q, r) {
-      return DIRECTIONS.map(([dq, dr]) => ({ q: q + dq, r: r + dr }));
-    }
-
-    function axialToPixel(q, r) {
+    function cubeToPixel(q, r) {
       return {
         x: HEX_SIZE * SQRT3 * (q + r / 2),
         y: HEX_SIZE * 1.5 * r
@@ -395,24 +549,32 @@
       return points.join(" ");
     }
 
+    function ruleKey(a, b) {
+      return [a, b].sort().join("|");
+    }
+
+    function getNeighbors(key) {
+      const { q, r, s } = parseKey(key);
+      return DIRECTIONS
+        .map(([dq, dr, ds]) => keyFor(q + dq, r + dr, s + ds))
+        .filter((neighborKey) => boardLookup.has(neighborKey));
+    }
+
     function createBoard() {
       boardCells = [];
       boardLookup = new Map();
-      edgeKeys = [];
 
       for (let q = -BOARD_RADIUS; q <= BOARD_RADIUS; q += 1) {
         for (let r = -BOARD_RADIUS; r <= BOARD_RADIUS; r += 1) {
-          if (axialDistance(q, r) > BOARD_RADIUS) {
+          const s = -q - r;
+          if (cubeDistance(q, r, s) > BOARD_RADIUS) {
             continue;
           }
-          const key = keyFor(q, r);
-          const coords = axialToPixel(q, r);
-          const cell = { key, q, r, ...coords };
+          const coords = cubeToPixel(q, r);
+          const key = keyFor(q, r, s);
+          const cell = { key, q, r, s, ...coords };
           boardCells.push(cell);
           boardLookup.set(key, cell);
-          if (axialDistance(q, r) === BOARD_RADIUS) {
-            edgeKeys.push(key);
-          }
         }
       }
 
@@ -421,331 +583,288 @@
       let maxX = -Infinity;
       let maxY = -Infinity;
       for (const cell of boardCells) {
-        minX = Math.min(minX, cell.x - HEX_SIZE - 12);
-        minY = Math.min(minY, cell.y - HEX_SIZE - 24);
-        maxX = Math.max(maxX, cell.x + HEX_SIZE + 12);
-        maxY = Math.max(maxY, cell.y + HEX_SIZE + 30);
+        minX = Math.min(minX, cell.x - HEX_SIZE - 16);
+        minY = Math.min(minY, cell.y - HEX_SIZE - 16);
+        maxX = Math.max(maxX, cell.x + HEX_SIZE + 16);
+        maxY = Math.max(maxY, cell.y + HEX_SIZE + 26);
       }
       board.setAttribute("viewBox", `${minX} ${minY} ${maxX - minX} ${maxY - minY}`);
+    }
+
+    function drawCountForTurn() {
+      return Math.random() < 0.58 ? 3 : 2;
+    }
+
+    function drawTiles() {
+      const draw = [];
+      const entries = Object.entries(TILE_LIBRARY);
+      const totalWeight = entries.reduce((sum, [, tile]) => sum + tile.weight, 0);
+      const handSize = drawCountForTurn();
+
+      while (draw.length < handSize) {
+        let roll = Math.random() * totalWeight;
+        for (const [type, tile] of entries) {
+          roll -= tile.weight;
+          if (roll <= 0) {
+            draw.push(type);
+            break;
+          }
+        }
+      }
+
+      return draw;
     }
 
     function createInitialState() {
       const cells = new Map();
       for (const cell of boardCells) {
-        cells.set(cell.key, { owner: null, structure: null, timer: 0, blight: false });
+        cells.set(cell.key, null);
       }
 
-      const center = cells.get("0,0");
-      center.owner = "player";
-      center.structure = "settlement";
-
-      // Seed blight on six edge spokes so the opening remains playable.
-      const blightSeeds = [
-        [BOARD_RADIUS, 0],
-        [0, BOARD_RADIUS],
-        [-BOARD_RADIUS, BOARD_RADIUS],
-        [-BOARD_RADIUS, 0],
-        [0, -BOARD_RADIUS],
-        [BOARD_RADIUS, -BOARD_RADIUS]
-      ];
-      for (const [q, r] of blightSeeds) {
-        const cell = cells.get(keyFor(q, r));
-        if (cell) {
-          cell.blight = true;
-          cell.owner = null;
-          cell.structure = null;
-          cell.timer = 0;
-        }
-      }
+      const centerKey = keyFor(0, 0, 0);
+      cells.set(centerKey, { type: "village", turnPlaced: 0 });
 
       return {
-        turn: 1,
-        gold: STARTING_GOLD,
         cells,
-        gameOver: false,
-        outcome: null
+        score: 3,
+        placementsLeft: MAX_PLACEMENTS,
+        draw: drawTiles(),
+        selectedTile: null,
+        lastSynergies: [],
+        synergyLines: [],
+        gameOver: false
       };
     }
 
-    function countTerritory() {
-      let total = 0;
-      for (const cell of state.cells.values()) {
-        if (cell.owner === "player" && !cell.blight) {
-          total += 1;
+    function isPlayableCell(key) {
+      if (state.gameOver || state.cells.get(key)) {
+        return false;
+      }
+      return getNeighbors(key).some((neighborKey) => state.cells.get(neighborKey));
+    }
+
+    function renderTileOptions() {
+      tileOptions.innerHTML = state.draw.map((type, index) => {
+        const tile = TILE_LIBRARY[type];
+        const active = state.selectedTile === type ? " active" : "";
+        return (
+          `<button class="tile-option${active}" type="button" data-type="${type}" aria-pressed="${state.selectedTile === type}">` +
+            `<span class="tile-swatch" style="background: var(--${tile.color});"></span>` +
+            `<span class="tile-meta"><strong>${tile.icon} ${tile.name}</strong><span>Base +${tile.baseScore}</span></span>` +
+            `<span>#${index + 1}</span>` +
+          `</button>`
+        );
+      }).join("");
+    }
+
+    function renderBoard() {
+      const lines = state.synergyLines.map((line) => (
+        `<line class="synergy-line" x1="${line.x1}" y1="${line.y1}" x2="${line.x2}" y2="${line.y2}"></line>`
+      )).join("");
+
+      const cells = boardCells.map((cell) => {
+        const tileState = state.cells.get(cell.key);
+        const tile = tileState ? TILE_LIBRARY[tileState.type] : null;
+        const classes = ["hex"];
+        if (tile) {
+          classes.push(tile.color);
+        } else if (isPlayableCell(cell.key)) {
+          classes.push("playable");
         }
-      }
-      return total;
-    }
-
-    function countBlight() {
-      let total = 0;
-      for (const cell of state.cells.values()) {
-        if (cell.blight) {
-          total += 1;
+        if (hoveredKey === cell.key && isPlayableCell(cell.key)) {
+          classes.push("hovered");
         }
-      }
-      return total;
+
+        return (
+          `<g data-key="${cell.key}">` +
+            `<polygon class="${classes.join(" ")}" points="${polygonPoints(cell.x, cell.y, HEX_SIZE)}"></polygon>` +
+            `<text class="hex-text" x="${cell.x}" y="${cell.y - 2}">${tile ? tile.icon : ""}</text>` +
+            `<text class="hex-coord" x="${cell.x}" y="${cell.y + 8}">${cell.q},${cell.r}</text>` +
+          `</g>`
+        );
+      }).join("");
+
+      board.innerHTML = `${lines}${cells}`;
     }
 
-    function isAdjacentToTerritory(q, r) {
-      return getNeighbors(q, r).some(({ q: nq, r: nr }) => {
-        const neighbor = state.cells.get(keyFor(nq, nr));
-        return neighbor && neighbor.owner === "player" && !neighbor.blight;
-      });
+    function updateHud() {
+      scoreDisplay.textContent = String(state.score);
+      targetDisplay.textContent = String(TARGET_SCORE);
+      placementsDisplay.textContent = String(state.placementsLeft);
+      drawDisplay.textContent = String(state.draw.length);
     }
 
-    function getCellColor(cell) {
-      if (cell.blight) {
-        return "hex blight blocked";
-      }
-      if (cell.owner === "player") {
-        return "hex territory";
-      }
-      return "hex";
+    function showBurst(cell, points) {
+      const viewBox = board.viewBox.baseVal;
+      const boardRect = board.getBoundingClientRect();
+      const scaleX = boardRect.width / viewBox.width;
+      const scaleY = boardRect.height / viewBox.height;
+      const left = (cell.x - viewBox.x) * scaleX;
+      const top = (cell.y - viewBox.y) * scaleY;
+      const burst = document.createElement("div");
+      burst.className = "score-burst";
+      burst.textContent = `+${points}`;
+      burst.style.left = `${left}px`;
+      burst.style.top = `${top}px`;
+      burstLayer.appendChild(burst);
+      window.setTimeout(() => burst.remove(), 1250);
     }
 
-    function getCellGlyph(cell) {
-      if (cell.blight) {
-        return TILE_GLYPHS.blight;
+    function calculatePlacement(type, targetKey) {
+      const targetCell = boardLookup.get(targetKey);
+      const synergies = [];
+      let totalPoints = TILE_LIBRARY[type].baseScore;
+
+      for (const neighborKey of getNeighbors(targetKey)) {
+        const neighborState = state.cells.get(neighborKey);
+        if (!neighborState) {
+          continue;
+        }
+        const match = SYNERGY_RULES[ruleKey(type, neighborState.type)];
+        if (!match) {
+          continue;
+        }
+        const neighborCell = boardLookup.get(neighborKey);
+        totalPoints += match.points;
+        synergies.push({
+          from: targetKey,
+          to: neighborKey,
+          x1: targetCell.x,
+          y1: targetCell.y,
+          x2: neighborCell.x,
+          y2: neighborCell.y,
+          points: match.points,
+          label: match.label,
+          neighborType: neighborState.type
+        });
       }
-      if (cell.structure) {
-        return TILE_GLYPHS[cell.structure];
-      }
-      return "";
+
+      return { totalPoints, synergies };
     }
 
-    function canPlaceTile(targetKey) {
+    function describeSynergies(type, synergies, totalPoints) {
+      if (!synergies.length) {
+        return `${TILE_LIBRARY[type].name} placed for +${totalPoints}. No adjacency bonus this turn.`;
+      }
+      const detail = synergies
+        .map((entry) => `+${entry.points} ${entry.label.toLowerCase()} with ${TILE_LIBRARY[entry.neighborType].name}`)
+        .join(" • ");
+      return `${TILE_LIBRARY[type].name} placed for +${totalPoints}. ${detail}.`;
+    }
+
+    function advanceDraw() {
+      state.draw = drawTiles();
+      state.selectedTile = state.draw[0] || null;
+    }
+
+    function placeTile(targetKey) {
       if (state.gameOver) {
-        return false;
+        return;
       }
-      const cell = state.cells.get(targetKey);
-      const target = boardLookup.get(targetKey);
-      if (!cell || !target) {
-        return false;
+      if (!state.selectedTile) {
+        statusText.textContent = "Select a terrain tile before placing.";
+        return;
       }
-      if (cell.blight || cell.structure || cell.owner === "player") {
-        return false;
-      }
-      if (!isAdjacentToTerritory(target.q, target.r)) {
-        return false;
-      }
-      return state.gold >= TILE_COSTS[selectedBuild];
-    }
-
-    function processTowerClaims() {
-      const pendingClaims = new Set();
-      for (const [key, cell] of state.cells.entries()) {
-        if (cell.structure !== "tower" || cell.blight) {
-          continue;
-        }
-        cell.timer += 1;
-        if (cell.timer < 2) {
-          continue;
-        }
-        cell.timer = 0;
-        const { q, r } = parseKey(key);
-        for (const neighbor of getNeighbors(q, r)) {
-          const neighborKey = keyFor(neighbor.q, neighbor.r);
-          const adjacent = state.cells.get(neighborKey);
-          if (!adjacent || adjacent.blight || adjacent.owner === "player" || adjacent.structure) {
-            continue;
-          }
-          pendingClaims.add(neighborKey);
-        }
-      }
-
-      for (const claimKey of pendingClaims) {
-        const claimCell = state.cells.get(claimKey);
-        claimCell.owner = "player";
-      }
-
-      return pendingClaims.size;
-    }
-
-    function spreadBlight() {
-      const newBlight = new Set();
-
-      for (const edgeKey of edgeKeys) {
-        const edgeCell = state.cells.get(edgeKey);
-        if (edgeCell && !edgeCell.blight && edgeCell.structure !== "wall") {
-          newBlight.add(edgeKey);
-        }
-      }
-
-      for (const [key, cell] of state.cells.entries()) {
-        if (!cell.blight) {
-          continue;
-        }
-        const { q, r } = parseKey(key);
-        for (const neighbor of getNeighbors(q, r)) {
-          const neighborKey = keyFor(neighbor.q, neighbor.r);
-          const adjacent = state.cells.get(neighborKey);
-          if (!adjacent || adjacent.blight || adjacent.structure === "wall") {
-            continue;
-          }
-          newBlight.add(neighborKey);
-        }
-      }
-
-      let consumed = 0;
-      for (const targetKey of newBlight) {
-        const cell = state.cells.get(targetKey);
-        if (!cell || cell.blight || cell.structure === "wall") {
-          continue;
-        }
-        consumed += 1;
-        cell.blight = true;
-        cell.owner = null;
-        cell.structure = null;
-        cell.timer = 0;
-      }
-      return consumed;
-    }
-
-    function checkOutcome() {
-      const settlement = state.cells.get("0,0");
-      if (settlement && settlement.blight) {
-        state.gameOver = true;
-        state.outcome = "lose";
-        statusText.textContent = "The settlement has fallen to blight. Restart to try a different expansion line.";
+      if (!isPlayableCell(targetKey)) {
+        statusText.textContent = "Pick an empty highlighted hex connected to your colony.";
         return;
       }
 
-      const territory = countTerritory();
-      if (territory >= TARGET_TERRITORY) {
-        state.gameOver = true;
-        state.outcome = "win";
-        statusText.textContent = "Your colony holds 50 hexes. The kingdom survives.";
-      }
-    }
-
-    function resolveTurn() {
-      state.gold += Array.from(state.cells.values()).filter((cell) => cell.structure === "farm" && !cell.blight).length;
-      const claimedHexes = processTowerClaims();
-
-      let blightSpread = 0;
-      if (state.turn % BLIGHT_INTERVAL === 0) {
-        blightSpread = spreadBlight();
-      }
-
-      checkOutcome();
-      if (!state.gameOver) {
-        const baseMessage = `Turn ${state.turn} ended.`;
-        const farmMessage = " Farms paid out.";
-        const towerMessage = claimedHexes > 0 ? ` Towers claimed ${claimedHexes} hex${claimedHexes === 1 ? "" : "es"}.` : "";
-        const blightMessage = state.turn % BLIGHT_INTERVAL === 0
-          ? ` Blight spread into ${blightSpread} hex${blightSpread === 1 ? "" : "es"}.`
-          : "";
-        statusText.textContent = `${baseMessage}${farmMessage}${towerMessage}${blightMessage}`;
-        state.turn += 1;
-      }
-    }
-
-    function placeSelectedTile(targetKey) {
-      if (!canPlaceTile(targetKey)) {
-        const cell = state.cells.get(targetKey);
-        if (state.gameOver) {
-          statusText.textContent = state.outcome === "win"
-            ? "The colony already won. Restart to play again."
-            : "The colony already fell. Restart to play again.";
-        } else if (cell && cell.structure) {
-          statusText.textContent = "That hex is already occupied.";
-        } else if (cell && cell.blight) {
-          statusText.textContent = "Blighted land cannot be reclaimed directly.";
-        } else if (cell && cell.owner === "player") {
-          statusText.textContent = "Build on neutral land next to your territory, not on an existing claim.";
-        } else if (state.gold < TILE_COSTS[selectedBuild]) {
-          statusText.textContent = `Not enough gold for a ${selectedBuild}.`;
-        } else {
-          statusText.textContent = "Choose an empty hex adjacent to your territory.";
-        }
-        render();
-        return;
-      }
-
-      const cell = state.cells.get(targetKey);
-      cell.owner = "player";
-      cell.structure = selectedBuild;
-      cell.timer = 0;
-      state.gold -= TILE_COSTS[selectedBuild];
-
-      resolveTurn();
+      const type = state.selectedTile;
+      const targetCell = boardLookup.get(targetKey);
+      const result = calculatePlacement(type, targetKey);
+      state.cells.set(targetKey, { type, turnPlaced: MAX_PLACEMENTS - state.placementsLeft + 1 });
+      state.score += result.totalPoints;
+      state.placementsLeft -= 1;
+      state.lastSynergies = result.synergies;
+      state.synergyLines = result.synergies.map(({ x1, y1, x2, y2 }) => ({ x1, y1, x2, y2 }));
+      statusText.textContent = describeSynergies(type, result.synergies, result.totalPoints);
+      synergyLog.textContent = result.synergies.length
+        ? result.synergies.map((entry) => `${entry.label}: +${entry.points}`).join(" • ")
+        : "No adjacency bonus on that placement.";
+      showBurst(targetCell, result.totalPoints);
+      advanceDraw();
       render();
+
+      window.clearTimeout(feedbackTimer);
+      feedbackTimer = window.setTimeout(() => {
+        state.synergyLines = [];
+        renderBoard();
+      }, 1100);
+
+      if (state.placementsLeft <= 0) {
+        finishGame();
+      }
+    }
+
+    function finishGame() {
+      state.gameOver = true;
+      const won = state.score >= TARGET_SCORE;
+      overlayCard.className = `overlay-card ${won ? "win" : "lose"}`;
+      overlayTitle.textContent = won ? "Population Target Reached" : "Colony Stalled Out";
+      overlayBody.textContent = won
+        ? `Final score ${state.score}. Your terrain network supported the colony before the deck ran dry.`
+        : `Final score ${state.score}. You needed ${TARGET_SCORE} before the ${MAX_PLACEMENTS} placements ended.`;
+      endOverlay.classList.add("show");
+      statusText.textContent = won
+        ? "The colony wins. Start a new game to reshuffle the deck."
+        : "The colony fell short. Start a new game to try a different layout.";
     }
 
     function render() {
-      turnDisplay.textContent = String(state.turn);
-      goldDisplay.textContent = String(state.gold);
-      territoryDisplay.textContent = `${countTerritory()} / ${TARGET_TERRITORY}`;
-      blightDisplay.textContent = String(countBlight());
-
-      const pieces = [];
-      for (const cell of boardCells) {
-        const data = state.cells.get(cell.key);
-        const highlight = hoverKey === cell.key && canPlaceTile(cell.key) ? " highlight" : "";
-        const blocked = canPlaceTile(cell.key) ? "" : " blocked";
-        const classes = `${getCellColor(data)}${highlight}${blocked}`;
-        pieces.push(
-          `<g data-key="${cell.key}">` +
-            `<polygon class="${classes}" points="${polygonPoints(cell.x, cell.y, HEX_SIZE)}"></polygon>` +
-            `<text class="glyph" x="${cell.x}" y="${cell.y - 2}">${getCellGlyph(data)}</text>` +
-            (data.structure === "tower" && !data.blight ? `<text class="cell-label" x="${cell.x}" y="${cell.y + 10}">${Math.max(0, 2 - data.timer)}t</text>` : "") +
-          `</g>`
-        );
-      }
-      board.innerHTML = pieces.join("");
+      renderTileOptions();
+      renderBoard();
+      updateHud();
     }
 
-    function handleBoardClick(event) {
-      const targetGroup = event.target.closest("g[data-key]");
-      if (!targetGroup) {
-        return;
-      }
-      placeSelectedTile(targetGroup.dataset.key);
-    }
-
-    function handleBoardMove(event) {
-      const targetGroup = event.target.closest("g[data-key]");
-      hoverKey = targetGroup ? targetGroup.dataset.key : null;
-      render();
+    function handleBoardPointer(event) {
+      const group = event.target.closest("g[data-key]");
+      hoveredKey = group ? group.dataset.key : null;
+      renderBoard();
     }
 
     function handleBoardLeave() {
-      hoverKey = null;
-      render();
+      hoveredKey = null;
+      renderBoard();
     }
 
-    function setSelectedBuild(nextBuild) {
-      selectedBuild = nextBuild;
-      for (const button of buildButtons) {
-        button.classList.toggle("active", button.dataset.build === nextBuild);
+    function handleBoardClick(event) {
+      const group = event.target.closest("g[data-key]");
+      if (!group) {
+        return;
       }
-      if (!state.gameOver) {
-        statusText.textContent = `Selected ${nextBuild}. Click an empty adjacent hex to build for ${TILE_COSTS[nextBuild]} gold.`;
-      }
-      render();
+      placeTile(group.dataset.key);
     }
 
-    function setupEvents() {
-      board.addEventListener("click", handleBoardClick);
-      board.addEventListener("mousemove", handleBoardMove);
-      board.addEventListener("mouseleave", handleBoardLeave);
-      buildButtons.forEach((button) => {
-        button.addEventListener("click", () => setSelectedBuild(button.dataset.build));
-      });
-      resetButton.addEventListener("click", startGame);
+    function handleTileOptionClick(event) {
+      const button = event.target.closest(".tile-option");
+      if (!button || state.gameOver) {
+        return;
+      }
+      state.selectedTile = button.dataset.type;
+      statusText.textContent = `Selected ${TILE_LIBRARY[state.selectedTile].name}. Place it on any empty frontier hex.`;
+      renderTileOptions();
     }
 
     function startGame() {
-      hoverKey = null;
+      window.clearTimeout(feedbackTimer);
+      hoveredKey = null;
+      endOverlay.classList.remove("show");
+      burstLayer.innerHTML = "";
       state = createInitialState();
-      setSelectedBuild(selectedBuild);
-      statusText.textContent = "Place your first tile next to the settlement. Reach 50 controlled hexes before blight reaches home.";
+      state.selectedTile = state.draw[0] || null;
+      statusText.textContent = "Select a tile from the draw, then place it on the highlighted frontier.";
+      synergyLog.textContent = "Adjacency bonuses appear here after each placement.";
       render();
     }
 
     createBoard();
-    setupEvents();
+    board.addEventListener("pointermove", handleBoardPointer);
+    board.addEventListener("pointerleave", handleBoardLeave);
+    board.addEventListener("click", handleBoardClick);
+    tileOptions.addEventListener("click", handleTileOptionClick);
+    newGameButton.addEventListener("click", startGame);
+    overlayNewGame.addEventListener("click", startGame);
     startGame();
   </script>
 </body>
