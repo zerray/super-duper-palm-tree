@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orbital Slingshot</title>
+  <style>
+    :root {
+      --bg: #07111f;
+      --panel: rgba(9, 22, 38, 0.82);
+      --line: rgba(151, 195, 255, 0.22);
+      --text: #eef6ff;
+      --muted: #9bb4d4;
+      --accent: #ffd166;
+      --accent-2: #62f2c1;
+      --danger: #ff7b72;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 20%, rgba(52, 120, 255, 0.18), transparent 24%),
+        radial-gradient(circle at 80% 15%, rgba(255, 209, 102, 0.12), transparent 22%),
+        linear-gradient(180deg, #0c1630 0%, var(--bg) 55%, #030813 100%);
+    }
+
+    body {
+      position: relative;
+    }
+
+    #game-canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .hud {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      width: min(360px, calc(100vw - 36px));
+      padding: 16px 18px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
+    }
+
+    .hud h1,
+    .hud p {
+      margin: 0;
+    }
+
+    .hud h1 {
+      font-size: 1.15rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .stats {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stat {
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 1.15rem;
+    }
+
+    .message {
+      margin-top: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+      min-height: 2.9em;
+    }
+
+    .legend {
+      position: absolute;
+      right: 18px;
+      bottom: 18px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(4, 13, 24, 0.7);
+      color: var(--muted);
+      max-width: min(320px, calc(100vw - 36px));
+      line-height: 1.45;
+    }
+
+    .chip {
+      color: var(--text);
+    }
+
+    @media (max-width: 640px) {
+      .hud {
+        width: calc(100vw - 24px);
+        left: 12px;
+        top: 12px;
+      }
+
+      .legend {
+        right: 12px;
+        bottom: 12px;
+        left: 12px;
+        max-width: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game-canvas"></canvas>
+  <section class="hud">
+    <h1>Orbital Slingshot</h1>
+    <div class="stats">
+      <div class="stat">
+        <span>Level</span>
+        <strong id="level-value">1</strong>
+      </div>
+      <div class="stat">
+        <span>Bodies</span>
+        <strong id="bodies-value">3</strong>
+      </div>
+      <div class="stat">
+        <span>State</span>
+        <strong id="state-value">Aim</strong>
+      </div>
+    </div>
+    <p class="message" id="message">
+      Drag from the ship to set angle and power. Reach the target ring to advance.
+    </p>
+  </section>
+  <div class="legend">
+    <span class="chip">Solid trail</span> shows the flown path.
+    <span class="chip">Dashed arc</span> is the predicted trajectory preview.
+    Planets emit visible gravity wells; avoid collisions and use them to bend your line.
+  </div>
+  <script>
+    const canvas = document.getElementById("game-canvas");
+    const ctx = canvas.getContext("2d");
+
+    const levelValue = document.getElementById("level-value");
+    const bodiesValue = document.getElementById("bodies-value");
+    const stateValue = document.getElementById("state-value");
+    const messageEl = document.getElementById("message");
+
+    const TAU = Math.PI * 2;
+    const GRAVITY_CONSTANT = 5800;
+    const SIMULATION_DT = 1 / 120;
+    const MAX_TRAIL_POINTS = 900;
+    const PREVIEW_STEPS = 260;
+    const PREVIEW_STEP_DT = 1 / 90;
+    const DRAG_POWER = 0.16;
+    const MAX_LAUNCH_SPEED = 520;
+
+    let width = 0;
+    let height = 0;
+    let level = 1;
+    let launchPad = { x: 90, y: 200 };
+    let targetZone = { x: 0, y: 0, radius: 26 };
+    let planets = [];
+    let projectile = null;
+    let trail = [];
+    let previewTrail = [];
+    let aimPoint = null;
+    let gameState = "aim";
+    let stateMessage = "Drag from the ship to set angle and power. Reach the target ring to advance.";
+    let resetTimer = 0;
+    let lastFrame = performance.now();
+
+    function resize() {
+      const dpr = window.devicePixelRatio || 1;
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      generateLevel(level);
+    }
+
+    function randomRange(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function distance(a, b) {
+      const dx = a.x - b.x;
+      const dy = a.y - b.y;
+      return Math.hypot(dx, dy);
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function updateHud() {
+      levelValue.textContent = String(level);
+      bodiesValue.textContent = String(planets.length);
+      stateValue.textContent = gameState === "aim" ? "Aim" : gameState === "flight" ? "Flight" : gameState === "success" ? "Clear" : "Retry";
+      messageEl.textContent = stateMessage;
+    }
+
+    function createProjectile() {
+      return {
+        x: launchPad.x,
+        y: launchPad.y,
+        vx: 0,
+        vy: 0,
+        radius: 7
+      };
+    }
+
+    function buildPlanet(candidateRadius) {
+      return {
+        x: randomRange(width * 0.3, width * 0.77),
+        y: randomRange(80, height - 80),
+        radius: candidateRadius,
+        mass: candidateRadius * candidateRadius * randomRange(2.8, 4.2),
+        hue: randomRange(180, 340)
+      };
+    }
+
+    function overlapsExisting(planet, others) {
+      const margin = 46;
+      if (distance(planet, launchPad) < planet.radius + 110) {
+        return true;
+      }
+      if (distance(planet, targetZone) < planet.radius + targetZone.radius + 90) {
+        return true;
+      }
+      return others.some((other) => distance(planet, other) < planet.radius + other.radius + margin);
+    }
+
+    function generateLevel(nextLevel) {
+      level = nextLevel;
+      launchPad = {
+        x: 90,
+        y: clamp(height * (0.24 + Math.random() * 0.52), 90, height - 90)
+      };
+      targetZone = {
+        x: width - 110,
+        y: clamp(height * (0.24 + Math.random() * 0.52), 90, height - 90),
+        radius: 26
+      };
+
+      const bodyCount = clamp(2 + level, 3, 5);
+      const nextPlanets = [];
+      let attempts = 0;
+      while (nextPlanets.length < bodyCount && attempts < 600) {
+        attempts += 1;
+        const planet = buildPlanet(randomRange(24, 46 + level * 2));
+        if (!overlapsExisting(planet, nextPlanets)) {
+          nextPlanets.push(planet);
+        }
+      }
+
+      if (nextPlanets.length < 3) {
+        nextPlanets.push(
+          { x: width * 0.45, y: height * 0.33, radius: 34, mass: 4200, hue: 215 },
+          { x: width * 0.58, y: height * 0.66, radius: 40, mass: 5600, hue: 24 },
+          { x: width * 0.7, y: height * 0.42, radius: 30, mass: 3800, hue: 140 }
+        );
+      }
+
+      planets = nextPlanets.slice(0, Math.max(3, bodyCount));
+      projectile = createProjectile();
+      trail = [];
+      previewTrail = [];
+      aimPoint = null;
+      gameState = "aim";
+      resetTimer = 0;
+      stateMessage = "Drag from the ship to set angle and power. Reach the target ring to advance.";
+      updateHud();
+    }
+
+    function getGravityAcceleration(point) {
+      let ax = 0;
+      let ay = 0;
+      for (const planet of planets) {
+        const dx = planet.x - point.x;
+        const dy = planet.y - point.y;
+        const distanceSq = Math.max(dx * dx + dy * dy, (planet.radius + 14) ** 2);
+        const force = (GRAVITY_CONSTANT * planet.mass) / distanceSq;
+        const distanceValue = Math.sqrt(distanceSq);
+        ax += (dx / distanceValue) * force;
+        ay += (dy / distanceValue) * force;
+      }
+      return { ax, ay };
+    }
+
+    function launchProjectile(pointer) {
+      const dx = launchPad.x - pointer.x;
+      const dy = launchPad.y - pointer.y;
+      const speed = clamp(Math.hypot(dx, dy) * DRAG_POWER, 0, MAX_LAUNCH_SPEED);
+      const angle = Math.atan2(dy, dx);
+      projectile = createProjectile();
+      projectile.vx = Math.cos(angle) * speed;
+      projectile.vy = Math.sin(angle) * speed;
+      trail = [{ x: projectile.x, y: projectile.y }];
+      gameState = "flight";
+      stateMessage = "Flight underway. Use gravity wells to curve into the target.";
+      updateHud();
+    }
+
+    function computePreviewTrajectory(pointer) {
+      const dx = launchPad.x - pointer.x;
+      const dy = launchPad.y - pointer.y;
+      const speed = clamp(Math.hypot(dx, dy) * DRAG_POWER, 0, MAX_LAUNCH_SPEED);
+      const angle = Math.atan2(dy, dx);
+      const ghost = {
+        x: launchPad.x,
+        y: launchPad.y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        radius: 7
+      };
+      const steps = [];
+      for (let i = 0; i < PREVIEW_STEPS; i += 1) {
+        const gravity = getGravityAcceleration(ghost);
+        ghost.vx += gravity.ax * PREVIEW_STEP_DT;
+        ghost.vy += gravity.ay * PREVIEW_STEP_DT;
+        ghost.x += ghost.vx * PREVIEW_STEP_DT;
+        ghost.y += ghost.vy * PREVIEW_STEP_DT;
+        steps.push({ x: ghost.x, y: ghost.y });
+        if (collidesWithPlanet(ghost) || isOutOfBounds(ghost)) {
+          break;
+        }
+        if (distance(ghost, targetZone) <= targetZone.radius - 2) {
+          break;
+        }
+      }
+      previewTrail = steps;
+    }
+
+    function collidesWithPlanet(body) {
+      return planets.some((planet) => distance(body, planet) <= planet.radius + body.radius);
+    }
+
+    function isOutOfBounds(body) {
+      return body.x < -50 || body.x > width + 50 || body.y < -50 || body.y > height + 50;
+    }
+
+    function markFailure(text) {
+      gameState = "fail";
+      stateMessage = text;
+      resetTimer = 1.15;
+      updateHud();
+    }
+
+    function markSuccess() {
+      gameState = "success";
+      stateMessage = "Target reached. Generating a denser orbital puzzle...";
+      resetTimer = 1.2;
+      updateHud();
+    }
+
+    function updateFlight(dt) {
+      const stepCount = Math.max(1, Math.ceil(dt / SIMULATION_DT));
+      const stepDt = dt / stepCount;
+      for (let i = 0; i < stepCount; i += 1) {
+        const gravity = getGravityAcceleration(projectile);
+        projectile.vx += gravity.ax * stepDt;
+        projectile.vy += gravity.ay * stepDt;
+        projectile.x += projectile.vx * stepDt;
+        projectile.y += projectile.vy * stepDt;
+        trail.push({ x: projectile.x, y: projectile.y });
+        if (trail.length > MAX_TRAIL_POINTS) {
+          trail.shift();
+        }
+
+        if (distance(projectile, targetZone) <= targetZone.radius) {
+          markSuccess();
+          return;
+        }
+        if (collidesWithPlanet(projectile)) {
+          markFailure("You clipped a planet. Level will reset for another attempt.");
+          return;
+        }
+        if (isOutOfBounds(projectile)) {
+          markFailure("You drifted out of bounds. Level will reset for another attempt.");
+          return;
+        }
+      }
+    }
+
+    function drawBackground() {
+      const gradient = ctx.createLinearGradient(0, 0, 0, height);
+      gradient.addColorStop(0, "#0b1831");
+      gradient.addColorStop(1, "#02050c");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.save();
+      for (let i = 0; i < 90; i += 1) {
+        const x = (i * 97) % width;
+        const y = (i * 67) % height;
+        ctx.fillStyle = `rgba(255,255,255,${0.08 + (i % 5) * 0.03})`;
+        ctx.beginPath();
+        ctx.arc(x, y, 1 + (i % 3), 0, TAU);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawGravityWell(planet) {
+      const glow = ctx.createRadialGradient(planet.x, planet.y, planet.radius * 0.4, planet.x, planet.y, planet.radius * 3.2);
+      glow.addColorStop(0, `hsla(${planet.hue}, 80%, 70%, 0.38)`);
+      glow.addColorStop(0.45, `hsla(${planet.hue}, 90%, 60%, 0.16)`);
+      glow.addColorStop(1, `hsla(${planet.hue}, 100%, 50%, 0)`);
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(planet.x, planet.y, planet.radius * 3.2, 0, TAU);
+      ctx.fill();
+
+      for (let ring = 1; ring <= 3; ring += 1) {
+        ctx.strokeStyle = `hsla(${planet.hue}, 95%, 75%, ${0.2 - ring * 0.04})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(planet.x, planet.y, planet.radius * (1.5 + ring * 0.55), 0, TAU);
+        ctx.stroke();
+      }
+    }
+
+    function drawPlanets() {
+      for (const planet of planets) {
+        drawGravityWell(planet);
+        const fill = ctx.createRadialGradient(
+          planet.x - planet.radius * 0.3,
+          planet.y - planet.radius * 0.35,
+          planet.radius * 0.2,
+          planet.x,
+          planet.y,
+          planet.radius
+        );
+        fill.addColorStop(0, `hsla(${planet.hue}, 85%, 78%, 1)`);
+        fill.addColorStop(1, `hsla(${planet.hue}, 75%, 34%, 1)`);
+        ctx.fillStyle = fill;
+        ctx.beginPath();
+        ctx.arc(planet.x, planet.y, planet.radius, 0, TAU);
+        ctx.fill();
+      }
+    }
+
+    function drawTargetZone() {
+      ctx.save();
+      ctx.strokeStyle = "rgba(98, 242, 193, 0.95)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(targetZone.x, targetZone.y, targetZone.radius, 0, TAU);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(98, 242, 193, 0.4)";
+      ctx.lineWidth = 9;
+      ctx.beginPath();
+      ctx.arc(targetZone.x, targetZone.y, targetZone.radius + 10, 0, TAU);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawLaunchPad() {
+      ctx.fillStyle = "rgba(255, 209, 102, 0.18)";
+      ctx.beginPath();
+      ctx.arc(launchPad.x, launchPad.y, 24, 0, TAU);
+      ctx.fill();
+    }
+
+    function drawTrail() {
+      if (trail.length < 2) {
+        return;
+      }
+      ctx.save();
+      ctx.lineWidth = 2.5;
+      for (let i = 1; i < trail.length; i += 1) {
+        const prev = trail[i - 1];
+        const current = trail[i];
+        ctx.strokeStyle = `rgba(255, 209, 102, ${i / trail.length})`;
+        ctx.beginPath();
+        ctx.moveTo(prev.x, prev.y);
+        ctx.lineTo(current.x, current.y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawPreviewTrail() {
+      if (previewTrail.length < 2 || gameState !== "aim") {
+        return;
+      }
+      ctx.save();
+      ctx.setLineDash([8, 7]);
+      ctx.strokeStyle = "rgba(151, 195, 255, 0.9)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(launchPad.x, launchPad.y);
+      for (const point of previewTrail) {
+        ctx.lineTo(point.x, point.y);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawAimGuide() {
+      if (!aimPoint || gameState !== "aim") {
+        return;
+      }
+      const dx = launchPad.x - aimPoint.x;
+      const dy = launchPad.y - aimPoint.y;
+      const power = clamp(Math.hypot(dx, dy) * DRAG_POWER, 0, MAX_LAUNCH_SPEED);
+      ctx.save();
+      ctx.strokeStyle = "rgba(255, 209, 102, 0.9)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(launchPad.x, launchPad.y);
+      ctx.lineTo(aimPoint.x, aimPoint.y);
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(255, 209, 102, 0.9)";
+      ctx.beginPath();
+      ctx.arc(aimPoint.x, aimPoint.y, 6, 0, TAU);
+      ctx.fill();
+
+      ctx.fillStyle = "#eef6ff";
+      ctx.font = '13px "Trebuchet MS", sans-serif';
+      ctx.fillText(`Power ${Math.round(power)}`, aimPoint.x + 12, aimPoint.y - 10);
+      ctx.restore();
+    }
+
+    function drawProjectile() {
+      const ship = projectile || createProjectile();
+      ctx.save();
+      ctx.translate(ship.x, ship.y);
+      ctx.rotate(Math.atan2(ship.vy || 0, ship.vx || 1));
+      ctx.fillStyle = "#eef6ff";
+      ctx.beginPath();
+      ctx.moveTo(12, 0);
+      ctx.lineTo(-8, -6);
+      ctx.lineTo(-3, 0);
+      ctx.lineTo(-8, 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#62f2c1";
+      ctx.beginPath();
+      ctx.arc(-2, 0, 2.2, 0, TAU);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function render() {
+      drawBackground();
+      drawPlanets();
+      drawTargetZone();
+      drawLaunchPad();
+      drawPreviewTrail();
+      drawTrail();
+      drawAimGuide();
+      drawProjectile();
+    }
+
+    function tick(now) {
+      const dt = Math.min((now - lastFrame) / 1000, 0.033);
+      lastFrame = now;
+
+      if (gameState === "flight") {
+        updateFlight(dt);
+      } else if (gameState === "success") {
+        resetTimer -= dt;
+        if (resetTimer <= 0) {
+          generateLevel(level + 1);
+        }
+      } else if (gameState === "fail") {
+        resetTimer -= dt;
+        if (resetTimer <= 0) {
+          generateLevel(level);
+        }
+      }
+
+      render();
+      requestAnimationFrame(tick);
+    }
+
+    function pointerPosition(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      };
+    }
+
+    function beginAim(event) {
+      if (gameState !== "aim") {
+        return;
+      }
+      const point = pointerPosition(event);
+      if (distance(point, launchPad) > 36) {
+        return;
+      }
+      aimPoint = point;
+      computePreviewTrajectory(point);
+    }
+
+    function moveAim(event) {
+      if (!aimPoint || gameState !== "aim") {
+        return;
+      }
+      aimPoint = pointerPosition(event);
+      computePreviewTrajectory(aimPoint);
+    }
+
+    function endAim() {
+      if (!aimPoint || gameState !== "aim") {
+        aimPoint = null;
+        return;
+      }
+      launchProjectile(aimPoint);
+      aimPoint = null;
+      previewTrail = [];
+    }
+
+    canvas.addEventListener("pointerdown", beginAim);
+    canvas.addEventListener("pointermove", moveAim);
+    window.addEventListener("pointerup", endAim);
+    window.addEventListener("pointercancel", endAim);
+    window.addEventListener("resize", resize);
+
+    resize();
+    updateHud();
+    requestAnimationFrame((now) => {
+      lastFrame = now;
+      tick(now);
+    });
+  </script>
+</body>
+</html>

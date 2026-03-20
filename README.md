@@ -65,3 +65,14 @@ This repository contains a simple agent-factory workflow for planning and comple
 - Canvas 渲染、步数统计、通关提示与已解锁关卡持久化
 
 直接用浏览器打开 `sokoban-game/index.html` 即可游玩。
+
+## Orbital Slingshot
+
+新增 `slingshot-game/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的重力弹弓玩法原型，包含：
+
+- 每关 3 到 5 个程序化生成的行星与可见引力井
+- 拖拽瞄准与力度控制，实时显示预测轨迹虚线
+- 发射后受牛顿引力影响的飞船，以及完整飞行轨迹尾迹
+- 命中右侧目标环后自动进入下一关，失败则快速重置当前关卡
+
+直接用浏览器打开 `slingshot-game/index.html` 即可游玩。
