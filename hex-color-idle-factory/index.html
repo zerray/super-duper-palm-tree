@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hex Color Idle Factory</title>
+  <style>
+    :root {
+      --bg: #11141c;
+      --bg-soft: #1b2230;
+      --panel: rgba(16, 20, 28, 0.86);
+      --panel-2: rgba(28, 34, 48, 0.88);
+      --line: rgba(255, 255, 255, 0.1);
+      --text: #f5f7fb;
+      --muted: #aeb8c9;
+      --accent: #ffb84d;
+      --danger: #ff7a91;
+      --good: #91f0a8;
+      --shadow: 0 22px 60px rgba(0, 0, 0, 0.32);
+      --red: #ff5569;
+      --green: #4cd47a;
+      --blue: #59a7ff;
+      --purple: #9a68ff;
+      --yellow: #ffd95b;
+      --cyan: #59e3ec;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 85, 105, 0.16), transparent 24%),
+        radial-gradient(circle at top right, rgba(89, 167, 255, 0.14), transparent 22%),
+        radial-gradient(circle at bottom, rgba(76, 212, 122, 0.12), transparent 28%),
+        linear-gradient(180deg, #0d1017, var(--bg));
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      color: inherit;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 0.85rem 1rem;
+      transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .app {
+      width: min(1240px, calc(100% - 24px));
+      margin: 0 auto;
+      padding: 18px 0 28px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .hero {
+      padding: 1.4rem;
+      display: grid;
+      gap: 1rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+      background-size: 28px 28px;
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    .hero-top,
+    .hero-stats,
+    .hero-actions {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.5rem, 6vw, 4.8rem);
+      line-height: 0.9;
+      letter-spacing: -0.06em;
+      max-width: 8ch;
+    }
+
+    .lede {
+      max-width: 64ch;
+      margin-top: 0.75rem;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.85rem;
+    }
+
+    .stat {
+      padding: 0.95rem 1rem;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .stat-value {
+      margin-top: 0.5rem;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .hero-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .hero-actions small {
+      color: var(--muted);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.9fr);
+      gap: 18px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 18px;
+    }
+
+    .section {
+      padding: 1.1rem;
+      display: grid;
+      gap: 1rem;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 1rem;
+    }
+
+    .section-head p {
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .factory-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .lane {
+      --color: #fff;
+      padding: 0.95rem;
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .lane-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .lane-top strong {
+      display: block;
+      font-size: 1.05rem;
+    }
+
+    .lane-top span,
+    .lane-copy {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .rate-chip {
+      padding: 0.4rem 0.65rem;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--color) 18%, rgba(255, 255, 255, 0.06));
+      color: color-mix(in srgb, var(--color) 82%, white 18%);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .tank {
+      position: relative;
+      height: 13px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+    }
+
+    .tank-fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, color-mix(in srgb, var(--color) 75%, #fff 25%), var(--color));
+      box-shadow: 0 0 18px color-mix(in srgb, var(--color) 50%, transparent 50%);
+      transition: width 160ms linear;
+    }
+
+    .pipe {
+      height: 56px;
+      border-radius: 999px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.14)),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pipe::before,
+    .pipe::after {
+      content: "";
+      position: absolute;
+      inset: 6px;
+      border-radius: inherit;
+      background:
+        radial-gradient(circle at 12px 50%, color-mix(in srgb, var(--color) 80%, #fff 20%) 0 6px, transparent 7px) 0 50% / 64px 28px repeat-x;
+      opacity: 0.65;
+      animation: flow 2.4s linear infinite;
+    }
+
+    .pipe::after {
+      animation-duration: 3.4s;
+      opacity: 0.3;
+      filter: blur(1px);
+    }
+
+    .mix-grid,
+    .upgrade-list {
+      display: grid;
+      gap: 0.8rem;
+    }
+
+    .mix-card,
+    .upgrade-card,
+    .order-card {
+      padding: 0.95rem;
+      border-radius: 22px;
+      background: var(--panel-2);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .mix-head,
+    .upgrade-head,
+    .order-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .mix-recipe {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: inline-block;
+      background: var(--swatch, #fff);
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.2);
+    }
+
+    .requirements,
+    .order-need {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+
+    .upgrade-meta,
+    .order-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .badge {
+      padding: 0.34rem 0.58rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .order-bar {
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+    }
+
+    .order-fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #fff4a1, var(--accent));
+      transition: width 160ms ease;
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
+
+    @keyframes flow {
+      from {
+        transform: translateX(0);
+      }
+      to {
+        transform: translateX(64px);
+      }
+    }
+
+    @media (max-width: 960px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        font-size: 15px;
+      }
+
+      .app {
+        width: min(100% - 16px, 1240px);
+        padding-top: 10px;
+      }
+
+      .factory-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-stats {
+        grid-template-columns: 1fr;
+      }
+
+      .hero,
+      .section {
+        padding: 0.95rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="panel hero">
+      <div class="hero-top">
+        <div>
+          <h1>Hex Color Idle Factory</h1>
+          <p class="lede">Run a compact pigment plant: primary generators drip color units into pipes, unlocked mixers spin up secondary vats, and rush orders on the conveyor push your whole factory to higher output.</p>
+        </div>
+        <div>
+          <button id="resetButton" type="button">Reset Save</button>
+        </div>
+      </div>
+      <div class="hero-stats">
+        <div class="stat">
+          <div class="stat-label">Total Units</div>
+          <div class="stat-value" id="totalUnits">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Factory Output</div>
+          <div class="stat-value" id="factoryRate">0/s</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Order Multiplier</div>
+          <div class="stat-value" id="orderMultiplier">x1.00</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Orders Filled</div>
+          <div class="stat-value" id="ordersFilled">0</div>
+        </div>
+      </div>
+      <div class="hero-actions">
+        <small>Auto-production runs continuously and persists through <code>localStorage</code>.</small>
+        <small id="saveStatus">Factory save ready.</small>
+      </div>
+    </section>
+
+    <div class="grid">
+      <div class="stack">
+        <section class="panel section">
+          <div class="section-head">
+            <div>
+              <h2>Factory Floor</h2>
+              <p>Each lane shows stored units, live flow, and current output per second.</p>
+            </div>
+          </div>
+          <div class="factory-grid" id="factoryGrid"></div>
+        </section>
+
+        <section class="panel section">
+          <div class="section-head">
+            <div>
+              <h2>Mixing Vats</h2>
+              <p>Spend primary stock once to unlock a new secondary stream.</p>
+            </div>
+          </div>
+          <div class="mix-grid" id="mixingGrid"></div>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="panel section">
+          <div class="section-head">
+            <div>
+              <h2>Upgrades</h2>
+              <p>Three upgrade lines scale on an exponential cost curve.</p>
+            </div>
+          </div>
+          <div class="upgrade-list" id="upgradeList"></div>
+        </section>
+
+        <section class="panel section">
+          <div class="section-head">
+            <div>
+              <h2>Conveyor Orders</h2>
+              <p>Fill the active order for a permanent factory multiplier.</p>
+            </div>
+          </div>
+          <div class="order-card">
+            <div class="order-head">
+              <div>
+                <h3 id="orderTitle">No active order</h3>
+                <p class="order-need" id="orderNeeds">Booting conveyor...</p>
+              </div>
+              <button id="fillOrderButton" type="button">Fill Order</button>
+            </div>
+            <div class="order-meta">
+              <span class="badge" id="orderReward">Reward x0.00</span>
+              <span class="badge" id="orderProgressText">0%</span>
+            </div>
+            <div class="order-bar"><div class="order-fill" id="orderFill"></div></div>
+          </div>
+          <p class="footer-note">Goal loop: unlock mixers, raise output, then fulfill bigger color requests for better throughput. Secondary colors only appear in future orders after you unlock them.</p>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SAVE_KEY = "hex-color-idle-factory-save";
+
+    const COLORS = {
+      red: { label: "Red", css: "var(--red)", primary: true, base: 1 },
+      green: { label: "Green", css: "var(--green)", primary: true, base: 1 },
+      blue: { label: "Blue", css: "var(--blue)", primary: true, base: 1 },
+      purple: { label: "Purple", css: "var(--purple)", primary: false, base: 0.35 },
+      yellow: { label: "Yellow", css: "var(--yellow)", primary: false, base: 0.35 },
+      cyan: { label: "Cyan", css: "var(--cyan)", primary: false, base: 0.35 }
+    };
+
+    const MIX_RECIPES = [
+      { id: "purple", output: "purple", inputs: ["red", "blue"], unlockCost: 36 },
+      { id: "yellow", output: "yellow", inputs: ["red", "green"], unlockCost: 36 },
+      { id: "cyan", output: "cyan", inputs: ["green", "blue"], unlockCost: 36 }
+    ];
+
+    const UPGRADE_DEFS = [
+      {
+        id: "pump",
+        title: "Primary Pumps",
+        description: "Boost red, green, and blue generator throughput by 35% per level.",
+        baseCost: 20,
+        growth: 1.8,
+        levelLabel: "Primary lanes",
+        effectText(level) {
+          return "x" + formatNumber(Math.pow(1.35, level));
+        }
+      },
+      {
+        id: "mixer",
+        title: "Mixer Catalysts",
+        description: "Boost all unlocked secondary vats by 40% per level.",
+        baseCost: 45,
+        growth: 1.9,
+        levelLabel: "Secondary vats",
+        effectText(level) {
+          return "x" + formatNumber(Math.pow(1.4, level));
+        }
+      },
+      {
+        id: "logistics",
+        title: "Conveyor Logistics",
+        description: "Boost total output by 18% per level and improve order rewards.",
+        baseCost: 90,
+        growth: 2.05,
+        levelLabel: "Whole factory",
+        effectText(level) {
+          return "x" + formatNumber(Math.pow(1.18, level));
+        }
+      }
+    ];
+
+    const defaultState = () => ({
+      colors: {
+        red: 0,
+        green: 0,
+        blue: 0,
+        purple: 0,
+        yellow: 0,
+        cyan: 0
+      },
+      unlocked: {
+        red: true,
+        green: true,
+        blue: true,
+        purple: false,
+        yellow: false,
+        cyan: false
+      },
+      upgrades: {
+        pump: 0,
+        mixer: 0,
+        logistics: 0
+      },
+      orderMultiplier: 1,
+      ordersFilled: 0,
+      currentOrder: null,
+      lastSavedAt: 0
+    });
+
+    let state = loadState();
+    let lastTimestamp = 0;
+    let saveTimer = 0;
+
+    const factoryGrid = document.getElementById("factoryGrid");
+    const mixingGrid = document.getElementById("mixingGrid");
+    const upgradeList = document.getElementById("upgradeList");
+    const totalUnitsEl = document.getElementById("totalUnits");
+    const factoryRateEl = document.getElementById("factoryRate");
+    const orderMultiplierEl = document.getElementById("orderMultiplier");
+    const ordersFilledEl = document.getElementById("ordersFilled");
+    const orderTitleEl = document.getElementById("orderTitle");
+    const orderNeedsEl = document.getElementById("orderNeeds");
+    const orderRewardEl = document.getElementById("orderReward");
+    const orderProgressTextEl = document.getElementById("orderProgressText");
+    const orderFillEl = document.getElementById("orderFill");
+    const fillOrderButton = document.getElementById("fillOrderButton");
+    const saveStatusEl = document.getElementById("saveStatus");
+    const resetButton = document.getElementById("resetButton");
+
+    function formatNumber(value) {
+      if (value >= 1000000) {
+        return (value / 1000000).toFixed(2) + "M";
+      }
+      if (value >= 1000) {
+        return (value / 1000).toFixed(2) + "K";
+      }
+      return value.toFixed(value >= 100 ? 0 : 1);
+    }
+
+    function upgradeCost(def) {
+      return Math.round(def.baseCost * Math.pow(def.growth, state.upgrades[def.id]));
+    }
+
+    function getRates() {
+      const primaryBoost = Math.pow(1.35, state.upgrades.pump);
+      const secondaryBoost = Math.pow(1.4, state.upgrades.mixer);
+      const logisticsBoost = Math.pow(1.18, state.upgrades.logistics);
+      const rates = {};
+
+      Object.entries(COLORS).forEach(([id, color]) => {
+        if (!state.unlocked[id]) {
+          rates[id] = 0;
+          return;
+        }
+
+        const laneBoost = color.primary ? primaryBoost : secondaryBoost;
+        rates[id] = color.base * laneBoost * logisticsBoost * state.orderMultiplier;
+      });
+
+      return rates;
+    }
+
+    function totalUnits() {
+      return Object.values(state.colors).reduce((sum, amount) => sum + amount, 0);
+    }
+
+    function renderFactory() {
+      const rates = getRates();
+      const maxStored = Math.max(80, ...Object.values(state.colors));
+
+      factoryGrid.innerHTML = Object.entries(COLORS).map(([id, color]) => {
+        const unlocked = state.unlocked[id];
+        const amount = state.colors[id];
+        const percent = Math.min(100, (amount / maxStored) * 100);
+        const statusText = unlocked ? formatNumber(amount) + " units stored" : "Locked until mixed";
+        const laneCopy = color.primary ? "Primary generator" : "Secondary vat";
+        return `
+          <article class="lane" style="--color:${color.css}">
+            <div class="lane-top">
+              <div>
+                <strong>${color.label}</strong>
+                <span>${laneCopy}</span>
+              </div>
+              <div class="rate-chip">${unlocked ? formatNumber(rates[id]) + "/s" : "Locked"}</div>
+            </div>
+            <div class="tank"><div class="tank-fill" style="width:${percent}%"></div></div>
+            <div class="pipe" aria-hidden="true"></div>
+            <div class="lane-copy">${statusText}</div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function renderMixing() {
+      mixingGrid.innerHTML = MIX_RECIPES.map((recipe) => {
+        const unlocked = state.unlocked[recipe.output];
+        const [left, right] = recipe.inputs;
+        const canAfford = state.colors[left] >= recipe.unlockCost && state.colors[right] >= recipe.unlockCost;
+        return `
+          <article class="mix-card">
+            <div class="mix-head">
+              <div>
+                <h3>${COLORS[recipe.output].label} Mixer</h3>
+                <div class="mix-recipe">
+                  <span class="swatch" style="--swatch:${COLORS[left].css}"></span>${COLORS[left].label}
+                  +
+                  <span class="swatch" style="--swatch:${COLORS[right].css}"></span>${COLORS[right].label}
+                  =
+                  <span class="swatch" style="--swatch:${COLORS[recipe.output].css}"></span>${COLORS[recipe.output].label}
+                </div>
+              </div>
+              <button type="button" data-unlock="${recipe.output}" ${unlocked || !canAfford ? "disabled" : ""}>${unlocked ? "Unlocked" : "Unlock"}</button>
+            </div>
+            <div class="requirements">${unlocked ? "Secondary stream online." : `Requires ${recipe.unlockCost} ${COLORS[left].label} and ${recipe.unlockCost} ${COLORS[right].label}.`}</div>
+          </article>
+        `;
+      }).join("");
+
+      mixingGrid.querySelectorAll("[data-unlock]").forEach((button) => {
+        button.addEventListener("click", () => unlockMixer(button.dataset.unlock));
+      });
+    }
+
+    function renderUpgrades() {
+      upgradeList.innerHTML = UPGRADE_DEFS.map((def) => {
+        const level = state.upgrades[def.id];
+        const cost = upgradeCost(def);
+        const canAfford = totalUnits() >= cost;
+        return `
+          <article class="upgrade-card">
+            <div class="upgrade-head">
+              <div>
+                <h3>${def.title}</h3>
+                <p class="requirements">${def.description}</p>
+              </div>
+              <button type="button" data-upgrade="${def.id}" ${canAfford ? "" : "disabled"}>Buy ${formatNumber(cost)}</button>
+            </div>
+            <div class="upgrade-meta">
+              <span class="badge">Level ${level}</span>
+              <span class="badge">${def.levelLabel}</span>
+              <span class="badge">Effect ${def.effectText(level)}</span>
+            </div>
+          </article>
+        `;
+      }).join("");
+
+      upgradeList.querySelectorAll("[data-upgrade]").forEach((button) => {
+        button.addEventListener("click", () => buyUpgrade(button.dataset.upgrade));
+      });
+    }
+
+    function currentOrderProgress() {
+      if (!state.currentOrder) {
+        return 0;
+      }
+
+      const { color, amount } = state.currentOrder;
+      return Math.min(1, state.colors[color] / amount);
+    }
+
+    function renderOrder() {
+      ensureOrder();
+      const order = state.currentOrder;
+      const progress = currentOrderProgress();
+      const available = state.colors[order.color];
+      const canFill = available >= order.amount;
+
+      orderTitleEl.textContent = `${COLORS[order.color].label} order #${state.ordersFilled + 1}`;
+      orderNeedsEl.textContent = `Deliver ${formatNumber(order.amount)} ${COLORS[order.color].label} units. Stored: ${formatNumber(available)}.`;
+      orderRewardEl.textContent = `Reward +${order.reward.toFixed(2)}x`;
+      orderProgressTextEl.textContent = Math.round(progress * 100) + "% ready";
+      orderFillEl.style.width = (progress * 100) + "%";
+      fillOrderButton.disabled = !canFill;
+    }
+
+    function renderStats() {
+      const rates = getRates();
+      const factoryRate = Object.values(rates).reduce((sum, rate) => sum + rate, 0);
+      totalUnitsEl.textContent = formatNumber(totalUnits());
+      factoryRateEl.textContent = formatNumber(factoryRate) + "/s";
+      orderMultiplierEl.textContent = "x" + state.orderMultiplier.toFixed(2);
+      ordersFilledEl.textContent = String(state.ordersFilled);
+    }
+
+    function render() {
+      renderStats();
+      renderFactory();
+      renderMixing();
+      renderUpgrades();
+      renderOrder();
+    }
+
+    function spendAnyTotal(cost) {
+      const order = Object.keys(COLORS).sort((a, b) => state.colors[b] - state.colors[a]);
+      let remaining = cost;
+
+      order.forEach((id) => {
+        if (remaining <= 0) {
+          return;
+        }
+        const taken = Math.min(state.colors[id], remaining);
+        state.colors[id] -= taken;
+        remaining -= taken;
+      });
+
+      return remaining <= 0;
+    }
+
+    function buyUpgrade(id) {
+      const def = UPGRADE_DEFS.find((item) => item.id === id);
+      const cost = upgradeCost(def);
+      if (totalUnits() < cost) {
+        return;
+      }
+      if (!spendAnyTotal(cost)) {
+        return;
+      }
+      state.upgrades[id] += 1;
+      saveGame(true);
+      render();
+    }
+
+    function unlockMixer(output) {
+      const recipe = MIX_RECIPES.find((item) => item.output === output);
+      if (!recipe || state.unlocked[output]) {
+        return;
+      }
+
+      const [left, right] = recipe.inputs;
+      if (state.colors[left] < recipe.unlockCost || state.colors[right] < recipe.unlockCost) {
+        return;
+      }
+
+      state.colors[left] -= recipe.unlockCost;
+      state.colors[right] -= recipe.unlockCost;
+      state.unlocked[output] = true;
+      ensureOrder();
+      saveGame(true);
+      render();
+    }
+
+    function ensureOrder() {
+      if (state.currentOrder) {
+        return;
+      }
+
+      const availableColors = Object.keys(COLORS).filter((id) => state.unlocked[id]);
+      const color = availableColors[Math.floor(Math.random() * availableColors.length)];
+      const unlockedCount = availableColors.length;
+      const baseAmount = COLORS[color].primary ? 60 : 42;
+      const growth = 1 + state.ordersFilled * 0.18;
+      const amount = Math.round(baseAmount * growth * (0.8 + Math.random() * 0.5));
+      const reward = 0.16 + state.upgrades.logistics * 0.02 + (unlockedCount - 3) * 0.03;
+      state.currentOrder = { color, amount, reward };
+    }
+
+    function fillOrder() {
+      const order = state.currentOrder;
+      if (!order || state.colors[order.color] < order.amount) {
+        return;
+      }
+      state.colors[order.color] -= order.amount;
+      state.orderMultiplier = +(state.orderMultiplier + order.reward).toFixed(2);
+      state.ordersFilled += 1;
+      state.currentOrder = null;
+      ensureOrder();
+      saveGame(true);
+      render();
+    }
+
+    function saveGame(immediate = false) {
+      if (!immediate && performance.now() - saveTimer < 1200) {
+        return;
+      }
+      saveTimer = performance.now();
+      state.lastSavedAt = Date.now();
+      localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+      saveStatusEl.textContent = "Saved " + new Date(state.lastSavedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) {
+          return defaultState();
+        }
+        const parsed = JSON.parse(raw);
+        return {
+          ...defaultState(),
+          ...parsed,
+          colors: { ...defaultState().colors, ...(parsed.colors || {}) },
+          unlocked: { ...defaultState().unlocked, ...(parsed.unlocked || {}) },
+          upgrades: { ...defaultState().upgrades, ...(parsed.upgrades || {}) }
+        };
+      } catch (error) {
+        return defaultState();
+      }
+    }
+
+    function resetGame() {
+      state = defaultState();
+      ensureOrder();
+      saveGame(true);
+      render();
+    }
+
+    function step(timestamp) {
+      if (!lastTimestamp) {
+        lastTimestamp = timestamp;
+      }
+      const delta = Math.min(0.25, (timestamp - lastTimestamp) / 1000);
+      lastTimestamp = timestamp;
+
+      const rates = getRates();
+      Object.keys(rates).forEach((id) => {
+        state.colors[id] += rates[id] * delta;
+      });
+
+      renderStats();
+      renderFactory();
+      renderMixing();
+      renderUpgrades();
+      renderOrder();
+      saveGame(false);
+      requestAnimationFrame(step);
+    }
+
+    fillOrderButton.addEventListener("click", fillOrder);
+    resetButton.addEventListener("click", resetGame);
+    window.addEventListener("beforeunload", () => saveGame(true));
+
+    ensureOrder();
+    render();
+    requestAnimationFrame(step);
+  </script>
+</body>
+</html>

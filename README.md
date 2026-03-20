@@ -177,6 +177,18 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `particle-life/index.html` 即可运行。
 
+## Hex Color Idle Factory
+
+新增 `hex-color-idle-factory/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的 idle 色彩工厂游戏，包含：
+
+- 红、绿、蓝三条主色生产线自动持续产出颜色单位
+- 通过混色解锁紫、黄、青三条次级生产线，并继续自动增长
+- 3 条可购买升级线，按指数曲线抬升生产效率
+- 传送带订单系统，完成订单后获得永久全厂倍率加成
+- 使用 `localStorage` 保存进度，并通过 CSS 动画显示流动色块与工厂管线
+
+直接用浏览器打开 `hex-color-idle-factory/index.html` 即可游玩。
+
 ## Pixel Pulse Sequencer
 
 新增 `pixel-pulse-sequencer/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的像素步进音序器玩具，包含：
