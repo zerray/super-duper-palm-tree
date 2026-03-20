@@ -65,3 +65,14 @@ This repository contains a simple agent-factory workflow for planning and comple
 - Canvas 渲染、步数统计、通关提示与已解锁关卡持久化
 
 直接用浏览器打开 `sokoban-game/index.html` 即可游玩。
+
+## Hex Territory Capture
+
+新增 `hex-territory/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的回合制六边形领土争夺游戏，包含：
+
+- 默认 7x7 六边形棋盘与 SVG 渲染
+- 相邻扩张免费，跨区跳跃消耗 jump point
+- 使用贪心启发式的简单 AI 对手
+- 实时显示双方领地数量、剩余 jump points、当前回合与胜负结果
+
+直接用浏览器打开 `hex-territory/index.html` 即可游玩。
