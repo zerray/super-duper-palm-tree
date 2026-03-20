@@ -133,3 +133,13 @@ This repository contains a simple agent-factory workflow for planning and comple
 - Tick 速度滑块，可在单个浏览器标签页内持续观察系统波动
 
 直接用浏览器打开 `pixel-biome-terrarium/index.html` 即可运行。
+
+## Gravity Well Sandbox
+
+新增 `gravity-well/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的重力井物理沙盒，包含：
+
+- 左键放置 attractor、右键放置 repulsor，并实时影响粒子轨迹
+- 可调节 gravity strength、particle spawn rate、trail length
+- 基于粒子速度的 HSL 彩色拖尾、清空重置与 PNG 导出
+
+直接用浏览器打开 `gravity-well/index.html` 即可运行。

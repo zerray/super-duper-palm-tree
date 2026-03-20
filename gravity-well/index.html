@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gravity Well Sandbox</title>
+  <style>
+    :root {
+      --bg-0: #020611;
+      --bg-1: #07162b;
+      --panel: rgba(8, 15, 31, 0.82);
+      --panel-border: rgba(147, 197, 253, 0.2);
+      --text: #eef4ff;
+      --muted: #98a8c5;
+      --accent: #7dd3fc;
+      --warm: #f97316;
+      --cool: #38bdf8;
+      --danger: #fb7185;
+      --good: #34d399;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow: hidden;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(249, 115, 22, 0.12), transparent 22%),
+        linear-gradient(180deg, var(--bg-1) 0%, var(--bg-0) 60%, #01030a 100%);
+    }
+
+    #sim {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      cursor: crosshair;
+    }
+
+    .hud {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      right: 16px;
+      display: grid;
+      grid-template-columns: minmax(280px, 380px) auto;
+      gap: 16px;
+      align-items: start;
+      pointer-events: none;
+    }
+
+    .panel {
+      pointer-events: auto;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.28);
+    }
+
+    h1,
+    p,
+    label {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(1.6rem, 2.8vw, 2.3rem);
+      line-height: 1.05;
+      letter-spacing: 0.03em;
+    }
+
+    .subtle {
+      margin-top: 8px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .controls {
+      margin-top: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .control-row {
+      display: grid;
+      gap: 6px;
+    }
+
+    .control-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.95rem;
+    }
+
+    .value {
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      margin: 0;
+      accent-color: var(--accent);
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 15px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      color: #04111f;
+      background: linear-gradient(135deg, #e2e8f0, #7dd3fc);
+      transition: transform 120ms ease, opacity 120ms ease;
+    }
+
+    button.secondary {
+      color: var(--text);
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(14, 116, 144, 0.8));
+      border: 1px solid rgba(125, 211, 252, 0.18);
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(90px, 1fr));
+      gap: 10px;
+      min-width: min(100%, 520px);
+    }
+
+    .stat {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(3, 10, 24, 0.72);
+      border: 1px solid rgba(147, 197, 253, 0.14);
+      text-align: right;
+    }
+
+    .stat-label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .stat-value {
+      display: block;
+      margin-top: 6px;
+      font-size: 1.3rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .legend {
+      position: fixed;
+      left: 16px;
+      bottom: 16px;
+      padding: 10px 14px;
+      border-radius: 16px;
+      max-width: min(520px, calc(100vw - 32px));
+      color: var(--muted);
+      background: rgba(8, 15, 31, 0.72);
+      border: 1px solid rgba(147, 197, 253, 0.14);
+      backdrop-filter: blur(10px);
+    }
+
+    .legend strong {
+      color: var(--text);
+    }
+
+    @media (max-width: 900px) {
+      .hud {
+        grid-template-columns: 1fr;
+      }
+
+      .stats {
+        grid-template-columns: repeat(2, minmax(90px, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="sim"></canvas>
+  <div class="hud">
+    <section class="panel">
+      <h1>Gravity Well Sandbox</h1>
+      <p class="subtle">Left-click to place attractors, right-click to place repulsors, then let the particle stream bend into orbits, rebounds, and slingshots.</p>
+      <div class="controls">
+        <label class="control-row" for="gravity-slider">
+          <span class="control-head">
+            <span>Gravity Strength</span>
+            <span class="value" id="gravity-value">1.00x</span>
+          </span>
+          <input id="gravity-slider" type="range" min="20" max="220" value="100">
+        </label>
+        <label class="control-row" for="spawn-slider">
+          <span class="control-head">
+            <span>Particle Spawn Rate</span>
+            <span class="value" id="spawn-value">90/s</span>
+          </span>
+          <input id="spawn-slider" type="range" min="10" max="220" value="90">
+        </label>
+        <label class="control-row" for="trail-slider">
+          <span class="control-head">
+            <span>Trail Length</span>
+            <span class="value" id="trail-value">55%</span>
+          </span>
+          <input id="trail-slider" type="range" min="5" max="95" value="55">
+        </label>
+      </div>
+      <div class="button-row">
+        <button id="clear-button" type="button">Clear</button>
+        <button id="save-button" class="secondary" type="button">Save PNG</button>
+      </div>
+    </section>
+    <section class="stats">
+      <div class="stat">
+        <span class="stat-label">Particles</span>
+        <span class="stat-value" id="particle-count">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Attractors</span>
+        <span class="stat-value" id="attractor-count">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Repulsors</span>
+        <span class="stat-value" id="repulsor-count">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">FPS</span>
+        <span class="stat-value" id="fps-readout">0</span>
+      </div>
+    </section>
+  </div>
+  <div class="legend">
+    <strong>Tip:</strong> place a few opposing wells near the center, increase spawn rate, and raise trail length for denser orbit bands. Clear resets both wells and particles. Save exports the current canvas as a PNG.
+  </div>
+  <script>
+    const canvas = document.getElementById("sim");
+    const ctx = canvas.getContext("2d", { alpha: false });
+    const gravitySlider = document.getElementById("gravity-slider");
+    const spawnSlider = document.getElementById("spawn-slider");
+    const trailSlider = document.getElementById("trail-slider");
+    const gravityValue = document.getElementById("gravity-value");
+    const spawnValue = document.getElementById("spawn-value");
+    const trailValue = document.getElementById("trail-value");
+    const particleCountLabel = document.getElementById("particle-count");
+    const attractorCountLabel = document.getElementById("attractor-count");
+    const repulsorCountLabel = document.getElementById("repulsor-count");
+    const fpsReadout = document.getElementById("fps-readout");
+    const clearButton = document.getElementById("clear-button");
+    const saveButton = document.getElementById("save-button");
+
+    const MAX_PARTICLES = 500;
+    const MAX_SOURCES = 24;
+    const PARTICLE_RADIUS = 2.2;
+    const SOURCE_RADIUS = 16;
+    const BASE_GRAVITY = 3200;
+    const EDGE_BOUNCE = 0.82;
+    const SOURCE_BOUNCE = 0.9;
+    const SOFTENING = 150;
+    const MAX_ACCELERATION = 3200;
+    const MAX_SPEED = 900;
+
+    const state = {
+      width: 0,
+      height: 0,
+      dpr: 1,
+      particles: [],
+      sources: [],
+      spawnAccumulator: 0,
+      lastFrame: 0,
+      fpsAccumulator: 0,
+      fpsFrames: 0,
+      fps: 0
+    };
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function getGravityStrength() {
+      return Number(gravitySlider.value) / 100;
+    }
+
+    function getSpawnRate() {
+      return Number(spawnSlider.value);
+    }
+
+    function getTrailAlpha() {
+      const sliderValue = Number(trailSlider.value);
+      return 0.3 - (sliderValue / 100) * 0.26;
+    }
+
+    function updateLabels() {
+      gravityValue.textContent = `${getGravityStrength().toFixed(2)}x`;
+      spawnValue.textContent = `${getSpawnRate()}/s`;
+      trailValue.textContent = `${trailSlider.value}%`;
+      particleCountLabel.textContent = String(state.particles.length);
+      attractorCountLabel.textContent = String(state.sources.filter((source) => source.polarity > 0).length);
+      repulsorCountLabel.textContent = String(state.sources.filter((source) => source.polarity < 0).length);
+      fpsReadout.textContent = String(Math.round(state.fps));
+    }
+
+    function resize() {
+      state.dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      state.width = window.innerWidth;
+      state.height = window.innerHeight;
+      canvas.width = Math.floor(state.width * state.dpr);
+      canvas.height = Math.floor(state.height * state.dpr);
+      ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+      fillBackdrop();
+    }
+
+    function fillBackdrop() {
+      ctx.fillStyle = "#020611";
+      ctx.fillRect(0, 0, state.width, state.height);
+    }
+
+    function getPointerPosition(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      };
+    }
+
+    function addSource(x, y, polarity) {
+      if (state.sources.length >= MAX_SOURCES) {
+        state.sources.shift();
+      }
+
+      state.sources.push({
+        x,
+        y,
+        polarity,
+        radius: SOURCE_RADIUS,
+        strength: BASE_GRAVITY * (0.7 + Math.random() * 0.6)
+      });
+      updateLabels();
+    }
+
+    function createParticle() {
+      const side = Math.floor(Math.random() * 4);
+      const speed = 70 + Math.random() * 130;
+      let x;
+      let y;
+      let vx;
+      let vy;
+
+      if (side === 0) {
+        x = -12;
+        y = Math.random() * state.height;
+        vx = speed;
+        vy = (Math.random() - 0.5) * 120;
+      } else if (side === 1) {
+        x = state.width + 12;
+        y = Math.random() * state.height;
+        vx = -speed;
+        vy = (Math.random() - 0.5) * 120;
+      } else if (side === 2) {
+        x = Math.random() * state.width;
+        y = -12;
+        vx = (Math.random() - 0.5) * 120;
+        vy = speed;
+      } else {
+        x = Math.random() * state.width;
+        y = state.height + 12;
+        vx = (Math.random() - 0.5) * 120;
+        vy = -speed;
+      }
+
+      return {
+        x,
+        y,
+        px: x,
+        py: y,
+        vx,
+        vy,
+        hue: 200
+      };
+    }
+
+    function spawnParticles(dt) {
+      state.spawnAccumulator += getSpawnRate() * dt;
+      while (state.spawnAccumulator >= 1 && state.particles.length < MAX_PARTICLES) {
+        state.particles.push(createParticle());
+        state.spawnAccumulator -= 1;
+      }
+    }
+
+    function reflectVelocity(particle, nx, ny, bounce) {
+      const dot = particle.vx * nx + particle.vy * ny;
+      particle.vx -= (1 + bounce) * dot * nx;
+      particle.vy -= (1 + bounce) * dot * ny;
+    }
+
+    function applySourceCollisions(particle) {
+      for (const source of state.sources) {
+        const dx = particle.x - source.x;
+        const dy = particle.y - source.y;
+        const distance = Math.hypot(dx, dy);
+        const minimum = source.radius + PARTICLE_RADIUS;
+
+        if (distance > 0 && distance < minimum) {
+          const nx = dx / distance;
+          const ny = dy / distance;
+          particle.x = source.x + nx * minimum;
+          particle.y = source.y + ny * minimum;
+          reflectVelocity(particle, nx, ny, SOURCE_BOUNCE);
+        }
+      }
+    }
+
+    function updateParticles(dt) {
+      const gravityStrength = getGravityStrength();
+      for (let index = state.particles.length - 1; index >= 0; index -= 1) {
+        const particle = state.particles[index];
+        particle.px = particle.x;
+        particle.py = particle.y;
+
+        let ax = 0;
+        let ay = 0;
+
+        for (const source of state.sources) {
+          const dx = source.x - particle.x;
+          const dy = source.y - particle.y;
+          const distanceSquared = dx * dx + dy * dy + SOFTENING;
+          const distance = Math.sqrt(distanceSquared);
+          const force = gravityStrength * source.strength * source.polarity / distanceSquared;
+          ax += (dx / distance) * force;
+          ay += (dy / distance) * force;
+        }
+
+        const acceleration = Math.hypot(ax, ay);
+        if (acceleration > MAX_ACCELERATION) {
+          const scale = MAX_ACCELERATION / acceleration;
+          ax *= scale;
+          ay *= scale;
+        }
+
+        particle.vx += ax * dt;
+        particle.vy += ay * dt;
+
+        const speed = Math.hypot(particle.vx, particle.vy);
+        if (speed > MAX_SPEED) {
+          const speedScale = MAX_SPEED / speed;
+          particle.vx *= speedScale;
+          particle.vy *= speedScale;
+        }
+
+        particle.x += particle.vx * dt;
+        particle.y += particle.vy * dt;
+        applySourceCollisions(particle);
+
+        if (particle.x < PARTICLE_RADIUS) {
+          particle.x = PARTICLE_RADIUS;
+          reflectVelocity(particle, 1, 0, EDGE_BOUNCE);
+        } else if (particle.x > state.width - PARTICLE_RADIUS) {
+          particle.x = state.width - PARTICLE_RADIUS;
+          reflectVelocity(particle, -1, 0, EDGE_BOUNCE);
+        }
+
+        if (particle.y < PARTICLE_RADIUS) {
+          particle.y = PARTICLE_RADIUS;
+          reflectVelocity(particle, 0, 1, EDGE_BOUNCE);
+        } else if (particle.y > state.height - PARTICLE_RADIUS) {
+          particle.y = state.height - PARTICLE_RADIUS;
+          reflectVelocity(particle, 0, -1, EDGE_BOUNCE);
+        }
+
+        particle.hue = speedToHue(Math.hypot(particle.vx, particle.vy));
+      }
+    }
+
+    function speedToHue(speed) {
+      const normalized = clamp(speed / 420, 0, 1);
+      return 210 - normalized * 190;
+    }
+
+    function drawParticleTrail(particle) {
+      const previousHue = speedToHue(Math.hypot(particle.x - particle.px, particle.y - particle.py) * 60);
+      const gradient = ctx.createLinearGradient(particle.px, particle.py, particle.x, particle.y);
+      gradient.addColorStop(0, `hsla(${previousHue}, 95%, 64%, 0.10)`);
+      gradient.addColorStop(1, `hsla(${particle.hue}, 100%, 62%, 0.95)`);
+
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(particle.px, particle.py);
+      ctx.lineTo(particle.x, particle.y);
+      ctx.stroke();
+    }
+
+    function drawSource(source) {
+      const ringColor = source.polarity > 0 ? "rgba(52, 211, 153, 0.9)" : "rgba(251, 113, 133, 0.92)";
+      const coreColor = source.polarity > 0 ? "rgba(16, 185, 129, 0.95)" : "rgba(244, 63, 94, 0.95)";
+      const glow = ctx.createRadialGradient(source.x, source.y, 0, source.x, source.y, source.radius * 2.5);
+      glow.addColorStop(0, source.polarity > 0 ? "rgba(52, 211, 153, 0.28)" : "rgba(251, 113, 133, 0.28)");
+      glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(source.x, source.y, source.radius * 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = ringColor;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(source.x, source.y, source.radius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = coreColor;
+      ctx.beginPath();
+      ctx.arc(source.x, source.y, source.radius * 0.45, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#f8fafc";
+      ctx.font = "bold 18px Trebuchet MS";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(source.polarity > 0 ? "+" : "−", source.x, source.y + 0.5);
+    }
+
+    function render() {
+      ctx.fillStyle = `rgba(2, 6, 17, ${getTrailAlpha().toFixed(3)})`;
+      ctx.fillRect(0, 0, state.width, state.height);
+
+      for (const particle of state.particles) {
+        drawParticleTrail(particle);
+      }
+
+      for (const source of state.sources) {
+        drawSource(source);
+      }
+    }
+
+    function frame(timestamp) {
+      if (!state.lastFrame) {
+        state.lastFrame = timestamp;
+      }
+
+      const dt = Math.min(0.033, (timestamp - state.lastFrame) / 1000);
+      state.lastFrame = timestamp;
+
+      spawnParticles(dt);
+      updateParticles(dt);
+      render();
+
+      state.fpsAccumulator += dt;
+      state.fpsFrames += 1;
+      if (state.fpsAccumulator >= 0.25) {
+        state.fps = state.fpsFrames / state.fpsAccumulator;
+        state.fpsAccumulator = 0;
+        state.fpsFrames = 0;
+        updateLabels();
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    function clearScene() {
+      state.particles = [];
+      state.sources = [];
+      state.spawnAccumulator = 0;
+      fillBackdrop();
+      updateLabels();
+    }
+
+    function saveScreenshot() {
+      const link = document.createElement("a");
+      link.download = `gravity-well-${Date.now()}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    }
+
+    canvas.addEventListener("click", (event) => {
+      const { x, y } = getPointerPosition(event);
+      addSource(x, y, 1);
+    });
+
+    canvas.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+      const { x, y } = getPointerPosition(event);
+      addSource(x, y, -1);
+    });
+
+    [gravitySlider, spawnSlider, trailSlider].forEach((input) => {
+      input.addEventListener("input", updateLabels);
+    });
+
+    clearButton.addEventListener("click", clearScene);
+    saveButton.addEventListener("click", saveScreenshot);
+    window.addEventListener("resize", resize);
+
+    resize();
+    updateLabels();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
