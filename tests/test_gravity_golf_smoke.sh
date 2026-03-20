@@ -21,11 +21,14 @@ grep -q 'function computeGravity(position' "$app_file" || fail "gravity physics 
 grep -q 'function simulateShot(pointer)' "$app_file" || fail "trajectory preview missing"
 grep -q 'function launchBall(pointer)' "$app_file" || fail "launch handling missing"
 grep -q 'function updateSimulation(dt, elapsedSeconds)' "$app_file" || fail "simulation loop missing"
+grep -q 'function checkWellCollision(body)' "$app_file" || fail "planet collision handling missing"
+grep -q 'Planet collision. The ball is lost, so the shot resets.' "$app_file" || fail "planet loss message missing"
 grep -q 'function sinkBall()' "$app_file" || fail "goal sink handling missing"
 grep -q 'function playSinkSound()' "$app_file" || fail "audio cue missing"
 grep -q 'id="strokes-label"' "$app_file" || fail "stroke counter missing"
 grep -q 'id="total-label"' "$app_file" || fail "total score missing"
 grep -q 'id="reset-shot"' "$app_file" || fail "reset shot button missing"
+grep -q 'touch-action: none;' "$app_file" || fail "mobile drag support missing"
 grep -q 'requestAnimationFrame(frame);' "$app_file" || fail "animation loop missing"
 
 printf 'gravity golf smoke test passed\n'
