@@ -210,3 +210,13 @@ This repository contains a simple agent-factory workflow for planning and comple
 - 激活格在播放头经过时会发光脉冲
 
 直接用浏览器打开 `pixel-pulse-sequencer/index.html` 即可运行。
+
+## Soundscape Garden
+
+新增 `soundscape-garden/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的生成式音景花园，包含：
+
+- 点击 SVG 花园放置 4 种不同花朵，每种花朵拥有独立视觉造型与 Web Audio 音色
+- 邻近花朵会通过音量、声像与轻微 detune 互相影响，形成持续演化的环境音乐
+- Tempo、scale、reverb / delay 全局控制，以及基于 `localStorage` 的花园持久化
+
+直接用浏览器打开 `soundscape-garden/index.html` 即可运行。左键种植，右键移除花朵。
