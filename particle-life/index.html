@@ -110,16 +110,13 @@
     .matrix-cell {
       border: 1px solid rgba(255, 255, 255, 0.14);
       border-radius: 12px;
-      min-height: 62px;
+      min-height: 88px;
       padding: 8px 6px;
       color: #fff;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
       gap: 6px;
       user-select: none;
-      touch-action: none;
-      cursor: ns-resize;
     }
 
     .matrix-cell strong {
@@ -131,6 +128,12 @@
       font-variant-numeric: tabular-nums;
       font-size: 1rem;
       font-weight: 700;
+    }
+
+    .matrix-cell input[type="range"] {
+      width: 100%;
+      margin: 0;
+      accent-color: currentColor;
     }
 
     .legend {
@@ -186,12 +189,13 @@
     <section class="panel controls">
       <div>
         <h1>Particle Life Explorer</h1>
-        <p class="lede">Five species, 360 particles, real-time attraction rules, and instant random rule sets. Drag inside matrix cells up or down to tune each interaction.</p>
+        <p class="lede">Five species, 640 particles, live force sliders, and instant random rule sets. Click the canvas to seed fresh clusters anywhere in the field.</p>
       </div>
 
       <div class="stack">
         <button id="randomize-button" type="button">Randomize Rules</button>
         <button id="reset-button" type="button">Reset Particles</button>
+        <select id="spawn-species-select" aria-label="Spawn species"></select>
         <select id="boundary-select" aria-label="Boundary mode">
           <option value="wrap">Wrap Edges</option>
           <option value="bounce">Bounce Walls</option>
@@ -201,7 +205,7 @@
       <div class="stats">
         <div class="stat">
           <span class="stat-label">Particles</span>
-          <strong id="particle-count">360</strong>
+          <strong id="particle-count">640</strong>
         </div>
         <div class="stat">
           <span class="stat-label">Boundary</span>
@@ -241,7 +245,8 @@
       { name: "D", color: "#7bf1a8" },
       { name: "E", color: "#c59bff" }
     ];
-    const PARTICLE_COUNT = 360;
+    const PARTICLE_COUNT = 640;
+    const SPAWN_BURST = 20;
     const interactionRadius = 92;
     const repulsionRadius = 12;
     const maxSpeed = 2.6;
@@ -253,6 +258,7 @@
     const matrixGrid = document.getElementById("matrix-grid");
     const randomizeButton = document.getElementById("randomize-button");
     const resetButton = document.getElementById("reset-button");
+    const spawnSpeciesSelect = document.getElementById("spawn-species-select");
     const boundarySelect = document.getElementById("boundary-select");
     const boundaryLabel = document.getElementById("boundary-label");
     const particleCountLabel = document.getElementById("particle-count");
@@ -265,7 +271,6 @@
     let particles = [];
     let attractionMatrix = [];
     let matrixCells = [];
-    let dragState = null;
     let spatialGrid = [];
     let gridCols = 0;
     let gridRows = 0;
@@ -501,6 +506,7 @@
       const value = attractionMatrix[row][col];
       cell.style.background = matrixColor(value);
       cell.querySelector("span").textContent = value.toFixed(2);
+      cell.querySelector("input").value = value.toFixed(2);
       cell.setAttribute("aria-valuenow", value.toFixed(2));
     }
 
@@ -513,8 +519,12 @@
             cell.className = "matrix-cell";
             cell.dataset.row = String(row);
             cell.dataset.col = String(col);
-            cell.innerHTML = `<strong>${SPECIES[row].name}→${SPECIES[col].name}</strong><span>0.00</span>`;
-            cell.addEventListener("pointerdown", beginMatrixDrag);
+            cell.innerHTML = `
+              <strong>${SPECIES[row].name}→${SPECIES[col].name}</strong>
+              <span>0.00</span>
+              <input type="range" min="-1" max="1" step="0.01" aria-label="${SPECIES[row].name} to ${SPECIES[col].name} force">
+            `;
+            cell.querySelector("input").addEventListener("input", handleMatrixInput);
             matrixGrid.appendChild(cell);
             matrixCells.push(cell);
           }
@@ -533,26 +543,11 @@
       updateMatrixCell(matrixCells[row * speciesCount + col], row, col);
     }
 
-    function beginMatrixDrag(event) {
-      const cell = event.currentTarget;
-      dragState = {
-        row: Number(cell.dataset.row),
-        col: Number(cell.dataset.col),
-        startY: event.clientY,
-        startValue: attractionMatrix[Number(cell.dataset.row)][Number(cell.dataset.col)]
-      };
-      cell.setPointerCapture(event.pointerId);
-      applyMatrixDrag(event);
-    }
-
-    function applyMatrixDrag(event) {
-      if (!dragState) return;
-      const delta = (dragState.startY - event.clientY) / 120;
-      setMatrixValue(dragState.row, dragState.col, dragState.startValue + delta);
-    }
-
-    function endMatrixDrag() {
-      dragState = null;
+    function handleMatrixInput(event) {
+      const cell = event.currentTarget.closest(".matrix-cell");
+      const row = Number(cell.dataset.row);
+      const col = Number(cell.dataset.col);
+      setMatrixValue(row, col, Number(event.currentTarget.value));
     }
 
     function buildLegend() {
@@ -565,6 +560,15 @@
       }
     }
 
+    function buildSpawnSpeciesOptions() {
+      for (let i = 0; i < SPECIES.length; i += 1) {
+        const option = document.createElement("option");
+        option.value = String(i);
+        option.textContent = `Spawn ${SPECIES[i].name}`;
+        spawnSpeciesSelect.appendChild(option);
+      }
+    }
+
     function handleRandomizeClick() {
       randomizeMatrix();
       resetParticles();
@@ -574,25 +578,53 @@
       resetParticles();
     }
 
+    function spawnParticlesAt(x, y) {
+      const species = Number(spawnSpeciesSelect.value || 0);
+      for (let i = 0; i < SPAWN_BURST; i += 1) {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.random() * 18;
+        const particle = createParticle(
+          species,
+          x + Math.cos(angle) * distance,
+          y + Math.sin(angle) * distance
+        );
+        particle.vx += Math.cos(angle) * 0.4;
+        particle.vy += Math.sin(angle) * 0.4;
+        applyBoundary(particle);
+        particles.push(particle);
+      }
+      particleCountLabel.textContent = String(particles.length);
+    }
+
+    function handleCanvasClick(event) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = width / rect.width;
+      const scaleY = height / rect.height;
+      spawnParticlesAt(
+        (event.clientX - rect.left) * scaleX,
+        (event.clientY - rect.top) * scaleY
+      );
+    }
+
     function setBoundaryMode(mode) {
       boundaryMode = mode;
       boundaryLabel.textContent = mode === "wrap" ? "Wrap" : "Bounce";
     }
 
-    document.addEventListener("pointermove", applyMatrixDrag);
-    document.addEventListener("pointerup", endMatrixDrag);
     window.addEventListener("resize", () => {
       resizeCanvas();
       resetParticles();
     });
     randomizeButton.addEventListener("click", handleRandomizeClick);
     resetButton.addEventListener("click", handleResetClick);
+    canvas.addEventListener("click", handleCanvasClick);
     boundarySelect.addEventListener("change", (event) => {
       setBoundaryMode(event.target.value);
     });
 
     resizeCanvas();
     buildLegend();
+    buildSpawnSpeciesOptions();
     randomizeMatrix();
     resetParticles();
     setBoundaryMode(boundarySelect.value);

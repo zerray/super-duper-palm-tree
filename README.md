@@ -181,8 +181,9 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 新增 `particle-life/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的粒子生命生成艺术玩具，包含：
 
-- 360 个粒子与 5 种颜色 species，基于 attraction / repulsion 矩阵实时演化
-- 可拖拽调节的 5x5 交互矩阵，以及 `Randomize Rules` / `Reset Particles` 控制
+- 640 个粒子与 5 种颜色 species，基于 attraction / repulsion 矩阵实时演化
+- 可直接调节的 5x5 force slider 矩阵，以及 `Randomize Rules` / `Reset Particles` 控制
+- 点击 Canvas 可按当前 species 在光标附近批量生成新粒子
 - `Wrap Edges` 与 `Bounce Walls` 边界模式切换
 - Canvas 2D 发光粒子与半透明残影效果，便于观察聚团、链状与细胞样结构
 
