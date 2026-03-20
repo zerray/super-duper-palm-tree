@@ -44,3 +44,14 @@ This repository contains a simple agent-factory workflow for planning and comple
 - `Regenerate` 生成新种子场景，`Export PNG` 导出当前画面
 
 直接用浏览器打开 `pixel-landscape/index.html` 即可运行。
+
+## Hex Territory
+
+新增 `hex-territory/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的六边形领地争夺策略小游戏，包含：
+
+- 默认 7x7 六边形网格与 SVG 渲染
+- 相邻扩张免费、远距离跳跃消耗点数的回合制占领规则
+- 使用贪心启发式的 AI 对手，会优先选择相邻己方领地更多的位置
+- 实时显示双方领地数量、玩家点数、当前回合与胜负结果
+
+直接用浏览器打开 `hex-territory/index.html` 即可游玩。
