@@ -55,3 +55,15 @@ This repository contains a simple agent-factory workflow for planning and comple
 - BPM 滑块调速、节点触发高亮，以及一键清空
 
 直接用浏览器打开 `sound-palette/index.html` 即可运行。
+
+## Rhythm Tap Reflex
+
+新增 `rhythm-tap/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的节奏反应小游戏，包含：
+
+- 4 条彩色轨道与固定 hit zone，使用 `D / F / J / K` 击打下落音符
+- 实时分数、连击、失误次数与速度倍率显示
+- 基于 Web Audio API 振荡器的 hit / miss 音效，以及命中反馈闪烁
+- 随时间提升的滚动速度与更密集的程序化音符生成
+- 10 次失误后显示最终分数，并可立即重新开始
+
+直接用浏览器打开 `rhythm-tap/index.html` 即可游玩。

@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rhythm Tap Reflex</title>
+  <style>
+    :root {
+      --bg: #0f1226;
+      --panel: rgba(13, 18, 38, 0.84);
+      --panel-border: rgba(255, 255, 255, 0.1);
+      --text: #f3f5ff;
+      --muted: #aab1d9;
+      --hit-zone: #f8f0a1;
+      --lane-0: #ff6b6b;
+      --lane-1: #ffd166;
+      --lane-2: #4ecdc4;
+      --lane-3: #7b8cff;
+      --danger: #ff5d73;
+      --success: #6ff0b4;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(122, 140, 255, 0.28), transparent 32%),
+        radial-gradient(circle at bottom, rgba(78, 205, 196, 0.18), transparent 28%),
+        linear-gradient(180deg, #161a36 0%, #080b18 100%);
+    }
+
+    .app {
+      width: min(1040px, 100%);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel,
+    .sidebar {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
+    }
+
+    .panel {
+      padding: 24px;
+    }
+
+    .sidebar {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.3rem, 5vw, 4rem);
+      line-height: 0.92;
+      letter-spacing: -0.05em;
+    }
+
+    .lede {
+      margin-top: 10px;
+      color: var(--muted);
+      max-width: 60ch;
+      line-height: 1.5;
+    }
+
+    .hud {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .stat span {
+      display: block;
+    }
+
+    .stat .label {
+      color: var(--muted);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .stat .value {
+      margin-top: 8px;
+      font-size: 1.85rem;
+      font-weight: 700;
+    }
+
+    .game-shell {
+      position: relative;
+      margin-top: 18px;
+      height: min(72vh, 720px);
+      min-height: 520px;
+      border-radius: 24px;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)),
+        linear-gradient(180deg, rgba(18, 25, 53, 0.96) 0%, rgba(8, 12, 26, 0.98) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .track {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .lane {
+      position: relative;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 35%),
+        repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0 44px, transparent 44px 88px);
+    }
+
+    .lane:last-child {
+      border-right: 0;
+    }
+
+    .lane.flash-hit {
+      box-shadow: inset 0 0 0 999px rgba(111, 240, 180, 0.08);
+    }
+
+    .lane.flash-miss {
+      box-shadow: inset 0 0 0 999px rgba(255, 93, 115, 0.1);
+    }
+
+    .lane-key {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 52px;
+      height: 52px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      font-weight: 800;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      z-index: 2;
+    }
+
+    .notes-layer {
+      position: absolute;
+      inset: 0;
+    }
+
+    .note {
+      position: absolute;
+      left: 14%;
+      width: 72%;
+      height: 26px;
+      border-radius: 999px;
+      transform: translateY(-50%);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+    }
+
+    .note.lane-0 {
+      background: linear-gradient(180deg, #ff9090, var(--lane-0));
+    }
+
+    .note.lane-1 {
+      background: linear-gradient(180deg, #ffe29a, var(--lane-1));
+    }
+
+    .note.lane-2 {
+      background: linear-gradient(180deg, #8df1ea, var(--lane-2));
+    }
+
+    .note.lane-3 {
+      background: linear-gradient(180deg, #aab5ff, var(--lane-3));
+    }
+
+    .hit-zone {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 96px;
+      height: 18px;
+      background: rgba(248, 240, 161, 0.12);
+      border-top: 2px solid rgba(248, 240, 161, 0.95);
+      border-bottom: 2px solid rgba(248, 240, 161, 0.45);
+      box-shadow: 0 0 24px rgba(248, 240, 161, 0.25);
+      z-index: 3;
+    }
+
+    .hit-zone.zone-hit {
+      box-shadow: 0 0 30px rgba(111, 240, 180, 0.45);
+      border-top-color: rgba(111, 240, 180, 0.98);
+    }
+
+    .hit-zone.zone-miss {
+      box-shadow: 0 0 30px rgba(255, 93, 115, 0.4);
+      border-top-color: rgba(255, 93, 115, 0.98);
+    }
+
+    .feedback {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 28px;
+      text-align: center;
+      z-index: 3;
+      font-size: 1rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      z-index: 5;
+      background: rgba(5, 7, 16, 0.76);
+    }
+
+    .overlay.hidden {
+      display: none;
+    }
+
+    .overlay-card {
+      width: min(420px, 100%);
+      padding: 26px;
+      border-radius: 24px;
+      text-align: center;
+      background: rgba(10, 14, 30, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+    }
+
+    .overlay-card p {
+      margin-top: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .overlay-card strong {
+      color: var(--text);
+    }
+
+    button {
+      margin-top: 18px;
+      min-width: 180px;
+      min-height: 48px;
+      border: 0;
+      border-radius: 999px;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 700;
+      color: #0c1023;
+      background: linear-gradient(180deg, #f7f1ab 0%, #f0bf59 100%);
+      box-shadow: 0 14px 28px rgba(0, 0, 0, 0.24);
+    }
+
+    .help-card {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .lane-legend {
+      display: grid;
+      gap: 10px;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+    }
+
+    @media (max-width: 920px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 12px;
+      }
+
+      .panel,
+      .sidebar {
+        border-radius: 20px;
+      }
+
+      .hud {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .game-shell {
+        min-height: 480px;
+      }
+
+      .lane-key {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel">
+      <h1>Rhythm Tap Reflex</h1>
+      <p class="lede">
+        Hold the beat across four lanes. Hit <strong>D</strong>, <strong>F</strong>, <strong>J</strong>, and
+        <strong>K</strong> as notes slide into the line, build combo multipliers, and survive ten misses.
+      </p>
+
+      <div class="hud">
+        <div class="stat">
+          <span class="label">Score</span>
+          <span id="score-value" class="value">0</span>
+        </div>
+        <div class="stat">
+          <span class="label">Combo</span>
+          <span id="combo-value" class="value">0</span>
+        </div>
+        <div class="stat">
+          <span class="label">Misses</span>
+          <span id="misses-value" class="value">0 / 10</span>
+        </div>
+        <div class="stat">
+          <span class="label">Speed</span>
+          <span id="speed-value" class="value">1.00x</span>
+        </div>
+      </div>
+
+      <section id="game-stage" class="game-shell" aria-label="Rhythm tap playfield">
+        <div class="track" id="track"></div>
+        <div id="notes-layer" class="notes-layer" aria-hidden="true"></div>
+        <div id="hit-zone" class="hit-zone"></div>
+        <div id="feedback" class="feedback">Press Start, then follow the lane colors.</div>
+
+        <div id="start-overlay" class="overlay">
+          <div class="overlay-card">
+            <h2>Start The Set</h2>
+            <p>Audio unlocks on the first click. Notes accelerate over time and procedural timing offsets keep the pattern unpredictable.</p>
+            <button id="start-button" type="button">Start Game</button>
+          </div>
+        </div>
+
+        <div id="game-over-overlay" class="overlay hidden">
+          <div class="overlay-card">
+            <h2>Game Over</h2>
+            <p>Final Score: <strong id="final-score">0</strong></p>
+            <p>Longest combo: <strong id="final-combo">0</strong></p>
+            <button id="restart-button" type="button">Play Again</button>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <aside class="sidebar">
+      <div class="help-card">
+        <h2>How To Play</h2>
+        <p>Press the matching key as a note crosses the hit zone. Consecutive hits raise your combo multiplier. A wrong key or a late note counts as a miss.</p>
+      </div>
+
+      <div class="help-card lane-legend">
+        <div class="legend-row"><span><span class="swatch" style="background: var(--lane-0); display: inline-block; margin-right: 8px;"></span>Lane 1</span><strong>D</strong></div>
+        <div class="legend-row"><span><span class="swatch" style="background: var(--lane-1); display: inline-block; margin-right: 8px;"></span>Lane 2</span><strong>F</strong></div>
+        <div class="legend-row"><span><span class="swatch" style="background: var(--lane-2); display: inline-block; margin-right: 8px;"></span>Lane 3</span><strong>J</strong></div>
+        <div class="legend-row"><span><span class="swatch" style="background: var(--lane-3); display: inline-block; margin-right: 8px;"></span>Lane 4</span><strong>K</strong></div>
+      </div>
+
+      <div class="help-card">
+        <h2>Difficulty Ramp</h2>
+        <p>Scroll speed increases every few seconds and spawn timing tightens. Later waves also drop more two-note bursts, so precision matters more than reaction speed alone.</p>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    const lanes = [
+      { key: "d", label: "D", colorClass: "lane-0" },
+      { key: "f", label: "F", colorClass: "lane-1" },
+      { key: "j", label: "J", colorClass: "lane-2" },
+      { key: "k", label: "K", colorClass: "lane-3" }
+    ];
+    const maxMisses = 10;
+    const hitWindowMs = 120;
+    const baseScrollSpeed = 290;
+    const difficultyRampIntervalMs = 9000;
+    const laneMap = new Map(lanes.map((lane, index) => [lane.key, index]));
+
+    const track = document.getElementById("track");
+    const notesLayer = document.getElementById("notes-layer");
+    const hitZone = document.getElementById("hit-zone");
+    const startOverlay = document.getElementById("start-overlay");
+    const gameOverOverlay = document.getElementById("game-over-overlay");
+    const feedback = document.getElementById("feedback");
+    const scoreValue = document.getElementById("score-value");
+    const comboValue = document.getElementById("combo-value");
+    const missesValue = document.getElementById("misses-value");
+    const speedValue = document.getElementById("speed-value");
+    const finalScore = document.getElementById("final-score");
+    const finalCombo = document.getElementById("final-combo");
+    const startButton = document.getElementById("start-button");
+    const restartButton = document.getElementById("restart-button");
+
+    let audioContext = null;
+    let animationFrameId = 0;
+    let state = createInitialState();
+
+    function createLaneMarkup() {
+      track.innerHTML = "";
+      lanes.forEach((lane, index) => {
+        const laneElement = document.createElement("div");
+        laneElement.className = "lane";
+        laneElement.dataset.lane = String(index);
+        laneElement.innerHTML = '<div class="lane-key">' + lane.label + "</div>";
+        track.appendChild(laneElement);
+      });
+    }
+
+    function createInitialState() {
+      return {
+        running: false,
+        notes: [],
+        nextId: 1,
+        score: 0,
+        combo: 0,
+        bestCombo: 0,
+        misses: 0,
+        elapsedMs: 0,
+        lastFrameMs: 0,
+        nextSpawnAtMs: 0,
+        scrollSpeed: baseScrollSpeed,
+        spawnIntervalMs: 780,
+        difficultyLevel: 0,
+        feedbackTimer: 0
+      };
+    }
+
+    function ensureAudioContext() {
+      if (audioContext) {
+        return audioContext;
+      }
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) {
+        return null;
+      }
+      audioContext = new AudioContextClass();
+      return audioContext;
+    }
+
+    function playTone(type) {
+      const context = ensureAudioContext();
+      if (!context) {
+        return;
+      }
+      if (context.state === "suspended") {
+        context.resume().catch(() => {});
+      }
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+
+      const now = context.currentTime;
+      if (type === "hit") {
+        oscillator.type = "triangle";
+        oscillator.frequency.setValueAtTime(440, now);
+        oscillator.frequency.exponentialRampToValueAtTime(740, now + 0.08);
+        gainNode.gain.setValueAtTime(0.0001, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.09, now + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+        oscillator.start(now);
+        oscillator.stop(now + 0.13);
+      } else {
+        oscillator.type = "sawtooth";
+        oscillator.frequency.setValueAtTime(200, now);
+        oscillator.frequency.linearRampToValueAtTime(120, now + 0.12);
+        gainNode.gain.setValueAtTime(0.0001, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.08, now + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+        oscillator.start(now);
+        oscillator.stop(now + 0.17);
+      }
+    }
+
+    function updateHud() {
+      scoreValue.textContent = String(state.score);
+      comboValue.textContent = String(state.combo);
+      missesValue.textContent = state.misses + " / " + maxMisses;
+      speedValue.textContent = (state.scrollSpeed / baseScrollSpeed).toFixed(2) + "x";
+    }
+
+    function setFeedback(message) {
+      feedback.textContent = message;
+    }
+
+    function laneLeftPercent(laneIndex) {
+      return laneIndex * 25;
+    }
+
+    function spawnNotes() {
+      while (state.elapsedMs >= state.nextSpawnAtMs) {
+        const burstChance = Math.min(0.12 + state.difficultyLevel * 0.04, 0.42);
+        const noteCount = Math.random() < burstChance ? 2 : 1;
+        const choices = shuffleIndices();
+        for (let i = 0; i < noteCount; i += 1) {
+          const laneIndex = choices[i];
+          const offset = i === 0 ? 0 : randomBetween(-35, 35);
+          state.notes.push({
+            id: state.nextId,
+            lane: laneIndex,
+            y: -40 + offset,
+            hit: false
+          });
+          state.nextId += 1;
+        }
+        const randomizedOffset = randomBetween(-60, 110);
+        state.nextSpawnAtMs += Math.max(320, state.spawnIntervalMs + randomizedOffset);
+      }
+    }
+
+    function shuffleIndices() {
+      const indices = [0, 1, 2, 3];
+      for (let i = indices.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const temp = indices[i];
+        indices[i] = indices[j];
+        indices[j] = temp;
+      }
+      return indices;
+    }
+
+    function randomBetween(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function updateDifficulty() {
+      const nextDifficultyLevel = Math.floor(state.elapsedMs / difficultyRampIntervalMs);
+      if (nextDifficultyLevel <= state.difficultyLevel) {
+        return;
+      }
+      state.difficultyLevel = nextDifficultyLevel;
+      state.scrollSpeed = baseScrollSpeed + state.difficultyLevel * 38;
+      state.spawnIntervalMs = Math.max(360, 780 - state.difficultyLevel * 48);
+      setFeedback("Speed up! x" + (state.scrollSpeed / baseScrollSpeed).toFixed(2));
+      updateHud();
+    }
+
+    function getHitZoneY() {
+      return hitZone.offsetTop + hitZone.offsetHeight / 2;
+    }
+
+    function updateNotes(deltaMs) {
+      const hitZoneY = getHitZoneY();
+      const missThreshold = hitZoneY + hitWindowPx() + 38;
+      const speedPerMs = state.scrollSpeed / 1000;
+
+      for (const note of state.notes) {
+        note.y += speedPerMs * deltaMs;
+      }
+
+      const remainingNotes = [];
+      for (const note of state.notes) {
+        if (!note.hit && note.y > missThreshold) {
+          registerMiss(note.lane, "Miss");
+          continue;
+        }
+        if (!note.hit) {
+          remainingNotes.push(note);
+        }
+      }
+      state.notes = remainingNotes;
+    }
+
+    function hitWindowPx() {
+      return (hitWindowMs / 1000) * state.scrollSpeed;
+    }
+
+    function renderNotes() {
+      notesLayer.innerHTML = "";
+      for (const note of state.notes) {
+        const noteElement = document.createElement("div");
+        noteElement.className = "note " + lanes[note.lane].colorClass;
+        noteElement.style.left = laneLeftPercent(note.lane) + 3 + "%";
+        noteElement.style.top = note.y + "px";
+        notesLayer.appendChild(noteElement);
+      }
+    }
+
+    function triggerFlash(laneIndex, type) {
+      const laneElement = track.querySelector('[data-lane="' + laneIndex + '"]');
+      if (!laneElement) {
+        return;
+      }
+      const laneClass = type === "hit" ? "flash-hit" : "flash-miss";
+      const zoneClass = type === "hit" ? "zone-hit" : "zone-miss";
+      laneElement.classList.remove("flash-hit", "flash-miss");
+      hitZone.classList.remove("zone-hit", "zone-miss");
+      void laneElement.offsetWidth;
+      laneElement.classList.add(laneClass);
+      hitZone.classList.add(zoneClass);
+      window.setTimeout(() => {
+        laneElement.classList.remove(laneClass);
+        hitZone.classList.remove(zoneClass);
+      }, 120);
+    }
+
+    function registerHit(note) {
+      note.hit = true;
+      state.combo += 1;
+      state.bestCombo = Math.max(state.bestCombo, state.combo);
+      const multiplier = 1 + Math.floor(state.combo / 8);
+      state.score += 100 * multiplier;
+      setFeedback("Hit x" + multiplier + " combo");
+      triggerFlash(note.lane, "hit");
+      playTone("hit");
+      updateHud();
+    }
+
+    function registerMiss(laneIndex, message) {
+      state.combo = 0;
+      state.misses += 1;
+      setFeedback(message);
+      triggerFlash(laneIndex, "miss");
+      playTone("miss");
+      updateHud();
+      if (state.misses >= maxMisses) {
+        endGame();
+      }
+    }
+
+    function handleLaneInput(laneIndex) {
+      if (!state || !state.running) {
+        return;
+      }
+      const hitZoneY = getHitZoneY();
+      const allowedDistance = hitWindowPx();
+      let candidate = null;
+      let bestDistance = Number.POSITIVE_INFINITY;
+
+      for (const note of state.notes) {
+        if (note.lane !== laneIndex || note.hit) {
+          continue;
+        }
+        const distance = Math.abs(note.y - hitZoneY);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          candidate = note;
+        }
+      }
+
+      if (candidate && bestDistance <= allowedDistance) {
+        registerHit(candidate);
+        state.notes = state.notes.filter((note) => note.id !== candidate.id);
+        renderNotes();
+        return;
+      }
+
+      registerMiss(laneIndex, "Wrong timing");
+    }
+
+    function endGame() {
+      state.running = false;
+      cancelAnimationFrame(animationFrameId);
+      finalScore.textContent = String(state.score);
+      finalCombo.textContent = String(state.bestCombo);
+      gameOverOverlay.classList.remove("hidden");
+    }
+
+    function frame(timestamp) {
+      if (!state.running) {
+        return;
+      }
+      if (!state.lastFrameMs) {
+        state.lastFrameMs = timestamp;
+      }
+      const deltaMs = Math.min(32, timestamp - state.lastFrameMs);
+      state.lastFrameMs = timestamp;
+      state.elapsedMs += deltaMs;
+
+      updateDifficulty();
+      spawnNotes();
+      updateNotes(deltaMs);
+      renderNotes();
+
+      animationFrameId = requestAnimationFrame(frame);
+    }
+
+    function startGame() {
+      ensureAudioContext();
+      if (audioContext && audioContext.state === "suspended") {
+        audioContext.resume().catch(() => {});
+      }
+      state = createInitialState();
+      notesLayer.innerHTML = "";
+      gameOverOverlay.classList.add("hidden");
+      startOverlay.classList.add("hidden");
+      setFeedback("Stay on beat.");
+      updateHud();
+      createLaneMarkup();
+      state.running = true;
+      animationFrameId = requestAnimationFrame(frame);
+    }
+
+    document.addEventListener("keydown", (event) => {
+      const laneIndex = laneMap.get(event.key.toLowerCase());
+      if (laneIndex === undefined) {
+        return;
+      }
+      event.preventDefault();
+      handleLaneInput(laneIndex);
+    });
+
+    startButton.addEventListener("click", startGame);
+    restartButton.addEventListener("click", startGame);
+
+    createLaneMarkup();
+    updateHud();
+  </script>
+</body>
+</html>
