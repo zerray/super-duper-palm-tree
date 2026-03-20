@@ -6,25 +6,23 @@
   <title>Hex Colony</title>
   <style>
     :root {
-      --bg: #f4efe3;
-      --panel: rgba(255, 250, 240, 0.92);
-      --panel-border: rgba(73, 56, 38, 0.16);
-      --ink: #2f2419;
-      --muted: #6d5e4d;
-      --neutral: #e6dcc4;
-      --neutral-edge: #af9d80;
-      --territory: #d7efe2;
-      --territory-edge: #4f8967;
-      --farm: #f3d87b;
-      --tower: #8aa0d9;
-      --wall: #b8997e;
-      --settlement: #f29b6f;
-      --blight: #7c4d8f;
-      --blight-edge: #472453;
-      --highlight: #f3c15d;
-      --button: #567d57;
-      --button-dark: #3b5d3d;
-      --danger: #a44848;
+      --bg: #f4efe4;
+      --panel: rgba(255, 250, 242, 0.94);
+      --ink: #2f251b;
+      --muted: #6d6257;
+      --border: rgba(70, 52, 33, 0.16);
+      --shadow: rgba(56, 39, 20, 0.14);
+      --hex-empty: #e9dec5;
+      --hex-stroke: #a99676;
+      --forest: #4c8b5a;
+      --farm: #d2ac43;
+      --village: #c97354;
+      --mine: #7a7688;
+      --lake: #4d93c6;
+      --accent: #d95d39;
+      --accent-dark: #a94227;
+      --good: #35764a;
+      --bad: #9a4b43;
     }
 
     * {
@@ -34,12 +32,11 @@
     body {
       margin: 0;
       min-height: 100vh;
-      padding: 20px;
       font-family: "Trebuchet MS", "Segoe UI", sans-serif;
       color: var(--ink);
       background:
-        radial-gradient(circle at top, rgba(255, 255, 255, 0.72), transparent 28%),
-        linear-gradient(180deg, #faf5ea 0%, var(--bg) 100%);
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.65), transparent 35%),
+        linear-gradient(180deg, #fbf7ef, var(--bg));
     }
 
     button {
@@ -48,24 +45,164 @@
     }
 
     .app {
-      width: min(1220px, 100%);
+      width: min(1180px, 100%);
       margin: 0 auto;
+      padding: 18px;
       display: grid;
       grid-template-columns: minmax(0, 1.5fr) minmax(280px, 360px);
       gap: 18px;
     }
 
-    .surface,
-    .panel {
+    .panel,
+    .board-shell,
+    .card {
       background: var(--panel);
-      border: 1px solid var(--panel-border);
+      border: 1px solid var(--border);
       border-radius: 24px;
-      box-shadow: 0 18px 36px rgba(47, 36, 25, 0.1);
-      backdrop-filter: blur(12px);
+      box-shadow: 0 18px 36px var(--shadow);
     }
 
-    .surface {
-      padding: 24px;
+    .board-shell {
+      padding: 18px;
+    }
+
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 5vw, 3.8rem);
+      line-height: 0.92;
+      letter-spacing: -0.05em;
+      max-width: 8ch;
+    }
+
+    .subtitle {
+      margin-top: 10px;
+      color: var(--muted);
+      line-height: 1.5;
+      max-width: 56ch;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .stat {
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(70, 52, 33, 0.1);
+    }
+
+    .stat-label {
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .stat-value {
+      margin-top: 4px;
+      font-size: 1.6rem;
+      font-weight: 700;
+    }
+
+    .board-frame {
+      position: relative;
+      padding: 14px;
+      border-radius: 20px;
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.84), rgba(244, 233, 214, 0.98)),
+        repeating-linear-gradient(135deg, rgba(70, 52, 33, 0.03) 0 14px, transparent 14px 28px);
+      overflow: hidden;
+    }
+
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      touch-action: manipulation;
+    }
+
+    .hex {
+      fill: var(--hex-empty);
+      stroke: var(--hex-stroke);
+      stroke-width: 1.8;
+      transition: transform 120ms ease, stroke 120ms ease, fill 120ms ease, opacity 120ms ease;
+    }
+
+    .hex.available:hover,
+    .hex.available:focus-visible {
+      stroke: var(--accent);
+      stroke-width: 3;
+      fill: #f4e6c6;
+    }
+
+    .hex.selected-cell {
+      stroke: var(--accent);
+      stroke-width: 3.2;
+    }
+
+    .glyph {
+      font-size: 18px;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      pointer-events: none;
+    }
+
+    .label {
+      font-size: 9px;
+      text-anchor: middle;
+      dominant-baseline: central;
+      fill: rgba(47, 37, 27, 0.58);
+      pointer-events: none;
+    }
+
+    .synergy-line {
+      stroke: rgba(217, 93, 57, 0.9);
+      stroke-width: 5;
+      stroke-linecap: round;
+      animation: pulse-line 1.15s ease forwards;
+    }
+
+    @keyframes pulse-line {
+      0% { opacity: 0; stroke-dasharray: 6 10; }
+      25% { opacity: 1; }
+      100% { opacity: 0; stroke-dasharray: 30 8; }
+    }
+
+    .float-score {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(53, 118, 74, 0.92);
+      color: #fff9f0;
+      font-weight: 700;
+      box-shadow: 0 10px 18px rgba(53, 118, 74, 0.24);
+      pointer-events: none;
+      animation: float-up 1.1s ease forwards;
+    }
+
+    @keyframes float-up {
+      0% { opacity: 0; transform: translate(-50%, -20%); }
+      18% { opacity: 1; }
+      100% { opacity: 0; transform: translate(-50%, -135%); }
     }
 
     .panel {
@@ -75,678 +212,560 @@
       align-content: start;
     }
 
-    h1,
-    h2,
-    p {
-      margin: 0;
-    }
-
-    h1 {
-      font-size: clamp(2.4rem, 5vw, 4.2rem);
-      line-height: 0.92;
-      letter-spacing: -0.05em;
-      max-width: 8ch;
-    }
-
-    .lede {
-      margin-top: 12px;
-      color: var(--muted);
-      line-height: 1.5;
-      max-width: 60ch;
-    }
-
-    .hud {
-      margin-top: 18px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .chip {
-      padding: 10px 14px;
-      border-radius: 999px;
-      border: 1px solid rgba(73, 56, 38, 0.12);
-      background: rgba(255, 255, 255, 0.72);
-      color: var(--muted);
-      font-size: 0.95rem;
-    }
-
-    .chip strong {
-      color: var(--ink);
-    }
-
-    .board-wrap {
-      margin-top: 18px;
-      padding: 16px;
-      border-radius: 20px;
-      border: 1px solid rgba(73, 56, 38, 0.1);
-      background:
-        radial-gradient(circle at top, rgba(255, 255, 255, 0.75), rgba(242, 233, 217, 0.95)),
-        repeating-linear-gradient(135deg, rgba(73, 56, 38, 0.03) 0 14px, transparent 14px 28px);
-    }
-
-    svg {
-      display: block;
-      width: 100%;
-      height: auto;
-    }
-
-    .hex {
-      stroke: var(--neutral-edge);
-      stroke-width: 1.5;
-      fill: var(--neutral);
-      transition: fill 120ms ease, stroke 120ms ease, transform 120ms ease;
-    }
-
-    .hex.territory {
-      fill: var(--territory);
-      stroke: var(--territory-edge);
-      stroke-width: 2;
-    }
-
-    .hex.blight {
-      fill: var(--blight);
-      stroke: var(--blight-edge);
-      stroke-width: 2.4;
-    }
-
-    .hex.highlight {
-      fill: #f8e6af;
-      stroke: var(--highlight);
-      stroke-width: 3;
-    }
-
-    .hex.blocked {
-      cursor: default;
-    }
-
-    .glyph {
-      font-size: 16px;
-      text-anchor: middle;
-      dominant-baseline: middle;
-      pointer-events: none;
-    }
-
-    .cell-label {
-      font-size: 9px;
-      fill: rgba(47, 36, 25, 0.58);
-      text-anchor: middle;
-      dominant-baseline: hanging;
-      pointer-events: none;
-    }
-
     .card {
+      padding: 14px;
       display: grid;
       gap: 10px;
-      padding: 14px;
+    }
+
+    .cards {
+      display: grid;
+      gap: 10px;
+    }
+
+    .tile-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .tile-card {
+      text-align: left;
+      min-height: 108px;
+      padding: 12px;
       border-radius: 18px;
-      border: 1px solid rgba(73, 56, 38, 0.1);
-      background: rgba(255, 255, 255, 0.72);
+      border: 2px solid rgba(70, 52, 33, 0.08);
+      background: rgba(255, 255, 255, 0.82);
+      transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+    }
+
+    .tile-card.active {
+      border-color: var(--accent);
+      box-shadow: 0 12px 20px rgba(217, 93, 57, 0.16);
+      transform: translateY(-2px);
+    }
+
+    .tile-card:disabled {
+      cursor: default;
+      opacity: 0.55;
+    }
+
+    .tile-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .tile-chip {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      color: #fff8ef;
+      font-size: 1.1rem;
+      box-shadow: inset 0 -10px 16px rgba(0, 0, 0, 0.12);
     }
 
     .muted {
       color: var(--muted);
       line-height: 1.45;
+    }
+
+    .bonus-log {
+      min-height: 70px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .bonus-item {
+      padding: 10px 12px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(70, 52, 33, 0.08);
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .rules {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
       font-size: 0.94rem;
     }
 
-    .controls {
-      display: grid;
+    .rule-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      margin-right: 8px;
+      border-radius: 999px;
+      vertical-align: middle;
+    }
+
+    .actions {
+      display: flex;
       gap: 10px;
+      flex-wrap: wrap;
     }
 
-    .build-row {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
-    }
-
-    .build-button,
-    .reset-button {
-      min-height: 50px;
+    .primary,
+    .secondary {
       border: 0;
       border-radius: 16px;
-      color: #f9f5ee;
-      background: linear-gradient(180deg, var(--button), var(--button-dark));
-      box-shadow: 0 10px 16px rgba(59, 93, 61, 0.2);
+      padding: 12px 16px;
+      color: #fff8ef;
     }
 
-    .build-button.active {
-      outline: 3px solid rgba(243, 193, 93, 0.7);
-      transform: translateY(-1px);
+    .primary {
+      background: linear-gradient(180deg, var(--accent), var(--accent-dark));
     }
 
-    .reset-button {
-      background: linear-gradient(180deg, #aa6661, var(--danger));
-      box-shadow: 0 10px 16px rgba(164, 72, 72, 0.22);
+    .secondary {
+      background: linear-gradient(180deg, #58726d, #3f5751);
     }
 
-    .status {
-      min-height: 4.2em;
-      color: var(--muted);
-      line-height: 1.45;
-    }
-
-    .legend {
-      display: grid;
-      gap: 8px;
-      color: var(--muted);
-      font-size: 0.93rem;
-    }
-
-    .legend-item {
-      display: flex;
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(31, 23, 16, 0.42);
+      display: none;
       align-items: center;
-      gap: 10px;
+      justify-content: center;
+      padding: 16px;
     }
 
-    .swatch {
-      width: 18px;
-      height: 18px;
-      border-radius: 999px;
-      border: 1px solid rgba(47, 36, 25, 0.18);
+    .overlay.open {
+      display: flex;
     }
 
-    .swatch.territory {
-      background: var(--territory);
-      border-color: var(--territory-edge);
+    .modal {
+      width: min(420px, 100%);
+      padding: 22px;
+      border-radius: 24px;
+      background: #fffaf2;
+      box-shadow: 0 24px 48px rgba(31, 23, 16, 0.26);
+      text-align: center;
+      display: grid;
+      gap: 12px;
     }
 
-    .swatch.farm {
-      background: var(--farm);
+    .result.win {
+      color: var(--good);
     }
 
-    .swatch.tower {
-      background: var(--tower);
-    }
-
-    .swatch.wall {
-      background: var(--wall);
-    }
-
-    .swatch.blight {
-      background: var(--blight);
-      border-color: var(--blight-edge);
+    .result.lose {
+      color: var(--bad);
     }
 
     @media (max-width: 920px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
       body {
-        padding: 14px;
+        font-size: 15px;
       }
 
       .app {
+        padding: 12px;
+        gap: 12px;
+      }
+
+      .board-shell,
+      .panel {
+        border-radius: 20px;
+        padding: 14px;
+      }
+
+      .tile-row {
         grid-template-columns: 1fr;
+      }
+
+      .hero {
+        flex-direction: column;
+      }
+
+      .summary {
+        grid-template-columns: 1fr 1fr;
       }
     }
   </style>
 </head>
 <body>
   <div class="app">
-    <main class="surface">
-      <h1>Hex Colony</h1>
-      <p class="lede">Grow a tiny kingdom one hex at a time. Farms fund expansion, towers claim nearby land after two turns, and walls are the only reliable answer when blight creeps in from the rim.</p>
-      <div class="hud">
-        <div class="chip">Turn <strong id="turn-display">1</strong></div>
-        <div class="chip">Gold <strong id="gold-display">5</strong></div>
-        <div class="chip">Territory <strong id="territory-display">1 / 50</strong></div>
-        <div class="chip">Blight <strong id="blight-display">6</strong></div>
+    <section class="board-shell">
+      <div class="hero">
+        <div>
+          <h1>Hex Colony</h1>
+          <p class="subtitle">Draft a small terrain hand each turn, place one tile on the hex frontier, and stack adjacency synergies to push your population score past the target before your placements run out.</p>
+        </div>
+        <div class="actions">
+          <button id="new-game-top" class="secondary" type="button">New Game</button>
+        </div>
       </div>
-      <div class="board-wrap">
-        <svg id="board" viewBox="0 0 1200 980" aria-label="Hex colony board"></svg>
+
+      <div class="summary">
+        <div class="stat">
+          <div class="stat-label">Score</div>
+          <div id="score" class="stat-value">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Target</div>
+          <div id="target-score" class="stat-value">54</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Placements Left</div>
+          <div id="placements-left" class="stat-value">18</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Turn Hand</div>
+          <div id="hand-size" class="stat-value">3</div>
+        </div>
       </div>
-    </main>
+
+      <div id="board-frame" class="board-frame">
+        <svg id="hex-board" viewBox="0 0 860 760" aria-label="Hex colony board"></svg>
+      </div>
+    </section>
 
     <aside class="panel">
       <section class="card">
-        <h2>Build</h2>
-        <p class="muted">Choose one structure, then click an empty hex adjacent to your territory. Every placement ends the turn.</p>
-        <div class="controls">
-          <div class="build-row">
-            <button class="build-button active" data-build="farm" type="button">Farm<br>2g</button>
-            <button class="build-button" data-build="tower" type="button">Tower<br>3g</button>
-            <button class="build-button" data-build="wall" type="button">Wall<br>1g</button>
-          </div>
-          <button class="reset-button" id="reset-button" type="button">Restart Colony</button>
+        <h2>Choose a Tile</h2>
+        <p class="muted">Each turn draws a random selection of 2-3 terrain tiles from a weighted deck. Pick one, then tap or click any empty hex cell.</p>
+        <div id="tile-hand" class="tile-row" aria-live="polite"></div>
+      </section>
+
+      <section class="card">
+        <h2>Placement Feedback</h2>
+        <div id="status" class="muted">Select a tile to begin. Matching neighbors create synergy links and extra score.</div>
+        <div id="bonus-log" class="bonus-log" aria-live="polite"></div>
+      </section>
+
+      <section class="card">
+        <h2>Adjacency Rules</h2>
+        <div class="rules">
+          <div><span class="rule-dot" style="background: var(--farm)"></span>Farm + Lake: irrigated fields for +3 food.</div>
+          <div><span class="rule-dot" style="background: var(--village)"></span>Village + Forest: timber camps for +3 lumber.</div>
+          <div><span class="rule-dot" style="background: var(--mine)"></span>Mine + Village: trade roads for +4 wealth.</div>
+          <div><span class="rule-dot" style="background: var(--forest)"></span>Forest + Forest: shared canopy for +2 ecology.</div>
+          <div><span class="rule-dot" style="background: var(--farm)"></span>Farm + Village: granary support for +2 population.</div>
+          <div><span class="rule-dot" style="background: var(--lake)"></span>Lake + Village: ferry route for +2 culture.</div>
         </div>
       </section>
 
       <section class="card">
-        <h2>Status</h2>
-        <p class="status" id="status-text">Place your first tile next to the settlement. Reach 50 controlled hexes before blight reaches home.</p>
-      </section>
-
-      <section class="card">
-        <h2>Rules</h2>
-        <div class="legend">
-          <div class="legend-item"><span class="swatch territory"></span>Owned empty territory can still be consumed by blight.</div>
-          <div class="legend-item"><span class="swatch farm"></span>Farms earn 1 gold at the end of every turn.</div>
-          <div class="legend-item"><span class="swatch tower"></span>Towers convert adjacent neutral hexes to player territory after 2 turns.</div>
-          <div class="legend-item"><span class="swatch wall"></span>Walls stop blight from entering that hex.</div>
-          <div class="legend-item"><span class="swatch blight"></span>Blight spreads from the edges every 3 turns.</div>
+        <h2>Round Controls</h2>
+        <div class="actions">
+          <button id="new-game-bottom" class="primary" type="button">New Game</button>
         </div>
       </section>
     </aside>
   </div>
 
+  <div id="overlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="result-title">
+    <div class="modal">
+      <p id="result-title" class="result win">Colony Complete</p>
+      <h2 id="result-score">54 / 54</h2>
+      <p id="result-message" class="muted"></p>
+      <button id="play-again" class="primary" type="button">New Game</button>
+    </div>
+  </div>
+
   <script>
-    const BOARD_RADIUS = 7;
-    const HEX_SIZE = 34;
-    const SQRT3 = Math.sqrt(3);
-    const STARTING_GOLD = 5;
-    const TARGET_TERRITORY = 50;
-    const BLIGHT_INTERVAL = 3;
-    const TILE_COSTS = { farm: 2, tower: 3, wall: 1 };
-    const TILE_GLYPHS = { settlement: "🏠", farm: "🌾", tower: "🗼", wall: "🧱", blight: "☠" };
-    const DIRECTIONS = [
-      [1, 0],
-      [1, -1],
-      [0, -1],
-      [-1, 0],
-      [-1, 1],
-      [0, 1]
+    const BOARD_RADIUS = 4;
+    const MAX_PLACEMENTS = 18;
+    const TARGET_SCORE = 54;
+    const HEX_SIZE = 38;
+    const TILE_TYPES = {
+      forest: { name: 'Forest', color: getCss('--forest'), icon: '🌲', weight: 3 },
+      farm: { name: 'Farm', color: getCss('--farm'), icon: '🌾', weight: 3 },
+      village: { name: 'Village', color: getCss('--village'), icon: '🏠', weight: 2 },
+      mine: { name: 'Mine', color: getCss('--mine'), icon: '⛏', weight: 2 },
+      lake: { name: 'Lake', color: getCss('--lake'), icon: '💧', weight: 2 }
+    };
+    const SYNERGY_RULES = [
+      createRule(['farm', 'lake'], 3, 'Irrigated fields'),
+      createRule(['village', 'forest'], 3, 'Timber camps'),
+      createRule(['mine', 'village'], 4, 'Trade roads'),
+      createRule(['forest', 'forest'], 2, 'Shared canopy'),
+      createRule(['farm', 'village'], 2, 'Granary support'),
+      createRule(['lake', 'village'], 2, 'Ferry route'),
+      createRule(['mine', 'forest'], 2, 'Charcoal smelters')
     ];
+    const DIRECTIONS = [
+      [1, -1, 0], [1, 0, -1], [0, 1, -1],
+      [-1, 1, 0], [-1, 0, 1], [0, -1, 1]
+    ];
+    const boardEl = document.getElementById('hex-board');
+    const boardFrameEl = document.getElementById('board-frame');
+    const tileHandEl = document.getElementById('tile-hand');
+    const bonusLogEl = document.getElementById('bonus-log');
+    const statusEl = document.getElementById('status');
+    const scoreEl = document.getElementById('score');
+    const targetScoreEl = document.getElementById('target-score');
+    const placementsLeftEl = document.getElementById('placements-left');
+    const handSizeEl = document.getElementById('hand-size');
+    const overlayEl = document.getElementById('overlay');
+    const resultTitleEl = document.getElementById('result-title');
+    const resultScoreEl = document.getElementById('result-score');
+    const resultMessageEl = document.getElementById('result-message');
+    let cells = [];
+    let board = new Map();
+    let hand = [];
+    let selectedTile = null;
+    let placementsUsed = 0;
+    let score = 0;
+    let lastSynergies = [];
 
-    const board = document.getElementById("board");
-    const turnDisplay = document.getElementById("turn-display");
-    const goldDisplay = document.getElementById("gold-display");
-    const territoryDisplay = document.getElementById("territory-display");
-    const blightDisplay = document.getElementById("blight-display");
-    const statusText = document.getElementById("status-text");
-    const buildButtons = Array.from(document.querySelectorAll(".build-button"));
-    const resetButton = document.getElementById("reset-button");
+    function getCss(name) {
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
 
-    let selectedBuild = "farm";
-    let hoverKey = null;
-    let state = null;
-    let boardCells = [];
-    let boardLookup = new Map();
-    let edgeKeys = [];
+    function createRule(pair, points, label) {
+      return { pair: pair.slice().sort().join('|'), points, label };
+    }
 
     function keyFor(q, r) {
       return `${q},${r}`;
     }
 
-    function parseKey(key) {
-      const [q, r] = key.split(",").map(Number);
-      return { q, r };
+    function cubeToPixel(q, r) {
+      const x = 430 + HEX_SIZE * Math.sqrt(3) * (q + r / 2);
+      const y = 370 + HEX_SIZE * 1.5 * r;
+      return { x, y };
     }
 
-    function axialDistance(q, r) {
-      return Math.max(Math.abs(q), Math.abs(r), Math.abs(-q - r));
-    }
-
-    function getNeighbors(q, r) {
-      return DIRECTIONS.map(([dq, dr]) => ({ q: q + dq, r: r + dr }));
-    }
-
-    function axialToPixel(q, r) {
-      return {
-        x: HEX_SIZE * SQRT3 * (q + r / 2),
-        y: HEX_SIZE * 1.5 * r
-      };
-    }
-
-    function polygonPoints(cx, cy, size) {
+    function hexPoints(x, y) {
       const points = [];
       for (let i = 0; i < 6; i += 1) {
-        const angle = ((60 * i) - 30) * (Math.PI / 180);
-        points.push(`${(cx + size * Math.cos(angle)).toFixed(2)},${(cy + size * Math.sin(angle)).toFixed(2)}`);
+        const angle = ((60 * i) - 30) * Math.PI / 180;
+        points.push(`${x + HEX_SIZE * Math.cos(angle)},${y + HEX_SIZE * Math.sin(angle)}`);
       }
-      return points.join(" ");
+      return points.join(' ');
     }
 
-    function createBoard() {
-      boardCells = [];
-      boardLookup = new Map();
-      edgeKeys = [];
-
+    function generateCells() {
+      const next = [];
       for (let q = -BOARD_RADIUS; q <= BOARD_RADIUS; q += 1) {
         for (let r = -BOARD_RADIUS; r <= BOARD_RADIUS; r += 1) {
-          if (axialDistance(q, r) > BOARD_RADIUS) {
-            continue;
-          }
-          const key = keyFor(q, r);
-          const coords = axialToPixel(q, r);
-          const cell = { key, q, r, ...coords };
-          boardCells.push(cell);
-          boardLookup.set(key, cell);
-          if (axialDistance(q, r) === BOARD_RADIUS) {
-            edgeKeys.push(key);
+          const s = -q - r;
+          if (Math.abs(s) <= BOARD_RADIUS) {
+            next.push({ q, r, s, key: keyFor(q, r), ...cubeToPixel(q, r) });
           }
         }
       }
-
-      let minX = Infinity;
-      let minY = Infinity;
-      let maxX = -Infinity;
-      let maxY = -Infinity;
-      for (const cell of boardCells) {
-        minX = Math.min(minX, cell.x - HEX_SIZE - 12);
-        minY = Math.min(minY, cell.y - HEX_SIZE - 24);
-        maxX = Math.max(maxX, cell.x + HEX_SIZE + 12);
-        maxY = Math.max(maxY, cell.y + HEX_SIZE + 30);
-      }
-      board.setAttribute("viewBox", `${minX} ${minY} ${maxX - minX} ${maxY - minY}`);
+      cells = next;
     }
 
-    function createInitialState() {
-      const cells = new Map();
-      for (const cell of boardCells) {
-        cells.set(cell.key, { owner: null, structure: null, timer: 0, blight: false });
-      }
-
-      const center = cells.get("0,0");
-      center.owner = "player";
-      center.structure = "settlement";
-
-      // Seed blight on six edge spokes so the opening remains playable.
-      const blightSeeds = [
-        [BOARD_RADIUS, 0],
-        [0, BOARD_RADIUS],
-        [-BOARD_RADIUS, BOARD_RADIUS],
-        [-BOARD_RADIUS, 0],
-        [0, -BOARD_RADIUS],
-        [BOARD_RADIUS, -BOARD_RADIUS]
-      ];
-      for (const [q, r] of blightSeeds) {
-        const cell = cells.get(keyFor(q, r));
-        if (cell) {
-          cell.blight = true;
-          cell.owner = null;
-          cell.structure = null;
-          cell.timer = 0;
-        }
-      }
-
-      return {
-        turn: 1,
-        gold: STARTING_GOLD,
-        cells,
-        gameOver: false,
-        outcome: null
-      };
-    }
-
-    function countTerritory() {
-      let total = 0;
-      for (const cell of state.cells.values()) {
-        if (cell.owner === "player" && !cell.blight) {
-          total += 1;
-        }
-      }
-      return total;
-    }
-
-    function countBlight() {
-      let total = 0;
-      for (const cell of state.cells.values()) {
-        if (cell.blight) {
-          total += 1;
-        }
-      }
-      return total;
-    }
-
-    function isAdjacentToTerritory(q, r) {
-      return getNeighbors(q, r).some(({ q: nq, r: nr }) => {
-        const neighbor = state.cells.get(keyFor(nq, nr));
-        return neighbor && neighbor.owner === "player" && !neighbor.blight;
-      });
-    }
-
-    function getCellColor(cell) {
-      if (cell.blight) {
-        return "hex blight blocked";
-      }
-      if (cell.owner === "player") {
-        return "hex territory";
-      }
-      return "hex";
-    }
-
-    function getCellGlyph(cell) {
-      if (cell.blight) {
-        return TILE_GLYPHS.blight;
-      }
-      if (cell.structure) {
-        return TILE_GLYPHS[cell.structure];
-      }
-      return "";
-    }
-
-    function canPlaceTile(targetKey) {
-      if (state.gameOver) {
-        return false;
-      }
-      const cell = state.cells.get(targetKey);
-      const target = boardLookup.get(targetKey);
-      if (!cell || !target) {
-        return false;
-      }
-      if (cell.blight || cell.structure || cell.owner === "player") {
-        return false;
-      }
-      if (!isAdjacentToTerritory(target.q, target.r)) {
-        return false;
-      }
-      return state.gold >= TILE_COSTS[selectedBuild];
-    }
-
-    function processTowerClaims() {
-      const pendingClaims = new Set();
-      for (const [key, cell] of state.cells.entries()) {
-        if (cell.structure !== "tower" || cell.blight) {
-          continue;
-        }
-        cell.timer += 1;
-        if (cell.timer < 2) {
-          continue;
-        }
-        cell.timer = 0;
-        const { q, r } = parseKey(key);
-        for (const neighbor of getNeighbors(q, r)) {
-          const neighborKey = keyFor(neighbor.q, neighbor.r);
-          const adjacent = state.cells.get(neighborKey);
-          if (!adjacent || adjacent.blight || adjacent.owner === "player" || adjacent.structure) {
-            continue;
+    function drawHand() {
+      const drawCount = Math.random() < 0.55 ? 3 : 2;
+      hand = [];
+      const entries = Object.entries(TILE_TYPES);
+      const totalWeight = entries.reduce((sum, [, tile]) => sum + tile.weight, 0);
+      while (hand.length < drawCount) {
+        let pick = Math.random() * totalWeight;
+        for (const [type, tile] of entries) {
+          pick -= tile.weight;
+          if (pick <= 0) {
+            hand.push(type);
+            break;
           }
-          pendingClaims.add(neighborKey);
         }
       }
-
-      for (const claimKey of pendingClaims) {
-        const claimCell = state.cells.get(claimKey);
-        claimCell.owner = "player";
-      }
-
-      return pendingClaims.size;
+      selectedTile = hand[0] || null;
     }
 
-    function spreadBlight() {
-      const newBlight = new Set();
-
-      for (const edgeKey of edgeKeys) {
-        const edgeCell = state.cells.get(edgeKey);
-        if (edgeCell && !edgeCell.blight && edgeCell.structure !== "wall") {
-          newBlight.add(edgeKey);
-        }
-      }
-
-      for (const [key, cell] of state.cells.entries()) {
-        if (!cell.blight) {
-          continue;
-        }
-        const { q, r } = parseKey(key);
-        for (const neighbor of getNeighbors(q, r)) {
-          const neighborKey = keyFor(neighbor.q, neighbor.r);
-          const adjacent = state.cells.get(neighborKey);
-          if (!adjacent || adjacent.blight || adjacent.structure === "wall") {
-            continue;
-          }
-          newBlight.add(neighborKey);
-        }
-      }
-
-      let consumed = 0;
-      for (const targetKey of newBlight) {
-        const cell = state.cells.get(targetKey);
-        if (!cell || cell.blight || cell.structure === "wall") {
-          continue;
-        }
-        consumed += 1;
-        cell.blight = true;
-        cell.owner = null;
-        cell.structure = null;
-        cell.timer = 0;
-      }
-      return consumed;
+    function neighborsOf(cell) {
+      return DIRECTIONS
+        .map(([dq, dr]) => {
+          const key = keyFor(cell.q + dq, cell.r + dr);
+          const neighbor = board.get(key);
+          return neighbor ? { key, ...neighbor } : null;
+        })
+        .filter(Boolean);
     }
 
-    function checkOutcome() {
-      const settlement = state.cells.get("0,0");
-      if (settlement && settlement.blight) {
-        state.gameOver = true;
-        state.outcome = "lose";
-        statusText.textContent = "The settlement has fallen to blight. Restart to try a different expansion line.";
+    function getRule(typeA, typeB) {
+      const key = [typeA, typeB].sort().join('|');
+      return SYNERGY_RULES.find((rule) => rule.pair === key) || null;
+    }
+
+    function placeTile(cellKey) {
+      if (!selectedTile || board.has(cellKey) || placementsUsed >= MAX_PLACEMENTS) {
+        return;
+      }
+      const cell = cells.find((entry) => entry.key === cellKey);
+      if (!cell) {
         return;
       }
 
-      const territory = countTerritory();
-      if (territory >= TARGET_TERRITORY) {
-        state.gameOver = true;
-        state.outcome = "win";
-        statusText.textContent = "Your colony holds 50 hexes. The kingdom survives.";
-      }
-    }
-
-    function resolveTurn() {
-      state.gold += Array.from(state.cells.values()).filter((cell) => cell.structure === "farm" && !cell.blight).length;
-      const claimedHexes = processTowerClaims();
-
-      let blightSpread = 0;
-      if (state.turn % BLIGHT_INTERVAL === 0) {
-        blightSpread = spreadBlight();
-      }
-
-      checkOutcome();
-      if (!state.gameOver) {
-        const baseMessage = `Turn ${state.turn} ended.`;
-        const farmMessage = " Farms paid out.";
-        const towerMessage = claimedHexes > 0 ? ` Towers claimed ${claimedHexes} hex${claimedHexes === 1 ? "" : "es"}.` : "";
-        const blightMessage = state.turn % BLIGHT_INTERVAL === 0
-          ? ` Blight spread into ${blightSpread} hex${blightSpread === 1 ? "" : "es"}.`
-          : "";
-        statusText.textContent = `${baseMessage}${farmMessage}${towerMessage}${blightMessage}`;
-        state.turn += 1;
-      }
-    }
-
-    function placeSelectedTile(targetKey) {
-      if (!canPlaceTile(targetKey)) {
-        const cell = state.cells.get(targetKey);
-        if (state.gameOver) {
-          statusText.textContent = state.outcome === "win"
-            ? "The colony already won. Restart to play again."
-            : "The colony already fell. Restart to play again.";
-        } else if (cell && cell.structure) {
-          statusText.textContent = "That hex is already occupied.";
-        } else if (cell && cell.blight) {
-          statusText.textContent = "Blighted land cannot be reclaimed directly.";
-        } else if (cell && cell.owner === "player") {
-          statusText.textContent = "Build on neutral land next to your territory, not on an existing claim.";
-        } else if (state.gold < TILE_COSTS[selectedBuild]) {
-          statusText.textContent = `Not enough gold for a ${selectedBuild}.`;
-        } else {
-          statusText.textContent = "Choose an empty hex adjacent to your territory.";
+      board.set(cellKey, { type: selectedTile, q: cell.q, r: cell.r, x: cell.x, y: cell.y });
+      placementsUsed += 1;
+      let gained = 1;
+      const found = [];
+      for (const neighbor of neighborsOf(cell)) {
+        const rule = getRule(selectedTile, neighbor.type);
+        if (rule) {
+          gained += rule.points;
+          found.push({ label: rule.label, points: rule.points, from: cell, to: neighbor });
         }
-        render();
-        return;
       }
+      score += gained;
+      lastSynergies = found;
+      logPlacement(selectedTile, gained, found);
+      spawnFloat(cell.x, cell.y, gained);
+      drawHand();
+      render();
+      if (placementsUsed >= MAX_PLACEMENTS) {
+        finishGame();
+      }
+    }
 
-      const cell = state.cells.get(targetKey);
-      cell.owner = "player";
-      cell.structure = selectedBuild;
-      cell.timer = 0;
-      state.gold -= TILE_COSTS[selectedBuild];
+    function logPlacement(type, gained, found) {
+      const tile = TILE_TYPES[type];
+      const lines = found.length
+        ? found.map((entry) => `${entry.label} +${entry.points}`).join(' • ')
+        : 'No adjacency bonus, base settlement growth only.';
+      bonusLogEl.innerHTML = `<div class="bonus-item"><strong>${tile.name}</strong> scored +${gained}. ${lines}</div>`;
+      statusEl.textContent = placementsUsed >= MAX_PLACEMENTS
+        ? 'All placements spent. Final score locked in.'
+        : `Placed ${tile.name}. Choose another tile and expand into any empty hex.`;
+    }
 
-      resolveTurn();
+    function spawnFloat(x, y, gained) {
+      const el = document.createElement('div');
+      el.className = 'float-score';
+      el.textContent = `+${gained}`;
+      const box = boardFrameEl.getBoundingClientRect();
+      const scaleX = box.width / 860;
+      const scaleY = box.height / 760;
+      el.style.left = `${x * scaleX}px`;
+      el.style.top = `${y * scaleY}px`;
+      boardFrameEl.appendChild(el);
+      setTimeout(() => el.remove(), 1100);
+    }
+
+    function finishGame() {
+      const won = score >= TARGET_SCORE;
+      overlayEl.classList.add('open');
+      resultTitleEl.textContent = won ? 'Colony Complete' : 'Colony Stalled';
+      resultTitleEl.className = `result ${won ? 'win' : 'lose'}`;
+      resultScoreEl.textContent = `${score} / ${TARGET_SCORE}`;
+      resultMessageEl.textContent = won
+        ? 'Your terrain network reached the target population score before the placement deck ran dry.'
+        : 'The colony ran out of placements before reaching the target score. Shuffle a new board and try a tighter synergy chain.';
+      statusEl.textContent = won
+        ? 'Win state reached. Start a new game to reshuffle the deck.'
+        : 'Lose state reached. Start a new game to try another layout.';
+    }
+
+    function resetGame() {
+      board = new Map();
+      placementsUsed = 0;
+      score = 0;
+      lastSynergies = [];
+      bonusLogEl.innerHTML = '<div class="bonus-item">Fresh colony founded. Early placements still grant +1 base score even without a match.</div>';
+      statusEl.textContent = 'Select a tile to begin. Matching neighbors create synergy links and extra score.';
+      overlayEl.classList.remove('open');
+      drawHand();
       render();
     }
 
-    function render() {
-      turnDisplay.textContent = String(state.turn);
-      goldDisplay.textContent = String(state.gold);
-      territoryDisplay.textContent = `${countTerritory()} / ${TARGET_TERRITORY}`;
-      blightDisplay.textContent = String(countBlight());
+    function renderBoard() {
+      const svg = [];
+      const synergySvg = lastSynergies.map((entry) => (
+        `<line class="synergy-line" x1="${entry.from.x}" y1="${entry.from.y}" x2="${entry.to.x}" y2="${entry.to.y}"></line>`
+      )).join('');
+      svg.push(`<g aria-hidden="true">${synergySvg}</g>`);
 
-      const pieces = [];
-      for (const cell of boardCells) {
-        const data = state.cells.get(cell.key);
-        const highlight = hoverKey === cell.key && canPlaceTile(cell.key) ? " highlight" : "";
-        const blocked = canPlaceTile(cell.key) ? "" : " blocked";
-        const classes = `${getCellColor(data)}${highlight}${blocked}`;
-        pieces.push(
-          `<g data-key="${cell.key}">` +
-            `<polygon class="${classes}" points="${polygonPoints(cell.x, cell.y, HEX_SIZE)}"></polygon>` +
-            `<text class="glyph" x="${cell.x}" y="${cell.y - 2}">${getCellGlyph(data)}</text>` +
-            (data.structure === "tower" && !data.blight ? `<text class="cell-label" x="${cell.x}" y="${cell.y + 10}">${Math.max(0, 2 - data.timer)}t</text>` : "") +
+      for (const cell of cells) {
+        const tile = board.get(cell.key);
+        const tileType = tile ? TILE_TYPES[tile.type] : null;
+        const classes = ['hex'];
+        if (!tile && selectedTile && placementsUsed < MAX_PLACEMENTS) {
+          classes.push('available');
+        }
+        if (!tile && selectedTile) {
+          classes.push('selected-cell');
+        }
+        svg.push(
+          `<g class="cell" data-key="${cell.key}">` +
+            `<polygon class="${classes.join(' ')}" data-key="${cell.key}" points="${hexPoints(cell.x, cell.y)}" fill="${tileType ? tileType.color : getCss('--hex-empty')}"></polygon>` +
+            (tileType ? `<text class="glyph" x="${cell.x}" y="${cell.y}">${tileType.icon}</text>` : '') +
+            (!tileType ? `<text class="label" x="${cell.x}" y="${cell.y + 23}">${cell.q},${cell.r}</text>` : '') +
           `</g>`
         );
       }
-      board.innerHTML = pieces.join("");
-    }
-
-    function handleBoardClick(event) {
-      const targetGroup = event.target.closest("g[data-key]");
-      if (!targetGroup) {
-        return;
-      }
-      placeSelectedTile(targetGroup.dataset.key);
-    }
-
-    function handleBoardMove(event) {
-      const targetGroup = event.target.closest("g[data-key]");
-      hoverKey = targetGroup ? targetGroup.dataset.key : null;
-      render();
-    }
-
-    function handleBoardLeave() {
-      hoverKey = null;
-      render();
-    }
-
-    function setSelectedBuild(nextBuild) {
-      selectedBuild = nextBuild;
-      for (const button of buildButtons) {
-        button.classList.toggle("active", button.dataset.build === nextBuild);
-      }
-      if (!state.gameOver) {
-        statusText.textContent = `Selected ${nextBuild}. Click an empty adjacent hex to build for ${TILE_COSTS[nextBuild]} gold.`;
-      }
-      render();
-    }
-
-    function setupEvents() {
-      board.addEventListener("click", handleBoardClick);
-      board.addEventListener("mousemove", handleBoardMove);
-      board.addEventListener("mouseleave", handleBoardLeave);
-      buildButtons.forEach((button) => {
-        button.addEventListener("click", () => setSelectedBuild(button.dataset.build));
+      boardEl.innerHTML = svg.join('');
+      boardEl.querySelectorAll('polygon[data-key]').forEach((polygon) => {
+        polygon.addEventListener('click', () => placeTile(polygon.dataset.key));
+        polygon.addEventListener('touchstart', (event) => {
+          event.preventDefault();
+          placeTile(polygon.dataset.key);
+        }, { passive: false });
       });
-      resetButton.addEventListener("click", startGame);
     }
 
-    function startGame() {
-      hoverKey = null;
-      state = createInitialState();
-      setSelectedBuild(selectedBuild);
-      statusText.textContent = "Place your first tile next to the settlement. Reach 50 controlled hexes before blight reaches home.";
-      render();
+    function renderHand() {
+      handSizeEl.textContent = String(hand.length);
+      tileHandEl.innerHTML = hand.map((type, index) => {
+        const tile = TILE_TYPES[type];
+        const active = selectedTile === type ? 'active' : '';
+        return (
+          `<button class="tile-card ${active}" data-type="${type}" type="button" ${placementsUsed >= MAX_PLACEMENTS ? 'disabled' : ''}>` +
+            `<div class="tile-top">` +
+              `<div class="tile-chip" style="background:${tile.color}">${tile.icon}</div>` +
+              `<div><strong>${tile.name}</strong><div class="muted">Pick ${index + 1}</div></div>` +
+            `</div>` +
+            `<div class="muted">${describeTile(type)}</div>` +
+          `</button>`
+        );
+      }).join('');
+      tileHandEl.querySelectorAll('button[data-type]').forEach((button) => {
+        button.addEventListener('click', () => {
+          selectedTile = button.dataset.type;
+          render();
+        });
+      });
     }
 
-    createBoard();
-    setupEvents();
-    startGame();
+    function describeTile(type) {
+      switch (type) {
+        case 'forest': return 'Pairs with villages, mines, and other forests.';
+        case 'farm': return 'Thrives beside lakes and villages.';
+        case 'village': return 'Scores from forests, farms, mines, and lakes.';
+        case 'mine': return 'Wants villages and wooded fuel nearby.';
+        case 'lake': return 'Boosts farms and ferry-side villages.';
+        default: return '';
+      }
+    }
+
+    function renderStats() {
+      scoreEl.textContent = String(score);
+      targetScoreEl.textContent = String(TARGET_SCORE);
+      placementsLeftEl.textContent = String(MAX_PLACEMENTS - placementsUsed);
+    }
+
+    function render() {
+      renderStats();
+      renderBoard();
+      renderHand();
+    }
+
+    document.getElementById('new-game-top').addEventListener('click', resetGame);
+    document.getElementById('new-game-bottom').addEventListener('click', resetGame);
+    document.getElementById('play-again').addEventListener('click', resetGame);
+
+    generateCells();
+    resetGame();
   </script>
 </body>
 </html>
