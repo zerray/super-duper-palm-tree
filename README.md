@@ -189,6 +189,17 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `gravity-golf/index.html` 即可游玩。
 
+## Gravity Well: Orbital Slingshot Arcade
+
+新增 `gravity-well-slingshot/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的重力弹弓街机游戏，包含：
+
+- 5 个逐步加难的关卡，每关至少 3 个可视化 gravity wells，并显示引力作用半径
+- 从屏幕边缘发射点进行鼠标或触摸拖拽瞄准，发射前会显示 dotted prediction arc
+- 发射后的弹体使用 Newtonian gravity 实时模拟，并留下随时间变色淡出的彩色轨迹
+- 命中目标即可过关，超过关卡发射预算则失败；HUD 持续记录总发射次数与分数
+
+直接用浏览器打开 `gravity-well-slingshot/index.html` 即可游玩。
+
 ## Hex Color Idle Factory
 
 新增 `hex-color-idle-factory/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的颜色混合 idle factory，包含：

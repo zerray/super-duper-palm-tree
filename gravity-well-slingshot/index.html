@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gravity Well: Orbital Slingshot Arcade</title>
+  <style>
+    :root {
+      --bg-0: #040611;
+      --bg-1: #0d1731;
+      --panel: rgba(7, 12, 28, 0.78);
+      --panel-border: rgba(155, 196, 255, 0.18);
+      --text: #eef5ff;
+      --muted: #9db0cc;
+      --accent: #7ee0ff;
+      --accent-warm: #ffd166;
+      --danger: #ff7a7a;
+      --success: #8cf2b4;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow: hidden;
+      color: var(--text);
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 18% 20%, rgba(126, 224, 255, 0.16), transparent 22%),
+        radial-gradient(circle at 82% 14%, rgba(255, 209, 102, 0.13), transparent 18%),
+        linear-gradient(180deg, var(--bg-1) 0%, var(--bg-0) 58%, #020309 100%);
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      touch-action: none;
+      cursor: crosshair;
+    }
+
+    .hud {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      pointer-events: none;
+    }
+
+    .panel {
+      max-width: min(440px, calc(100vw - 32px));
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.32);
+      pointer-events: auto;
+    }
+
+    h1,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(1.5rem, 3vw, 2.3rem);
+      letter-spacing: 0.03em;
+    }
+
+    .subtle,
+    .hint {
+      margin-top: 8px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .stats {
+      display: grid;
+      gap: 8px;
+      justify-items: end;
+      text-align: right;
+    }
+
+    .stats strong {
+      color: var(--accent-warm);
+    }
+
+    .controls {
+      margin-top: 12px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 15px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      color: #071423;
+      background: linear-gradient(135deg, #eff7ff, #7ee0ff);
+    }
+
+    .legend {
+      position: fixed;
+      left: 16px;
+      bottom: 16px;
+      max-width: min(520px, calc(100vw - 32px));
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(6, 11, 25, 0.78);
+      border: 1px solid rgba(155, 196, 255, 0.16);
+      color: var(--muted);
+      backdrop-filter: blur(8px);
+    }
+
+    .legend strong {
+      color: var(--text);
+    }
+
+    @media (max-width: 760px) {
+      .hud {
+        flex-direction: column;
+      }
+
+      .stats {
+        justify-items: start;
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div class="hud">
+    <section class="panel">
+      <h1>Gravity Well: Orbital Slingshot Arcade</h1>
+      <p class="subtle">Launch from the rim of the screen, bend around stacked gravity wells, and curve into the target using as few shots as possible.</p>
+      <div class="controls">
+        <button id="restart-button" type="button">Restart Run</button>
+        <p class="hint" id="status">Drag back from the launcher to preview the orbit, then release.</p>
+      </div>
+    </section>
+    <section class="panel stats">
+      <p>Level <strong id="level-label">1</strong></p>
+      <p>Wells <strong id="well-count-label">0</strong></p>
+      <p>Launches <strong id="launch-count-label">0</strong></p>
+      <p>Score <strong id="score-label">0</strong></p>
+      <p>State <strong id="state-label">Ready</strong></p>
+    </section>
+  </div>
+  <div class="legend"><strong>Controls:</strong> pointer or touch drag from the glowing launcher. The dotted line is a 200-step prediction. Press <strong>R</strong> to restart the full run.</div>
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const restartButton = document.getElementById("restart-button");
+    const statusLabel = document.getElementById("status");
+    const levelLabel = document.getElementById("level-label");
+    const wellCountLabel = document.getElementById("well-count-label");
+    const launchCountLabel = document.getElementById("launch-count-label");
+    const scoreLabel = document.getElementById("score-label");
+    const stateLabel = document.getElementById("state-label");
+
+    const levelConfigs = [
+      {
+        launcherY: 0.3,
+        targetY: 0.26,
+        par: 2,
+        maxLaunches: 5,
+        wells: [
+          { x: 0.35, y: 0.32, mass: 1800, radius: 86, core: 18, hue: 205 },
+          { x: 0.54, y: 0.66, mass: 2400, radius: 110, core: 24, hue: 42 },
+          { x: 0.74, y: 0.38, mass: 1700, radius: 80, core: 16, hue: 320 }
+        ]
+      },
+      {
+        launcherY: 0.7,
+        targetY: 0.28,
+        par: 2,
+        maxLaunches: 5,
+        wells: [
+          { x: 0.34, y: 0.6, mass: 2100, radius: 90, core: 19, hue: 210 },
+          { x: 0.5, y: 0.34, mass: 2600, radius: 116, core: 24, hue: 48 },
+          { x: 0.66, y: 0.7, mass: 2000, radius: 90, core: 18, hue: 288 },
+          { x: 0.79, y: 0.46, mass: 1600, radius: 76, core: 15, hue: 12 }
+        ]
+      },
+      {
+        launcherY: 0.22,
+        targetY: 0.74,
+        par: 3,
+        maxLaunches: 6,
+        wells: [
+          { x: 0.31, y: 0.46, mass: 1900, radius: 84, core: 17, hue: 198 },
+          { x: 0.48, y: 0.24, mass: 2500, radius: 108, core: 24, hue: 32 },
+          { x: 0.53, y: 0.72, mass: 2500, radius: 108, core: 24, hue: 280 },
+          { x: 0.72, y: 0.4, mass: 2100, radius: 92, core: 19, hue: 150 },
+          { x: 0.83, y: 0.62, mass: 1700, radius: 76, core: 15, hue: 352 }
+        ]
+      },
+      {
+        launcherY: 0.78,
+        targetY: 0.2,
+        par: 3,
+        maxLaunches: 6,
+        wells: [
+          { x: 0.3, y: 0.24, mass: 1700, radius: 80, core: 16, hue: 196 },
+          { x: 0.35, y: 0.68, mass: 2200, radius: 96, core: 20, hue: 38 },
+          { x: 0.52, y: 0.48, mass: 3200, radius: 126, core: 28, hue: 308 },
+          { x: 0.72, y: 0.28, mass: 2100, radius: 92, core: 19, hue: 154 },
+          { x: 0.76, y: 0.76, mass: 2100, radius: 92, core: 19, hue: 20 },
+          { x: 0.86, y: 0.5, mass: 1800, radius: 82, core: 16, hue: 248 }
+        ]
+      },
+      {
+        launcherY: 0.5,
+        targetY: 0.5,
+        par: 4,
+        maxLaunches: 7,
+        wells: [
+          { x: 0.27, y: 0.28, mass: 2000, radius: 88, core: 18, hue: 190 },
+          { x: 0.29, y: 0.72, mass: 2000, radius: 88, core: 18, hue: 24 },
+          { x: 0.47, y: 0.5, mass: 3300, radius: 128, core: 28, hue: 282 },
+          { x: 0.63, y: 0.24, mass: 2200, radius: 96, core: 20, hue: 44 },
+          { x: 0.65, y: 0.76, mass: 2200, radius: 96, core: 20, hue: 154 },
+          { x: 0.82, y: 0.34, mass: 1900, radius: 84, core: 17, hue: 334 },
+          { x: 0.82, y: 0.66, mass: 1900, radius: 84, core: 17, hue: 210 }
+        ]
+      }
+    ];
+
+    const state = {
+      width: 0,
+      height: 0,
+      dpr: 1,
+      pointerId: null,
+      aiming: false,
+      aimPoint: null,
+      launcher: null,
+      target: null,
+      wells: [],
+      projectile: null,
+      trail: [],
+      prediction: [],
+      levelIndex: 0,
+      levelLaunches: 0,
+      totalLaunches: 0,
+      score: 0,
+      mode: "ready",
+      message: "Drag back from the launcher to preview the orbit, then release.",
+      accumulator: 0,
+      lastTime: 0,
+      completeTimer: 0,
+      failureTimer: 0
+    };
+
+    const G = 4200;
+    const fixedDt = 1 / 120;
+    const previewSteps = 200;
+    const previewDt = 1 / 60;
+    const maxTrailPoints = 320;
+    const maxLaunchSpeed = 620;
+    const launchScale = 2.2;
+    const exitMargin = 90;
+    const projectileRadius = 7;
+    const launcherXRatio = 0.08;
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function distance(a, b) {
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function resize() {
+      state.dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      state.width = window.innerWidth;
+      state.height = window.innerHeight;
+      canvas.width = Math.floor(state.width * state.dpr);
+      canvas.height = Math.floor(state.height * state.dpr);
+      ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+      buildLevel(state.levelIndex);
+    }
+
+    function worldFromConfig(config) {
+      return config.wells.map((well) => ({
+        x: well.x * state.width,
+        y: well.y * state.height,
+        mass: well.mass,
+        radius: well.radius,
+        core: well.core,
+        hue: well.hue
+      }));
+    }
+
+    function buildLevel(index) {
+      const config = levelConfigs[index];
+      state.levelIndex = index;
+      state.levelLaunches = 0;
+      state.wells = worldFromConfig(config);
+      state.launcher = {
+        x: Math.max(60, state.width * launcherXRatio),
+        y: clamp(state.height * config.launcherY, 70, state.height - 70),
+        radius: 18
+      };
+      state.target = {
+        x: state.width - Math.max(84, state.width * 0.12),
+        y: clamp(state.height * config.targetY, 78, state.height - 78),
+        radius: clamp(30 - index * 2, 20, 30)
+      };
+      state.projectile = null;
+      state.trail = [];
+      state.prediction = [];
+      state.aiming = false;
+      state.pointerId = null;
+      state.completeTimer = 0;
+      state.failureTimer = 0;
+      state.mode = index === 0 && state.totalLaunches === 0 ? "ready" : "aiming";
+      state.message = "Drag back from the launcher to preview the orbit, then release.";
+      updateHud();
+    }
+
+    function restartRun() {
+      state.totalLaunches = 0;
+      state.score = 0;
+      buildLevel(0);
+      state.mode = "ready";
+      state.message = "Run restarted. Find the first arc again.";
+      updateHud();
+    }
+
+    function updateHud() {
+      levelLabel.textContent = String(state.levelIndex + 1);
+      wellCountLabel.textContent = String(state.wells.length);
+      launchCountLabel.textContent = String(state.totalLaunches);
+      scoreLabel.textContent = String(state.score);
+      stateLabel.textContent = modeLabel();
+      statusLabel.textContent = state.message;
+    }
+
+    function modeLabel() {
+      if (state.mode === "ready") {
+        return "Ready";
+      }
+      if (state.mode === "flying") {
+        return "Flying";
+      }
+      if (state.mode === "level-complete") {
+        return "Cleared";
+      }
+      if (state.mode === "run-complete") {
+        return "Complete";
+      }
+      if (state.mode === "failed") {
+        return "Failed";
+      }
+      return "Aiming";
+    }
+
+    function pointerPosition(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      };
+    }
+
+    function computeGravity(position) {
+      let ax = 0;
+      let ay = 0;
+      for (const well of state.wells) {
+        const dx = well.x - position.x;
+        const dy = well.y - position.y;
+        const distSq = dx * dx + dy * dy;
+        const minDist = well.core + 6;
+        const safeSq = Math.max(distSq, minDist * minDist);
+        const dist = Math.sqrt(safeSq);
+        const accel = G * well.mass / safeSq;
+        ax += (dx / dist) * accel;
+        ay += (dy / dist) * accel;
+      }
+      return { x: ax, y: ay };
+    }
+
+    function launchVelocityFromAim(point) {
+      const dx = state.launcher.x - point.x;
+      const dy = state.launcher.y - point.y;
+      const length = Math.hypot(dx, dy);
+      const speed = clamp(length * launchScale, 80, maxLaunchSpeed);
+      const scale = length > 0 ? speed / length : 0;
+      return {
+        x: dx * scale,
+        y: dy * scale,
+        power: clamp(speed / maxLaunchSpeed, 0, 1)
+      };
+    }
+
+    function beginAim(point) {
+      if (state.mode === "flying" || state.mode === "level-complete" || state.mode === "run-complete" || state.mode === "failed") {
+        return;
+      }
+      if (distance(point, state.launcher) > state.launcher.radius + 26) {
+        return;
+      }
+      state.aiming = true;
+      state.aimPoint = point;
+      state.mode = "aiming";
+      state.message = "Release to launch. Longer drags create faster slingshots.";
+      updatePrediction();
+      updateHud();
+    }
+
+    function updateAim(point) {
+      if (!state.aiming) {
+        return;
+      }
+      state.aimPoint = point;
+      updatePrediction();
+    }
+
+    function resetShot(message) {
+      state.projectile = null;
+      state.trail = [];
+      state.prediction = [];
+      state.aiming = false;
+      state.pointerId = null;
+      if (state.mode !== "failed" && state.mode !== "run-complete" && state.mode !== "level-complete") {
+        state.mode = "aiming";
+      }
+      state.message = message;
+      updateHud();
+    }
+
+    function launchProjectile() {
+      if (!state.aiming || !state.aimPoint) {
+        return;
+      }
+      const velocity = launchVelocityFromAim(state.aimPoint);
+      state.projectile = {
+        x: state.launcher.x,
+        y: state.launcher.y,
+        vx: velocity.x,
+        vy: velocity.y,
+        radius: projectileRadius,
+        life: 0,
+        style: 0
+      };
+      state.aiming = false;
+      state.prediction = [];
+      state.trail = [{ x: state.launcher.x, y: state.launcher.y, hue: 180 }];
+      state.levelLaunches += 1;
+      state.totalLaunches += 1;
+      state.score = Math.max(0, state.levelIndex * 180 + 700 - state.totalLaunches * 70);
+      state.mode = "flying";
+      state.message = "Shot in motion. Use the wells to curve into the target.";
+      updateHud();
+    }
+
+    function updatePrediction() {
+      if (!state.aiming || !state.aimPoint) {
+        state.prediction = [];
+        return;
+      }
+      const velocity = launchVelocityFromAim(state.aimPoint);
+      const ghost = {
+        x: state.launcher.x,
+        y: state.launcher.y,
+        vx: velocity.x,
+        vy: velocity.y,
+        radius: projectileRadius
+      };
+      const points = [];
+      for (let i = 0; i < previewSteps; i += 1) {
+        stepBody(ghost, previewDt);
+        if (touchesAnyWell(ghost) || outOfBounds(ghost)) {
+          break;
+        }
+        points.push({ x: ghost.x, y: ghost.y });
+        if (distance(ghost, state.target) <= state.target.radius + ghost.radius) {
+          break;
+        }
+      }
+      state.prediction = points;
+    }
+
+    function outOfBounds(body) {
+      return (
+        body.x < -exitMargin ||
+        body.x > state.width + exitMargin ||
+        body.y < -exitMargin ||
+        body.y > state.height + exitMargin
+      );
+    }
+
+    function touchesAnyWell(body) {
+      for (const well of state.wells) {
+        if (distance(body, well) <= well.core + body.radius) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function stepBody(body, dt) {
+      const gravity = computeGravity(body);
+      body.vx += gravity.x * dt;
+      body.vy += gravity.y * dt;
+      body.x += body.vx * dt;
+      body.y += body.vy * dt;
+    }
+
+    function finishLevel() {
+      const config = levelConfigs[state.levelIndex];
+      const efficiencyBonus = Math.max(0, config.maxLaunches - state.levelLaunches) * 90;
+      const parBonus = Math.max(0, config.par - state.levelLaunches + 1) * 130;
+      const styleBonus = Math.min(260, Math.floor(state.projectile.style));
+      state.score += efficiencyBonus + parBonus + styleBonus;
+      state.mode = "level-complete";
+      state.completeTimer = 1.25;
+      state.message = "Target hit. Preparing the next gravity field.";
+      updateHud();
+    }
+
+    function failLevel() {
+      state.mode = "failed";
+      state.failureTimer = 0;
+      state.projectile = null;
+      state.trail = [];
+      state.prediction = [];
+      state.message = "Launch budget exhausted. Restart the run to try again.";
+      updateHud();
+    }
+
+    function updateSimulation(dt) {
+      if (state.mode === "flying" && state.projectile) {
+        stepBody(state.projectile, dt);
+        state.projectile.life += dt;
+        state.projectile.style += Math.min(2.5, Math.abs(state.projectile.vx) + Math.abs(state.projectile.vy)) * dt * 0.08;
+
+        const hue = (state.projectile.life * 220) % 360;
+        state.trail.push({ x: state.projectile.x, y: state.projectile.y, hue });
+        if (state.trail.length > maxTrailPoints) {
+          state.trail.shift();
+        }
+
+        if (distance(state.projectile, state.target) <= state.target.radius + state.projectile.radius) {
+          finishLevel();
+          return;
+        }
+
+        if (touchesAnyWell(state.projectile)) {
+          if (state.levelLaunches >= levelConfigs[state.levelIndex].maxLaunches) {
+            failLevel();
+          } else {
+            resetShot("Your projectile collapsed into a gravity core. Try another angle.");
+          }
+          return;
+        }
+
+        if (outOfBounds(state.projectile)) {
+          if (state.levelLaunches >= levelConfigs[state.levelIndex].maxLaunches) {
+            failLevel();
+          } else {
+            resetShot("Projectile drifted away. Adjust the launch and try again.");
+          }
+        }
+      }
+
+      if (state.mode === "level-complete") {
+        state.completeTimer -= dt;
+        if (state.completeTimer <= 0) {
+          if (state.levelIndex === levelConfigs.length - 1) {
+            state.mode = "run-complete";
+            state.message = "All five levels cleared. Press Restart Run to play again.";
+            state.projectile = null;
+            state.trail = [];
+            updateHud();
+          } else {
+            buildLevel(state.levelIndex + 1);
+          }
+        }
+      }
+    }
+
+    function drawBackground() {
+      const gradient = ctx.createLinearGradient(0, 0, 0, state.height);
+      gradient.addColorStop(0, "#081326");
+      gradient.addColorStop(0.55, "#050b17");
+      gradient.addColorStop(1, "#020309");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, state.width, state.height);
+
+      for (let i = 0; i < 70; i += 1) {
+        const x = (i * 167) % state.width;
+        const y = (i * 79) % state.height;
+        ctx.fillStyle = `rgba(255,255,255,${0.08 + (i % 5) * 0.03})`;
+        ctx.fillRect(x, y, 2, 2);
+      }
+    }
+
+    function drawLauncher() {
+      ctx.save();
+      const pulse = 0.5 + 0.5 * Math.sin(performance.now() * 0.005);
+      ctx.strokeStyle = `rgba(126, 224, 255, ${0.55 + pulse * 0.2})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(state.launcher.x, state.launcher.y, state.launcher.radius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.beginPath();
+      ctx.arc(state.launcher.x, state.launcher.y, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawTarget() {
+      ctx.save();
+      ctx.strokeStyle = "rgba(140, 242, 180, 0.95)";
+      ctx.fillStyle = "rgba(140, 242, 180, 0.14)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(state.target.x, state.target.y, state.target.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.setLineDash([5, 6]);
+      ctx.beginPath();
+      ctx.arc(state.target.x, state.target.y, state.target.radius + 10, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(140, 242, 180, 0.4)";
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawGravityWell(well) {
+      ctx.save();
+      const ring = ctx.createRadialGradient(well.x, well.y, well.core * 0.6, well.x, well.y, well.radius);
+      ring.addColorStop(0, `hsla(${well.hue}, 90%, 72%, 0.35)`);
+      ring.addColorStop(1, `hsla(${well.hue}, 90%, 60%, 0)`);
+      ctx.fillStyle = ring;
+      ctx.beginPath();
+      ctx.arc(well.x, well.y, well.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.setLineDash([7, 7]);
+      ctx.strokeStyle = `hsla(${well.hue}, 100%, 75%, 0.42)`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(well.x, well.y, well.radius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      const core = ctx.createRadialGradient(well.x, well.y, 0, well.x, well.y, well.core);
+      core.addColorStop(0, "#ffffff");
+      core.addColorStop(0.25, `hsla(${well.hue}, 100%, 80%, 1)`);
+      core.addColorStop(1, `hsla(${well.hue}, 85%, 40%, 0.95)`);
+      ctx.fillStyle = core;
+      ctx.beginPath();
+      ctx.arc(well.x, well.y, well.core, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawTrail(points) {
+      if (points.length < 2) {
+        return;
+      }
+      for (let i = 1; i < points.length; i += 1) {
+        const prev = points[i - 1];
+        const point = points[i];
+        const alpha = i / points.length;
+        ctx.strokeStyle = `hsla(${point.hue}, 100%, 67%, ${alpha * 0.65})`;
+        ctx.lineWidth = lerp(1, 4, alpha);
+        ctx.beginPath();
+        ctx.moveTo(prev.x, prev.y);
+        ctx.lineTo(point.x, point.y);
+        ctx.stroke();
+      }
+    }
+
+    function drawPredictionLine() {
+      if (!state.prediction.length) {
+        return;
+      }
+      ctx.save();
+      ctx.fillStyle = "rgba(255,255,255,0.75)";
+      for (let i = 0; i < state.prediction.length; i += 6) {
+        const point = state.prediction[i];
+        const radius = 1.6 + (i / state.prediction.length) * 1.4;
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawAimGuide() {
+      if (!state.aiming || !state.aimPoint) {
+        return;
+      }
+      ctx.save();
+      ctx.strokeStyle = "rgba(255, 209, 102, 0.8)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(state.launcher.x, state.launcher.y);
+      ctx.lineTo(state.aimPoint.x, state.aimPoint.y);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawProjectile() {
+      if (!state.projectile) {
+        return;
+      }
+      ctx.save();
+      ctx.fillStyle = "#ffffff";
+      ctx.shadowColor = "rgba(126, 224, 255, 0.8)";
+      ctx.shadowBlur = 18;
+      ctx.beginPath();
+      ctx.arc(state.projectile.x, state.projectile.y, state.projectile.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawOverlay() {
+      if (state.mode !== "run-complete" && state.mode !== "failed") {
+        return;
+      }
+      ctx.save();
+      ctx.fillStyle = "rgba(3, 6, 14, 0.55)";
+      ctx.fillRect(0, 0, state.width, state.height);
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#eef5ff";
+      ctx.font = "700 32px Trebuchet MS";
+      ctx.fillText(state.mode === "run-complete" ? "Run Complete" : "Run Failed", state.width / 2, state.height * 0.42);
+      ctx.font = "18px Trebuchet MS";
+      ctx.fillStyle = "#b9c9dd";
+      const detail = state.mode === "run-complete"
+        ? `Finished in ${state.totalLaunches} launches with score ${state.score}.`
+        : `You used ${state.totalLaunches} launches before running out of attempts.`;
+      ctx.fillText(detail, state.width / 2, state.height * 0.48);
+      ctx.fillText("Press R or use Restart Run.", state.width / 2, state.height * 0.53);
+      ctx.restore();
+    }
+
+    function render() {
+      drawBackground();
+      drawTarget();
+      for (const well of state.wells) {
+        drawGravityWell(well);
+      }
+      drawPredictionLine();
+      drawAimGuide();
+      drawTrail(state.trail);
+      drawLauncher();
+      drawProjectile();
+      drawOverlay();
+    }
+
+    function frame(timestamp) {
+      if (!state.lastTime) {
+        state.lastTime = timestamp;
+      }
+      const delta = Math.min(0.05, (timestamp - state.lastTime) / 1000);
+      state.lastTime = timestamp;
+      state.accumulator += delta;
+
+      while (state.accumulator >= fixedDt) {
+        updateSimulation(fixedDt);
+        state.accumulator -= fixedDt;
+      }
+
+      render();
+      requestAnimationFrame(frame);
+    }
+
+    restartButton.addEventListener("click", restartRun);
+
+    window.addEventListener("resize", resize);
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "r" || event.key === "R") {
+        restartRun();
+      }
+    });
+
+    canvas.addEventListener("pointerdown", (event) => {
+      const point = pointerPosition(event);
+      if (distance(point, state.launcher) <= state.launcher.radius + 26) {
+        state.pointerId = event.pointerId;
+        canvas.setPointerCapture(event.pointerId);
+        beginAim(point);
+      }
+    });
+
+    canvas.addEventListener("pointermove", (event) => {
+      if (state.pointerId !== event.pointerId) {
+        return;
+      }
+      updateAim(pointerPosition(event));
+    });
+
+    canvas.addEventListener("pointerup", (event) => {
+      if (state.pointerId !== event.pointerId) {
+        return;
+      }
+      canvas.releasePointerCapture(event.pointerId);
+      state.pointerId = null;
+      launchProjectile();
+    });
+
+    canvas.addEventListener("pointercancel", () => {
+      state.pointerId = null;
+      resetShot("Aim cancelled. Line up the next attempt.");
+    });
+
+    resize();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
