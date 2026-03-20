@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hex Color Conquest</title>
+  <style>
+    :root {
+      --bg: #101425;
+      --panel: rgba(14, 22, 41, 0.86);
+      --panel-border: rgba(255, 255, 255, 0.1);
+      --text: #f3f5fb;
+      --muted: #aab6d8;
+      --player: #79f7d4;
+      --ai: #ff8c8a;
+      --accent: #ffd166;
+      --shadow: rgba(4, 8, 20, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(61, 107, 255, 0.28), transparent 34%),
+        radial-gradient(circle at bottom right, rgba(255, 95, 109, 0.22), transparent 28%),
+        linear-gradient(180deg, #171d35 0%, #090d18 100%);
+    }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .shell {
+      width: min(1200px, 100%);
+      margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(290px, 360px);
+      gap: 20px;
+    }
+
+    .board-panel,
+    .side-panel,
+    .overlay-card {
+      border: 1px solid var(--panel-border);
+      background: var(--panel);
+      box-shadow: 0 24px 60px var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .board-panel {
+      border-radius: 28px;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 4vw, 4.4rem);
+      line-height: 0.9;
+      letter-spacing: -0.06em;
+      max-width: 10ch;
+    }
+
+    .lede {
+      margin-top: 14px;
+      max-width: 58ch;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .scorebar {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .scorebox {
+      padding: 12px 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .scorebox .label {
+      display: block;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .scorebox strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 1.5rem;
+    }
+
+    .scorebox.player strong {
+      color: var(--player);
+    }
+
+    .scorebox.ai strong {
+      color: var(--ai);
+    }
+
+    .arena {
+      margin-top: 18px;
+      border-radius: 22px;
+      padding: 16px;
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.09), transparent 38%),
+        linear-gradient(180deg, rgba(11, 18, 34, 0.95), rgba(7, 10, 20, 0.98));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .hex {
+      stroke: rgba(255, 255, 255, 0.18);
+      stroke-width: 2;
+      transition: fill 240ms ease, transform 240ms ease, stroke 240ms ease, opacity 240ms ease;
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+
+    .hex.animating {
+      transform: scale(1.06);
+    }
+
+    .hex.player-owned {
+      stroke: rgba(121, 247, 212, 0.95);
+      stroke-width: 3;
+    }
+
+    .hex.ai-owned {
+      stroke: rgba(255, 140, 138, 0.95);
+      stroke-width: 3;
+    }
+
+    .marker {
+      pointer-events: none;
+      opacity: 0.95;
+    }
+
+    .marker.player {
+      fill: var(--player);
+    }
+
+    .marker.ai {
+      fill: var(--ai);
+    }
+
+    .side-panel {
+      border-radius: 24px;
+      padding: 18px;
+      display: grid;
+      align-content: start;
+      gap: 14px;
+    }
+
+    .card {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: grid;
+      gap: 10px;
+    }
+
+    .card h2 {
+      font-size: 1rem;
+    }
+
+    .status {
+      min-height: 3.1em;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .palette {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .palette button {
+      min-height: 52px;
+      border: 0;
+      border-radius: 16px;
+      position: relative;
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.12);
+      transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+    }
+
+    .palette button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.3), 0 8px 16px rgba(0, 0, 0, 0.18);
+    }
+
+    .palette button:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+
+    .palette button.selected::after {
+      content: "";
+      position: absolute;
+      inset: 10px;
+      border-radius: 10px;
+      border: 2px solid rgba(255, 255, 255, 0.95);
+    }
+
+    .rules {
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 0.94rem;
+    }
+
+    .action {
+      min-height: 46px;
+      border: 0;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #ffe082 0%, #ffb703 100%);
+      color: #291a02;
+      font-weight: 700;
+      box-shadow: 0 12px 24px rgba(255, 183, 3, 0.24);
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      place-items: center;
+      background: rgba(4, 7, 16, 0.7);
+      padding: 20px;
+    }
+
+    .overlay.show {
+      display: grid;
+    }
+
+    .overlay-card {
+      width: min(420px, 100%);
+      border-radius: 22px;
+      padding: 24px;
+      text-align: center;
+      display: grid;
+      gap: 12px;
+    }
+
+    .overlay-card p {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    @media (max-width: 920px) {
+      .shell {
+        grid-template-columns: 1fr;
+        padding: 16px;
+      }
+
+      .scorebar {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="board-panel">
+      <h1>Hex Color Conquest</h1>
+      <p class="lede">Claim bright territory from your corner of the board. Each turn you choose one of six colors, repaint your region, and absorb adjacent neutral hexes that match it. The greedy AI does the same from the opposite edge.</p>
+      <div class="scorebar">
+        <div class="scorebox player">
+          <span class="label">Player</span>
+          <strong id="player-score">0</strong>
+        </div>
+        <div class="scorebox">
+          <span class="label">Turn</span>
+          <strong id="turn-label">Player</strong>
+        </div>
+        <div class="scorebox ai">
+          <span class="label">AI</span>
+          <strong id="ai-score">0</strong>
+        </div>
+      </div>
+      <div class="arena">
+        <svg id="board" viewBox="0 0 900 720" aria-label="Hex grid board"></svg>
+      </div>
+      <div class="overlay" id="game-over-overlay" aria-live="polite">
+        <div class="overlay-card">
+          <h2 id="game-over-title">Round Over</h2>
+          <p id="game-over-text"></p>
+          <button class="action" id="play-again-button" type="button">Play Again</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side-panel">
+      <section class="card">
+        <h2>Choose a Color</h2>
+        <p class="status" id="status-text">Pick a swatch to flood your connected territory. You cannot choose your current color or the AI's current color.</p>
+        <div class="palette" id="palette"></div>
+      </section>
+
+      <section class="card">
+        <h2>Rules</h2>
+        <p class="rules">The board starts as a 7x7 hex grid with six saturated colors. Your root is the bottom-left hex; the AI starts at the top-right hex. Flood-fill spreads through adjacent neutral hexes that match the chosen color, and the game ends when all hexes are claimed.</p>
+      </section>
+
+      <section class="card">
+        <h2>Markers</h2>
+        <p class="rules">Diamond markers show the player root and the AI root so you can track each connected region during the flood animations.</p>
+      </section>
+    </aside>
+  </div>
+
+  <script>
+    const BOARD_ROWS = 7;
+    const BOARD_COLS = 7;
+    const AI_DELAY_MS = 520;
+    const ANIMATION_MS = 240;
+    const HEX_SIZE = 46;
+    const HEX_WIDTH = Math.sqrt(3) * HEX_SIZE;
+    const HEX_VERTICAL_STEP = HEX_SIZE * 1.5;
+    const PALETTE = ["#ff595e", "#ffca3a", "#8ac926", "#00bbf9", "#6a4cff", "#ff6ad5"];
+    const OWNER_PLAYER = "player";
+    const OWNER_AI = "ai";
+
+    const state = {
+      cells: [],
+      turn: OWNER_PLAYER,
+      locked: false,
+      over: false
+    };
+
+    const playerRoot = { row: BOARD_ROWS - 1, col: 0 };
+    const aiRoot = { row: 0, col: BOARD_COLS - 1 };
+
+    const board = document.getElementById("board");
+    const palette = document.getElementById("palette");
+    const playerScoreEl = document.getElementById("player-score");
+    const aiScoreEl = document.getElementById("ai-score");
+    const turnLabelEl = document.getElementById("turn-label");
+    const statusTextEl = document.getElementById("status-text");
+    const overlayEl = document.getElementById("game-over-overlay");
+    const overlayTitleEl = document.getElementById("game-over-title");
+    const overlayTextEl = document.getElementById("game-over-text");
+    const playAgainButton = document.getElementById("play-again-button");
+
+    function cellKey(row, col) {
+      return `${row},${col}`;
+    }
+
+    function getCell(row, col) {
+      return state.cells.find((cell) => cell.row === row && cell.col === col) || null;
+    }
+
+    function getCellAt(position) {
+      return getCell(position.row, position.col);
+    }
+
+    function getNeighbors(row, col) {
+      const offsets = row % 2 === 0
+        ? [[-1, -1], [-1, 0], [0, -1], [0, 1], [1, -1], [1, 0]]
+        : [[-1, 0], [-1, 1], [0, -1], [0, 1], [1, 0], [1, 1]];
+      return offsets
+        .map(([dr, dc]) => ({ row: row + dr, col: col + dc }))
+        .filter(({ row: nextRow, col: nextCol }) => nextRow >= 0 && nextRow < BOARD_ROWS && nextCol >= 0 && nextCol < BOARD_COLS);
+    }
+
+    function getRegion(owner, cells = state.cells) {
+      const root = owner === OWNER_PLAYER ? playerRoot : aiRoot;
+      const byKey = new Map(cells.map((cell) => [cellKey(cell.row, cell.col), cell]));
+      const start = byKey.get(cellKey(root.row, root.col));
+      if (!start || start.owner !== owner) {
+        return [];
+      }
+      const queue = [start];
+      const visited = new Set([cellKey(start.row, start.col)]);
+      const region = [];
+
+      while (queue.length) {
+        const cell = queue.shift();
+        region.push(cell);
+        for (const neighborPos of getNeighbors(cell.row, cell.col)) {
+          const neighbor = byKey.get(cellKey(neighborPos.row, neighborPos.col));
+          if (!neighbor || neighbor.owner !== owner) {
+            continue;
+          }
+          const key = cellKey(neighbor.row, neighbor.col);
+          if (!visited.has(key)) {
+            visited.add(key);
+            queue.push(neighbor);
+          }
+        }
+      }
+
+      return region;
+    }
+
+    function applyColorChoice(cells, owner, colorIndex) {
+      const nextCells = cells.map((cell) => ({ ...cell }));
+      const byKey = new Map(nextCells.map((cell) => [cellKey(cell.row, cell.col), cell]));
+      const region = getRegion(owner, nextCells);
+      const queue = [...region];
+      const visited = new Set(region.map((cell) => cellKey(cell.row, cell.col)));
+      let captured = 0;
+
+      for (const cell of region) {
+        cell.colorIndex = colorIndex;
+      }
+
+      while (queue.length) {
+        const cell = queue.shift();
+        for (const neighborPos of getNeighbors(cell.row, cell.col)) {
+          const neighbor = byKey.get(cellKey(neighborPos.row, neighborPos.col));
+          if (!neighbor) {
+            continue;
+          }
+          const key = cellKey(neighbor.row, neighbor.col);
+          if (neighbor.owner === owner && !visited.has(key)) {
+            visited.add(key);
+            queue.push(neighbor);
+            continue;
+          }
+          if (neighbor.owner !== null) {
+            continue;
+          }
+          if (neighbor.colorIndex !== colorIndex || visited.has(key)) {
+            continue;
+          }
+          neighbor.owner = owner;
+          neighbor.colorIndex = colorIndex;
+          captured += 1;
+          visited.add(key);
+          queue.push(neighbor);
+        }
+      }
+
+      return { cells: nextCells, captured };
+    }
+
+    function countOwned(owner) {
+      return state.cells.filter((cell) => cell.owner === owner).length;
+    }
+
+    function buildBoard() {
+      state.cells = [];
+      board.innerHTML = "";
+
+      for (let row = 0; row < BOARD_ROWS; row += 1) {
+        for (let col = 0; col < BOARD_COLS; col += 1) {
+          const colorIndex = Math.floor(Math.random() * PALETTE.length);
+          const cell = {
+            row,
+            col,
+            colorIndex,
+            owner: null,
+            polygon: null,
+            marker: null
+          };
+          state.cells.push(cell);
+        }
+      }
+
+      const playerCell = getCellAt(playerRoot);
+      const aiCell = getCellAt(aiRoot);
+      playerCell.owner = OWNER_PLAYER;
+      aiCell.owner = OWNER_AI;
+
+      if (aiCell.colorIndex === playerCell.colorIndex) {
+        aiCell.colorIndex = (aiCell.colorIndex + 1) % PALETTE.length;
+      }
+
+      const initialPlayer = applyColorChoice(state.cells, OWNER_PLAYER, playerCell.colorIndex);
+      state.cells = initialPlayer.cells;
+      const initialAiRoot = getCellAt(aiRoot);
+      const initialAi = applyColorChoice(state.cells, OWNER_AI, initialAiRoot.colorIndex);
+      state.cells = initialAi.cells;
+
+      renderBoard();
+      renderPalette();
+      updateStatus("Your turn. Pick a color to flood adjacent neutral hexes.");
+      updateHud();
+    }
+
+    function getHexPoints(cx, cy, radius) {
+      const points = [];
+      for (let index = 0; index < 6; index += 1) {
+        const angle = ((60 * index) - 30) * Math.PI / 180;
+        points.push(`${(cx + radius * Math.cos(angle)).toFixed(2)},${(cy + radius * Math.sin(angle)).toFixed(2)}`);
+      }
+      return points.join(" ");
+    }
+
+    function renderBoard() {
+      const ns = "http://www.w3.org/2000/svg";
+      for (const cell of state.cells) {
+        const cx = 110 + colToX(cell.col) + (cell.row % 2 ? HEX_WIDTH / 2 : 0);
+        const cy = 90 + rowToY(cell.row);
+        const polygon = document.createElementNS(ns, "polygon");
+        polygon.setAttribute("points", getHexPoints(cx, cy, HEX_SIZE));
+        polygon.dataset.row = String(cell.row);
+        polygon.dataset.col = String(cell.col);
+        cell.polygon = polygon;
+        board.appendChild(polygon);
+
+        const marker = document.createElementNS(ns, "polygon");
+        marker.setAttribute("points", `${cx},${cy - 9} ${cx + 9},${cy} ${cx},${cy + 9} ${cx - 9},${cy}`);
+        marker.classList.add("marker");
+        if (cell.row === playerRoot.row && cell.col === playerRoot.col) {
+          marker.classList.add("player");
+        } else if (cell.row === aiRoot.row && cell.col === aiRoot.col) {
+          marker.classList.add("ai");
+        } else {
+          marker.setAttribute("opacity", "0");
+        }
+        cell.marker = marker;
+        board.appendChild(marker);
+      }
+
+      syncBoard(true);
+    }
+
+    function colToX(col) {
+      return col * HEX_WIDTH;
+    }
+
+    function rowToY(row) {
+      return row * HEX_VERTICAL_STEP;
+    }
+
+    function syncBoard(skipAnimation = false, previousCells = null) {
+      const prevByKey = previousCells ? new Map(previousCells.map((cell) => [cellKey(cell.row, cell.col), cell])) : null;
+      for (const cell of state.cells) {
+        cell.polygon.setAttribute("fill", PALETTE[cell.colorIndex]);
+        cell.polygon.classList.remove("player-owned", "ai-owned", "animating");
+        if (cell.owner === OWNER_PLAYER) {
+          cell.polygon.classList.add("player-owned");
+        } else if (cell.owner === OWNER_AI) {
+          cell.polygon.classList.add("ai-owned");
+        }
+        if (!skipAnimation && prevByKey) {
+          const previous = prevByKey.get(cellKey(cell.row, cell.col));
+          if (previous && (previous.owner !== cell.owner || previous.colorIndex !== cell.colorIndex)) {
+            cell.polygon.classList.add("animating");
+            window.setTimeout(() => cell.polygon && cell.polygon.classList.remove("animating"), ANIMATION_MS);
+          }
+        }
+      }
+    }
+
+    function renderPalette() {
+      palette.innerHTML = "";
+      for (let index = 0; index < PALETTE.length; index += 1) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.style.background = `linear-gradient(180deg, ${PALETTE[index]}, ${PALETTE[index]})`;
+        button.setAttribute("aria-label", `Choose color ${index + 1}`);
+        button.addEventListener("click", () => handlePlayerTurn(index));
+        palette.appendChild(button);
+      }
+      refreshPaletteState();
+    }
+
+    function refreshPaletteState() {
+      const playerColor = getCellAt(playerRoot).colorIndex;
+      const aiColor = getCellAt(aiRoot).colorIndex;
+      Array.from(palette.children).forEach((button, index) => {
+        const disabled = state.locked || state.over || state.turn !== OWNER_PLAYER || index === playerColor || index === aiColor;
+        button.disabled = disabled;
+        button.classList.toggle("selected", index === playerColor);
+      });
+    }
+
+    function updateStatus(message) {
+      statusTextEl.textContent = message;
+    }
+
+    function updateHud() {
+      playerScoreEl.textContent = String(countOwned(OWNER_PLAYER));
+      aiScoreEl.textContent = String(countOwned(OWNER_AI));
+      turnLabelEl.textContent = state.over ? "Finished" : state.turn === OWNER_PLAYER ? "Player" : "AI";
+      refreshPaletteState();
+    }
+
+    function chooseAiMove() {
+      const aiColor = getCellAt(aiRoot).colorIndex;
+      const playerColor = getCellAt(playerRoot).colorIndex;
+      let bestMove = null;
+
+      for (let colorIndex = 0; colorIndex < PALETTE.length; colorIndex += 1) {
+        if (colorIndex === aiColor || colorIndex === playerColor) {
+          continue;
+        }
+        const simulation = applyColorChoice(state.cells, OWNER_AI, colorIndex);
+        const owned = simulation.cells.filter((cell) => cell.owner === OWNER_AI).length;
+        if (!bestMove || simulation.captured > bestMove.captured || (simulation.captured === bestMove.captured && owned > bestMove.owned)) {
+          bestMove = { colorIndex, captured: simulation.captured, owned };
+        }
+      }
+
+      return bestMove;
+    }
+
+    function allClaimed() {
+      return state.cells.every((cell) => cell.owner !== null);
+    }
+
+    function finishGame() {
+      state.over = true;
+      state.locked = true;
+      const playerScore = countOwned(OWNER_PLAYER);
+      const aiScore = countOwned(OWNER_AI);
+      let title = "Draw";
+      if (playerScore > aiScore) {
+        title = "You Win";
+      } else if (aiScore > playerScore) {
+        title = "AI Wins";
+      }
+      overlayTitleEl.textContent = title;
+      overlayTextEl.textContent = `Final score: ${playerScore} to ${aiScore}. Every hex is claimed, so the larger empire takes the board.`;
+      overlayEl.classList.add("show");
+      updateStatus("The board is full. Start a new round to play again.");
+      updateHud();
+    }
+
+    function commitMove(owner, colorIndex) {
+      const previous = state.cells.map((cell) => ({ row: cell.row, col: cell.col, colorIndex: cell.colorIndex, owner: cell.owner }));
+      const result = applyColorChoice(state.cells, owner, colorIndex);
+      state.cells = result.cells;
+      syncBoard(false, previous);
+      updateHud();
+      return result.captured;
+    }
+
+    function handlePlayerTurn(colorIndex) {
+      if (state.locked || state.over || state.turn !== OWNER_PLAYER) {
+        return;
+      }
+      const playerColor = getCellAt(playerRoot).colorIndex;
+      const aiColor = getCellAt(aiRoot).colorIndex;
+      if (colorIndex === playerColor || colorIndex === aiColor) {
+        return;
+      }
+
+      state.locked = true;
+      const captured = commitMove(OWNER_PLAYER, colorIndex);
+      updateStatus(captured > 0 ? `You captured ${captured} neutral ${captured === 1 ? "hex" : "hexes"}. The AI is thinking.` : "No immediate capture. The AI is thinking.");
+      if (allClaimed()) {
+        finishGame();
+        return;
+      }
+
+      state.turn = OWNER_AI;
+      updateHud();
+      window.setTimeout(takeAiTurn, AI_DELAY_MS);
+    }
+
+    function takeAiTurn() {
+      if (state.over) {
+        return;
+      }
+      const move = chooseAiMove();
+      if (!move) {
+        finishGame();
+        return;
+      }
+      const captured = commitMove(OWNER_AI, move.colorIndex);
+      if (allClaimed()) {
+        finishGame();
+        return;
+      }
+      state.turn = OWNER_PLAYER;
+      state.locked = false;
+      updateStatus(captured > 0 ? `AI claimed ${captured} hexes. Your move.` : "AI changed color without gaining ground. Your move.");
+      updateHud();
+    }
+
+    function resetGame() {
+      state.turn = OWNER_PLAYER;
+      state.locked = false;
+      state.over = false;
+      overlayEl.classList.remove("show");
+      buildBoard();
+    }
+
+    playAgainButton.addEventListener("click", resetGame);
+
+    resetGame();
+  </script>
+</body>
+</html>
