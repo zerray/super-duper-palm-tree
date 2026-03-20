@@ -176,3 +176,14 @@ This repository contains a simple agent-factory workflow for planning and comple
 - Canvas 2D 发光粒子与半透明残影效果，便于观察聚团、链状与细胞样结构
 
 直接用浏览器打开 `particle-life/index.html` 即可运行。
+
+## Pixel Pulse Sequencer
+
+新增 `pixel-pulse-sequencer/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的像素步进音序器玩具，包含：
+
+- 8x16 可点击网格，按行映射 5 条音色与 3 条打击乐
+- 自动循环播放头，使用 Web Audio API 提前调度触发以减少抖动
+- 60 到 180 BPM 实时调速、波形切换、主题切换与一键清空
+- 激活格在播放头经过时会发光脉冲
+
+直接用浏览器打开 `pixel-pulse-sequencer/index.html` 即可运行。
