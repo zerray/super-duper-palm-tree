@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hex Chain</title>
+  <style>
+    :root {
+      --bg: #f4efe7;
+      --panel: rgba(255, 250, 242, 0.92);
+      --panel-border: rgba(63, 47, 33, 0.14);
+      --ink: #2f241b;
+      --muted: #6f6258;
+      --empty: #efe1c9;
+      --empty-stroke: #bea886;
+      --hover: #f7d78f;
+      --human: #1f6fb2;
+      --ai: #b24b35;
+      --shadow: rgba(47, 36, 27, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 24px;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.85), transparent 32%),
+        linear-gradient(180deg, #fbf8f2 0%, var(--bg) 100%);
+    }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+      border: none;
+    }
+
+    .app {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(280px, 340px);
+      gap: 20px;
+    }
+
+    .surface,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      box-shadow: 0 20px 46px var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .surface {
+      padding: 24px;
+    }
+
+    .panel {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.5rem, 6vw, 4.6rem);
+      line-height: 0.92;
+      letter-spacing: -0.06em;
+      max-width: 8ch;
+    }
+
+    .lede {
+      margin-top: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+      max-width: 62ch;
+    }
+
+    .stats {
+      margin-top: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .chip {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(63, 47, 33, 0.1);
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--muted);
+    }
+
+    .chip strong {
+      color: var(--ink);
+    }
+
+    .chip.player strong {
+      color: var(--human);
+    }
+
+    .chip.ai strong {
+      color: var(--ai);
+    }
+
+    .board-wrap {
+      margin-top: 18px;
+      position: relative;
+      border-radius: 20px;
+      border: 1px solid rgba(63, 47, 33, 0.1);
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.7), rgba(245, 235, 221, 0.95)),
+        repeating-linear-gradient(135deg, rgba(63, 47, 33, 0.03) 0 16px, transparent 16px 32px);
+      padding: 16px;
+      overflow: hidden;
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .hex {
+      fill: var(--empty);
+      stroke: var(--empty-stroke);
+      stroke-width: 2;
+      cursor: pointer;
+      transition: transform 120ms ease, stroke 120ms ease, fill 120ms ease;
+    }
+
+    .hex.hoverable:hover,
+    .hex.hover {
+      fill: #f7ebc1;
+      stroke: var(--hover);
+      transform: translateY(-2px);
+    }
+
+    .hex.filled {
+      cursor: default;
+    }
+
+    .tile {
+      pointer-events: none;
+      stroke: rgba(255, 255, 255, 0.9);
+      stroke-width: 2;
+    }
+
+    .chain-ring {
+      pointer-events: none;
+      fill: none;
+      stroke: rgba(47, 36, 27, 0.9);
+      stroke-width: 3.5;
+      stroke-dasharray: 5 6;
+    }
+
+    .card {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(63, 47, 33, 0.1);
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .muted {
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.95rem;
+    }
+
+    .palette {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .color-button {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px;
+      border-radius: 14px;
+      border: 2px solid transparent;
+      background: rgba(250, 247, 241, 0.95);
+      color: var(--ink);
+      text-align: left;
+    }
+
+    .color-button.selected {
+      border-color: var(--ink);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55);
+    }
+
+    .swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(47, 36, 27, 0.25);
+      flex: none;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(47, 36, 27, 0.08);
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .restart {
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: #476c45;
+      color: #fffdf7;
+      font-weight: 700;
+    }
+
+    .restart:hover {
+      background: #39593a;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 16px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(253, 249, 242, 0.9);
+      border-radius: 18px;
+      padding: 24px;
+    }
+
+    .overlay.visible {
+      display: flex;
+    }
+
+    .overlay-card {
+      max-width: 380px;
+      text-align: center;
+      display: grid;
+      gap: 12px;
+      padding: 24px;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      border: 1px solid rgba(63, 47, 33, 0.12);
+      box-shadow: 0 18px 40px rgba(47, 36, 27, 0.12);
+    }
+
+    .overlay-card h2 {
+      font-size: 2rem;
+      letter-spacing: -0.04em;
+    }
+
+    @media (max-width: 920px) {
+      body {
+        padding: 16px;
+      }
+
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .surface,
+      .panel {
+        border-radius: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="surface">
+      <h1>Hex Chain</h1>
+      <p class="lede">
+        Place a color on any empty hex. Matching neighbors merge into one chain and award
+        exponentially more points. The AI uses the same colors and greedily looks for its best chain while
+        leaning toward moves that deny yours.
+      </p>
+      <div class="stats">
+        <div class="chip player">Player score: <strong id="player-score">0</strong></div>
+        <div class="chip ai">AI score: <strong id="ai-score">0</strong></div>
+        <div class="chip">Turn: <strong id="turn-indicator">Player</strong></div>
+        <div class="chip">Last chain: <strong id="chain-indicator">0 tiles</strong></div>
+      </div>
+      <div class="board-wrap">
+        <svg id="board" viewBox="0 0 860 720" role="img" aria-label="Hex Chain game board"></svg>
+        <div class="overlay" id="game-over">
+          <div class="overlay-card">
+            <h2 id="game-over-title">Board Full</h2>
+            <p class="muted" id="game-over-summary"></p>
+            <button class="restart" id="overlay-restart" type="button">New Game</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <section class="card">
+        <h2>Pick a Color</h2>
+        <p class="muted">Your move places the currently selected color. The AI can choose any color each turn.</p>
+        <div class="palette" id="palette"></div>
+        <div class="pill">Scoring: 2^(chain length - 1)</div>
+      </section>
+
+      <section class="card">
+        <h2>Rules</h2>
+        <p class="muted">
+          Click any empty hex to place a colored tile. Adjacent hexes of the same color form a chain found by
+          flood-fill. Longer chains score exponentially, so extending a four-tile group is worth far more than
+          starting a fresh pair.
+        </p>
+      </section>
+
+      <section class="card">
+        <h2>Status</h2>
+        <p class="muted" id="status-text">
+          Your turn. Pick a color, then click an empty hex to place it.
+        </p>
+        <button class="restart" id="restart-button" type="button">New Game</button>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    const GRID_SIZE = 7;
+    const AI_DELAY_MS = 420;
+    const HEX_RADIUS = 42;
+    const HEX_WIDTH = Math.sqrt(3) * HEX_RADIUS;
+    const HEX_HEIGHT = HEX_RADIUS * 2;
+    const HORIZONTAL_STEP = HEX_WIDTH;
+    const VERTICAL_STEP = HEX_HEIGHT * 0.75;
+    const COLORS = [
+      { id: "coral", label: "Coral", fill: "#d96c50" },
+      { id: "teal", label: "Teal", fill: "#3f9a93" },
+      { id: "gold", label: "Gold", fill: "#daa73b" },
+      { id: "plum", label: "Plum", fill: "#8f5aa6" }
+    ];
+    const DIRECTIONS = [
+      [1, 0],
+      [1, -1],
+      [0, -1],
+      [-1, 0],
+      [-1, 1],
+      [0, 1]
+    ];
+
+    const boardElement = document.getElementById("board");
+    const paletteElement = document.getElementById("palette");
+    const playerScoreElement = document.getElementById("player-score");
+    const aiScoreElement = document.getElementById("ai-score");
+    const turnIndicatorElement = document.getElementById("turn-indicator");
+    const chainIndicatorElement = document.getElementById("chain-indicator");
+    const statusTextElement = document.getElementById("status-text");
+    const gameOverElement = document.getElementById("game-over");
+    const gameOverTitleElement = document.getElementById("game-over-title");
+    const gameOverSummaryElement = document.getElementById("game-over-summary");
+
+    let board = new Map();
+    let coordinates = [];
+    let selectedColorId = COLORS[0].id;
+    let currentTurn = "player";
+    let scores = { player: 0, ai: 0 };
+    let lastChain = [];
+    let aiTimeoutId = null;
+
+    function keyFor(q, r) {
+      return `${q},${r}`;
+    }
+
+    function isInsideBoard(q, r) {
+      return q >= 0 && q < GRID_SIZE && r >= 0 && r < GRID_SIZE;
+    }
+
+    function axialToPixel(q, r) {
+      return {
+        x: 110 + q * HORIZONTAL_STEP + r * (HEX_WIDTH / 2),
+        y: 100 + r * VERTICAL_STEP
+      };
+    }
+
+    function createHexPoints(cx, cy) {
+      const points = [];
+      for (let i = 0; i < 6; i += 1) {
+        const angle = ((60 * i) - 30) * (Math.PI / 180);
+        const x = cx + HEX_RADIUS * Math.cos(angle);
+        const y = cy + HEX_RADIUS * Math.sin(angle);
+        points.push(`${x.toFixed(2)},${y.toFixed(2)}`);
+      }
+      return points.join(" ");
+    }
+
+    function neighborsOf(q, r) {
+      return DIRECTIONS
+        .map(([dq, dr]) => ({ q: q + dq, r: r + dr }))
+        .filter(({ q: nq, r: nr }) => isInsideBoard(nq, nr));
+    }
+
+    function createBoardState() {
+      const nextBoard = new Map();
+      coordinates = [];
+      for (let r = 0; r < GRID_SIZE; r += 1) {
+        for (let q = 0; q < GRID_SIZE; q += 1) {
+          const key = keyFor(q, r);
+          nextBoard.set(key, null);
+          coordinates.push({ q, r, key });
+        }
+      }
+      return nextBoard;
+    }
+
+    function createPalette() {
+      paletteElement.innerHTML = "";
+      COLORS.forEach((color) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `color-button${color.id === selectedColorId ? " selected" : ""}`;
+        button.dataset.colorId = color.id;
+        button.innerHTML = `<span class="swatch" style="background:${color.fill}"></span><span>${color.label}</span>`;
+        button.addEventListener("click", () => {
+          if (currentTurn !== "player") {
+            return;
+          }
+          selectedColorId = color.id;
+          createPalette();
+        });
+        paletteElement.appendChild(button);
+      });
+    }
+
+    function getChain(boardState, startQ, startR, colorId) {
+      const startKey = keyFor(startQ, startR);
+      if (!boardState.get(startKey) || boardState.get(startKey).colorId !== colorId) {
+        return [];
+      }
+
+      const visited = new Set([startKey]);
+      const queue = [{ q: startQ, r: startR }];
+      const chain = [];
+
+      while (queue.length > 0) {
+        const current = queue.shift();
+        chain.push(current);
+        for (const neighbor of neighborsOf(current.q, current.r)) {
+          const neighborKey = keyFor(neighbor.q, neighbor.r);
+          const cell = boardState.get(neighborKey);
+          if (!cell || cell.colorId !== colorId || visited.has(neighborKey)) {
+            continue;
+          }
+          visited.add(neighborKey);
+          queue.push(neighbor);
+        }
+      }
+
+      return chain;
+    }
+
+    function scoreChainLength(chainLength) {
+      return Math.pow(2, Math.max(chainLength - 1, 0));
+    }
+
+    function getAvailableMoves(boardState) {
+      return coordinates.filter(({ key }) => !boardState.get(key));
+    }
+
+    function renderBoard() {
+      boardElement.innerHTML = "";
+      const fragment = document.createDocumentFragment();
+
+      coordinates.forEach(({ q, r, key }) => {
+        const { x, y } = axialToPixel(q, r);
+        const cell = board.get(key);
+        const hex = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+        hex.setAttribute("points", createHexPoints(x, y));
+        hex.setAttribute("class", `hex${cell ? " filled" : " hoverable"}`);
+        hex.dataset.key = key;
+
+        if (!cell && currentTurn === "player") {
+          hex.addEventListener("click", () => handlePlayerMove(q, r));
+          hex.addEventListener("mouseenter", () => hex.classList.add("hover"));
+          hex.addEventListener("mouseleave", () => hex.classList.remove("hover"));
+        }
+
+        fragment.appendChild(hex);
+
+        if (cell) {
+          const tile = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          tile.setAttribute("class", "tile");
+          tile.setAttribute("cx", x);
+          tile.setAttribute("cy", y);
+          tile.setAttribute("r", HEX_RADIUS * 0.54);
+          tile.setAttribute("fill", colorById(cell.colorId).fill);
+          fragment.appendChild(tile);
+
+          const ownerMark = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          ownerMark.setAttribute("x", x);
+          ownerMark.setAttribute("y", y + 6);
+          ownerMark.setAttribute("text-anchor", "middle");
+          ownerMark.setAttribute("font-size", "22");
+          ownerMark.setAttribute("font-weight", "700");
+          ownerMark.setAttribute("fill", "#fffdf9");
+          ownerMark.textContent = cell.owner === "player" ? "P" : "A";
+          fragment.appendChild(ownerMark);
+        }
+      });
+
+      lastChain.forEach(({ q, r }) => {
+        const { x, y } = axialToPixel(q, r);
+        const ring = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        ring.setAttribute("class", "chain-ring");
+        ring.setAttribute("cx", x);
+        ring.setAttribute("cy", y);
+        ring.setAttribute("r", HEX_RADIUS * 0.68);
+        fragment.appendChild(ring);
+      });
+
+      boardElement.appendChild(fragment);
+    }
+
+    function colorById(colorId) {
+      return COLORS.find((color) => color.id === colorId);
+    }
+
+    function placeTile(boardState, q, r, colorId, owner) {
+      const nextBoard = new Map(boardState);
+      nextBoard.set(keyFor(q, r), { colorId, owner });
+      return nextBoard;
+    }
+
+    function applyMove(q, r, colorId, owner) {
+      board = placeTile(board, q, r, colorId, owner);
+      const chain = getChain(board, q, r, colorId);
+      const gained = scoreChainLength(chain.length);
+      scores[owner] += gained;
+      lastChain = chain;
+      chainIndicatorElement.textContent = `${chain.length} tiles for ${gained} pts`;
+      updateStatus(owner, colorId, chain.length, gained);
+      currentTurn = owner === "player" ? "ai" : "player";
+      renderBoard();
+      updateHud();
+      if (isBoardFull()) {
+        showGameOver();
+        return;
+      }
+      if (currentTurn === "ai") {
+        aiTimeoutId = window.setTimeout(takeAiTurn, AI_DELAY_MS);
+      }
+    }
+
+    function updateStatus(owner, colorId, chainLength, gained) {
+      const actor = owner === "player" ? "You" : "AI";
+      const color = colorById(colorId);
+      statusTextElement.textContent =
+        `${actor} placed ${color.label}. Chain length ${chainLength}, scoring ${gained} point${gained === 1 ? "" : "s"}.`;
+    }
+
+    function updateHud() {
+      playerScoreElement.textContent = String(scores.player);
+      aiScoreElement.textContent = String(scores.ai);
+      turnIndicatorElement.textContent =
+        currentTurn === "player" ? "Player" : currentTurn === "ai" ? "AI" : "Game Over";
+      createPalette();
+    }
+
+    function handlePlayerMove(q, r) {
+      if (currentTurn !== "player") {
+        return;
+      }
+      if (board.get(keyFor(q, r))) {
+        return;
+      }
+      if (aiTimeoutId) {
+        window.clearTimeout(aiTimeoutId);
+        aiTimeoutId = null;
+      }
+      applyMove(q, r, selectedColorId, "player");
+    }
+
+    function evaluateMove(boardState, q, r, colorId, owner) {
+      const simulatedBoard = placeTile(boardState, q, r, colorId, owner);
+      const chain = getChain(simulatedBoard, q, r, colorId);
+      return {
+        q,
+        r,
+        colorId,
+        owner,
+        chainLength: chain.length,
+        score: scoreChainLength(chain.length)
+      };
+    }
+
+    function bestPotentialScoreForPlayerAt(boardState, q, r) {
+      let best = 0;
+      for (const color of COLORS) {
+        const result = evaluateMove(boardState, q, r, color.id, "player");
+        best = Math.max(best, result.score);
+      }
+      return best;
+    }
+
+    function chooseAiMove() {
+      let bestMove = null;
+      for (const { q, r } of getAvailableMoves(board)) {
+        const blockScore = bestPotentialScoreForPlayerAt(board, q, r);
+        for (const color of COLORS) {
+          const move = evaluateMove(board, q, r, color.id, "ai");
+          move.blockScore = blockScore;
+          const isBetter =
+            !bestMove ||
+            move.score > bestMove.score ||
+            (move.score === bestMove.score && move.blockScore > bestMove.blockScore) ||
+            (move.score === bestMove.score && move.blockScore === bestMove.blockScore && move.chainLength > bestMove.chainLength);
+          if (isBetter) {
+            bestMove = move;
+          }
+        }
+      }
+      return bestMove;
+    }
+
+    function takeAiTurn() {
+      aiTimeoutId = null;
+      if (currentTurn !== "ai" || isBoardFull()) {
+        return;
+      }
+      const move = chooseAiMove();
+      if (!move) {
+        showGameOver();
+        return;
+      }
+      applyMove(move.q, move.r, move.colorId, "ai");
+    }
+
+    function isBoardFull() {
+      return getAvailableMoves(board).length === 0;
+    }
+
+    function showGameOver() {
+      currentTurn = "done";
+      updateHud();
+      const winner =
+        scores.player === scores.ai ? "Draw" : scores.player > scores.ai ? "Player Wins" : "AI Wins";
+      gameOverTitleElement.textContent = winner;
+      gameOverSummaryElement.textContent =
+        `Final score: Player ${scores.player}, AI ${scores.ai}. Restart for a fresh 7x7 match.`;
+      gameOverElement.classList.add("visible");
+      statusTextElement.textContent = "Board full. Start a new game to play again.";
+      renderBoard();
+    }
+
+    function resetGame() {
+      if (aiTimeoutId) {
+        window.clearTimeout(aiTimeoutId);
+        aiTimeoutId = null;
+      }
+      board = createBoardState();
+      currentTurn = "player";
+      scores = { player: 0, ai: 0 };
+      lastChain = [];
+      selectedColorId = COLORS[0].id;
+      chainIndicatorElement.textContent = "0 tiles";
+      statusTextElement.textContent = "Your turn. Pick a color, then click an empty hex to place it.";
+      gameOverElement.classList.remove("visible");
+      updateHud();
+      renderBoard();
+    }
+
+    document.getElementById("restart-button").addEventListener("click", resetGame);
+    document.getElementById("overlay-restart").addEventListener("click", resetGame);
+
+    resetGame();
+  </script>
+</body>
+</html>
