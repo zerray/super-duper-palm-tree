@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pixel Pulse Sequencer</title>
+  <style>
+    :root {
+      --bg: #08111f;
+      --bg-accent: #14213d;
+      --panel: rgba(10, 20, 36, 0.82);
+      --panel-edge: rgba(117, 170, 255, 0.18);
+      --text: #eff6ff;
+      --muted: #9eb0d4;
+      --accent: #72f1b8;
+      --accent-strong: #ff4d9d;
+      --playhead: rgba(114, 241, 184, 0.18);
+      --cell-off: rgba(14, 28, 47, 0.94);
+      --cell-glow: rgba(114, 241, 184, 0.45);
+      --shadow: rgba(0, 0, 0, 0.35);
+      --row-0: #7ce7ff;
+      --row-1: #8ab4ff;
+      --row-2: #b19cff;
+      --row-3: #ff84d8;
+      --row-4: #ff9f6e;
+      --row-5: #ffd36e;
+      --row-6: #ff7272;
+      --row-7: #d8ff72;
+    }
+
+    body[data-theme="sunset"] {
+      --bg: #22111d;
+      --bg-accent: #4f1d3a;
+      --panel: rgba(41, 12, 28, 0.82);
+      --panel-edge: rgba(255, 177, 143, 0.2);
+      --text: #fff4ef;
+      --muted: #f3b8b2;
+      --accent: #ffd166;
+      --accent-strong: #ff5d8f;
+      --playhead: rgba(255, 209, 102, 0.2);
+      --cell-off: rgba(52, 16, 34, 0.92);
+      --cell-glow: rgba(255, 209, 102, 0.42);
+      --shadow: rgba(0, 0, 0, 0.32);
+    }
+
+    body[data-theme="daybreak"] {
+      --bg: #ecf6ff;
+      --bg-accent: #cbdcff;
+      --panel: rgba(255, 255, 255, 0.82);
+      --panel-edge: rgba(73, 105, 181, 0.14);
+      --text: #1b2440;
+      --muted: #59688b;
+      --accent: #3965ff;
+      --accent-strong: #ff6b6b;
+      --playhead: rgba(57, 101, 255, 0.12);
+      --cell-off: rgba(214, 226, 250, 0.9);
+      --cell-glow: rgba(57, 101, 255, 0.22);
+      --shadow: rgba(32, 64, 124, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 24px;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.12), transparent 24%),
+        radial-gradient(circle at bottom right, rgba(255, 77, 157, 0.14), transparent 28%),
+        linear-gradient(160deg, var(--bg) 0%, var(--bg-accent) 100%);
+      transition: background 240ms ease, color 240ms ease;
+    }
+
+    .app {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.8fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .surface,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-edge);
+      border-radius: 28px;
+      box-shadow: 0 24px 54px var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .surface {
+      padding: 24px;
+    }
+
+    .panel {
+      padding: 20px;
+      display: grid;
+      gap: 14px;
+    }
+
+    h1,
+    p,
+    h2 {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 6vw, 4.5rem);
+      line-height: 0.9;
+      letter-spacing: -0.06em;
+    }
+
+    .lede {
+      margin-top: 14px;
+      max-width: 66ch;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .hero-bar {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 40px;
+      padding: 0 16px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .sequencer-shell {
+      margin-top: 24px;
+      padding: 18px;
+      border-radius: 24px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0 16px, transparent 16px 32px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .row-labels,
+    .grid-wrap {
+      display: grid;
+      gap: 10px;
+    }
+
+    .sequencer {
+      display: grid;
+      grid-template-columns: 104px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+    }
+
+    .row-labels {
+      grid-template-rows: repeat(8, minmax(0, 1fr));
+    }
+
+    .row-label {
+      min-height: 48px;
+      padding: 10px 12px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.05);
+      display: grid;
+      align-content: center;
+      gap: 2px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .row-label strong {
+      font-size: 0.9rem;
+      letter-spacing: 0.02em;
+    }
+
+    .row-label span {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(16, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .cell {
+      appearance: none;
+      border: 0;
+      min-height: 48px;
+      border-radius: 14px;
+      cursor: pointer;
+      background: var(--cell-off);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+      transition: transform 120ms ease, box-shadow 150ms ease, background 150ms ease, opacity 150ms ease;
+    }
+
+    .cell:hover,
+    .cell:focus-visible {
+      outline: none;
+      transform: translateY(-1px);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 10px 22px rgba(0, 0, 0, 0.18);
+    }
+
+    .cell.active {
+      background: linear-gradient(180deg, color-mix(in srgb, var(--cell-color) 88%, white 12%), var(--cell-color));
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+        0 0 0 1px rgba(255, 255, 255, 0.06),
+        0 14px 26px color-mix(in srgb, var(--cell-color) 30%, transparent);
+    }
+
+    .cell.playhead {
+      box-shadow:
+        inset 0 0 0 2px rgba(255, 255, 255, 0.28),
+        0 0 0 4px var(--playhead);
+    }
+
+    .cell.hit {
+      animation: hitPulse 240ms ease-out;
+    }
+
+    .cell.active.hit {
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.34),
+        0 0 0 4px color-mix(in srgb, var(--cell-color) 35%, transparent),
+        0 0 24px var(--cell-glow);
+    }
+
+    @keyframes hitPulse {
+      0% {
+        transform: scale(1);
+      }
+
+      45% {
+        transform: scale(0.88);
+      }
+
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    .card {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .card h2 {
+      font-size: 1rem;
+    }
+
+    .label-row,
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    input[type="range"],
+    select,
+    button {
+      font: inherit;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    select {
+      width: 100%;
+      min-height: 42px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 0 12px;
+      color: var(--text);
+      background: rgba(8, 17, 31, 0.34);
+    }
+
+    body[data-theme="daybreak"] select {
+      background: rgba(228, 238, 255, 0.86);
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    button.control {
+      min-height: 44px;
+      border: 0;
+      border-radius: 999px;
+      cursor: pointer;
+      color: white;
+      background: linear-gradient(180deg, var(--accent-strong) 0%, var(--accent) 100%);
+      box-shadow: 0 12px 22px rgba(0, 0, 0, 0.18);
+    }
+
+    button.control.secondary {
+      color: var(--text);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08));
+    }
+
+    .legend {
+      display: grid;
+      gap: 8px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: var(--swatch);
+      box-shadow: 0 0 12px color-mix(in srgb, var(--swatch) 44%, transparent);
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      body {
+        padding: 14px;
+      }
+
+      .surface,
+      .panel {
+        border-radius: 22px;
+      }
+
+      .sequencer {
+        grid-template-columns: 1fr;
+      }
+
+      .row-labels {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-rows: repeat(2, auto);
+      }
+
+      .grid {
+        gap: 6px;
+      }
+
+      .cell {
+        min-height: 40px;
+        border-radius: 12px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .button-row {
+        grid-template-columns: 1fr;
+      }
+
+      .grid {
+        grid-template-columns: repeat(8, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body data-theme="neon">
+  <main class="app">
+    <section class="surface">
+      <h1>Pixel Pulse Sequencer</h1>
+      <p class="lede">
+        Flip pixels into a living beat loop. Five tone rows and three percussion rows sweep across a 16-step grid,
+        pulsing on impact while the transport keeps scheduling slightly ahead for cleaner timing.
+      </p>
+
+      <div class="hero-bar">
+        <div class="status-pill">Transport: <strong id="status-label">Stopped</strong></div>
+        <div class="status-pill">Step: <strong id="step-label">1 / 16</strong></div>
+        <div class="status-pill">Audio: <strong id="audio-label">Waiting for start</strong></div>
+      </div>
+
+      <div class="sequencer-shell">
+        <div class="sequencer">
+          <div id="row-labels" class="row-labels" aria-hidden="true"></div>
+          <div class="grid-wrap">
+            <div id="grid" class="grid" aria-label="8 by 16 music sequencer grid"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <section class="card">
+        <h2>Transport</h2>
+        <div class="button-row">
+          <button id="start-button" class="control" type="button">Start Audio</button>
+          <button id="clear-button" class="control secondary" type="button">Clear All</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Tempo</h2>
+        <label for="bpm-slider">
+          <div class="label-row"><span>BPM</span><span id="bpm-value">112</span></div>
+          <input id="bpm-slider" type="range" min="60" max="180" step="1" value="112">
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>Waveform</h2>
+        <label for="waveform-select">
+          <div class="label-row"><span>Tone rows</span><span id="waveform-value">triangle</span></div>
+          <select id="waveform-select">
+            <option value="triangle" selected>triangle</option>
+            <option value="sine">sine</option>
+            <option value="square">square</option>
+            <option value="sawtooth">sawtooth</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>Theme</h2>
+        <label for="theme-select">
+          <div class="label-row"><span>Palette</span><span id="theme-value">neon</span></div>
+          <select id="theme-select">
+            <option value="neon" selected>neon</option>
+            <option value="sunset">sunset</option>
+            <option value="daybreak">daybreak</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>Rows</h2>
+        <div id="legend" class="legend"></div>
+      </section>
+
+      <p class="footer-note">
+        Click any cell to arm it. Start audio once to satisfy browser autoplay rules; BPM changes apply immediately
+        without restarting the loop.
+      </p>
+    </aside>
+  </main>
+
+  <script>
+    const rows = 8;
+    const cols = 16;
+    const lookAheadMs = 25;
+    const scheduleWindow = 0.12;
+    const toneFrequencies = [220, 277.18, 329.63, 392.0, 493.88];
+    const rowDefinitions = [
+      { label: "Bass", detail: "tone", color: "var(--row-0)" },
+      { label: "Chord", detail: "tone", color: "var(--row-1)" },
+      { label: "Lead", detail: "tone", color: "var(--row-2)" },
+      { label: "Bell", detail: "tone", color: "var(--row-3)" },
+      { label: "Air", detail: "tone", color: "var(--row-4)" },
+      { label: "Kick", detail: "percussion", color: "var(--row-5)" },
+      { label: "Snare", detail: "percussion", color: "var(--row-6)" },
+      { label: "Hat", detail: "percussion", color: "var(--row-7)" }
+    ];
+
+    const gridState = Array.from({ length: rows }, () => Array(cols).fill(false));
+    const cellRefs = [];
+
+    const grid = document.getElementById("grid");
+    const rowLabels = document.getElementById("row-labels");
+    const legend = document.getElementById("legend");
+    const startButton = document.getElementById("start-button");
+    const clearButton = document.getElementById("clear-button");
+    const bpmSlider = document.getElementById("bpm-slider");
+    const bpmValue = document.getElementById("bpm-value");
+    const waveformSelect = document.getElementById("waveform-select");
+    const waveformValue = document.getElementById("waveform-value");
+    const themeSelect = document.getElementById("theme-select");
+    const themeValue = document.getElementById("theme-value");
+    const statusLabel = document.getElementById("status-label");
+    const stepLabel = document.getElementById("step-label");
+    const audioLabel = document.getElementById("audio-label");
+
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+    let audioContext = null;
+    let masterGain = null;
+    let noiseBuffer = null;
+    let isRunning = false;
+    let timerId = null;
+    let currentStep = 0;
+    let nextNoteTime = 0;
+    let activePlayheadColumn = -1;
+    let waveform = waveformSelect.value;
+
+    function stepDuration() {
+      return 60 / Number(bpmSlider.value) / 4;
+    }
+
+    function updatePlayhead(column) {
+      if (activePlayheadColumn === column) {
+        return;
+      }
+
+      if (activePlayheadColumn >= 0) {
+        for (let row = 0; row < rows; row += 1) {
+          cellRefs[row][activePlayheadColumn].classList.remove("playhead");
+        }
+      }
+
+      activePlayheadColumn = column;
+
+      for (let row = 0; row < rows; row += 1) {
+        cellRefs[row][activePlayheadColumn].classList.add("playhead");
+      }
+
+      stepLabel.textContent = `${column + 1} / ${cols}`;
+    }
+
+    function flashCell(row, col) {
+      const cell = cellRefs[row][col];
+      cell.classList.remove("hit");
+      void cell.offsetWidth;
+      cell.classList.add("hit");
+    }
+
+    function ensureAudio() {
+      if (!AudioContextClass) {
+        audioLabel.textContent = "Unsupported";
+        return false;
+      }
+
+      if (!audioContext) {
+        audioContext = new AudioContextClass();
+        masterGain = audioContext.createGain();
+        masterGain.gain.value = 0.34;
+        masterGain.connect(audioContext.destination);
+        noiseBuffer = createNoiseBuffer();
+      }
+
+      return true;
+    }
+
+    function createNoiseBuffer() {
+      const duration = 0.35;
+      const buffer = audioContext.createBuffer(1, Math.floor(audioContext.sampleRate * duration), audioContext.sampleRate);
+      const data = buffer.getChannelData(0);
+
+      for (let i = 0; i < data.length; i += 1) {
+        data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+      }
+
+      return buffer;
+    }
+
+    function playTone(row, time) {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      const filter = audioContext.createBiquadFilter();
+      const frequency = toneFrequencies[row];
+      const isBell = row === 3;
+      const isAir = row === 4;
+
+      oscillator.type = waveform;
+      oscillator.frequency.setValueAtTime(frequency, time);
+      oscillator.frequency.exponentialRampToValueAtTime(frequency * (isAir ? 1.015 : 1.002), time + 0.16);
+
+      filter.type = isAir ? "highpass" : "lowpass";
+      filter.frequency.setValueAtTime(isAir ? 1400 : 1700 + row * 180, time);
+      filter.Q.value = isBell ? 9 : 0.7;
+
+      gainNode.gain.setValueAtTime(0.0001, time);
+      gainNode.gain.exponentialRampToValueAtTime(isBell ? 0.18 : 0.12, time + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, time + (isBell ? 0.38 : 0.24));
+
+      oscillator.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(masterGain);
+
+      oscillator.start(time);
+      oscillator.stop(time + 0.42);
+    }
+
+    function playKick(time) {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(130, time);
+      oscillator.frequency.exponentialRampToValueAtTime(42, time + 0.18);
+
+      gainNode.gain.setValueAtTime(0.0001, time);
+      gainNode.gain.exponentialRampToValueAtTime(0.48, time + 0.006);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, time + 0.2);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(masterGain);
+
+      oscillator.start(time);
+      oscillator.stop(time + 0.24);
+    }
+
+    function playNoiseBurst(time, filterType, cutoff, q, attack, decay, level) {
+      const source = audioContext.createBufferSource();
+      const filter = audioContext.createBiquadFilter();
+      const gainNode = audioContext.createGain();
+
+      source.buffer = noiseBuffer;
+      filter.type = filterType;
+      filter.frequency.setValueAtTime(cutoff, time);
+      filter.Q.value = q;
+
+      gainNode.gain.setValueAtTime(0.0001, time);
+      gainNode.gain.exponentialRampToValueAtTime(level, time + attack);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, time + decay);
+
+      source.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(masterGain);
+
+      source.start(time);
+      source.stop(time + decay + 0.04);
+    }
+
+    function triggerRow(row, time) {
+      if (row <= 4) {
+        playTone(row, time);
+        return;
+      }
+
+      if (row === 5) {
+        playKick(time);
+        return;
+      }
+
+      if (row === 6) {
+        playNoiseBurst(time, "bandpass", 1800, 0.9, 0.005, 0.16, 0.32);
+        return;
+      }
+
+      playNoiseBurst(time, "highpass", 7200, 0.8, 0.002, 0.06, 0.18);
+    }
+
+    function scheduleStep(stepIndex, time) {
+      updatePlayhead(stepIndex);
+
+      for (let row = 0; row < rows; row += 1) {
+        if (!gridState[row][stepIndex]) {
+          continue;
+        }
+
+        triggerRow(row, time);
+        flashCell(row, stepIndex);
+      }
+    }
+
+    function scheduler() {
+      if (!audioContext || !isRunning) {
+        return;
+      }
+
+      while (nextNoteTime < audioContext.currentTime + scheduleWindow) {
+        scheduleStep(currentStep, nextNoteTime);
+        nextNoteTime += stepDuration();
+        currentStep = (currentStep + 1) % cols;
+      }
+
+      timerId = window.setTimeout(scheduler, lookAheadMs);
+    }
+
+    async function toggleTransport() {
+      if (!ensureAudio()) {
+        return;
+      }
+
+      if (audioContext.state === "suspended") {
+        await audioContext.resume();
+      }
+
+      isRunning = !isRunning;
+
+      if (isRunning) {
+        nextNoteTime = audioContext.currentTime + 0.05;
+        statusLabel.textContent = "Running";
+        audioLabel.textContent = "Live";
+        startButton.textContent = "Pause";
+        scheduler();
+      } else {
+        statusLabel.textContent = "Stopped";
+        startButton.textContent = "Resume";
+        audioLabel.textContent = "Ready";
+        window.clearTimeout(timerId);
+        timerId = null;
+      }
+    }
+
+    function clearGrid() {
+      for (let row = 0; row < rows; row += 1) {
+        for (let col = 0; col < cols; col += 1) {
+          gridState[row][col] = false;
+          cellRefs[row][col].classList.remove("active", "hit");
+        }
+      }
+    }
+
+    function renderLabels() {
+      rowDefinitions.forEach((rowDef, index) => {
+        const label = document.createElement("div");
+        label.className = "row-label";
+        label.innerHTML = `<strong>${rowDef.label}</strong><span>${rowDef.detail}</span>`;
+        label.style.boxShadow = `inset 3px 0 0 ${rowDef.color}`;
+        rowLabels.appendChild(label);
+
+        const legendItem = document.createElement("div");
+        legendItem.className = "legend-item";
+        legendItem.innerHTML = `<span class="swatch" style="--swatch:${rowDef.color}"></span>${index + 1}. ${rowDef.label} ${rowDef.detail}`;
+        legend.appendChild(legendItem);
+      });
+    }
+
+    function buildGrid() {
+      for (let row = 0; row < rows; row += 1) {
+        const rowCells = [];
+
+        for (let col = 0; col < cols; col += 1) {
+          const cell = document.createElement("button");
+          cell.type = "button";
+          cell.className = "cell";
+          cell.style.setProperty("--cell-color", rowDefinitions[row].color);
+          cell.setAttribute("aria-label", `Row ${row + 1} column ${col + 1}`);
+          cell.addEventListener("click", async () => {
+            gridState[row][col] = !gridState[row][col];
+            cell.classList.toggle("active", gridState[row][col]);
+
+            if (!audioContext) {
+              return;
+            }
+
+            if (audioContext.state === "suspended") {
+              await audioContext.resume();
+            }
+          });
+          grid.appendChild(cell);
+          rowCells.push(cell);
+        }
+
+        cellRefs.push(rowCells);
+      }
+    }
+
+    bpmSlider.addEventListener("input", () => {
+      bpmValue.textContent = bpmSlider.value;
+    });
+
+    waveformSelect.addEventListener("change", () => {
+      waveform = waveformSelect.value;
+      waveformValue.textContent = waveform;
+    });
+
+    themeSelect.addEventListener("change", () => {
+      document.body.dataset.theme = themeSelect.value;
+      themeValue.textContent = themeSelect.value;
+    });
+
+    startButton.addEventListener("click", toggleTransport);
+    clearButton.addEventListener("click", clearGrid);
+
+    buildGrid();
+    renderLabels();
+    updatePlayhead(0);
+  </script>
+</body>
+</html>
