@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hex Chain Reaction</title>
+  <style>
+    :root {
+      --bg: #f2efe8;
+      --panel: rgba(255, 252, 246, 0.92);
+      --panel-border: rgba(58, 47, 35, 0.12);
+      --ink: #2f2419;
+      --muted: #786756;
+      --p1: #2864c7;
+      --p1-soft: #dbe8ff;
+      --p2: #d04a39;
+      --p2-soft: #ffdcd6;
+      --hex: #ece1c9;
+      --hex-edge: #baa68a;
+      --burst: #f4b942;
+      --button: #3f6f56;
+      --button-dark: #2f5541;
+      --shadow: rgba(47, 36, 25, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 20px;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.72), transparent 28%),
+        linear-gradient(180deg, #f8f5ef 0%, var(--bg) 100%);
+    }
+
+    button,
+    select,
+    input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(1220px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(280px, 340px);
+      gap: 18px;
+    }
+
+    .surface,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      box-shadow: 0 18px 40px var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .surface {
+      padding: 24px;
+    }
+
+    .panel {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.1rem, 4.8vw, 4rem);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+      max-width: 8ch;
+    }
+
+    .lede,
+    .muted {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .stats {
+      margin-top: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .chip {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.75);
+      border: 1px solid rgba(58, 47, 35, 0.1);
+      color: var(--muted);
+    }
+
+    .chip strong {
+      color: var(--ink);
+    }
+
+    .chip.turn-p1 strong {
+      color: var(--p1);
+    }
+
+    .chip.turn-p2 strong {
+      color: var(--p2);
+    }
+
+    .board-shell {
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 20px;
+      border: 1px solid rgba(58, 47, 35, 0.1);
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.8), rgba(245, 237, 224, 0.92)),
+        repeating-linear-gradient(135deg, rgba(58, 47, 35, 0.03) 0 18px, transparent 18px 36px);
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .hex-tile {
+      fill: var(--hex);
+      stroke: var(--hex-edge);
+      stroke-width: 1.5;
+      cursor: pointer;
+      transition: fill 120ms ease, stroke 120ms ease, transform 120ms ease;
+    }
+
+    .hex-tile.empty:hover {
+      fill: #f7ebcb;
+      stroke: #d6aa56;
+      stroke-width: 2.5;
+    }
+
+    .hex-tile.p1 {
+      fill: var(--p1-soft);
+      stroke: var(--p1);
+      stroke-width: 2.5;
+    }
+
+    .hex-tile.p2 {
+      fill: var(--p2-soft);
+      stroke: var(--p2);
+      stroke-width: 2.5;
+    }
+
+    .hex-tile.blocked {
+      cursor: default;
+    }
+
+    .hex-tile.overflowing {
+      fill: #fff2c8;
+      stroke: var(--burst);
+      stroke-width: 4;
+      filter: drop-shadow(0 0 10px rgba(244, 185, 66, 0.75));
+    }
+
+    .token {
+      pointer-events: none;
+    }
+
+    .token.p1 {
+      fill: var(--p1);
+    }
+
+    .token.p2 {
+      fill: var(--p2);
+    }
+
+    .capacity-text,
+    .count-text {
+      pointer-events: none;
+      text-anchor: middle;
+      font-weight: 700;
+      user-select: none;
+    }
+
+    .capacity-text {
+      fill: rgba(47, 36, 25, 0.32);
+      font-size: 12px;
+    }
+
+    .count-text {
+      fill: rgba(47, 36, 25, 0.85);
+      font-size: 14px;
+    }
+
+    .card {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(58, 47, 35, 0.1);
+      background: rgba(255, 255, 255, 0.76);
+    }
+
+    .controls {
+      display: grid;
+      gap: 10px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    select,
+    input[type="number"] {
+      min-height: 42px;
+      padding: 8px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(58, 47, 35, 0.16);
+      background: rgba(255, 255, 255, 0.94);
+      color: var(--ink);
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .button-row.single {
+      grid-template-columns: 1fr;
+    }
+
+    .action {
+      min-height: 46px;
+      border: 0;
+      border-radius: 999px;
+      color: #f6f3ec;
+      background: linear-gradient(180deg, var(--button), var(--button-dark));
+      box-shadow: 0 10px 16px rgba(47, 85, 65, 0.2);
+    }
+
+    .secondary {
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(58, 47, 35, 0.14);
+      box-shadow: none;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .badge {
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(58, 47, 35, 0.1);
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .legend {
+      display: grid;
+      gap: 8px;
+      font-size: 0.93rem;
+      color: var(--muted);
+    }
+
+    .legend-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(58, 47, 35, 0.16);
+    }
+
+    .swatch.p1 {
+      background: var(--p1);
+    }
+
+    .swatch.p2 {
+      background: var(--p2);
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(24, 18, 12, 0.4);
+      padding: 20px;
+    }
+
+    .overlay.open {
+      display: flex;
+    }
+
+    .modal {
+      width: min(420px, 100%);
+      padding: 24px;
+      border-radius: 24px;
+      background: rgba(255, 251, 245, 0.96);
+      box-shadow: 0 24px 44px rgba(24, 18, 12, 0.24);
+      display: grid;
+      gap: 14px;
+      text-align: center;
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 14px;
+      }
+
+      .surface,
+      .panel {
+        border-radius: 18px;
+      }
+
+      .surface {
+        padding: 18px;
+      }
+
+      .button-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="surface">
+      <h1>Hex Chain Reaction</h1>
+      <p class="lede">Place tokens on empty or friendly hexes. If a stack reaches that hex's neighbor-count capacity, it bursts into every adjacent hex and can trigger a full cascade.</p>
+      <div class="stats">
+        <div class="chip" id="turnChip"><strong>Turn:</strong> <span id="turnLabel">Blue</span></div>
+        <div class="chip"><strong>Status:</strong> <span id="statusText">Blue to move.</span></div>
+        <div class="chip"><strong>Mode:</strong> <span id="modeLabel">Hot Seat</span></div>
+      </div>
+      <div class="board-shell">
+        <svg id="board" viewBox="0 0 900 760" aria-label="Hex Chain Reaction board"></svg>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="card">
+        <h2>Match Setup</h2>
+        <div class="controls">
+          <div class="field">
+            <label for="modeSelect">Mode</label>
+            <select id="modeSelect">
+              <option value="hotseat">Two-Player Hot Seat</option>
+              <option value="ai">Single Player vs AI</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="boardSizeInput">Board Size</label>
+            <input id="boardSizeInput" type="number" min="4" max="9" step="1" value="7">
+          </div>
+          <div class="button-row">
+            <button class="action" id="newGameButton">New Game</button>
+            <button class="action secondary" id="swapModeButton">Apply Setup</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Live State</h2>
+        <div class="badge-row">
+          <div class="badge">Blue cells: <span id="blueCount">0</span></div>
+          <div class="badge">Red cells: <span id="redCount">0</span></div>
+          <div class="badge">Burst queue: <span id="queueCount">0</span></div>
+          <div class="badge">AI depth: <span id="aiDepthLabel">3</span></div>
+        </div>
+        <p class="muted" id="detailText">Blue begins. Chain reactions finish before the turn changes.</p>
+      </div>
+
+      <div class="card">
+        <h2>Rules</h2>
+        <div class="legend">
+          <div class="legend-line"><span class="swatch p1"></span><span>Blue moves first. Red is the second player or the AI.</span></div>
+          <div class="legend-line"><span class="swatch p2"></span><span>You may only place on an empty hex or one you already control.</span></div>
+          <div class="legend-line"><span class="swatch" style="background:#fff2c8;border-color:#f4b942;"></span><span>When count reaches capacity, the hex explodes and sends one token to each neighbor.</span></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="overlay" id="winnerOverlay" aria-hidden="true">
+    <div class="modal">
+      <h2 id="winnerTitle">Blue Wins</h2>
+      <p class="muted" id="winnerText">The board has collapsed to one surviving player.</p>
+      <div class="button-row single">
+        <button class="action" id="playAgainButton">Play Again</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const DEFAULT_BOARD_SIZE = 7;
+    const AI_SEARCH_DEPTH = 3;
+    const AI_DELAY_MS = 360;
+    const ANIMATION_STEP_MS = 180;
+    const MAX_RESOLUTION_STEPS = 256;
+    const HEX_RADIUS = 42;
+    const HEX_H_SPACING = HEX_RADIUS * Math.sqrt(3);
+    const HEX_V_SPACING = HEX_RADIUS * 1.5;
+    const PLAYER_ONE = 1;
+    const PLAYER_TWO = 2;
+    const PLAYER_NAMES = {
+      [PLAYER_ONE]: "Blue",
+      [PLAYER_TWO]: "Red"
+    };
+    const PLAYER_CLASS = {
+      [PLAYER_ONE]: "p1",
+      [PLAYER_TWO]: "p2"
+    };
+    const evenRowNeighborOffsets = [
+      [-1, -1], [-1, 0],
+      [0, -1], [0, 1],
+      [1, -1], [1, 0]
+    ];
+    const oddRowNeighborOffsets = [
+      [-1, 0], [-1, 1],
+      [0, -1], [0, 1],
+      [1, 0], [1, 1]
+    ];
+
+    const boardSvg = document.getElementById("board");
+    const turnChip = document.getElementById("turnChip");
+    const turnLabel = document.getElementById("turnLabel");
+    const statusText = document.getElementById("statusText");
+    const modeLabel = document.getElementById("modeLabel");
+    const modeSelect = document.getElementById("modeSelect");
+    const boardSizeInput = document.getElementById("boardSizeInput");
+    const newGameButton = document.getElementById("newGameButton");
+    const swapModeButton = document.getElementById("swapModeButton");
+    const blueCount = document.getElementById("blueCount");
+    const redCount = document.getElementById("redCount");
+    const queueCount = document.getElementById("queueCount");
+    const detailText = document.getElementById("detailText");
+    const aiDepthLabel = document.getElementById("aiDepthLabel");
+    const winnerOverlay = document.getElementById("winnerOverlay");
+    const winnerTitle = document.getElementById("winnerTitle");
+    const winnerText = document.getElementById("winnerText");
+    const playAgainButton = document.getElementById("playAgainButton");
+
+    const state = {
+      size: DEFAULT_BOARD_SIZE,
+      mode: "hotseat",
+      currentPlayer: PLAYER_ONE,
+      cells: [],
+      moveCount: 0,
+      playerMoveCounts: {
+        [PLAYER_ONE]: 0,
+        [PLAYER_TWO]: 0
+      },
+      resolving: false,
+      aiPending: false,
+      winner: 0,
+      overflowCells: new Set(),
+      lastCascadeSize: 0
+    };
+
+    function sleep(ms) {
+      return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+
+    function keyFor(row, col) {
+      return `${row},${col}`;
+    }
+
+    function createEmptyCell(row, col, size) {
+      return {
+        row,
+        col,
+        owner: 0,
+        count: 0,
+        neighbors: getNeighborPositions(row, col, size)
+      };
+    }
+
+    function createBoard(size) {
+      const cells = [];
+      for (let row = 0; row < size; row += 1) {
+        for (let col = 0; col < size; col += 1) {
+          cells.push(createEmptyCell(row, col, size));
+        }
+      }
+      return cells;
+    }
+
+    function cloneCells(cells) {
+      return cells.map((cell) => ({
+        row: cell.row,
+        col: cell.col,
+        owner: cell.owner,
+        count: cell.count,
+        neighbors: cell.neighbors.map((entry) => ({ row: entry.row, col: entry.col }))
+      }));
+    }
+
+    function cellAt(cells, size, row, col) {
+      if (row < 0 || col < 0 || row >= size || col >= size) {
+        return null;
+      }
+      return cells[row * size + col];
+    }
+
+    function getNeighborPositions(row, col, size) {
+      const offsets = row % 2 === 0 ? evenRowNeighborOffsets : oddRowNeighborOffsets;
+      const neighbors = [];
+      for (const [dRow, dCol] of offsets) {
+        const nextRow = row + dRow;
+        const nextCol = col + dCol;
+        if (nextRow >= 0 && nextRow < size && nextCol >= 0 && nextCol < size) {
+          neighbors.push({ row: nextRow, col: nextCol });
+        }
+      }
+      return neighbors;
+    }
+
+    function getCapacity(cell) {
+      return cell.neighbors.length;
+    }
+
+    function isLegalMove(cells, size, row, col, player) {
+      const cell = cellAt(cells, size, row, col);
+      return Boolean(cell) && (cell.owner === 0 || cell.owner === player);
+    }
+
+    function getLegalMoves(cells, size, player) {
+      const moves = [];
+      for (const cell of cells) {
+        if (cell.owner === 0 || cell.owner === player) {
+          moves.push({ row: cell.row, col: cell.col });
+        }
+      }
+      return moves;
+    }
+
+    function applyMoveToCells(cells, size, row, col, player) {
+      const nextCells = cloneCells(cells);
+      const target = cellAt(nextCells, size, row, col);
+      if (!target || (target.owner !== 0 && target.owner !== player)) {
+        return null;
+      }
+      target.owner = player;
+      target.count += 1;
+      resolveChainReactionSync(nextCells, size, player);
+      return nextCells;
+    }
+
+    function resolveChainReactionSync(cells, size, player) {
+      let safetyCounter = 0;
+      while (safetyCounter < MAX_RESOLUTION_STEPS) {
+        const overflowing = findOverflowingCells(cells);
+        if (overflowing.length === 0) {
+          return;
+        }
+        const additions = new Map();
+        for (const cell of overflowing) {
+          cell.count = 0;
+          cell.owner = 0;
+          for (const neighbor of cell.neighbors) {
+            const neighborKey = keyFor(neighbor.row, neighbor.col);
+            additions.set(neighborKey, (additions.get(neighborKey) || 0) + 1);
+          }
+        }
+        for (const [entryKey, amount] of additions.entries()) {
+          const [rowText, colText] = entryKey.split(",");
+          const nextCell = cellAt(cells, size, Number(rowText), Number(colText));
+          nextCell.owner = player;
+          nextCell.count += amount;
+        }
+        safetyCounter += 1;
+      }
+      throw new Error("Chain reaction safety limit reached.");
+    }
+
+    function findOverflowingCells(cells) {
+      return cells.filter((cell) => cell.owner !== 0 && cell.count >= getCapacity(cell));
+    }
+
+    function summarizeBoard(cells) {
+      let blueCells = 0;
+      let redCells = 0;
+      let blueTokens = 0;
+      let redTokens = 0;
+      let bluePressure = 0;
+      let redPressure = 0;
+      for (const cell of cells) {
+        if (cell.owner === PLAYER_ONE) {
+          blueCells += 1;
+          blueTokens += cell.count;
+          bluePressure += cell.count / getCapacity(cell);
+        } else if (cell.owner === PLAYER_TWO) {
+          redCells += 1;
+          redTokens += cell.count;
+          redPressure += cell.count / getCapacity(cell);
+        }
+      }
+      return { blueCells, redCells, blueTokens, redTokens, bluePressure, redPressure };
+    }
+
+    function countOwnedNeighbors(cells, size, player) {
+      let score = 0;
+      for (const cell of cells) {
+        if (cell.owner !== player) {
+          continue;
+        }
+        for (const neighbor of cell.neighbors) {
+          const nextCell = cellAt(cells, size, neighbor.row, neighbor.col);
+          if (nextCell.owner === player) {
+            score += 1;
+          }
+        }
+      }
+      return score / 2;
+    }
+
+    function getWinnerFromCells(cells, playerMoveCounts) {
+      if (playerMoveCounts[PLAYER_ONE] === 0 || playerMoveCounts[PLAYER_TWO] === 0) {
+        return 0;
+      }
+      const owners = new Set();
+      for (const cell of cells) {
+        if (cell.owner !== 0) {
+          owners.add(cell.owner);
+        }
+      }
+      if (owners.size === 1) {
+        return [...owners][0];
+      }
+      return 0;
+    }
+
+    function evaluateBoard(cells, size, maximizingPlayer, playerMoveCounts) {
+      const winner = getWinnerFromCells(cells, playerMoveCounts);
+      if (winner === maximizingPlayer) {
+        return 100000;
+      }
+      if (winner && winner !== maximizingPlayer) {
+        return -100000;
+      }
+      const summary = summarizeBoard(cells);
+      const ownCells = maximizingPlayer === PLAYER_ONE ? summary.blueCells : summary.redCells;
+      const enemyCells = maximizingPlayer === PLAYER_ONE ? summary.redCells : summary.blueCells;
+      const ownTokens = maximizingPlayer === PLAYER_ONE ? summary.blueTokens : summary.redTokens;
+      const enemyTokens = maximizingPlayer === PLAYER_ONE ? summary.redTokens : summary.blueTokens;
+      const ownPressure = maximizingPlayer === PLAYER_ONE ? summary.bluePressure : summary.redPressure;
+      const enemyPressure = maximizingPlayer === PLAYER_ONE ? summary.redPressure : summary.bluePressure;
+      const ownAdjacency = countOwnedNeighbors(cells, size, maximizingPlayer);
+      const enemyAdjacency = countOwnedNeighbors(cells, size, maximizingPlayer === PLAYER_ONE ? PLAYER_TWO : PLAYER_ONE);
+      return (
+        (ownCells - enemyCells) * 22 +
+        (ownTokens - enemyTokens) * 10 +
+        (ownPressure - enemyPressure) * 12 +
+        (ownAdjacency - enemyAdjacency) * 3
+      );
+    }
+
+    function rankMoves(cells, size, moves, player) {
+      return moves
+        .map((move) => {
+          const cell = cellAt(cells, size, move.row, move.col);
+          const capacity = getCapacity(cell);
+          const friendlyBoost = cell.owner === player ? 3 : 0;
+          const burstThreat = cell.count === capacity - 1 ? 10 : 0;
+          const centerBias = size - Math.abs((size - 1) / 2 - move.row) - Math.abs((size - 1) / 2 - move.col);
+          let enemyAdjacency = 0;
+          let friendlyAdjacency = 0;
+          for (const neighbor of cell.neighbors) {
+            const nextCell = cellAt(cells, size, neighbor.row, neighbor.col);
+            if (nextCell.owner === player) {
+              friendlyAdjacency += 1;
+            } else if (nextCell.owner !== 0) {
+              enemyAdjacency += 1;
+            }
+          }
+          const score = burstThreat + friendlyBoost + enemyAdjacency * 2 + friendlyAdjacency + centerBias;
+          return { move, score };
+        })
+        .sort((left, right) => right.score - left.score)
+        .map((entry) => entry.move);
+    }
+
+    function pickCandidateMoves(cells, size, player, depth) {
+      const legalMoves = getLegalMoves(cells, size, player);
+      const ranked = rankMoves(cells, size, legalMoves, player);
+      const width = depth >= AI_SEARCH_DEPTH ? 10 : 8;
+      return ranked.slice(0, Math.max(4, Math.min(width, ranked.length)));
+    }
+
+    function minimax(cells, size, depth, activePlayer, maximizingPlayer, alpha, beta, playerMoveCounts) {
+      const winner = getWinnerFromCells(cells, playerMoveCounts);
+      if (depth === 0 || winner) {
+        return {
+          score: evaluateBoard(cells, size, maximizingPlayer, playerMoveCounts)
+        };
+      }
+
+      const candidateMoves = pickCandidateMoves(cells, size, activePlayer, depth);
+      if (candidateMoves.length === 0) {
+        return {
+          score: evaluateBoard(cells, size, maximizingPlayer, playerMoveCounts)
+        };
+      }
+
+      if (activePlayer === maximizingPlayer) {
+        let bestScore = -Infinity;
+        let bestMove = candidateMoves[0];
+        for (const move of candidateMoves) {
+          const nextMoveCounts = {
+            [PLAYER_ONE]: playerMoveCounts[PLAYER_ONE],
+            [PLAYER_TWO]: playerMoveCounts[PLAYER_TWO]
+          };
+          nextMoveCounts[activePlayer] += 1;
+          const nextCells = applyMoveToCells(cells, size, move.row, move.col, activePlayer);
+          const result = minimax(
+            nextCells,
+            size,
+            depth - 1,
+            activePlayer === PLAYER_ONE ? PLAYER_TWO : PLAYER_ONE,
+            maximizingPlayer,
+            alpha,
+            beta,
+            nextMoveCounts
+          );
+          if (result.score > bestScore) {
+            bestScore = result.score;
+            bestMove = move;
+          }
+          alpha = Math.max(alpha, bestScore);
+          if (beta <= alpha) {
+            break;
+          }
+        }
+        return { score: bestScore, move: bestMove };
+      }
+
+      let bestScore = Infinity;
+      let bestMove = candidateMoves[0];
+      for (const move of candidateMoves) {
+        const nextMoveCounts = {
+          [PLAYER_ONE]: playerMoveCounts[PLAYER_ONE],
+          [PLAYER_TWO]: playerMoveCounts[PLAYER_TWO]
+        };
+        nextMoveCounts[activePlayer] += 1;
+        const nextCells = applyMoveToCells(cells, size, move.row, move.col, activePlayer);
+        const result = minimax(
+          nextCells,
+          size,
+          depth - 1,
+          activePlayer === PLAYER_ONE ? PLAYER_TWO : PLAYER_ONE,
+          maximizingPlayer,
+          alpha,
+          beta,
+          nextMoveCounts
+        );
+        if (result.score < bestScore) {
+          bestScore = result.score;
+          bestMove = move;
+        }
+        beta = Math.min(beta, bestScore);
+        if (beta <= alpha) {
+          break;
+        }
+      }
+      return { score: bestScore, move: bestMove };
+    }
+
+    function chooseAiMove() {
+      const searchStart = performance.now();
+      const choice = minimax(
+        state.cells,
+        state.size,
+        AI_SEARCH_DEPTH,
+        PLAYER_TWO,
+        PLAYER_TWO,
+        -Infinity,
+        Infinity,
+        state.playerMoveCounts
+      );
+      const elapsed = performance.now() - searchStart;
+      detailText.textContent = `AI searched depth ${AI_SEARCH_DEPTH} in ${elapsed.toFixed(0)}ms.`;
+      return choice.move || getLegalMoves(state.cells, state.size, PLAYER_TWO)[0];
+    }
+
+    function boardToScreen(row, col) {
+      const x = 100 + col * HEX_H_SPACING + (row % 2 === 1 ? HEX_H_SPACING / 2 : 0);
+      const y = 90 + row * HEX_V_SPACING;
+      return { x, y };
+    }
+
+    function buildHexPoints(cx, cy, radius) {
+      const points = [];
+      for (let index = 0; index < 6; index += 1) {
+        const angle = ((60 * index) - 30) * Math.PI / 180;
+        const x = cx + radius * Math.cos(angle);
+        const y = cy + radius * Math.sin(angle);
+        points.push(`${x.toFixed(2)},${y.toFixed(2)}`);
+      }
+      return points.join(" ");
+    }
+
+    function getTokenOffsets(count) {
+      const patterns = {
+        1: [[0, 0]],
+        2: [[-12, 0], [12, 0]],
+        3: [[0, -12], [-12, 10], [12, 10]],
+        4: [[-12, -10], [12, -10], [-12, 10], [12, 10]],
+        5: [[0, 0], [-14, -10], [14, -10], [-14, 10], [14, 10]],
+        6: [[-15, -12], [0, -12], [15, -12], [-15, 12], [0, 12], [15, 12]]
+      };
+      return patterns[Math.min(count, 6)];
+    }
+
+    function renderBoard() {
+      const width = 160 + state.size * HEX_H_SPACING + HEX_H_SPACING / 2;
+      const height = 160 + (state.size - 1) * HEX_V_SPACING + HEX_RADIUS;
+      boardSvg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      boardSvg.innerHTML = "";
+
+      for (const cell of state.cells) {
+        const { x, y } = boardToScreen(cell.row, cell.col);
+        const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        group.dataset.row = String(cell.row);
+        group.dataset.col = String(cell.col);
+
+        const tile = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+        const tileClasses = ["hex-tile", cell.owner === 0 ? "empty" : PLAYER_CLASS[cell.owner]];
+        if (state.resolving || state.winner || (state.mode === "ai" && state.currentPlayer === PLAYER_TWO)) {
+          tileClasses.push("blocked");
+        }
+        if (state.overflowCells.has(keyFor(cell.row, cell.col))) {
+          tileClasses.push("overflowing");
+        }
+        tile.setAttribute("class", tileClasses.join(" "));
+        tile.setAttribute("points", buildHexPoints(x, y, HEX_RADIUS));
+        tile.addEventListener("click", () => handleCellClick(cell.row, cell.col));
+        group.appendChild(tile);
+
+        const capacityText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        capacityText.setAttribute("class", "capacity-text");
+        capacityText.setAttribute("x", String(x));
+        capacityText.setAttribute("y", String(y - 20));
+        capacityText.textContent = `${getCapacity(cell)}`;
+        group.appendChild(capacityText);
+
+        if (cell.owner !== 0 && cell.count > 0) {
+          const offsets = getTokenOffsets(cell.count);
+          for (const [offsetX, offsetY] of offsets) {
+            const token = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            token.setAttribute("class", `token ${PLAYER_CLASS[cell.owner]}`);
+            token.setAttribute("cx", String(x + offsetX));
+            token.setAttribute("cy", String(y + offsetY));
+            token.setAttribute("r", "8");
+            group.appendChild(token);
+          }
+
+          if (cell.count > 1) {
+            const countText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            countText.setAttribute("class", "count-text");
+            countText.setAttribute("x", String(x));
+            countText.setAttribute("y", String(y + 6));
+            countText.textContent = `${cell.count}`;
+            group.appendChild(countText);
+          }
+        }
+
+        boardSvg.appendChild(group);
+      }
+    }
+
+    function updateHud() {
+      const summary = summarizeBoard(state.cells);
+      turnChip.className = `chip ${state.currentPlayer === PLAYER_ONE ? "turn-p1" : "turn-p2"}`;
+      turnLabel.textContent = PLAYER_NAMES[state.currentPlayer];
+      modeLabel.textContent = state.mode === "ai" ? "Single Player vs AI" : "Hot Seat";
+      blueCount.textContent = `${summary.blueCells} cells / ${summary.blueTokens} tokens`;
+      redCount.textContent = `${summary.redCells} cells / ${summary.redTokens} tokens`;
+      queueCount.textContent = `${state.lastCascadeSize}`;
+      aiDepthLabel.textContent = `${AI_SEARCH_DEPTH}`;
+
+      if (state.winner) {
+        statusText.textContent = `${PLAYER_NAMES[state.winner]} wins.`;
+      } else if (state.resolving) {
+        statusText.textContent = "Resolving chain reaction...";
+      } else if (state.mode === "ai" && state.currentPlayer === PLAYER_TWO) {
+        statusText.textContent = "AI is thinking...";
+      } else {
+        statusText.textContent = `${PLAYER_NAMES[state.currentPlayer]} to move.`;
+      }
+    }
+
+    function render() {
+      renderBoard();
+      updateHud();
+    }
+
+    function openWinnerOverlay(winner) {
+      winnerTitle.textContent = `${PLAYER_NAMES[winner]} Wins`;
+      winnerText.textContent = winner === PLAYER_TWO && state.mode === "ai"
+        ? "Red controls the final tokens on the board."
+        : `${PLAYER_NAMES[winner]} is the last player with tokens remaining.`;
+      winnerOverlay.classList.add("open");
+      winnerOverlay.setAttribute("aria-hidden", "false");
+    }
+
+    function closeWinnerOverlay() {
+      winnerOverlay.classList.remove("open");
+      winnerOverlay.setAttribute("aria-hidden", "true");
+    }
+
+    function updateWinnerState() {
+      const winner = getWinnerFromCells(state.cells, state.playerMoveCounts);
+      state.winner = winner;
+      if (winner) {
+        openWinnerOverlay(winner);
+      }
+    }
+
+    async function resolveBoardAfterMove(player) {
+      state.resolving = true;
+      state.lastCascadeSize = 0;
+      render();
+
+      let safetyCounter = 0;
+      while (safetyCounter < MAX_RESOLUTION_STEPS) {
+        const overflowing = findOverflowingCells(state.cells);
+        if (overflowing.length === 0) {
+          break;
+        }
+        state.lastCascadeSize = overflowing.length;
+        state.overflowCells = new Set(overflowing.map((cell) => keyFor(cell.row, cell.col)));
+        render();
+        await sleep(ANIMATION_STEP_MS);
+
+        const additions = new Map();
+        for (const cell of overflowing) {
+          cell.count = 0;
+          cell.owner = 0;
+          for (const neighbor of cell.neighbors) {
+            const neighborKey = keyFor(neighbor.row, neighbor.col);
+            additions.set(neighborKey, (additions.get(neighborKey) || 0) + 1);
+          }
+        }
+        for (const [entryKey, amount] of additions.entries()) {
+          const [rowText, colText] = entryKey.split(",");
+          const nextCell = cellAt(state.cells, state.size, Number(rowText), Number(colText));
+          nextCell.owner = player;
+          nextCell.count += amount;
+        }
+
+        state.overflowCells = new Set();
+        render();
+        await sleep(ANIMATION_STEP_MS - 40);
+        safetyCounter += 1;
+      }
+
+      state.resolving = false;
+      state.overflowCells = new Set();
+      updateWinnerState();
+      render();
+    }
+
+    async function finishTurn() {
+      updateWinnerState();
+      if (state.winner) {
+        render();
+        return;
+      }
+      state.currentPlayer = state.currentPlayer === PLAYER_ONE ? PLAYER_TWO : PLAYER_ONE;
+      render();
+      if (state.mode === "ai" && state.currentPlayer === PLAYER_TWO) {
+        scheduleAiTurn();
+      }
+    }
+
+    async function commitMove(row, col, player) {
+      const target = cellAt(state.cells, state.size, row, col);
+      target.owner = player;
+      target.count += 1;
+      state.moveCount += 1;
+      state.playerMoveCounts[player] += 1;
+      detailText.textContent = `${PLAYER_NAMES[player]} placed on row ${row + 1}, col ${col + 1}.`;
+      render();
+      await resolveBoardAfterMove(player);
+      if (!state.winner) {
+        await finishTurn();
+      }
+    }
+
+    async function handleCellClick(row, col) {
+      if (state.resolving || state.winner) {
+        return;
+      }
+      if (state.mode === "ai" && state.currentPlayer === PLAYER_TWO) {
+        return;
+      }
+      if (!isLegalMove(state.cells, state.size, row, col, state.currentPlayer)) {
+        detailText.textContent = "Choose an empty hex or one you already control.";
+        return;
+      }
+      await commitMove(row, col, state.currentPlayer);
+    }
+
+    function scheduleAiTurn() {
+      if (state.aiPending || state.resolving || state.winner || state.currentPlayer !== PLAYER_TWO) {
+        return;
+      }
+      state.aiPending = true;
+      render();
+      window.setTimeout(takeAiTurn, AI_DELAY_MS);
+    }
+
+    async function takeAiTurn() {
+      state.aiPending = false;
+      if (state.resolving || state.winner || state.currentPlayer !== PLAYER_TWO) {
+        return;
+      }
+      const move = chooseAiMove();
+      if (!move) {
+        return;
+      }
+      await commitMove(move.row, move.col, PLAYER_TWO);
+    }
+
+    function resetState(size, mode) {
+      state.size = size;
+      state.mode = mode;
+      state.currentPlayer = PLAYER_ONE;
+      state.cells = createBoard(size);
+      state.moveCount = 0;
+      state.playerMoveCounts = {
+        [PLAYER_ONE]: 0,
+        [PLAYER_TWO]: 0
+      };
+      state.resolving = false;
+      state.aiPending = false;
+      state.winner = 0;
+      state.overflowCells = new Set();
+      state.lastCascadeSize = 0;
+      closeWinnerOverlay();
+      detailText.textContent = "Blue begins. Chain reactions finish before the turn changes.";
+      render();
+    }
+
+    function applySetup(resetBoard) {
+      const parsedSize = Number(boardSizeInput.value);
+      const size = Number.isFinite(parsedSize) ? Math.max(4, Math.min(9, parsedSize)) : DEFAULT_BOARD_SIZE;
+      boardSizeInput.value = String(size);
+      const mode = modeSelect.value === "ai" ? "ai" : "hotseat";
+      if (resetBoard) {
+        resetState(size, mode);
+      } else {
+        state.mode = mode;
+        render();
+        if (state.mode === "ai" && state.currentPlayer === PLAYER_TWO && !state.resolving && !state.winner) {
+          scheduleAiTurn();
+        }
+      }
+    }
+
+    newGameButton.addEventListener("click", () => applySetup(true));
+    swapModeButton.addEventListener("click", () => applySetup(false));
+    playAgainButton.addEventListener("click", () => resetState(state.size, state.mode));
+
+    resetState(DEFAULT_BOARD_SIZE, "hotseat");
+  </script>
+</body>
+</html>
