@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gravity Slingshot Orbiter</title>
+  <style>
+    :root {
+      --bg0: #030916;
+      --bg1: #09192f;
+      --panel: rgba(8, 15, 30, 0.76);
+      --border: rgba(149, 197, 255, 0.18);
+      --text: #eef6ff;
+      --muted: #96afcb;
+      --accent: #7ee0ff;
+      --accent-2: #ffd166;
+      --danger: #ff8e8e;
+      --success: #8ef0be;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow: hidden;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 20%, rgba(126, 224, 255, 0.12), transparent 24%),
+        radial-gradient(circle at 85% 15%, rgba(255, 209, 102, 0.12), transparent 18%),
+        linear-gradient(180deg, var(--bg1) 0%, var(--bg0) 60%, #01040b 100%);
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      cursor: crosshair;
+    }
+
+    .hud {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      pointer-events: none;
+    }
+
+    .panel {
+      max-width: min(430px, calc(100vw - 32px));
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+      pointer-events: auto;
+    }
+
+    h1,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(1.6rem, 3vw, 2.4rem);
+      letter-spacing: 0.03em;
+    }
+
+    .subtle,
+    .hint {
+      margin-top: 8px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .stats {
+      display: grid;
+      gap: 8px;
+      justify-items: end;
+      text-align: right;
+    }
+
+    .stats strong {
+      color: var(--accent-2);
+    }
+
+    .controls {
+      margin-top: 12px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 16px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      color: #04111f;
+      background: linear-gradient(135deg, #eef6ff, #7ee0ff);
+    }
+
+    .message {
+      position: fixed;
+      left: 16px;
+      bottom: 16px;
+      max-width: min(460px, calc(100vw - 32px));
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(7, 13, 26, 0.74);
+      border: 1px solid rgba(149, 197, 255, 0.16);
+      color: var(--muted);
+      backdrop-filter: blur(10px);
+    }
+
+    .message strong {
+      color: var(--text);
+    }
+
+    @media (max-width: 720px) {
+      .hud {
+        flex-direction: column;
+      }
+
+      .stats {
+        justify-items: start;
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div class="hud">
+    <section class="panel">
+      <h1>Gravity Slingshot Orbiter</h1>
+      <p class="subtle">Click and drag from the ship to launch through a seeded miniature star system, collect every crystal, and use as few launches as possible.</p>
+      <div class="controls">
+        <button id="reset-button" type="button">Reset System</button>
+        <p class="hint" id="status">Drag backward from the ship to set launch direction and power.</p>
+      </div>
+    </section>
+    <section class="panel stats">
+      <p>Seed <strong id="seed-label">0</strong></p>
+      <p>Bodies <strong id="body-count">0</strong></p>
+      <p>Crystals <strong id="crystal-count">0</strong></p>
+      <p>Launches <strong id="launch-count">0</strong></p>
+    </section>
+  </div>
+  <div class="message"><strong>Controls:</strong> drag to aim, release to launch, press <strong>R</strong> or the reset button to rebuild the current system.</div>
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const resetButton = document.getElementById("reset-button");
+    const seedLabel = document.getElementById("seed-label");
+    const bodyCountLabel = document.getElementById("body-count");
+    const crystalCountLabel = document.getElementById("crystal-count");
+    const launchCountLabel = document.getElementById("launch-count");
+    const statusLabel = document.getElementById("status");
+
+    const state = {
+      width: 0,
+      height: 0,
+      dpr: 1,
+      seed: 72,
+      stars: [],
+      bodies: [],
+      crystals: [],
+      trail: [],
+      ship: null,
+      launcher: null,
+      aiming: false,
+      aimPoint: null,
+      launches: 0,
+      completed: false,
+      lastTime: 0,
+      accumulator: 0
+    };
+
+    const fixedDt = 1 / 60;
+    const G = 3200;
+    const gridSpacing = 34;
+    const maxTrailPoints = 260;
+    const crystalTargetCount = 6;
+    const maxLaunchSpeed = 430;
+    const exitMargin = 90;
+
+    function mulberry32(seed) {
+      let value = seed >>> 0;
+      return function rand() {
+        value += 0x6D2B79F5;
+        let t = value;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function distance(a, b) {
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function resize() {
+      state.dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      state.width = window.innerWidth;
+      state.height = window.innerHeight;
+      canvas.width = Math.floor(state.width * state.dpr);
+      canvas.height = Math.floor(state.height * state.dpr);
+      ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+      generateSystem(state.seed, true);
+    }
+
+    function generateStars(rng) {
+      const count = Math.max(140, Math.floor((state.width * state.height) / 6000));
+      return Array.from({ length: count }, () => ({
+        x: rng() * state.width,
+        y: rng() * state.height,
+        size: 0.7 + rng() * 1.8,
+        alpha: 0.25 + rng() * 0.65
+      }));
+    }
+
+    function generateBodies(rng) {
+      const bodies = [];
+      const count = 3 + Math.floor(rng() * 5);
+      let attempts = 0;
+      while (bodies.length < count && attempts < 4000) {
+        attempts += 1;
+        const radius = 28 + rng() * 38;
+        const body = {
+          x: state.width * (0.26 + rng() * 0.58),
+          y: state.height * (0.16 + rng() * 0.68),
+          radius,
+          mass: radius * (38 + rng() * 34),
+          colorA: `hsl(${Math.floor(180 + rng() * 120)} 78% 62%)`,
+          colorB: `hsl(${Math.floor(20 + rng() * 70)} 92% 66%)`
+        };
+        const overlapsExisting = bodies.some((other) => distance(other, body) < other.radius + body.radius + 92);
+        const overlapsLaunchLane = Math.abs(body.x - state.width * 0.16) < 110;
+        if (!overlapsExisting && !overlapsLaunchLane) {
+          bodies.push(body);
+        }
+      }
+      return bodies;
+    }
+
+    function positionIsClear(point, padding) {
+      return !state.bodies.some((body) => distance(body, point) < body.radius + padding);
+    }
+
+    function generateCrystals(rng) {
+      const crystals = [];
+      let attempts = 0;
+      while (crystals.length < crystalTargetCount && attempts < 3000) {
+        attempts += 1;
+        const crystal = {
+          x: 48 + rng() * (state.width - 96),
+          y: 48 + rng() * (state.height - 96),
+          size: 10 + rng() * 4,
+          collected: false,
+          phase: rng() * Math.PI * 2
+        };
+        const tooCloseToLauncher = distance(state.launcher, crystal) < 120;
+        const tooCloseToCrystal = crystals.some((other) => distance(other, crystal) < 48);
+        if (!tooCloseToLauncher && !tooCloseToCrystal && positionIsClear(crystal, 42)) {
+          crystals.push(crystal);
+        }
+      }
+      return crystals;
+    }
+
+    function createShip() {
+      return {
+        x: state.launcher.x,
+        y: state.launcher.y,
+        vx: 0,
+        vy: 0,
+        radius: 8,
+        active: false,
+        crashed: false
+      };
+    }
+
+    function generateSystem(seed, regenerateStars) {
+      const rng = mulberry32(seed * 1103515245 + Math.floor(state.width + state.height));
+      state.launcher = {
+        x: Math.max(82, state.width * 0.14),
+        y: clamp(state.height * (0.28 + rng() * 0.44), 92, state.height - 92),
+        radius: 11
+      };
+      state.bodies = generateBodies(rng);
+      state.crystals = generateCrystals(rng);
+      if (regenerateStars || state.stars.length === 0) {
+        state.stars = generateStars(rng);
+      }
+      state.ship = createShip();
+      state.trail = [];
+      state.aiming = false;
+      state.aimPoint = null;
+      state.completed = false;
+      updateHud();
+      statusLabel.textContent = "Drag backward from the ship to set launch direction and power.";
+    }
+
+    function updateHud() {
+      seedLabel.textContent = String(state.seed);
+      bodyCountLabel.textContent = String(state.bodies.length);
+      crystalCountLabel.textContent = String(state.crystals.filter((crystal) => !crystal.collected).length);
+      launchCountLabel.textContent = String(state.launches);
+    }
+
+    function getCanvasPoint(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      };
+    }
+
+    function computeGravity(position) {
+      let ax = 0;
+      let ay = 0;
+      for (const body of state.bodies) {
+        const dx = body.x - position.x;
+        const dy = body.y - position.y;
+        const distSq = dx * dx + dy * dy;
+        const minDist = body.radius + 10;
+        if (distSq < minDist * minDist) {
+          continue;
+        }
+        const force = G * body.mass / distSq;
+        const dist = Math.sqrt(distSq);
+        ax += (dx / dist) * force;
+        ay += (dy / dist) * force;
+      }
+      const magnitude = Math.hypot(ax, ay);
+      if (magnitude > 1400) {
+        const scale = 1400 / magnitude;
+        ax *= scale;
+        ay *= scale;
+      }
+      return { ax, ay };
+    }
+
+    function launchShip() {
+      if (!state.aimPoint || state.completed) {
+        return;
+      }
+      const dx = state.launcher.x - state.aimPoint.x;
+      const dy = state.launcher.y - state.aimPoint.y;
+      const distancePulled = Math.hypot(dx, dy);
+      if (distancePulled < 10) {
+        return;
+      }
+      const speed = clamp(distancePulled * 2.3, 40, maxLaunchSpeed);
+      const scale = speed / distancePulled;
+      state.ship = createShip();
+      state.ship.vx = dx * scale;
+      state.ship.vy = dy * scale;
+      state.ship.active = true;
+      state.trail = [{ x: state.ship.x, y: state.ship.y }];
+      state.launches += 1;
+      state.aiming = false;
+      state.aimPoint = null;
+      updateHud();
+      statusLabel.textContent = "In flight. Use gravity wells to sweep through the crystals.";
+    }
+
+    function resetCurrentSystem() {
+      state.launches = 0;
+      generateSystem(state.seed, false);
+    }
+
+    function rebuildSystem() {
+      state.seed += 1;
+      state.launches = 0;
+      generateSystem(state.seed, true);
+      updateHud();
+    }
+
+    function handleCrystalCollection() {
+      for (const crystal of state.crystals) {
+        if (!crystal.collected && distance(state.ship, crystal) < crystal.size + state.ship.radius + 6) {
+          crystal.collected = true;
+        }
+      }
+      const remaining = state.crystals.filter((crystal) => !crystal.collected).length;
+      if (remaining === 0 && !state.completed) {
+        state.completed = true;
+        state.ship.active = false;
+        statusLabel.textContent = `System cleared in ${state.launches} launch${state.launches === 1 ? "" : "es"}. Press reset to play again.`;
+      }
+      crystalCountLabel.textContent = String(remaining);
+    }
+
+    function handleFlightEnd(message) {
+      state.ship.active = false;
+      statusLabel.textContent = message;
+      window.setTimeout(() => {
+        if (!state.ship.active && !state.completed) {
+          resetCurrentSystem();
+        }
+      }, 650);
+    }
+
+    function updateSimulation(dt) {
+      if (!state.ship.active) {
+        return;
+      }
+      const gravity = computeGravity(state.ship);
+      state.ship.vx += gravity.ax * dt;
+      state.ship.vy += gravity.ay * dt;
+      state.ship.x += state.ship.vx * dt;
+      state.ship.y += state.ship.vy * dt;
+      state.trail.push({ x: state.ship.x, y: state.ship.y });
+      if (state.trail.length > maxTrailPoints) {
+        state.trail.shift();
+      }
+
+      for (const body of state.bodies) {
+        if (distance(state.ship, body) <= body.radius + state.ship.radius) {
+          handleFlightEnd("Ship lost on planetary impact. Resetting current system.");
+          return;
+        }
+      }
+
+      if (
+        state.ship.x < -exitMargin ||
+        state.ship.x > state.width + exitMargin ||
+        state.ship.y < -exitMargin ||
+        state.ship.y > state.height + exitMargin
+      ) {
+        handleFlightEnd("Ship exited the visible system. Resetting current system.");
+        return;
+      }
+
+      handleCrystalCollection();
+    }
+
+    function drawStarfield() {
+      ctx.fillStyle = "#020611";
+      ctx.fillRect(0, 0, state.width, state.height);
+      for (const star of state.stars) {
+        ctx.globalAlpha = star.alpha;
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawGravityGrid() {
+      ctx.strokeStyle = "rgba(126, 224, 255, 0.18)";
+      ctx.lineWidth = 1;
+      for (let y = 0; y <= state.height; y += gridSpacing) {
+        ctx.beginPath();
+        for (let x = 0; x <= state.width; x += gridSpacing) {
+          let warpedX = x;
+          let warpedY = y;
+          for (const body of state.bodies) {
+            const dx = body.x - x;
+            const dy = body.y - y;
+            const distSq = dx * dx + dy * dy + 2400;
+            const warp = (body.mass * 28) / distSq;
+            warpedX += dx * warp;
+            warpedY += dy * warp;
+          }
+          if (x === 0) {
+            ctx.moveTo(warpedX, warpedY);
+          } else {
+            ctx.lineTo(warpedX, warpedY);
+          }
+        }
+        ctx.stroke();
+      }
+      for (let x = 0; x <= state.width; x += gridSpacing) {
+        ctx.beginPath();
+        for (let y = 0; y <= state.height; y += gridSpacing) {
+          let warpedX = x;
+          let warpedY = y;
+          for (const body of state.bodies) {
+            const dx = body.x - x;
+            const dy = body.y - y;
+            const distSq = dx * dx + dy * dy + 2400;
+            const warp = (body.mass * 28) / distSq;
+            warpedX += dx * warp;
+            warpedY += dy * warp;
+          }
+          if (y === 0) {
+            ctx.moveTo(warpedX, warpedY);
+          } else {
+            ctx.lineTo(warpedX, warpedY);
+          }
+        }
+        ctx.stroke();
+      }
+    }
+
+    function drawBodies() {
+      for (const body of state.bodies) {
+        const glow = ctx.createRadialGradient(body.x, body.y, body.radius * 0.2, body.x, body.y, body.radius * 2.4);
+        glow.addColorStop(0, "rgba(255, 255, 255, 0.18)");
+        glow.addColorStop(0.45, "rgba(126, 224, 255, 0.08)");
+        glow.addColorStop(1, "rgba(126, 224, 255, 0)");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(body.x, body.y, body.radius * 2.4, 0, Math.PI * 2);
+        ctx.fill();
+
+        const gradient = ctx.createRadialGradient(body.x - body.radius * 0.35, body.y - body.radius * 0.35, body.radius * 0.2, body.x, body.y, body.radius);
+        gradient.addColorStop(0, body.colorB);
+        gradient.addColorStop(1, body.colorA);
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(body.x, body.y, body.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawCrystals(time) {
+      for (const crystal of state.crystals) {
+        if (crystal.collected) {
+          continue;
+        }
+        const bob = Math.sin(time * 0.004 + crystal.phase) * 4;
+        ctx.save();
+        ctx.translate(crystal.x, crystal.y + bob);
+        ctx.rotate(time * 0.001 + crystal.phase);
+        ctx.fillStyle = "rgba(126, 224, 255, 0.9)";
+        ctx.beginPath();
+        ctx.moveTo(0, -crystal.size);
+        ctx.lineTo(crystal.size * 0.72, 0);
+        ctx.lineTo(0, crystal.size);
+        ctx.lineTo(-crystal.size * 0.72, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    function drawLauncher() {
+      ctx.fillStyle = "rgba(255, 209, 102, 0.16)";
+      ctx.beginPath();
+      ctx.arc(state.launcher.x, state.launcher.y, 24, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#ffd166";
+      ctx.beginPath();
+      ctx.arc(state.launcher.x, state.launcher.y, state.launcher.radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawAimLine() {
+      if (!state.aiming || !state.aimPoint || state.ship.active) {
+        return;
+      }
+      const dx = state.launcher.x - state.aimPoint.x;
+      const dy = state.launcher.y - state.aimPoint.y;
+      const power = clamp(Math.hypot(dx, dy) / 140, 0, 1);
+      ctx.strokeStyle = `rgba(255, 209, 102, ${0.45 + power * 0.45})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(state.launcher.x, state.launcher.y);
+      ctx.lineTo(state.aimPoint.x, state.aimPoint.y);
+      ctx.stroke();
+
+      const previewScale = clamp(Math.hypot(dx, dy), 0, maxLaunchSpeed) / Math.max(Math.hypot(dx, dy), 1);
+      const preview = {
+        x: state.launcher.x,
+        y: state.launcher.y,
+        vx: dx * previewScale,
+        vy: dy * previewScale
+      };
+      ctx.strokeStyle = "rgba(126, 224, 255, 0.42)";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      for (let i = 0; i < 80; i += 1) {
+        const gravity = computeGravity(preview);
+        preview.vx += gravity.ax * fixedDt;
+        preview.vy += gravity.ay * fixedDt;
+        preview.x += preview.vx * fixedDt;
+        preview.y += preview.vy * fixedDt;
+        if (i === 0) {
+          ctx.moveTo(preview.x, preview.y);
+        } else {
+          ctx.lineTo(preview.x, preview.y);
+        }
+      }
+      ctx.stroke();
+    }
+
+    function drawTrail() {
+      if (state.trail.length < 2) {
+        return;
+      }
+      for (let i = 1; i < state.trail.length; i += 1) {
+        const start = state.trail[i - 1];
+        const end = state.trail[i];
+        const alpha = i / state.trail.length;
+        ctx.strokeStyle = `hsla(${190 + alpha * 120} 90% 70% / ${alpha * 0.85})`;
+        ctx.lineWidth = 1 + alpha * 2;
+        ctx.beginPath();
+        ctx.moveTo(start.x, start.y);
+        ctx.lineTo(end.x, end.y);
+        ctx.stroke();
+      }
+    }
+
+    function drawShip() {
+      const ship = state.ship.active ? state.ship : createShip();
+      const angle = state.ship.active ? Math.atan2(ship.vy, ship.vx) : -Math.PI / 10;
+      ctx.save();
+      ctx.translate(ship.x, ship.y);
+      ctx.rotate(angle);
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.moveTo(10, 0);
+      ctx.lineTo(-8, -6);
+      ctx.lineTo(-4, 0);
+      ctx.lineTo(-8, 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function render(time) {
+      drawStarfield();
+      drawGravityGrid();
+      drawBodies();
+      drawCrystals(time);
+      drawLauncher();
+      drawTrail();
+      drawAimLine();
+      drawShip();
+    }
+
+    function frame(time) {
+      if (!state.lastTime) {
+        state.lastTime = time;
+      }
+      let delta = (time - state.lastTime) / 1000;
+      state.lastTime = time;
+      delta = Math.min(delta, 0.05);
+      state.accumulator += delta;
+      while (state.accumulator >= fixedDt) {
+        updateSimulation(fixedDt);
+        state.accumulator -= fixedDt;
+      }
+      render(time);
+      requestAnimationFrame(frame);
+    }
+
+    canvas.addEventListener("pointerdown", (event) => {
+      const point = getCanvasPoint(event);
+      if (distance(point, state.launcher) <= 34 && !state.ship.active && !state.completed) {
+        state.aiming = true;
+        state.aimPoint = point;
+      }
+    });
+
+    canvas.addEventListener("pointermove", (event) => {
+      if (!state.aiming) {
+        return;
+      }
+      state.aimPoint = getCanvasPoint(event);
+    });
+
+    window.addEventListener("pointerup", () => {
+      if (state.aiming) {
+        launchShip();
+      }
+    });
+
+    resetButton.addEventListener("click", () => {
+      if (state.completed) {
+        rebuildSystem();
+      } else {
+        resetCurrentSystem();
+      }
+    });
+
+    window.addEventListener("keydown", (event) => {
+      if (event.key.toLowerCase() === "r") {
+        if (state.completed) {
+          rebuildSystem();
+        } else {
+          resetCurrentSystem();
+        }
+      }
+    });
+
+    window.addEventListener("resize", resize);
+
+    resize();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
