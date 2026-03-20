@@ -100,6 +100,17 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `slingshot-game/index.html` 即可游玩。
 
+## Gravity Slingshot Orbiter
+
+新增 `gravity-slingshot/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的引力弹弓轨道收集玩具，包含：
+
+- 3 到 7 个程序化生成的行星 / 卫星与可视化重力扭曲网格
+- 点击拖拽瞄准发射，飞船以 60fps 牛顿引力模拟飞行并留下彩色轨迹
+- 分布在星系中的水晶收集目标、剩余数量统计与发射次数统计
+- 飞船撞击星体、飞出画面或手动点击 `Reset System` 时立即重置当前局面
+
+直接用浏览器打开 `gravity-slingshot/index.html` 即可游玩。
+
 ## Gem Mine Clicker
 
 新增 `gem-mine-clicker/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的 idle gem mine clicker，包含：
