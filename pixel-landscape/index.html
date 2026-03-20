@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Procedural Pixel Landscape Generator</title>
+  <style>
+    :root {
+      --bg: #efe4c8;
+      --panel: rgba(38, 34, 28, 0.9);
+      --panel-soft: rgba(255, 244, 221, 0.88);
+      --border: rgba(53, 42, 28, 0.35);
+      --text: #1d1712;
+      --muted: #6a584a;
+      --accent: #9f4f2d;
+      --accent-dark: #73371d;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(255, 247, 232, 0.75), transparent 30%),
+        linear-gradient(180deg, #f7ecd4 0%, #ead7b0 100%);
+      padding: 20px;
+    }
+
+    .app {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      background: rgba(255, 249, 238, 0.72);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(82, 55, 24, 0.18);
+      backdrop-filter: blur(8px);
+    }
+
+    .stage {
+      padding: 24px;
+      background:
+        linear-gradient(180deg, rgba(255, 247, 231, 0.92), rgba(248, 236, 210, 0.84)),
+        repeating-linear-gradient(45deg, rgba(130, 85, 39, 0.035) 0 12px, transparent 12px 24px);
+    }
+
+    .panel {
+      padding: 24px;
+      display: grid;
+      gap: 16px;
+      background: linear-gradient(180deg, rgba(56, 46, 35, 0.97), rgba(36, 29, 21, 0.98));
+      color: #f7ead0;
+    }
+
+    h1,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+    }
+
+    .lede {
+      margin-top: 10px;
+      color: var(--muted);
+      line-height: 1.5;
+      max-width: 62ch;
+    }
+
+    .canvas-frame {
+      margin-top: 20px;
+      padding: 18px;
+      border-radius: 22px;
+      border: 1px solid rgba(101, 70, 33, 0.2);
+      background: linear-gradient(180deg, rgba(255, 252, 245, 0.88), rgba(246, 232, 203, 0.88));
+    }
+
+    #landscape-canvas {
+      width: 100%;
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      border-radius: 14px;
+      background: #101820;
+      box-shadow: 0 10px 24px rgba(54, 39, 15, 0.18);
+    }
+
+    .seed-note {
+      margin-top: 12px;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    .card {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255, 245, 224, 0.08);
+      border: 1px solid rgba(255, 235, 198, 0.14);
+    }
+
+    .card h2 {
+      margin: 0;
+      font-size: 1rem;
+      color: #fff1d1;
+    }
+
+    label {
+      display: grid;
+      gap: 8px;
+      font-size: 0.95rem;
+      color: #f6e5c0;
+    }
+
+    .label-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 0.92rem;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: #f0b457;
+    }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+      min-height: 44px;
+      border: 0;
+      border-radius: 999px;
+      padding: 0 16px;
+      color: #fff8ea;
+      background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dark) 100%);
+      box-shadow: 0 10px 18px rgba(0, 0, 0, 0.22);
+    }
+
+    button.secondary {
+      color: #2e241b;
+      background: linear-gradient(180deg, #f8dfb2 0%, #dfbe89 100%);
+    }
+
+    .button-row {
+      display: grid;
+      gap: 10px;
+    }
+
+    .legend {
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: #e6d3ad;
+    }
+
+    @media (max-width: 900px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="stage">
+      <h1>Pixel Landscape Generator</h1>
+      <p class="lede">
+        A compact procedural toy that paints a new pixel scene from a seeded RNG on every load.
+        Shift the biome, time, and palette sliders, regenerate the seed, or export the current frame as a PNG.
+      </p>
+      <div class="canvas-frame">
+        <canvas id="landscape-canvas" width="320" height="180" aria-label="Procedural pixel landscape"></canvas>
+        <p class="seed-note">Current seed: <span id="seed-value">0</span></p>
+      </div>
+    </section>
+    <aside class="panel">
+      <section class="card">
+        <h2>Controls</h2>
+        <label for="biome-slider">
+          <span class="label-row"><span>Biome</span><span id="biome-label">Temperate</span></span>
+          <input id="biome-slider" type="range" min="0" max="2" step="1" value="0">
+        </label>
+        <label for="time-slider">
+          <span class="label-row"><span>Time of day</span><span id="time-label">Day</span></span>
+          <input id="time-slider" type="range" min="0" max="3" step="1" value="1">
+        </label>
+        <label for="palette-slider">
+          <span class="label-row"><span>Palette variant</span><span id="palette-label">Variant 1</span></span>
+          <input id="palette-slider" type="range" min="0" max="2" step="1" value="0">
+        </label>
+      </section>
+      <section class="card">
+        <h2>Actions</h2>
+        <div class="button-row">
+          <button id="regenerate-button" type="button">Regenerate</button>
+          <button id="export-button" class="secondary" type="button">Export PNG</button>
+        </div>
+      </section>
+      <section class="card">
+        <h2>Layers</h2>
+        <p class="legend">
+          Render order runs back-to-front: sky, clouds, far mountains, near hills, water, shoreline grass, then simple trees.
+        </p>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("landscape-canvas");
+    const ctx = canvas.getContext("2d", { alpha: false });
+    ctx.imageSmoothingEnabled = false;
+
+    const seedLabel = document.getElementById("seed-value");
+    const biomeSlider = document.getElementById("biome-slider");
+    const timeSlider = document.getElementById("time-slider");
+    const paletteSlider = document.getElementById("palette-slider");
+    const biomeLabel = document.getElementById("biome-label");
+    const timeLabel = document.getElementById("time-label");
+    const paletteLabel = document.getElementById("palette-label");
+    const regenerateButton = document.getElementById("regenerate-button");
+    const exportButton = document.getElementById("export-button");
+
+    const biomeNames = ["Temperate", "Desert", "Tundra"];
+    const timeNames = ["Dawn", "Day", "Dusk", "Night"];
+
+    const paletteTable = {
+      temperate: {
+        dawn: [
+          { skyTop: "#f6b98b", skyBottom: "#fbe7bc", cloud: "#fff0da", celestial: "#ffd67d", star: "#ffeec2", farMountain: "#7f6c7d", nearHill: "#59745e", water: "#5b8fb4", foam: "#d2edf8", grass: "#7b9d54", trunk: "#66412b", leaf: "#456c37" },
+          { skyTop: "#e1937e", skyBottom: "#f8caa8", cloud: "#ffe1c5", celestial: "#ffd06a", star: "#fff2d7", farMountain: "#76596e", nearHill: "#61784e", water: "#547ea7", foam: "#d6edf6", grass: "#6a9249", trunk: "#73462f", leaf: "#537537" },
+          { skyTop: "#f0a276", skyBottom: "#ffe0af", cloud: "#fff1d9", celestial: "#ffe19a", star: "#fff7d9", farMountain: "#886479", nearHill: "#627753", water: "#5d88ad", foam: "#cde9f3", grass: "#85a45d", trunk: "#6f4630", leaf: "#527244" }
+        ],
+        day: [
+          { skyTop: "#6ec3f4", skyBottom: "#ccefff", cloud: "#f6ffff", celestial: "#ffd758", star: "#ffffff", farMountain: "#7d98b6", nearHill: "#5f8a5b", water: "#4f96c5", foam: "#dcf4ff", grass: "#6ca14e", trunk: "#714e34", leaf: "#427736" },
+          { skyTop: "#52b4f1", skyBottom: "#b9ebff", cloud: "#f9feff", celestial: "#ffdd73", star: "#ffffff", farMountain: "#6c8fac", nearHill: "#66895a", water: "#3e89b8", foam: "#d4f1ff", grass: "#5f9747", trunk: "#6c4b2f", leaf: "#3d6f35" },
+          { skyTop: "#7cc8ef", skyBottom: "#ddf5ff", cloud: "#ffffff", celestial: "#ffe16f", star: "#ffffff", farMountain: "#8ea4bf", nearHill: "#749464", water: "#5d9dc8", foam: "#effbff", grass: "#78a953", trunk: "#775036", leaf: "#4d7f3e" }
+        ],
+        dusk: [
+          { skyTop: "#5e5ea8", skyBottom: "#f09c75", cloud: "#ffd7b1", celestial: "#ffc45b", star: "#fff1c4", farMountain: "#5e5d86", nearHill: "#4f6a55", water: "#4e6f9a", foam: "#c9dff4", grass: "#6f874f", trunk: "#603e2d", leaf: "#426241" },
+          { skyTop: "#4b5a9b", skyBottom: "#e98a68", cloud: "#ffcaab", celestial: "#ffba52", star: "#fff0d2", farMountain: "#6d597d", nearHill: "#5a7152", water: "#4b6792", foam: "#cce0f5", grass: "#72874f", trunk: "#663f2b", leaf: "#4e6743" },
+          { skyTop: "#6a5f9c", skyBottom: "#f3a982", cloud: "#ffe0bf", celestial: "#ffd675", star: "#fff4cf", farMountain: "#725f88", nearHill: "#5e7358", water: "#5677a1", foam: "#d7e7f5", grass: "#7d9159", trunk: "#684431", leaf: "#516d49" }
+        ],
+        night: [
+          { skyTop: "#0f1730", skyBottom: "#30436e", cloud: "#8e9ec0", celestial: "#f6f0c1", star: "#f8f5da", farMountain: "#263050", nearHill: "#2a4138", water: "#294c74", foam: "#9cc6e6", grass: "#3d5b35", trunk: "#4d3427", leaf: "#2b4a2a" },
+          { skyTop: "#10152b", skyBottom: "#3a4a78", cloud: "#97a7c8", celestial: "#f8efc8", star: "#fff6d4", farMountain: "#2f3757", nearHill: "#35483f", water: "#31567d", foam: "#abd0ea", grass: "#476139", trunk: "#50372a", leaf: "#345030" },
+          { skyTop: "#081226", skyBottom: "#273c62", cloud: "#8996b6", celestial: "#efe8bb", star: "#fff8e0", farMountain: "#20304c", nearHill: "#2c453b", water: "#23486f", foam: "#93bfdf", grass: "#3f5a34", trunk: "#50372c", leaf: "#2f4d2b" }
+        ]
+      },
+      desert: {
+        dawn: [
+          { skyTop: "#f8aa75", skyBottom: "#ffe2ae", cloud: "#ffe7c5", celestial: "#ffd480", star: "#fff1d8", farMountain: "#9f7567", nearHill: "#b28964", water: "#4f86ac", foam: "#d7eef8", grass: "#b79b53", trunk: "#755133", leaf: "#6d9044" },
+          { skyTop: "#ed9a6d", skyBottom: "#ffd59e", cloud: "#ffe0bf", celestial: "#ffcd75", star: "#fff2da", farMountain: "#99685c", nearHill: "#ab7d59", water: "#4b7ca1", foam: "#d5ebf4", grass: "#c0a355", trunk: "#734e31", leaf: "#7e9f4e" },
+          { skyTop: "#ffb27b", skyBottom: "#ffe8b8", cloud: "#ffebce", celestial: "#ffd88e", star: "#fff5dd", farMountain: "#a37969", nearHill: "#b48b67", water: "#5d8eb2", foam: "#deeff6", grass: "#c7ac63", trunk: "#7c5736", leaf: "#87a452" }
+        ],
+        day: [
+          { skyTop: "#74c5ef", skyBottom: "#eff4bf", cloud: "#fff9e8", celestial: "#ffde67", star: "#ffffff", farMountain: "#b08e77", nearHill: "#c4a06c", water: "#4e88b0", foam: "#d7eef7", grass: "#c1ab57", trunk: "#785637", leaf: "#87964d" },
+          { skyTop: "#60baec", skyBottom: "#f7ecb3", cloud: "#fff6de", celestial: "#ffe062", star: "#ffffff", farMountain: "#a7816a", nearHill: "#be9662", water: "#427ba3", foam: "#cce7f3", grass: "#b69d4d", trunk: "#704f32", leaf: "#7c8e46" },
+          { skyTop: "#82cdf2", skyBottom: "#f6f3c5", cloud: "#fffdf0", celestial: "#ffe37a", star: "#ffffff", farMountain: "#ba987f", nearHill: "#d0a975", water: "#5b92bb", foam: "#e5f6fb", grass: "#cab562", trunk: "#805b38", leaf: "#93a352" }
+        ],
+        dusk: [
+          { skyTop: "#7f5b88", skyBottom: "#f39a58", cloud: "#ffd6ae", celestial: "#ffcb5c", star: "#fff0d4", farMountain: "#7d5c66", nearHill: "#9d7056", water: "#4b6c93", foam: "#ccdef0", grass: "#a58b4e", trunk: "#6b4730", leaf: "#6c7d42" },
+          { skyTop: "#765681", skyBottom: "#ea8a4d", cloud: "#ffcca4", celestial: "#ffc253", star: "#fff1d0", farMountain: "#744f5b", nearHill: "#946651", water: "#45638b", foam: "#c4d7ea", grass: "#9a8046", trunk: "#684430", leaf: "#657740" },
+          { skyTop: "#8e648f", skyBottom: "#f4a66a", cloud: "#ffddb9", celestial: "#ffd46b", star: "#fff2d8", farMountain: "#86646d", nearHill: "#aa795e", water: "#53749a", foam: "#d4e5f3", grass: "#b29855", trunk: "#715036", leaf: "#738849" }
+        ],
+        night: [
+          { skyTop: "#10172b", skyBottom: "#33476c", cloud: "#97a5c0", celestial: "#f5ecc3", star: "#fff6dc", farMountain: "#3c3c56", nearHill: "#5b5646", water: "#29496d", foam: "#99bedb", grass: "#6a6937", trunk: "#5f432e", leaf: "#546338" },
+          { skyTop: "#0c1325", skyBottom: "#2e4062", cloud: "#8d9ab5", celestial: "#f2e6ba", star: "#fff4d8", farMountain: "#37364f", nearHill: "#524d3f", water: "#243f61", foam: "#8db4d5", grass: "#615e31", trunk: "#573f2b", leaf: "#4d5b34" },
+          { skyTop: "#151d32", skyBottom: "#3c4f73", cloud: "#a1acc5", celestial: "#f9f1cb", star: "#fff8df", farMountain: "#484660", nearHill: "#665f4d", water: "#325276", foam: "#a3c6e1", grass: "#77733f", trunk: "#684933", leaf: "#5f6c3c" }
+        ]
+      },
+      tundra: {
+        dawn: [
+          { skyTop: "#f1b8be", skyBottom: "#ffe7d5", cloud: "#fff3ee", celestial: "#ffeab7", star: "#fff7df", farMountain: "#8391aa", nearHill: "#95a6a8", water: "#5a87aa", foam: "#e6f7ff", grass: "#91a084", trunk: "#675647", leaf: "#6f876f" },
+          { skyTop: "#e7acb8", skyBottom: "#ffe0cf", cloud: "#fff0e9", celestial: "#ffe6ab", star: "#fff6de", farMountain: "#7a879f", nearHill: "#899c9f", water: "#4e7d9d", foam: "#e0f1f8", grass: "#889877", trunk: "#5f5244", leaf: "#667d66" },
+          { skyTop: "#f7c4c7", skyBottom: "#fff0db", cloud: "#fff7f1", celestial: "#fff0c0", star: "#fff9e4", farMountain: "#90a0b8", nearHill: "#9baeb0", water: "#668fb2", foam: "#eefaff", grass: "#9dac8c", trunk: "#6e5c4c", leaf: "#788f78" }
+        ],
+        day: [
+          { skyTop: "#92d0f7", skyBottom: "#eef8ff", cloud: "#fcffff", celestial: "#fff08a", star: "#ffffff", farMountain: "#96abc3", nearHill: "#b3c4c9", water: "#6fa8cb", foam: "#f2fcff", grass: "#9cad87", trunk: "#66584b", leaf: "#789278" },
+          { skyTop: "#7fc5f2", skyBottom: "#e3f3ff", cloud: "#f7ffff", celestial: "#ffea7e", star: "#ffffff", farMountain: "#8ca2bc", nearHill: "#a8bcc1", water: "#629cbc", foam: "#ebf7fb", grass: "#90a07b", trunk: "#5e5146", leaf: "#6f886f" },
+          { skyTop: "#a0d8f9", skyBottom: "#f7fcff", cloud: "#ffffff", celestial: "#fff49b", star: "#ffffff", farMountain: "#a5b7cc", nearHill: "#c0d0d4", water: "#79b1d2", foam: "#f7feff", grass: "#a6b78f", trunk: "#706150", leaf: "#829c82" }
+        ],
+        dusk: [
+          { skyTop: "#6b6ea5", skyBottom: "#f1b79e", cloud: "#ffe6dd", celestial: "#ffd98c", star: "#fff4dd", farMountain: "#68738b", nearHill: "#829092", water: "#5a7c9d", foam: "#dcecf6", grass: "#899779", trunk: "#625346", leaf: "#667d66" },
+          { skyTop: "#62679a", skyBottom: "#e9ab92", cloud: "#ffdfd6", celestial: "#ffd17d", star: "#fff1d7", farMountain: "#5e697f", nearHill: "#788688", water: "#50718f", foam: "#d1e3ee", grass: "#7e8d6e", trunk: "#5d4d41", leaf: "#617761" },
+          { skyTop: "#7678b0", skyBottom: "#f7c2a6", cloud: "#fff0e6", celestial: "#ffe39a", star: "#fff6e2", farMountain: "#717d94", nearHill: "#8b999b", water: "#6588a8", foam: "#e3f0f8", grass: "#93a282", trunk: "#6b5b4c", leaf: "#708770" }
+        ],
+        night: [
+          { skyTop: "#12182f", skyBottom: "#3a5077", cloud: "#a9b8d3", celestial: "#f6f1d5", star: "#fffbe8", farMountain: "#334055", nearHill: "#546468", water: "#395f84", foam: "#b8d7eb", grass: "#67745e", trunk: "#55483d", leaf: "#536953" },
+          { skyTop: "#0e1428", skyBottom: "#33486d", cloud: "#9eacc8", celestial: "#f3edcc", star: "#fff9e5", farMountain: "#2d394d", nearHill: "#4c5c60", water: "#315477", foam: "#abcde3", grass: "#5d6a55", trunk: "#4d4239", leaf: "#4b604b" },
+          { skyTop: "#182039", skyBottom: "#435a82", cloud: "#b4c2db", celestial: "#fbf5db", star: "#fffcef", farMountain: "#3c485d", nearHill: "#5d6e71", water: "#426a8e", foam: "#c7e0f0", grass: "#728064", trunk: "#5d5144", leaf: "#5c725c" }
+        ]
+      }
+    };
+
+    let currentSeed = randomSeed();
+
+    function randomSeed() {
+      return Math.floor(Math.random() * 0xffffffff);
+    }
+
+    function mulberry32(seed) {
+      let state = seed >>> 0;
+      return function () {
+        state += 0x6d2b79f5;
+        let t = state;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function buildValueNoise(seed) {
+      const rand = mulberry32(seed);
+      const values = Array.from({ length: 512 }, () => rand() * 2 - 1);
+
+      function smoothstep(t) {
+        return t * t * (3 - 2 * t);
+      }
+
+      return function valueNoise1D(x) {
+        const base = Math.floor(x);
+        const frac = x - base;
+        const left = values[((base % values.length) + values.length) % values.length];
+        const right = values[(base + 1) % values.length];
+        const t = smoothstep(frac);
+        return left * (1 - t) + right * t;
+      };
+    }
+
+    function fractalNoise1D(noiseFn, x, octaves, persistence, lacunarity) {
+      let amplitude = 1;
+      let frequency = 1;
+      let total = 0;
+      let normalizer = 0;
+      for (let i = 0; i < octaves; i += 1) {
+        total += noiseFn(x * frequency) * amplitude;
+        normalizer += amplitude;
+        amplitude *= persistence;
+        frequency *= lacunarity;
+      }
+      return total / normalizer;
+    }
+
+    function getPalette() {
+      const biomeKey = biomeNames[Number(biomeSlider.value)].toLowerCase();
+      const timeKey = timeNames[Number(timeSlider.value)].toLowerCase().replace(/\s+/g, "");
+      return paletteTable[biomeKey][timeKey][Number(paletteSlider.value)];
+    }
+
+    function setLabels() {
+      biomeLabel.textContent = biomeNames[Number(biomeSlider.value)];
+      timeLabel.textContent = timeNames[Number(timeSlider.value)];
+      paletteLabel.textContent = `Variant ${Number(paletteSlider.value) + 1}`;
+      seedLabel.textContent = String(currentSeed);
+    }
+
+    function fillRect(x, y, w, h, color) {
+      ctx.fillStyle = color;
+      ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+    }
+
+    function drawSky(palette, rng) {
+      const horizon = 108;
+      for (let y = 0; y < horizon; y += 1) {
+        const t = y / (horizon - 1);
+        const color = blendHex(palette.skyTop, palette.skyBottom, t);
+        fillRect(0, y, canvas.width, 1, color);
+      }
+
+      const timeValue = Number(timeSlider.value);
+      if (timeValue === 3) {
+        for (let i = 0; i < 48; i += 1) {
+          const x = Math.floor(rng() * canvas.width);
+          const y = Math.floor(rng() * 72);
+          const size = rng() > 0.8 ? 2 : 1;
+          fillRect(x, y, size, size, palette.star);
+        }
+      }
+
+      const sunOrMoonY = timeValue === 1 ? 26 : timeValue === 3 ? 30 : 38;
+      const sunOrMoonX = 56 + Math.floor(rng() * 180);
+      drawDisc(sunOrMoonX, sunOrMoonY, timeValue === 3 ? 9 : 12, palette.celestial);
+
+      const cloudNoise = buildValueNoise(currentSeed ^ 0xabc123);
+      for (let i = 0; i < 6; i += 1) {
+        const cloudX = -20 + i * 60 + Math.floor(rng() * 26);
+        const cloudY = 16 + i * 8 + Math.floor(cloudNoise(i * 0.8) * 10);
+        drawCloud(cloudX, cloudY, 22 + Math.floor(rng() * 18), palette.cloud);
+      }
+    }
+
+    function drawDisc(cx, cy, radius, color) {
+      fillRect(cx - 1, cy - radius - 1, 2, 2, color);
+      for (let y = -radius; y <= radius; y += 1) {
+        const span = Math.floor(Math.sqrt(radius * radius - y * y));
+        fillRect(cx - span, cy + y, span * 2 + 1, 1, color);
+      }
+    }
+
+    function drawCloud(x, y, width, color) {
+      const puffHeights = [0, -4, -2, 1];
+      const puffSizes = [8, 10, 9, 7];
+      for (let i = 0; i < puffHeights.length; i += 1) {
+        drawDisc(x + i * (width / 4), y + puffHeights[i], puffSizes[i], color);
+      }
+      fillRect(x - 6, y - 2, width + 8, 9, color);
+    }
+
+    function buildHeightMap(seed, options) {
+      const noise = buildValueNoise(seed);
+      const heights = [];
+      for (let x = 0; x < canvas.width; x += 1) {
+        const n = fractalNoise1D(noise, x * options.scale, 4, 0.5, 2);
+        heights.push(options.base + n * options.amplitude);
+      }
+      return heights;
+    }
+
+    function drawSilhouette(heights, color, baseline) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(0, baseline);
+      for (let x = 0; x < heights.length; x += 1) {
+        ctx.lineTo(x, heights[x]);
+      }
+      ctx.lineTo(heights.length - 1, baseline);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drawWater(palette, waterY, rng) {
+      fillRect(0, waterY, canvas.width, canvas.height - waterY, palette.water);
+      for (let i = 0; i < 36; i += 1) {
+        const waveX = Math.floor((i / 36) * canvas.width);
+        const offset = Math.floor(rng() * 3);
+        fillRect(waveX, waterY + offset, 6, 1, palette.foam);
+      }
+      fillRect(0, waterY - 1, canvas.width, 1, palette.foam);
+    }
+
+    function drawForeground(palette, hillHeights, waterY, rng) {
+      const grassHeight = 18;
+      const grassTop = Math.min(waterY + 6, canvas.height - grassHeight);
+      fillRect(0, grassTop, canvas.width, canvas.height - grassTop, palette.grass);
+
+      for (let x = 0; x < canvas.width; x += 4) {
+        const bladeHeight = 2 + Math.floor(rng() * 4);
+        fillRect(x, grassTop - bladeHeight, 1, bladeHeight, palette.grass);
+      }
+
+      for (let i = 0; i < 9; i += 1) {
+        const x = 18 + i * 32 + Math.floor(rng() * 10);
+        const hillY = Math.min(hillHeights[Math.min(x, hillHeights.length - 1)], grassTop);
+        if (hillY > waterY - 2) {
+          continue;
+        }
+        drawTree(x, grassTop - 2, palette, 10 + Math.floor(rng() * 6));
+      }
+    }
+
+    function drawTree(x, groundY, palette, height) {
+      fillRect(x, groundY - height, 2, height, palette.trunk);
+      drawDisc(x + 1, groundY - height - 4, 6, palette.leaf);
+      drawDisc(x - 3, groundY - height - 1, 4, palette.leaf);
+      drawDisc(x + 5, groundY - height - 1, 4, palette.leaf);
+    }
+
+    function blendHex(a, b, t) {
+      const c1 = hexToRgb(a);
+      const c2 = hexToRgb(b);
+      const mix = {
+        r: Math.round(c1.r + (c2.r - c1.r) * t),
+        g: Math.round(c1.g + (c2.g - c1.g) * t),
+        b: Math.round(c1.b + (c2.b - c1.b) * t)
+      };
+      return `rgb(${mix.r}, ${mix.g}, ${mix.b})`;
+    }
+
+    function hexToRgb(hex) {
+      const value = hex.replace("#", "");
+      return {
+        r: parseInt(value.slice(0, 2), 16),
+        g: parseInt(value.slice(2, 4), 16),
+        b: parseInt(value.slice(4, 6), 16)
+      };
+    }
+
+    function renderLandscape() {
+      setLabels();
+      const palette = getPalette();
+      const rng = mulberry32(currentSeed);
+      const biomeIndex = Number(biomeSlider.value);
+      const mountainAmplitude = [28, 20, 24][biomeIndex];
+      const hillAmplitude = [16, 12, 14][biomeIndex];
+      const waterY = [124, 130, 126][biomeIndex];
+
+      drawSky(palette, rng);
+
+      const mountainHeights = buildHeightMap(currentSeed ^ 0x11aa33, {
+        base: 96,
+        amplitude: mountainAmplitude,
+        scale: 0.018
+      });
+      drawSilhouette(mountainHeights, palette.farMountain, canvas.height);
+
+      const hillHeights = buildHeightMap(currentSeed ^ 0x55cc77, {
+        base: 118,
+        amplitude: hillAmplitude,
+        scale: 0.032
+      });
+      drawSilhouette(hillHeights, palette.nearHill, canvas.height);
+
+      drawWater(palette, waterY, rng);
+      drawForeground(palette, hillHeights, waterY, rng);
+    }
+
+    function exportPNG() {
+      const link = document.createElement("a");
+      link.download = `pixel-landscape-${currentSeed}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    }
+
+    biomeSlider.addEventListener("input", renderLandscape);
+    timeSlider.addEventListener("input", renderLandscape);
+    paletteSlider.addEventListener("input", renderLandscape);
+    regenerateButton.addEventListener("click", () => {
+      currentSeed = randomSeed();
+      renderLandscape();
+    });
+    exportButton.addEventListener("click", exportPNG);
+
+    renderLandscape();
+  </script>
+</body>
+</html>

@@ -34,3 +34,13 @@ This repository contains a simple agent-factory workflow for planning and comple
 - 使用 `localStorage` 保存并展示个人最佳 WPM
 
 直接用浏览器打开 `typing-speed-test/index.html` 即可开始测试。
+
+## Pixel Landscape Generator
+
+新增 `pixel-landscape/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的程序化像素风景生成器，包含：
+
+- 基于 seeded RNG 与 1D 噪声生成的山体、丘陵、水线与云层
+- 通过滑块调整 biome、time of day 与 palette variant，并即时重绘
+- `Regenerate` 生成新种子场景，`Export PNG` 导出当前画面
+
+直接用浏览器打开 `pixel-landscape/index.html` 即可运行。
