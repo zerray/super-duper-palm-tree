@@ -6,21 +6,21 @@
   <title>Hex Chain Reaction</title>
   <style>
     :root {
-      --bg: #f2efe8;
-      --panel: rgba(255, 252, 246, 0.92);
-      --panel-border: rgba(58, 47, 35, 0.12);
-      --ink: #2f2419;
-      --muted: #786756;
-      --p1: #2864c7;
-      --p1-soft: #dbe8ff;
-      --p2: #d04a39;
-      --p2-soft: #ffdcd6;
-      --hex: #ece1c9;
-      --hex-edge: #baa68a;
-      --burst: #f4b942;
-      --button: #3f6f56;
-      --button-dark: #2f5541;
-      --shadow: rgba(47, 36, 25, 0.14);
+      --bg: #f4efe4;
+      --panel: rgba(255, 250, 241, 0.92);
+      --panel-border: rgba(74, 58, 40, 0.12);
+      --ink: #33261b;
+      --muted: #736250;
+      --p1: #1f6fd1;
+      --p1-soft: #dce9ff;
+      --p2: #d65042;
+      --p2-soft: #ffdcd7;
+      --hex: #efe1c7;
+      --hex-edge: #b8a284;
+      --burst: #f2bd4f;
+      --button: #466d49;
+      --button-dark: #2f4f34;
+      --shadow: rgba(51, 38, 27, 0.14);
     }
 
     * {
@@ -34,25 +34,20 @@
       font-family: "Trebuchet MS", "Segoe UI", sans-serif;
       color: var(--ink);
       background:
-        radial-gradient(circle at top, rgba(255, 255, 255, 0.72), transparent 28%),
-        linear-gradient(180deg, #f8f5ef 0%, var(--bg) 100%);
-    }
-
-    button,
-    select,
-    input {
-      font: inherit;
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.78), transparent 30%),
+        linear-gradient(180deg, #faf5ed 0%, var(--bg) 100%);
     }
 
     button {
+      font: inherit;
       cursor: pointer;
     }
 
     .app {
-      width: min(1220px, 100%);
+      width: min(1180px, 100%);
       margin: 0 auto;
       display: grid;
-      grid-template-columns: minmax(0, 1.6fr) minmax(280px, 340px);
+      grid-template-columns: minmax(0, 1.65fr) minmax(280px, 340px);
       gap: 18px;
     }
 
@@ -62,7 +57,7 @@
       border: 1px solid var(--panel-border);
       border-radius: 24px;
       box-shadow: 0 18px 40px var(--shadow);
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(10px);
     }
 
     .surface {
@@ -83,7 +78,7 @@
     }
 
     h1 {
-      font-size: clamp(2.1rem, 4.8vw, 4rem);
+      font-size: clamp(2.25rem, 5vw, 4rem);
       line-height: 0.95;
       letter-spacing: -0.05em;
       max-width: 8ch;
@@ -105,8 +100,8 @@
     .chip {
       padding: 10px 14px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.75);
-      border: 1px solid rgba(58, 47, 35, 0.1);
+      border: 1px solid rgba(74, 58, 40, 0.1);
+      background: rgba(255, 255, 255, 0.74);
       color: var(--muted);
     }
 
@@ -126,10 +121,10 @@
       margin-top: 18px;
       padding: 18px;
       border-radius: 20px;
-      border: 1px solid rgba(58, 47, 35, 0.1);
+      border: 1px solid rgba(74, 58, 40, 0.1);
       background:
-        radial-gradient(circle at top, rgba(255, 255, 255, 0.8), rgba(245, 237, 224, 0.92)),
-        repeating-linear-gradient(135deg, rgba(58, 47, 35, 0.03) 0 18px, transparent 18px 36px);
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.82), rgba(245, 236, 221, 0.92)),
+        repeating-linear-gradient(135deg, rgba(74, 58, 40, 0.03) 0 16px, transparent 16px 32px);
     }
 
     svg {
@@ -146,22 +141,22 @@
       transition: fill 120ms ease, stroke 120ms ease, transform 120ms ease;
     }
 
-    .hex-tile.empty:hover {
-      fill: #f7ebcb;
-      stroke: #d6aa56;
-      stroke-width: 2.5;
+    .hex-tile.clickable:hover {
+      fill: #f7eecf;
+      stroke: #d4ab5c;
+      stroke-width: 2.6;
     }
 
     .hex-tile.p1 {
       fill: var(--p1-soft);
       stroke: var(--p1);
-      stroke-width: 2.5;
+      stroke-width: 2.4;
     }
 
     .hex-tile.p2 {
       fill: var(--p2-soft);
       stroke: var(--p2);
-      stroke-width: 2.5;
+      stroke-width: 2.4;
     }
 
     .hex-tile.blocked {
@@ -169,10 +164,10 @@
     }
 
     .hex-tile.overflowing {
-      fill: #fff2c8;
+      fill: #fff1ca;
       stroke: var(--burst);
       stroke-width: 4;
-      filter: drop-shadow(0 0 10px rgba(244, 185, 66, 0.75));
+      filter: drop-shadow(0 0 10px rgba(242, 189, 79, 0.7));
     }
 
     .token {
@@ -187,22 +182,22 @@
       fill: var(--p2);
     }
 
-    .capacity-text,
-    .count-text {
+    .count-text,
+    .capacity-text {
       pointer-events: none;
       text-anchor: middle;
       font-weight: 700;
       user-select: none;
     }
 
-    .capacity-text {
-      fill: rgba(47, 36, 25, 0.32);
-      font-size: 12px;
+    .count-text {
+      fill: rgba(51, 38, 27, 0.86);
+      font-size: 16px;
     }
 
-    .count-text {
-      fill: rgba(47, 36, 25, 0.85);
-      font-size: 14px;
+    .capacity-text {
+      fill: rgba(51, 38, 27, 0.34);
+      font-size: 12px;
     }
 
     .card {
@@ -210,59 +205,8 @@
       gap: 10px;
       padding: 14px;
       border-radius: 18px;
-      border: 1px solid rgba(58, 47, 35, 0.1);
+      border: 1px solid rgba(74, 58, 40, 0.1);
       background: rgba(255, 255, 255, 0.76);
-    }
-
-    .controls {
-      display: grid;
-      gap: 10px;
-    }
-
-    .field {
-      display: grid;
-      gap: 6px;
-    }
-
-    .field label {
-      font-size: 0.92rem;
-      color: var(--muted);
-    }
-
-    select,
-    input[type="number"] {
-      min-height: 42px;
-      padding: 8px 12px;
-      border-radius: 12px;
-      border: 1px solid rgba(58, 47, 35, 0.16);
-      background: rgba(255, 255, 255, 0.94);
-      color: var(--ink);
-    }
-
-    .button-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    .button-row.single {
-      grid-template-columns: 1fr;
-    }
-
-    .action {
-      min-height: 46px;
-      border: 0;
-      border-radius: 999px;
-      color: #f6f3ec;
-      background: linear-gradient(180deg, var(--button), var(--button-dark));
-      box-shadow: 0 10px 16px rgba(47, 85, 65, 0.2);
-    }
-
-    .secondary {
-      color: var(--ink);
-      background: rgba(255, 255, 255, 0.9);
-      border: 1px solid rgba(58, 47, 35, 0.14);
-      box-shadow: none;
     }
 
     .badge-row {
@@ -274,16 +218,16 @@
     .badge {
       padding: 8px 10px;
       border-radius: 12px;
-      background: rgba(255, 255, 255, 0.7);
-      border: 1px solid rgba(58, 47, 35, 0.1);
-      font-size: 0.92rem;
+      border: 1px solid rgba(74, 58, 40, 0.1);
+      background: rgba(255, 255, 255, 0.76);
       color: var(--muted);
+      font-size: 0.92rem;
     }
 
     .legend {
       display: grid;
       gap: 8px;
-      font-size: 0.93rem;
+      font-size: 0.94rem;
       color: var(--muted);
     }
 
@@ -297,7 +241,7 @@
       width: 16px;
       height: 16px;
       border-radius: 999px;
-      border: 1px solid rgba(58, 47, 35, 0.16);
+      border: 1px solid rgba(74, 58, 40, 0.16);
     }
 
     .swatch.p1 {
@@ -308,14 +252,28 @@
       background: var(--p2);
     }
 
+    .swatch.burst {
+      background: #fff1ca;
+      border-color: var(--burst);
+    }
+
+    .action {
+      min-height: 46px;
+      border: 0;
+      border-radius: 999px;
+      color: #f7f2ea;
+      background: linear-gradient(180deg, var(--button), var(--button-dark));
+      box-shadow: 0 10px 16px rgba(47, 79, 52, 0.2);
+    }
+
     .overlay {
       position: fixed;
       inset: 0;
       display: none;
       align-items: center;
       justify-content: center;
-      background: rgba(24, 18, 12, 0.4);
       padding: 20px;
+      background: rgba(20, 14, 10, 0.42);
     }
 
     .overlay.open {
@@ -326,8 +284,8 @@
       width: min(420px, 100%);
       padding: 24px;
       border-radius: 24px;
-      background: rgba(255, 251, 245, 0.96);
-      box-shadow: 0 24px 44px rgba(24, 18, 12, 0.24);
+      background: rgba(255, 251, 244, 0.97);
+      box-shadow: 0 24px 44px rgba(20, 14, 10, 0.24);
       display: grid;
       gap: 14px;
       text-align: center;
@@ -352,10 +310,6 @@
       .surface {
         padding: 18px;
       }
-
-      .button-row {
-        grid-template-columns: 1fr;
-      }
     }
   </style>
 </head>
@@ -363,37 +317,22 @@
   <div class="app">
     <section class="surface">
       <h1>Hex Chain Reaction</h1>
-      <p class="lede">Place tokens on empty or friendly hexes. If a stack reaches that hex's neighbor-count capacity, it bursts into every adjacent hex and can trigger a full cascade.</p>
+      <p class="lede">Two players alternate on a compact hex grid. Click an empty hex or one you already own, then try to force overflowing chain reactions that convert neighboring cells to your color.</p>
       <div class="stats">
         <div class="chip" id="turnChip"><strong>Turn:</strong> <span id="turnLabel">Blue</span></div>
         <div class="chip"><strong>Status:</strong> <span id="statusText">Blue to move.</span></div>
-        <div class="chip"><strong>Mode:</strong> <span id="modeLabel">Hot Seat</span></div>
+        <div class="chip"><strong>Board:</strong> <span id="boardLabel">7 × 7</span></div>
       </div>
       <div class="board-shell">
-        <svg id="board" viewBox="0 0 900 760" aria-label="Hex Chain Reaction board"></svg>
+        <svg id="board" aria-label="Hex Chain Reaction board"></svg>
       </div>
     </section>
 
     <aside class="panel">
       <div class="card">
-        <h2>Match Setup</h2>
-        <div class="controls">
-          <div class="field">
-            <label for="modeSelect">Mode</label>
-            <select id="modeSelect">
-              <option value="hotseat">Two-Player Hot Seat</option>
-              <option value="ai">Single Player vs AI</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="boardSizeInput">Board Size</label>
-            <input id="boardSizeInput" type="number" min="4" max="9" step="1" value="7">
-          </div>
-          <div class="button-row">
-            <button class="action" id="newGameButton">New Game</button>
-            <button class="action secondary" id="swapModeButton">Apply Setup</button>
-          </div>
-        </div>
+        <h2>Match Controls</h2>
+        <p class="muted">Local hot-seat only. Chain reactions resolve one wave at a time before the turn changes.</p>
+        <button class="action" id="restartButton" type="button">Restart Match</button>
       </div>
 
       <div class="card">
@@ -401,18 +340,17 @@
         <div class="badge-row">
           <div class="badge">Blue cells: <span id="blueCount">0</span></div>
           <div class="badge">Red cells: <span id="redCount">0</span></div>
-          <div class="badge">Burst queue: <span id="queueCount">0</span></div>
-          <div class="badge">AI depth: <span id="aiDepthLabel">3</span></div>
+          <div class="badge">Cascade step: <span id="cascadeCount">0</span></div>
         </div>
-        <p class="muted" id="detailText">Blue begins. Chain reactions finish before the turn changes.</p>
+        <p class="muted" id="detailText">Blue begins. Corner hexes overflow later than center hexes because capacity matches live neighbor count.</p>
       </div>
 
       <div class="card">
         <h2>Rules</h2>
         <div class="legend">
-          <div class="legend-line"><span class="swatch p1"></span><span>Blue moves first. Red is the second player or the AI.</span></div>
-          <div class="legend-line"><span class="swatch p2"></span><span>You may only place on an empty hex or one you already control.</span></div>
-          <div class="legend-line"><span class="swatch" style="background:#fff2c8;border-color:#f4b942;"></span><span>When count reaches capacity, the hex explodes and sends one token to each neighbor.</span></div>
+          <div class="legend-line"><span class="swatch p1"></span><span>Blue plays first. Red is the second local player.</span></div>
+          <div class="legend-line"><span class="swatch p2"></span><span>You may only place a token on an empty or friendly cell.</span></div>
+          <div class="legend-line"><span class="swatch burst"></span><span>If token count exceeds neighbor count, the excess bursts outward and converts every touched neighbor.</span></div>
         </div>
       </div>
     </aside>
@@ -421,24 +359,28 @@
   <div class="overlay" id="winnerOverlay" aria-hidden="true">
     <div class="modal">
       <h2 id="winnerTitle">Blue Wins</h2>
-      <p class="muted" id="winnerText">The board has collapsed to one surviving player.</p>
-      <div class="button-row single">
-        <button class="action" id="playAgainButton">Play Again</button>
-      </div>
+      <p class="muted" id="winnerText">One player controls every occupied hex.</p>
+      <button class="action" id="playAgainButton" type="button">Play Again</button>
     </div>
   </div>
 
   <script>
-    const DEFAULT_BOARD_SIZE = 7;
-    const AI_SEARCH_DEPTH = 3;
-    const AI_DELAY_MS = 360;
-    const ANIMATION_STEP_MS = 180;
-    const MAX_RESOLUTION_STEPS = 256;
-    const HEX_RADIUS = 42;
-    const HEX_H_SPACING = HEX_RADIUS * Math.sqrt(3);
-    const HEX_V_SPACING = HEX_RADIUS * 1.5;
+    const BOARD_ROWS = 7;
+    const BOARD_COLS = 7;
+    const ANIMATION_STEP_MS = 240;
+    const HEX_RADIUS = 38;
+    const HEX_H_SPACING = Math.sqrt(3) * HEX_RADIUS;
+    const HEX_V_SPACING = 1.5 * HEX_RADIUS;
     const PLAYER_ONE = 1;
     const PLAYER_TWO = 2;
+    const DIRECTIONS = [
+      [1, 0],
+      [1, -1],
+      [0, -1],
+      [-1, 0],
+      [-1, 1],
+      [0, 1]
+    ];
     const PLAYER_NAMES = {
       [PLAYER_ONE]: "Blue",
       [PLAYER_TWO]: "Red"
@@ -447,390 +389,148 @@
       [PLAYER_ONE]: "p1",
       [PLAYER_TWO]: "p2"
     };
-    const evenRowNeighborOffsets = [
-      [-1, -1], [-1, 0],
-      [0, -1], [0, 1],
-      [1, -1], [1, 0]
-    ];
-    const oddRowNeighborOffsets = [
-      [-1, 0], [-1, 1],
-      [0, -1], [0, 1],
-      [1, 0], [1, 1]
-    ];
 
     const boardSvg = document.getElementById("board");
     const turnChip = document.getElementById("turnChip");
     const turnLabel = document.getElementById("turnLabel");
     const statusText = document.getElementById("statusText");
-    const modeLabel = document.getElementById("modeLabel");
-    const modeSelect = document.getElementById("modeSelect");
-    const boardSizeInput = document.getElementById("boardSizeInput");
-    const newGameButton = document.getElementById("newGameButton");
-    const swapModeButton = document.getElementById("swapModeButton");
+    const boardLabel = document.getElementById("boardLabel");
     const blueCount = document.getElementById("blueCount");
     const redCount = document.getElementById("redCount");
-    const queueCount = document.getElementById("queueCount");
+    const cascadeCount = document.getElementById("cascadeCount");
     const detailText = document.getElementById("detailText");
-    const aiDepthLabel = document.getElementById("aiDepthLabel");
+    const restartButton = document.getElementById("restartButton");
+    const playAgainButton = document.getElementById("playAgainButton");
     const winnerOverlay = document.getElementById("winnerOverlay");
     const winnerTitle = document.getElementById("winnerTitle");
     const winnerText = document.getElementById("winnerText");
-    const playAgainButton = document.getElementById("playAgainButton");
 
     const state = {
-      size: DEFAULT_BOARD_SIZE,
-      mode: "hotseat",
       currentPlayer: PLAYER_ONE,
-      cells: [],
-      moveCount: 0,
-      playerMoveCounts: {
+      board: new Map(),
+      offsetCells: [],
+      resolving: false,
+      winner: 0,
+      movesPlayed: {
         [PLAYER_ONE]: 0,
         [PLAYER_TWO]: 0
       },
-      resolving: false,
-      aiPending: false,
-      winner: 0,
-      overflowCells: new Set(),
-      lastCascadeSize: 0
+      highlightedKeys: new Set(),
+      cascadeStep: 0
     };
 
     function sleep(ms) {
       return new Promise((resolve) => window.setTimeout(resolve, ms));
     }
 
-    function keyFor(row, col) {
-      return `${row},${col}`;
+    function keyFor(q, r) {
+      return `${q},${r}`;
     }
 
-    function createEmptyCell(row, col, size) {
+    function offsetToAxial(col, row) {
       return {
-        row,
-        col,
-        owner: 0,
-        count: 0,
-        neighbors: getNeighborPositions(row, col, size)
+        q: col - Math.floor(row / 2),
+        r: row
       };
     }
 
-    function createBoard(size) {
-      const cells = [];
-      for (let row = 0; row < size; row += 1) {
-        for (let col = 0; col < size; col += 1) {
-          cells.push(createEmptyCell(row, col, size));
+    function axialToPixel(q, r) {
+      return {
+        x: 110 + HEX_H_SPACING * (q + r / 2),
+        y: 90 + HEX_V_SPACING * r
+      };
+    }
+
+    function createBoardMap() {
+      const board = new Map();
+      const offsetCells = [];
+      for (let row = 0; row < BOARD_ROWS; row += 1) {
+        for (let col = 0; col < BOARD_COLS; col += 1) {
+          const { q, r } = offsetToAxial(col, row);
+          const key = keyFor(q, r);
+          board.set(key, {
+            q,
+            r,
+            row,
+            col,
+            owner: 0,
+            count: 0
+          });
+          offsetCells.push({ key, q, r, row, col });
         }
       }
-      return cells;
+      return { board, offsetCells };
     }
 
-    function cloneCells(cells) {
-      return cells.map((cell) => ({
-        row: cell.row,
-        col: cell.col,
-        owner: cell.owner,
-        count: cell.count,
-        neighbors: cell.neighbors.map((entry) => ({ row: entry.row, col: entry.col }))
-      }));
+    function getCell(q, r) {
+      return state.board.get(keyFor(q, r)) || null;
     }
 
-    function cellAt(cells, size, row, col) {
-      if (row < 0 || col < 0 || row >= size || col >= size) {
-        return null;
-      }
-      return cells[row * size + col];
-    }
-
-    function getNeighborPositions(row, col, size) {
-      const offsets = row % 2 === 0 ? evenRowNeighborOffsets : oddRowNeighborOffsets;
+    function getNeighbors(q, r) {
       const neighbors = [];
-      for (const [dRow, dCol] of offsets) {
-        const nextRow = row + dRow;
-        const nextCol = col + dCol;
-        if (nextRow >= 0 && nextRow < size && nextCol >= 0 && nextCol < size) {
-          neighbors.push({ row: nextRow, col: nextCol });
+      for (const [dq, dr] of DIRECTIONS) {
+        const neighbor = getCell(q + dq, r + dr);
+        if (neighbor) {
+          neighbors.push(neighbor);
         }
       }
       return neighbors;
     }
 
-    function getCapacity(cell) {
-      return cell.neighbors.length;
+    function getNeighborCount(cell) {
+      return getNeighbors(cell.q, cell.r).length;
     }
 
-    function isLegalMove(cells, size, row, col, player) {
-      const cell = cellAt(cells, size, row, col);
+    function isLegalMove(cell, player) {
       return Boolean(cell) && (cell.owner === 0 || cell.owner === player);
     }
 
-    function getLegalMoves(cells, size, player) {
-      const moves = [];
-      for (const cell of cells) {
-        if (cell.owner === 0 || cell.owner === player) {
-          moves.push({ row: cell.row, col: cell.col });
+    function getOverflowQueue() {
+      const queue = [];
+      for (const cell of state.board.values()) {
+        if (cell.owner !== 0 && cell.count > getNeighborCount(cell)) {
+          queue.push(cell);
         }
       }
-      return moves;
+      return queue;
     }
 
-    function applyMoveToCells(cells, size, row, col, player) {
-      const nextCells = cloneCells(cells);
-      const target = cellAt(nextCells, size, row, col);
-      if (!target || (target.owner !== 0 && target.owner !== player)) {
-        return null;
-      }
-      target.owner = player;
-      target.count += 1;
-      resolveChainReactionSync(nextCells, size, player);
-      return nextCells;
-    }
-
-    function resolveChainReactionSync(cells, size, player) {
-      let safetyCounter = 0;
-      while (safetyCounter < MAX_RESOLUTION_STEPS) {
-        const overflowing = findOverflowingCells(cells);
-        if (overflowing.length === 0) {
-          return;
-        }
-        const additions = new Map();
-        for (const cell of overflowing) {
-          cell.count = 0;
-          cell.owner = 0;
-          for (const neighbor of cell.neighbors) {
-            const neighborKey = keyFor(neighbor.row, neighbor.col);
-            additions.set(neighborKey, (additions.get(neighborKey) || 0) + 1);
-          }
-        }
-        for (const [entryKey, amount] of additions.entries()) {
-          const [rowText, colText] = entryKey.split(",");
-          const nextCell = cellAt(cells, size, Number(rowText), Number(colText));
-          nextCell.owner = player;
-          nextCell.count += amount;
-        }
-        safetyCounter += 1;
-      }
-      throw new Error("Chain reaction safety limit reached.");
-    }
-
-    function findOverflowingCells(cells) {
-      return cells.filter((cell) => cell.owner !== 0 && cell.count >= getCapacity(cell));
-    }
-
-    function summarizeBoard(cells) {
-      let blueCells = 0;
-      let redCells = 0;
+    function summarizeBoard() {
+      let blueOwned = 0;
+      let redOwned = 0;
       let blueTokens = 0;
       let redTokens = 0;
-      let bluePressure = 0;
-      let redPressure = 0;
-      for (const cell of cells) {
+      for (const cell of state.board.values()) {
         if (cell.owner === PLAYER_ONE) {
-          blueCells += 1;
+          blueOwned += 1;
           blueTokens += cell.count;
-          bluePressure += cell.count / getCapacity(cell);
         } else if (cell.owner === PLAYER_TWO) {
-          redCells += 1;
+          redOwned += 1;
           redTokens += cell.count;
-          redPressure += cell.count / getCapacity(cell);
         }
       }
-      return { blueCells, redCells, blueTokens, redTokens, bluePressure, redPressure };
+      return { blueOwned, redOwned, blueTokens, redTokens };
     }
 
-    function countOwnedNeighbors(cells, size, player) {
-      let score = 0;
-      for (const cell of cells) {
-        if (cell.owner !== player) {
-          continue;
-        }
-        for (const neighbor of cell.neighbors) {
-          const nextCell = cellAt(cells, size, neighbor.row, neighbor.col);
-          if (nextCell.owner === player) {
-            score += 1;
-          }
-        }
-      }
-      return score / 2;
-    }
-
-    function getWinnerFromCells(cells, playerMoveCounts) {
-      if (playerMoveCounts[PLAYER_ONE] === 0 || playerMoveCounts[PLAYER_TWO] === 0) {
+    function getWinner() {
+      if (state.movesPlayed[PLAYER_ONE] === 0 || state.movesPlayed[PLAYER_TWO] === 0) {
         return 0;
       }
       const owners = new Set();
-      for (const cell of cells) {
+      for (const cell of state.board.values()) {
         if (cell.owner !== 0) {
           owners.add(cell.owner);
         }
       }
-      if (owners.size === 1) {
-        return [...owners][0];
-      }
-      return 0;
+      return owners.size === 1 ? [...owners][0] : 0;
     }
 
-    function evaluateBoard(cells, size, maximizingPlayer, playerMoveCounts) {
-      const winner = getWinnerFromCells(cells, playerMoveCounts);
-      if (winner === maximizingPlayer) {
-        return 100000;
-      }
-      if (winner && winner !== maximizingPlayer) {
-        return -100000;
-      }
-      const summary = summarizeBoard(cells);
-      const ownCells = maximizingPlayer === PLAYER_ONE ? summary.blueCells : summary.redCells;
-      const enemyCells = maximizingPlayer === PLAYER_ONE ? summary.redCells : summary.blueCells;
-      const ownTokens = maximizingPlayer === PLAYER_ONE ? summary.blueTokens : summary.redTokens;
-      const enemyTokens = maximizingPlayer === PLAYER_ONE ? summary.redTokens : summary.blueTokens;
-      const ownPressure = maximizingPlayer === PLAYER_ONE ? summary.bluePressure : summary.redPressure;
-      const enemyPressure = maximizingPlayer === PLAYER_ONE ? summary.redPressure : summary.bluePressure;
-      const ownAdjacency = countOwnedNeighbors(cells, size, maximizingPlayer);
-      const enemyAdjacency = countOwnedNeighbors(cells, size, maximizingPlayer === PLAYER_ONE ? PLAYER_TWO : PLAYER_ONE);
-      return (
-        (ownCells - enemyCells) * 22 +
-        (ownTokens - enemyTokens) * 10 +
-        (ownPressure - enemyPressure) * 12 +
-        (ownAdjacency - enemyAdjacency) * 3
-      );
-    }
-
-    function rankMoves(cells, size, moves, player) {
-      return moves
-        .map((move) => {
-          const cell = cellAt(cells, size, move.row, move.col);
-          const capacity = getCapacity(cell);
-          const friendlyBoost = cell.owner === player ? 3 : 0;
-          const burstThreat = cell.count === capacity - 1 ? 10 : 0;
-          const centerBias = size - Math.abs((size - 1) / 2 - move.row) - Math.abs((size - 1) / 2 - move.col);
-          let enemyAdjacency = 0;
-          let friendlyAdjacency = 0;
-          for (const neighbor of cell.neighbors) {
-            const nextCell = cellAt(cells, size, neighbor.row, neighbor.col);
-            if (nextCell.owner === player) {
-              friendlyAdjacency += 1;
-            } else if (nextCell.owner !== 0) {
-              enemyAdjacency += 1;
-            }
-          }
-          const score = burstThreat + friendlyBoost + enemyAdjacency * 2 + friendlyAdjacency + centerBias;
-          return { move, score };
-        })
-        .sort((left, right) => right.score - left.score)
-        .map((entry) => entry.move);
-    }
-
-    function pickCandidateMoves(cells, size, player, depth) {
-      const legalMoves = getLegalMoves(cells, size, player);
-      const ranked = rankMoves(cells, size, legalMoves, player);
-      const width = depth >= AI_SEARCH_DEPTH ? 10 : 8;
-      return ranked.slice(0, Math.max(4, Math.min(width, ranked.length)));
-    }
-
-    function minimax(cells, size, depth, activePlayer, maximizingPlayer, alpha, beta, playerMoveCounts) {
-      const winner = getWinnerFromCells(cells, playerMoveCounts);
-      if (depth === 0 || winner) {
-        return {
-          score: evaluateBoard(cells, size, maximizingPlayer, playerMoveCounts)
-        };
-      }
-
-      const candidateMoves = pickCandidateMoves(cells, size, activePlayer, depth);
-      if (candidateMoves.length === 0) {
-        return {
-          score: evaluateBoard(cells, size, maximizingPlayer, playerMoveCounts)
-        };
-      }
-
-      if (activePlayer === maximizingPlayer) {
-        let bestScore = -Infinity;
-        let bestMove = candidateMoves[0];
-        for (const move of candidateMoves) {
-          const nextMoveCounts = {
-            [PLAYER_ONE]: playerMoveCounts[PLAYER_ONE],
-            [PLAYER_TWO]: playerMoveCounts[PLAYER_TWO]
-          };
-          nextMoveCounts[activePlayer] += 1;
-          const nextCells = applyMoveToCells(cells, size, move.row, move.col, activePlayer);
-          const result = minimax(
-            nextCells,
-            size,
-            depth - 1,
-            activePlayer === PLAYER_ONE ? PLAYER_TWO : PLAYER_ONE,
-            maximizingPlayer,
-            alpha,
-            beta,
-            nextMoveCounts
-          );
-          if (result.score > bestScore) {
-            bestScore = result.score;
-            bestMove = move;
-          }
-          alpha = Math.max(alpha, bestScore);
-          if (beta <= alpha) {
-            break;
-          }
-        }
-        return { score: bestScore, move: bestMove };
-      }
-
-      let bestScore = Infinity;
-      let bestMove = candidateMoves[0];
-      for (const move of candidateMoves) {
-        const nextMoveCounts = {
-          [PLAYER_ONE]: playerMoveCounts[PLAYER_ONE],
-          [PLAYER_TWO]: playerMoveCounts[PLAYER_TWO]
-        };
-        nextMoveCounts[activePlayer] += 1;
-        const nextCells = applyMoveToCells(cells, size, move.row, move.col, activePlayer);
-        const result = minimax(
-          nextCells,
-          size,
-          depth - 1,
-          activePlayer === PLAYER_ONE ? PLAYER_TWO : PLAYER_ONE,
-          maximizingPlayer,
-          alpha,
-          beta,
-          nextMoveCounts
-        );
-        if (result.score < bestScore) {
-          bestScore = result.score;
-          bestMove = move;
-        }
-        beta = Math.min(beta, bestScore);
-        if (beta <= alpha) {
-          break;
-        }
-      }
-      return { score: bestScore, move: bestMove };
-    }
-
-    function chooseAiMove() {
-      const searchStart = performance.now();
-      const choice = minimax(
-        state.cells,
-        state.size,
-        AI_SEARCH_DEPTH,
-        PLAYER_TWO,
-        PLAYER_TWO,
-        -Infinity,
-        Infinity,
-        state.playerMoveCounts
-      );
-      const elapsed = performance.now() - searchStart;
-      detailText.textContent = `AI searched depth ${AI_SEARCH_DEPTH} in ${elapsed.toFixed(0)}ms.`;
-      return choice.move || getLegalMoves(state.cells, state.size, PLAYER_TWO)[0];
-    }
-
-    function boardToScreen(row, col) {
-      const x = 100 + col * HEX_H_SPACING + (row % 2 === 1 ? HEX_H_SPACING / 2 : 0);
-      const y = 90 + row * HEX_V_SPACING;
-      return { x, y };
-    }
-
-    function buildHexPoints(cx, cy, radius) {
+    function buildHexPoints(cx, cy) {
       const points = [];
       for (let index = 0; index < 6; index += 1) {
         const angle = ((60 * index) - 30) * Math.PI / 180;
-        const x = cx + radius * Math.cos(angle);
-        const y = cy + radius * Math.sin(angle);
+        const x = cx + HEX_RADIUS * Math.cos(angle);
+        const y = cy + HEX_RADIUS * Math.sin(angle);
         points.push(`${x.toFixed(2)},${y.toFixed(2)}`);
       }
       return points.join(" ");
@@ -839,103 +539,96 @@
     function getTokenOffsets(count) {
       const patterns = {
         1: [[0, 0]],
-        2: [[-12, 0], [12, 0]],
-        3: [[0, -12], [-12, 10], [12, 10]],
-        4: [[-12, -10], [12, -10], [-12, 10], [12, 10]],
-        5: [[0, 0], [-14, -10], [14, -10], [-14, 10], [14, 10]],
-        6: [[-15, -12], [0, -12], [15, -12], [-15, 12], [0, 12], [15, 12]]
+        2: [[-10, 0], [10, 0]],
+        3: [[0, -10], [-10, 10], [10, 10]],
+        4: [[-10, -10], [10, -10], [-10, 10], [10, 10]],
+        5: [[0, 0], [-13, -10], [13, -10], [-13, 10], [13, 10]],
+        6: [[-14, -12], [0, -12], [14, -12], [-14, 12], [0, 12], [14, 12]]
       };
-      return patterns[Math.min(count, 6)];
+      return patterns[Math.min(count, 6)] || patterns[6];
     }
 
     function renderBoard() {
-      const width = 160 + state.size * HEX_H_SPACING + HEX_H_SPACING / 2;
-      const height = 160 + (state.size - 1) * HEX_V_SPACING + HEX_RADIUS;
+      const width = 180 + HEX_H_SPACING * (BOARD_COLS + 2);
+      const height = 160 + HEX_V_SPACING * (BOARD_ROWS - 1) + HEX_RADIUS * 2;
       boardSvg.setAttribute("viewBox", `0 0 ${width} ${height}`);
       boardSvg.innerHTML = "";
 
-      for (const cell of state.cells) {
-        const { x, y } = boardToScreen(cell.row, cell.col);
+      for (const entry of state.offsetCells) {
+        const cell = state.board.get(entry.key);
+        const { x, y } = axialToPixel(cell.q, cell.r);
         const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        group.dataset.row = String(cell.row);
-        group.dataset.col = String(cell.col);
 
         const tile = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-        const tileClasses = ["hex-tile", cell.owner === 0 ? "empty" : PLAYER_CLASS[cell.owner]];
-        if (state.resolving || state.winner || (state.mode === "ai" && state.currentPlayer === PLAYER_TWO)) {
-          tileClasses.push("blocked");
+        const classes = ["hex-tile"];
+        if (cell.owner) {
+          classes.push(PLAYER_CLASS[cell.owner]);
         }
-        if (state.overflowCells.has(keyFor(cell.row, cell.col))) {
-          tileClasses.push("overflowing");
+        if (!state.resolving && !state.winner && isLegalMove(cell, state.currentPlayer)) {
+          classes.push("clickable");
+        } else {
+          classes.push("blocked");
         }
-        tile.setAttribute("class", tileClasses.join(" "));
-        tile.setAttribute("points", buildHexPoints(x, y, HEX_RADIUS));
-        tile.addEventListener("click", () => handleCellClick(cell.row, cell.col));
+        if (state.highlightedKeys.has(entry.key)) {
+          classes.push("overflowing");
+        }
+        tile.setAttribute("class", classes.join(" "));
+        tile.setAttribute("points", buildHexPoints(x, y));
+        tile.addEventListener("click", () => handleCellClick(cell.q, cell.r));
         group.appendChild(tile);
 
-        const capacityText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        capacityText.setAttribute("class", "capacity-text");
-        capacityText.setAttribute("x", String(x));
-        capacityText.setAttribute("y", String(y - 20));
-        capacityText.textContent = `${getCapacity(cell)}`;
-        group.appendChild(capacityText);
+        const capacity = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        capacity.setAttribute("class", "capacity-text");
+        capacity.setAttribute("x", String(x));
+        capacity.setAttribute("y", String(y - 18));
+        capacity.textContent = `${getNeighborCount(cell)}`;
+        group.appendChild(capacity);
 
         if (cell.owner !== 0 && cell.count > 0) {
-          const offsets = getTokenOffsets(cell.count);
-          for (const [offsetX, offsetY] of offsets) {
+          for (const [offsetX, offsetY] of getTokenOffsets(cell.count)) {
             const token = document.createElementNS("http://www.w3.org/2000/svg", "circle");
             token.setAttribute("class", `token ${PLAYER_CLASS[cell.owner]}`);
             token.setAttribute("cx", String(x + offsetX));
             token.setAttribute("cy", String(y + offsetY));
-            token.setAttribute("r", "8");
+            token.setAttribute("r", "7.5");
             group.appendChild(token);
           }
 
-          if (cell.count > 1) {
-            const countText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            countText.setAttribute("class", "count-text");
-            countText.setAttribute("x", String(x));
-            countText.setAttribute("y", String(y + 6));
-            countText.textContent = `${cell.count}`;
-            group.appendChild(countText);
-          }
+          const countText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          countText.setAttribute("class", "count-text");
+          countText.setAttribute("x", String(x));
+          countText.setAttribute("y", String(y + 6));
+          countText.textContent = `${cell.count}`;
+          group.appendChild(countText);
         }
 
         boardSvg.appendChild(group);
       }
     }
 
-    function updateHud() {
-      const summary = summarizeBoard(state.cells);
+    function renderHud() {
+      const summary = summarizeBoard();
       turnChip.className = `chip ${state.currentPlayer === PLAYER_ONE ? "turn-p1" : "turn-p2"}`;
       turnLabel.textContent = PLAYER_NAMES[state.currentPlayer];
-      modeLabel.textContent = state.mode === "ai" ? "Single Player vs AI" : "Hot Seat";
-      blueCount.textContent = `${summary.blueCells} cells / ${summary.blueTokens} tokens`;
-      redCount.textContent = `${summary.redCells} cells / ${summary.redTokens} tokens`;
-      queueCount.textContent = `${state.lastCascadeSize}`;
-      aiDepthLabel.textContent = `${AI_SEARCH_DEPTH}`;
-
-      if (state.winner) {
-        statusText.textContent = `${PLAYER_NAMES[state.winner]} wins.`;
-      } else if (state.resolving) {
-        statusText.textContent = "Resolving chain reaction...";
-      } else if (state.mode === "ai" && state.currentPlayer === PLAYER_TWO) {
-        statusText.textContent = "AI is thinking...";
-      } else {
-        statusText.textContent = `${PLAYER_NAMES[state.currentPlayer]} to move.`;
-      }
+      statusText.textContent = state.winner
+        ? `${PLAYER_NAMES[state.winner]} wins.`
+        : state.resolving
+          ? "Resolving chain reaction..."
+          : `${PLAYER_NAMES[state.currentPlayer]} to move.`;
+      boardLabel.textContent = `${BOARD_ROWS} × ${BOARD_COLS}`;
+      blueCount.textContent = `${summary.blueOwned} cells / ${summary.blueTokens} tokens`;
+      redCount.textContent = `${summary.redOwned} cells / ${summary.redTokens} tokens`;
+      cascadeCount.textContent = `${state.cascadeStep}`;
     }
 
     function render() {
       renderBoard();
-      updateHud();
+      renderHud();
     }
 
     function openWinnerOverlay(winner) {
       winnerTitle.textContent = `${PLAYER_NAMES[winner]} Wins`;
-      winnerText.textContent = winner === PLAYER_TWO && state.mode === "ai"
-        ? "Red controls the final tokens on the board."
-        : `${PLAYER_NAMES[winner]} is the last player with tokens remaining.`;
+      winnerText.textContent = `${PLAYER_NAMES[winner]} controls all occupied cells after the final cascade.`;
       winnerOverlay.classList.add("open");
       winnerOverlay.setAttribute("aria-hidden", "false");
     }
@@ -945,161 +638,106 @@
       winnerOverlay.setAttribute("aria-hidden", "true");
     }
 
-    function updateWinnerState() {
-      const winner = getWinnerFromCells(state.cells, state.playerMoveCounts);
-      state.winner = winner;
-      if (winner) {
-        openWinnerOverlay(winner);
-      }
-    }
-
-    async function resolveBoardAfterMove(player) {
+    async function resolveChainReaction(activePlayer) {
       state.resolving = true;
-      state.lastCascadeSize = 0;
+      state.cascadeStep = 0;
       render();
 
-      let safetyCounter = 0;
-      while (safetyCounter < MAX_RESOLUTION_STEPS) {
-        const overflowing = findOverflowingCells(state.cells);
-        if (overflowing.length === 0) {
+      while (true) {
+        const queue = getOverflowQueue();
+        if (queue.length === 0) {
           break;
         }
-        state.lastCascadeSize = overflowing.length;
-        state.overflowCells = new Set(overflowing.map((cell) => keyFor(cell.row, cell.col)));
+
+        state.cascadeStep += 1;
+        state.highlightedKeys = new Set(queue.map((cell) => keyFor(cell.q, cell.r)));
+        detailText.textContent = `Cascade step ${state.cascadeStep}: ${queue.length} hex${queue.length === 1 ? "" : "es"} burst outward.`;
         render();
         await sleep(ANIMATION_STEP_MS);
 
         const additions = new Map();
-        for (const cell of overflowing) {
-          cell.count = 0;
-          cell.owner = 0;
-          for (const neighbor of cell.neighbors) {
-            const neighborKey = keyFor(neighbor.row, neighbor.col);
+        for (const cell of queue) {
+          const neighbors = getNeighbors(cell.q, cell.r);
+          cell.count -= neighbors.length;
+          if (cell.count <= 0) {
+            cell.count = 0;
+            cell.owner = 0;
+          }
+          for (const neighbor of neighbors) {
+            const neighborKey = keyFor(neighbor.q, neighbor.r);
             additions.set(neighborKey, (additions.get(neighborKey) || 0) + 1);
           }
         }
-        for (const [entryKey, amount] of additions.entries()) {
-          const [rowText, colText] = entryKey.split(",");
-          const nextCell = cellAt(state.cells, state.size, Number(rowText), Number(colText));
-          nextCell.owner = player;
-          nextCell.count += amount;
+
+        for (const [neighborKey, amount] of additions.entries()) {
+          const target = state.board.get(neighborKey);
+          target.owner = activePlayer;
+          target.count += amount;
         }
 
-        state.overflowCells = new Set();
+        state.highlightedKeys = new Set();
         render();
-        await sleep(ANIMATION_STEP_MS - 40);
-        safetyCounter += 1;
+        await sleep(ANIMATION_STEP_MS);
       }
 
       state.resolving = false;
-      state.overflowCells = new Set();
-      updateWinnerState();
-      render();
-    }
-
-    async function finishTurn() {
-      updateWinnerState();
+      state.highlightedKeys = new Set();
+      state.winner = getWinner();
       if (state.winner) {
-        render();
-        return;
+        openWinnerOverlay(state.winner);
       }
-      state.currentPlayer = state.currentPlayer === PLAYER_ONE ? PLAYER_TWO : PLAYER_ONE;
       render();
-      if (state.mode === "ai" && state.currentPlayer === PLAYER_TWO) {
-        scheduleAiTurn();
-      }
     }
 
-    async function commitMove(row, col, player) {
-      const target = cellAt(state.cells, state.size, row, col);
-      target.owner = player;
-      target.count += 1;
-      state.moveCount += 1;
-      state.playerMoveCounts[player] += 1;
-      detailText.textContent = `${PLAYER_NAMES[player]} placed on row ${row + 1}, col ${col + 1}.`;
-      render();
-      await resolveBoardAfterMove(player);
-      if (!state.winner) {
-        await finishTurn();
-      }
-    }
-
-    async function handleCellClick(row, col) {
+    async function handleCellClick(q, r) {
       if (state.resolving || state.winner) {
         return;
       }
-      if (state.mode === "ai" && state.currentPlayer === PLAYER_TWO) {
-        return;
-      }
-      if (!isLegalMove(state.cells, state.size, row, col, state.currentPlayer)) {
+      const cell = getCell(q, r);
+      if (!isLegalMove(cell, state.currentPlayer)) {
         detailText.textContent = "Choose an empty hex or one you already control.";
         return;
       }
-      await commitMove(row, col, state.currentPlayer);
-    }
 
-    function scheduleAiTurn() {
-      if (state.aiPending || state.resolving || state.winner || state.currentPlayer !== PLAYER_TWO) {
-        return;
-      }
-      state.aiPending = true;
+      closeWinnerOverlay();
+      cell.owner = state.currentPlayer;
+      cell.count += 1;
+      state.movesPlayed[state.currentPlayer] += 1;
+      detailText.textContent = `${PLAYER_NAMES[state.currentPlayer]} played at axial ${q},${r}.`;
       render();
-      window.setTimeout(takeAiTurn, AI_DELAY_MS);
-    }
 
-    async function takeAiTurn() {
-      state.aiPending = false;
-      if (state.resolving || state.winner || state.currentPlayer !== PLAYER_TWO) {
+      await resolveChainReaction(state.currentPlayer);
+      if (state.winner) {
         return;
       }
-      const move = chooseAiMove();
-      if (!move) {
-        return;
-      }
-      await commitMove(move.row, move.col, PLAYER_TWO);
+
+      state.currentPlayer = state.currentPlayer === PLAYER_ONE ? PLAYER_TWO : PLAYER_ONE;
+      detailText.textContent = `${PLAYER_NAMES[state.currentPlayer]} to move. Set up the next combo.`;
+      render();
     }
 
-    function resetState(size, mode) {
-      state.size = size;
-      state.mode = mode;
+    function resetGame() {
+      const { board, offsetCells } = createBoardMap();
       state.currentPlayer = PLAYER_ONE;
-      state.cells = createBoard(size);
-      state.moveCount = 0;
-      state.playerMoveCounts = {
+      state.board = board;
+      state.offsetCells = offsetCells;
+      state.resolving = false;
+      state.winner = 0;
+      state.movesPlayed = {
         [PLAYER_ONE]: 0,
         [PLAYER_TWO]: 0
       };
-      state.resolving = false;
-      state.aiPending = false;
-      state.winner = 0;
-      state.overflowCells = new Set();
-      state.lastCascadeSize = 0;
+      state.highlightedKeys = new Set();
+      state.cascadeStep = 0;
       closeWinnerOverlay();
-      detailText.textContent = "Blue begins. Chain reactions finish before the turn changes.";
+      detailText.textContent = "Blue begins. Corner hexes overflow later than center hexes because capacity matches live neighbor count.";
       render();
     }
 
-    function applySetup(resetBoard) {
-      const parsedSize = Number(boardSizeInput.value);
-      const size = Number.isFinite(parsedSize) ? Math.max(4, Math.min(9, parsedSize)) : DEFAULT_BOARD_SIZE;
-      boardSizeInput.value = String(size);
-      const mode = modeSelect.value === "ai" ? "ai" : "hotseat";
-      if (resetBoard) {
-        resetState(size, mode);
-      } else {
-        state.mode = mode;
-        render();
-        if (state.mode === "ai" && state.currentPlayer === PLAYER_TWO && !state.resolving && !state.winner) {
-          scheduleAiTurn();
-        }
-      }
-    }
+    restartButton.addEventListener("click", resetGame);
+    playAgainButton.addEventListener("click", resetGame);
 
-    newGameButton.addEventListener("click", () => applySetup(true));
-    swapModeButton.addEventListener("click", () => applySetup(false));
-    playAgainButton.addEventListener("click", () => resetState(state.size, state.mode));
-
-    resetState(DEFAULT_BOARD_SIZE, "hotseat");
+    resetGame();
   </script>
 </body>
 </html>
