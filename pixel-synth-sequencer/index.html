@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pixel Synth Sequencer</title>
+  <style>
+    :root {
+      --bg: #07111f;
+      --bg-alt: #10233e;
+      --panel: rgba(9, 20, 37, 0.9);
+      --panel-edge: rgba(144, 193, 255, 0.18);
+      --text: #eef5ff;
+      --muted: #9eb0d1;
+      --accent: #72f0b4;
+      --accent-strong: #ff8c61;
+      --playhead: rgba(114, 240, 180, 0.18);
+      --cell-off: rgba(13, 28, 48, 0.9);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 24px;
+      color: var(--text);
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 30%),
+        linear-gradient(160deg, var(--bg) 0%, var(--bg-alt) 100%);
+    }
+
+    .app {
+      width: min(1200px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(280px, 360px);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .surface,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-edge);
+      border-radius: 28px;
+      box-shadow: 0 24px 50px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(12px);
+    }
+
+    .surface {
+      padding: 24px;
+    }
+
+    .panel {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.3rem, 5vw, 4.4rem);
+      line-height: 0.92;
+      letter-spacing: -0.06em;
+    }
+
+    .lede {
+      margin-top: 12px;
+      max-width: 62ch;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .hero-bar {
+      margin-top: 20px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      min-height: 38px;
+      padding: 0 14px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .sequencer-shell {
+      margin-top: 24px;
+      padding: 18px;
+      border-radius: 24px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0 16px, transparent 16px 32px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .sequencer {
+      display: grid;
+      grid-template-columns: 96px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+    }
+
+    .row-labels {
+      display: grid;
+      gap: 8px;
+    }
+
+    .row-label {
+      min-height: 42px;
+      padding: 8px 10px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      display: grid;
+      align-content: center;
+      gap: 2px;
+    }
+
+    .row-label strong {
+      font-size: 0.9rem;
+    }
+
+    .row-label span {
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(16, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .cell {
+      appearance: none;
+      border: 0;
+      min-height: 42px;
+      border-radius: 12px;
+      cursor: pointer;
+      background: var(--cell-off);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+      transition: transform 120ms ease, background 140ms ease, box-shadow 140ms ease;
+    }
+
+    .cell:hover,
+    .cell:focus-visible {
+      outline: none;
+      transform: translateY(-1px);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 10px 18px rgba(0, 0, 0, 0.18);
+    }
+
+    .cell.active {
+      background: var(--cell-color);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 12px 20px rgba(0, 0, 0, 0.22);
+    }
+
+    .cell.playhead {
+      box-shadow: inset 0 0 0 2px rgba(114, 240, 180, 0.5), 0 0 0 4px var(--playhead);
+    }
+
+    .cell.active.hit {
+      transform: scale(0.93);
+      filter: brightness(1.18);
+    }
+
+    .card {
+      padding: 14px;
+      border-radius: 18px;
+      display: grid;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .status-row,
+    .label-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    button.control,
+    select,
+    input[type="range"] {
+      font: inherit;
+    }
+
+    button.control {
+      min-height: 44px;
+      border: 0;
+      border-radius: 999px;
+      cursor: pointer;
+      color: #07111f;
+      background: linear-gradient(180deg, var(--accent) 0%, #4fc792 100%);
+      box-shadow: 0 12px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    button.control.secondary {
+      color: var(--text);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
+    }
+
+    select {
+      width: 100%;
+      min-height: 42px;
+      padding: 0 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(6, 15, 28, 0.92);
+      color: var(--text);
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent-strong);
+    }
+
+    .scale-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      font-size: 0.86rem;
+      color: var(--muted);
+    }
+
+    .scale-chip {
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    @media (max-width: 920px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 14px;
+      }
+
+      .sequencer {
+        grid-template-columns: 1fr;
+      }
+
+      .row-labels {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+      }
+
+      .grid {
+        gap: 6px;
+      }
+
+      .cell {
+        min-height: 34px;
+      }
+
+      .button-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="surface">
+      <h1>Pixel Synth Sequencer</h1>
+      <p class="lede">
+        Paint colored pixels across a scrolling grid and let each column become a beat. Twelve pentatonic rows keep
+        the sequence musical while sine and square waves change the texture.
+      </p>
+      <div class="hero-bar">
+        <div class="pill" id="status-pill">Paused</div>
+        <div class="pill" id="step-pill">Column 1 / 16</div>
+      </div>
+      <div class="sequencer-shell">
+        <div class="sequencer">
+          <div id="row-labels" class="row-labels" aria-hidden="true"></div>
+          <div id="grid" class="grid" aria-label="Pixel synth sequencer grid"></div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <section class="card">
+        <h2>Transport</h2>
+        <div class="status-row"><span>Status</span><span id="status-text">Paused</span></div>
+        <div class="status-row"><span>Playhead</span><span id="playhead-text">1 / 16</span></div>
+        <div class="button-row">
+          <button id="play-toggle" class="control" type="button">Play</button>
+          <button id="clear-button" class="control secondary" type="button">Clear</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Tempo</h2>
+        <label for="bpm-slider">
+          <div class="label-row"><span>BPM</span><span id="bpm-value">120</span></div>
+          <input id="bpm-slider" type="range" min="60" max="200" step="1" value="120">
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>Tone</h2>
+        <label for="waveform-select">
+          <div class="label-row"><span>Waveform</span><span id="waveform-value">sine</span></div>
+          <select id="waveform-select">
+            <option value="sine">sine</option>
+            <option value="square">square</option>
+          </select>
+        </label>
+        <label for="volume-slider">
+          <div class="label-row"><span>Volume</span><span id="volume-value">55%</span></div>
+          <input id="volume-slider" type="range" min="0" max="100" step="1" value="55">
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>Pentatonic Scale</h2>
+        <div id="scale-list" class="scale-list"></div>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    const rows = 12;
+    const cols = 16;
+    const pentatonicScale = [
+      { note: "D6", freq: 1174.66 },
+      { note: "C6", freq: 1046.5 },
+      { note: "A5", freq: 880.0 },
+      { note: "G5", freq: 783.99 },
+      { note: "E5", freq: 659.25 },
+      { note: "D5", freq: 587.33 },
+      { note: "C5", freq: 523.25 },
+      { note: "A4", freq: 440.0 },
+      { note: "G4", freq: 392.0 },
+      { note: "E4", freq: 329.63 },
+      { note: "D4", freq: 293.66 },
+      { note: "C4", freq: 261.63 }
+    ];
+    const pattern = Array.from({ length: cols }, () => Array(rows).fill(false));
+    const cells = Array.from({ length: cols }, () => Array(rows).fill(null));
+    const rowHues = Array.from({ length: rows }, (_, row) => Math.round(210 - (row * 150) / Math.max(1, rows - 1)));
+
+    const grid = document.getElementById("grid");
+    const rowLabels = document.getElementById("row-labels");
+    const scaleList = document.getElementById("scale-list");
+    const playToggle = document.getElementById("play-toggle");
+    const clearButton = document.getElementById("clear-button");
+    const bpmSlider = document.getElementById("bpm-slider");
+    const bpmValue = document.getElementById("bpm-value");
+    const waveformSelect = document.getElementById("waveform-select");
+    const waveformValue = document.getElementById("waveform-value");
+    const volumeSlider = document.getElementById("volume-slider");
+    const volumeValue = document.getElementById("volume-value");
+    const statusText = document.getElementById("status-text");
+    const statusPill = document.getElementById("status-pill");
+    const playheadText = document.getElementById("playhead-text");
+    const stepPill = document.getElementById("step-pill");
+
+    let isPlaying = false;
+    let playhead = 0;
+    let timerId = null;
+    let audioContext = null;
+    let masterGain = null;
+
+    function stepDurationMs() {
+      return (60 / Number(bpmSlider.value)) * 1000;
+    }
+
+    function ensureAudio() {
+      if (!audioContext) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) {
+          return null;
+        }
+
+        audioContext = new AudioContextClass();
+        masterGain = audioContext.createGain();
+        masterGain.gain.value = Number(volumeSlider.value) / 100;
+        masterGain.connect(audioContext.destination);
+      }
+
+      return audioContext;
+    }
+
+    async function unlockAudio() {
+      const context = ensureAudio();
+      if (context && context.state === "suspended") {
+        await context.resume();
+      }
+      return context;
+    }
+
+    function updateStatus() {
+      const label = `Column ${playhead + 1} / ${cols}`;
+      statusText.textContent = isPlaying ? "Playing" : "Paused";
+      statusPill.textContent = isPlaying ? "Playing" : "Paused";
+      playheadText.textContent = `${playhead + 1} / ${cols}`;
+      stepPill.textContent = label;
+      playToggle.textContent = isPlaying ? "Pause" : "Play";
+    }
+
+    function updatePlayhead() {
+      for (let col = 0; col < cols; col += 1) {
+        for (let row = 0; row < rows; row += 1) {
+          cells[col][row].classList.toggle("playhead", col === playhead);
+        }
+      }
+      updateStatus();
+    }
+
+    function pulseCell(col, row) {
+      const cell = cells[col][row];
+      cell.classList.add("hit");
+      window.setTimeout(() => cell.classList.remove("hit"), 140);
+    }
+
+    function triggerNote(row) {
+      if (!audioContext || !masterGain) {
+        return;
+      }
+
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      const now = audioContext.currentTime;
+      const note = pentatonicScale[row];
+      const duration = Math.max(0.09, (60 / Number(bpmSlider.value)) * 0.45);
+
+      oscillator.type = waveformSelect.value;
+      oscillator.frequency.value = note.freq;
+      gainNode.gain.setValueAtTime(0.0001, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.12, now + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(masterGain);
+      oscillator.start(now);
+      oscillator.stop(now + duration + 0.03);
+    }
+
+    function triggerColumn(col) {
+      for (let row = 0; row < rows; row += 1) {
+        if (!pattern[col][row]) {
+          continue;
+        }
+        pulseCell(col, row);
+        triggerNote(row);
+      }
+    }
+
+    function tick() {
+      triggerColumn(playhead);
+      updatePlayhead();
+      playhead = (playhead + 1) % cols;
+    }
+
+    function restartTransport() {
+      if (!isPlaying) {
+        return;
+      }
+
+      window.clearInterval(timerId);
+      timerId = window.setInterval(tick, stepDurationMs());
+    }
+
+    function stopTransport() {
+      isPlaying = false;
+      window.clearInterval(timerId);
+      timerId = null;
+      updateStatus();
+    }
+
+    async function startTransport() {
+      const context = await unlockAudio();
+      if (!context) {
+        statusText.textContent = "Audio unavailable";
+        statusPill.textContent = "Audio unavailable";
+        return;
+      }
+
+      if (isPlaying) {
+        return;
+      }
+
+      isPlaying = true;
+      updateStatus();
+      tick();
+      timerId = window.setInterval(tick, stepDurationMs());
+    }
+
+    function toggleCell(col, row) {
+      pattern[col][row] = !pattern[col][row];
+      cells[col][row].classList.toggle("active", pattern[col][row]);
+      cells[col][row].setAttribute("aria-pressed", String(pattern[col][row]));
+    }
+
+    function clearPattern() {
+      for (let col = 0; col < cols; col += 1) {
+        for (let row = 0; row < rows; row += 1) {
+          pattern[col][row] = false;
+          cells[col][row].classList.remove("active", "hit");
+          cells[col][row].setAttribute("aria-pressed", "false");
+        }
+      }
+    }
+
+    function buildScaleList() {
+      pentatonicScale.forEach((note, row) => {
+        const label = document.createElement("div");
+        label.className = "row-label";
+        label.innerHTML = `<strong>${note.note}</strong><span>${Math.round(note.freq)} Hz</span>`;
+        label.style.borderColor = `hsla(${rowHues[row]}, 90%, 70%, 0.18)`;
+        rowLabels.appendChild(label);
+
+        const chip = document.createElement("div");
+        chip.className = "scale-chip";
+        chip.textContent = `${note.note} · ${Math.round(note.freq)} Hz`;
+        chip.style.color = `hsl(${rowHues[row]} 90% 76%)`;
+        scaleList.appendChild(chip);
+      });
+    }
+
+    function buildGrid() {
+      for (let row = 0; row < rows; row += 1) {
+        for (let col = 0; col < cols; col += 1) {
+          const cell = document.createElement("button");
+          const note = pentatonicScale[row];
+          cell.type = "button";
+          cell.className = "cell";
+          cell.setAttribute("aria-pressed", "false");
+          cell.setAttribute("aria-label", `${note.note} at beat ${col + 1}`);
+          cell.style.setProperty("--cell-color", `hsl(${rowHues[row]} 88% 60%)`);
+          cell.addEventListener("click", async () => {
+            await unlockAudio();
+            toggleCell(col, row);
+          });
+          grid.appendChild(cell);
+          cells[col][row] = cell;
+        }
+      }
+    }
+
+    playToggle.addEventListener("click", () => {
+      if (isPlaying) {
+        stopTransport();
+      } else {
+        startTransport();
+      }
+    });
+
+    clearButton.addEventListener("click", () => {
+      clearPattern();
+    });
+
+    bpmSlider.addEventListener("input", () => {
+      bpmValue.textContent = bpmSlider.value;
+      restartTransport();
+    });
+
+    waveformSelect.addEventListener("input", () => {
+      waveformValue.textContent = waveformSelect.value;
+    });
+
+    volumeSlider.addEventListener("input", () => {
+      volumeValue.textContent = `${volumeSlider.value}%`;
+      if (masterGain) {
+        masterGain.gain.value = Number(volumeSlider.value) / 100;
+      }
+    });
+
+    buildScaleList();
+    buildGrid();
+    updatePlayhead();
+  </script>
+</body>
+</html>
