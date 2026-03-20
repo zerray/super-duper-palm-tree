@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Typing Speed Test</title>
+  <style>
+    :root {
+      --bg: #f3efe7;
+      --panel: rgba(255, 252, 247, 0.94);
+      --panel-strong: #fffaf1;
+      --border: #d6c7b2;
+      --text: #2b241d;
+      --muted: #746759;
+      --green: #1f7a3d;
+      --red: #b33a3a;
+      --gray: #b8afa3;
+      --accent: #1b5a7a;
+      --accent-dark: #113e54;
+      --shadow: rgba(46, 32, 21, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.7), transparent 30%),
+        linear-gradient(160deg, #e5ddcf 0%, #f6f1e8 50%, #ddd0ba 100%);
+      color: var(--text);
+      font-family: "Courier New", "SFMono-Regular", Consolas, monospace;
+    }
+
+    button,
+    textarea {
+      font: inherit;
+    }
+
+    .app {
+      width: min(900px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: 0 24px 60px var(--shadow);
+      padding: 28px;
+      display: grid;
+      gap: 20px;
+    }
+
+    .header,
+    .stats {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .title-block h1,
+    .title-block p,
+    .stats p,
+    .result-card p,
+    .result-card h2 {
+      margin: 0;
+    }
+
+    .title-block h1 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      letter-spacing: 0.04em;
+    }
+
+    .title-block p,
+    .best,
+    .hint {
+      color: var(--muted);
+    }
+
+    .card,
+    .result-card {
+      background: var(--panel-strong);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .stat-value {
+      display: block;
+      margin-top: 6px;
+      font-size: clamp(1.3rem, 2.8vw, 2rem);
+      font-weight: 700;
+    }
+
+    .passage {
+      min-height: 172px;
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      line-height: 1.8;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .char {
+      border-radius: 4px;
+      padding: 0 1px;
+    }
+
+    .char.correct {
+      color: var(--green);
+      background: rgba(31, 122, 61, 0.12);
+    }
+
+    .char.incorrect {
+      color: var(--red);
+      background: rgba(179, 58, 58, 0.14);
+    }
+
+    .char.pending {
+      color: var(--gray);
+    }
+
+    .controls {
+      display: grid;
+      gap: 14px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px;
+      background: #fffdf9;
+      color: var(--text);
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 12px 20px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 120ms ease, opacity 120ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .primary {
+      color: #fff;
+      background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dark) 100%);
+    }
+
+    .secondary {
+      background: #eadfcd;
+      color: var(--text);
+    }
+
+    .screen[hidden],
+    .modal[hidden] {
+      display: none;
+    }
+
+    .screen {
+      display: grid;
+      gap: 18px;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(28, 22, 17, 0.52);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .result-card {
+      width: min(440px, 100%);
+      display: grid;
+      gap: 14px;
+      box-shadow: 0 18px 50px rgba(28, 22, 17, 0.24);
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 700px) {
+      .app {
+        padding: 20px;
+      }
+
+      .stats,
+      .result-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section id="start-screen" class="screen">
+      <div class="header">
+        <div class="title-block">
+          <h1>Typing Speed Test</h1>
+          <p>Type the highlighted passage as quickly and accurately as you can.</p>
+        </div>
+        <div class="card">
+          <div class="best">Personal Best</div>
+          <strong id="best-wpm">0 WPM</strong>
+        </div>
+      </div>
+      <div class="card">
+        <p>Fifteen built-in passages are included, from short warmups to denser technical text.</p>
+        <p class="hint">Press start, begin typing, and the timer will begin on your first keystroke.</p>
+      </div>
+      <div>
+        <button id="start-button" class="primary" type="button">Start Test</button>
+      </div>
+    </section>
+
+    <section id="test-screen" class="screen" hidden>
+      <div class="stats">
+        <div class="card">
+          <span class="stat-label">WPM</span>
+          <strong id="wpm" class="stat-value">0</strong>
+        </div>
+        <div class="card">
+          <span class="stat-label">Accuracy</span>
+          <strong id="accuracy" class="stat-value">100%</strong>
+        </div>
+        <div class="card">
+          <span class="stat-label">Time</span>
+          <strong id="elapsed" class="stat-value">0.0s</strong>
+        </div>
+        <div class="card">
+          <span class="stat-label">Errors</span>
+          <strong id="errors" class="stat-value">0</strong>
+        </div>
+      </div>
+
+      <div id="passage-display" class="card passage" aria-live="polite"></div>
+
+      <div class="controls">
+        <textarea
+          id="typing-input"
+          spellcheck="false"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          placeholder="The timer starts on your first keystroke."
+        ></textarea>
+        <p class="hint">Correct characters are green, errors are red, and remaining text stays gray.</p>
+      </div>
+    </section>
+  </main>
+
+  <div id="results-modal" class="modal" hidden>
+    <section class="result-card">
+      <div>
+        <h2>Results</h2>
+        <p>Passage complete. Review your stats or jump into another round.</p>
+      </div>
+      <div class="result-grid">
+        <div class="card">
+          <span class="stat-label">Final WPM</span>
+          <strong id="final-wpm" class="stat-value">0</strong>
+        </div>
+        <div class="card">
+          <span class="stat-label">Accuracy</span>
+          <strong id="final-accuracy" class="stat-value">0%</strong>
+        </div>
+        <div class="card">
+          <span class="stat-label">Elapsed</span>
+          <strong id="final-time" class="stat-value">0.0s</strong>
+        </div>
+        <div class="card">
+          <span class="stat-label">Errors</span>
+          <strong id="final-errors" class="stat-value">0</strong>
+        </div>
+      </div>
+      <div class="button-row">
+        <button id="retry-button" class="primary" type="button">Retry Passage</button>
+        <button id="new-button" class="secondary" type="button">New Passage</button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const BEST_WPM_KEY = "typing-speed-test-best-wpm";
+    const passages = [
+      "The quiet library opened just before sunrise, and the first visitor arrived with a notebook full of ambitious plans.",
+      "Typing well is less about speed at the beginning and more about rhythm, focus, and the patience to correct small mistakes.",
+      "A narrow trail wound through the pines, carrying the scent of rain and the soft crackle of needles under each careful step.",
+      "Engineers often improve systems by measuring them honestly, reducing friction, and choosing simpler designs over louder ones.",
+      "A good test passage balances common words with awkward phrases so your hands cannot drift into lazy habits.",
+      "Clouds moved quickly above the harbor while cranes lifted steel containers in a slow, disciplined sequence below.",
+      "The recipe looked easy until the final step asked for timing precise enough to keep butter glossy without letting it split.",
+      "Practice creates familiarity, but deliberate practice creates progress because it turns repeated effort into useful feedback.",
+      "Three cyclists rolled past the market at dawn, trading jokes between breaths as vendors arranged peaches into perfect rows.",
+      "The most reliable tools usually feel boring at first because they solve the obvious problems before anyone notices them.",
+      "She paused at the whiteboard, crossed out the clever idea, and replaced it with the version everyone could maintain.",
+      "Some passages are short and sharp. Others demand more endurance, a steadier pace, and careful attention to punctuation.",
+      "A satellite image can reveal river deltas, mountain shadows, and the geometry of cities built over generations of quiet negotiation.",
+      "Writers revise for clarity the way mechanics tune engines: remove what drags, tighten what slips, and listen for strain.",
+      "At the edge of the plaza, a street musician shifted from a slow waltz to a bright melody that changed the entire crowd.",
+      "The final benchmark combined numbers, symbols, and longer sentences to see whether accuracy held once fatigue started to set in."
+    ];
+
+    const startScreen = document.getElementById("start-screen");
+    const testScreen = document.getElementById("test-screen");
+    const passageDisplay = document.getElementById("passage-display");
+    const typingInput = document.getElementById("typing-input");
+    const bestWpmDisplay = document.getElementById("best-wpm");
+    const wpmDisplay = document.getElementById("wpm");
+    const accuracyDisplay = document.getElementById("accuracy");
+    const elapsedDisplay = document.getElementById("elapsed");
+    const errorsDisplay = document.getElementById("errors");
+    const resultsModal = document.getElementById("results-modal");
+    const finalWpmDisplay = document.getElementById("final-wpm");
+    const finalAccuracyDisplay = document.getElementById("final-accuracy");
+    const finalTimeDisplay = document.getElementById("final-time");
+    const finalErrorsDisplay = document.getElementById("final-errors");
+
+    let currentPassage = "";
+    let startTime = null;
+    let timerId = null;
+    let completed = false;
+
+    function readBestWpm() {
+      return Number(window.localStorage.getItem(BEST_WPM_KEY) || "0");
+    }
+
+    function writeBestWpm(wpm) {
+      const currentBest = readBestWpm();
+      if (wpm > currentBest) {
+        window.localStorage.setItem(BEST_WPM_KEY, String(wpm));
+      }
+      renderBestWpm();
+    }
+
+    function renderBestWpm() {
+      bestWpmDisplay.textContent = `${readBestWpm()} WPM`;
+    }
+
+    function pickRandomPassage(previousPassage = "") {
+      if (passages.length === 1) {
+        return passages[0];
+      }
+
+      let nextPassage = previousPassage;
+      while (nextPassage === previousPassage) {
+        nextPassage = passages[Math.floor(Math.random() * passages.length)];
+      }
+      return nextPassage;
+    }
+
+    function escapeHtml(character) {
+      if (character === "&") {
+        return "&amp;";
+      }
+      if (character === "<") {
+        return "&lt;";
+      }
+      if (character === ">") {
+        return "&gt;";
+      }
+      if (character === '"') {
+        return "&quot;";
+      }
+      return character;
+    }
+
+    function formatSeconds(ms) {
+      return `${(ms / 1000).toFixed(1)}s`;
+    }
+
+    function calculateStats(textValue) {
+      let correctChars = 0;
+      let errors = 0;
+      const errorPositions = [];
+
+      for (let index = 0; index < textValue.length; index += 1) {
+        if (textValue[index] === currentPassage[index]) {
+          correctChars += 1;
+        } else {
+          errors += 1;
+          errorPositions.push(index);
+        }
+      }
+
+      const totalTyped = textValue.length;
+      const accuracy = totalTyped === 0 ? 100 : Math.round((correctChars / totalTyped) * 100);
+      const elapsedMs = startTime ? Math.max(Date.now() - startTime, 100) : 0;
+      const minutes = elapsedMs / 60000 || 1 / 600;
+      const wpm = totalTyped === 0 ? 0 : Math.round((totalTyped / 5) / minutes);
+
+      return {
+        accuracy,
+        correctChars,
+        elapsedMs,
+        errorPositions,
+        errors,
+        wpm
+      };
+    }
+
+    function renderPassage(textValue) {
+      let html = "";
+
+      for (let index = 0; index < currentPassage.length; index += 1) {
+        let className = "pending";
+        if (index < textValue.length) {
+          className = textValue[index] === currentPassage[index] ? "correct" : "incorrect";
+        }
+
+        const character = currentPassage[index] === " " ? "&nbsp;" : escapeHtml(currentPassage[index]);
+        html += `<span class="char ${className}" data-index="${index}">${character}</span>`;
+      }
+
+      passageDisplay.innerHTML = html;
+    }
+
+    function renderLiveStats(textValue) {
+      const stats = calculateStats(textValue);
+      wpmDisplay.textContent = String(stats.wpm);
+      accuracyDisplay.textContent = `${stats.accuracy}%`;
+      elapsedDisplay.textContent = formatSeconds(stats.elapsedMs);
+      errorsDisplay.textContent = String(stats.errors);
+      return stats;
+    }
+
+    function stopTimer() {
+      if (timerId) {
+        window.clearInterval(timerId);
+        timerId = null;
+      }
+    }
+
+    function showResults(stats) {
+      finalWpmDisplay.textContent = String(stats.wpm);
+      finalAccuracyDisplay.textContent = `${stats.accuracy}%`;
+      finalTimeDisplay.textContent = formatSeconds(stats.elapsedMs);
+      finalErrorsDisplay.textContent = String(stats.errors);
+      resultsModal.hidden = false;
+      writeBestWpm(stats.wpm);
+    }
+
+    function finishTest() {
+      const textValue = typingInput.value;
+      if (textValue.length !== currentPassage.length || textValue !== currentPassage || completed) {
+        return;
+      }
+
+      completed = true;
+      typingInput.disabled = true;
+      stopTimer();
+      showResults(renderLiveStats(textValue));
+    }
+
+    function beginTest(nextPassage) {
+      currentPassage = nextPassage;
+      startTime = null;
+      completed = false;
+      stopTimer();
+      typingInput.value = "";
+      typingInput.disabled = false;
+      resultsModal.hidden = true;
+      startScreen.hidden = true;
+      testScreen.hidden = false;
+      renderPassage("");
+      renderLiveStats("");
+      typingInput.focus();
+    }
+
+    function startTimerIfNeeded() {
+      if (startTime || typingInput.value.length === 0) {
+        return;
+      }
+
+      startTime = Date.now();
+      timerId = window.setInterval(() => {
+        if (!completed) {
+          renderLiveStats(typingInput.value);
+        }
+      }, 100);
+    }
+
+    document.getElementById("start-button").addEventListener("click", () => {
+      beginTest(pickRandomPassage());
+    });
+
+    document.getElementById("retry-button").addEventListener("click", () => {
+      beginTest(currentPassage);
+    });
+
+    document.getElementById("new-button").addEventListener("click", () => {
+      beginTest(pickRandomPassage(currentPassage));
+    });
+
+    typingInput.addEventListener("input", () => {
+      startTimerIfNeeded();
+      renderPassage(typingInput.value);
+      renderLiveStats(typingInput.value);
+      finishTest();
+    });
+
+    renderBestWpm();
+  </script>
+</body>
+</html>
