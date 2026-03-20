@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orbital Slingshot</title>
+  <style>
+    :root {
+      --bg: #081120;
+      --bg-glow: #132847;
+      --panel: rgba(10, 18, 33, 0.76);
+      --panel-border: rgba(143, 188, 255, 0.18);
+      --text: #eff7ff;
+      --muted: #9eb8d5;
+      --accent: #ffd166;
+      --accent-strong: #ff9f1c;
+      --success: #6ef2c5;
+      --danger: #ff6b6b;
+      --trail: rgba(151, 222, 255, 0.78);
+      --ghost: rgba(255, 255, 255, 0.24);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow: hidden;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 20%, rgba(73, 133, 255, 0.18), transparent 24%),
+        radial-gradient(circle at 80% 15%, rgba(255, 209, 102, 0.18), transparent 18%),
+        linear-gradient(180deg, var(--bg-glow) 0%, var(--bg) 55%, #040914 100%);
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      cursor: crosshair;
+    }
+
+    .hud {
+      position: fixed;
+      top: 18px;
+      left: 18px;
+      right: 18px;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      pointer-events: none;
+    }
+
+    .panel {
+      max-width: min(420px, calc(100vw - 36px));
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 18px 42px rgba(1, 8, 20, 0.34);
+    }
+
+    h1,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(1.6rem, 2.5vw, 2.4rem);
+      letter-spacing: 0.03em;
+    }
+
+    .subtitle,
+    .hint,
+    .legend {
+      margin-top: 6px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .stats {
+      display: grid;
+      gap: 8px;
+      justify-items: end;
+      text-align: right;
+    }
+
+    .stat strong {
+      color: var(--accent);
+    }
+
+    .legend {
+      position: fixed;
+      left: 18px;
+      bottom: 18px;
+      max-width: min(460px, calc(100vw - 36px));
+      padding: 12px 16px;
+      border-radius: 16px;
+      background: rgba(7, 13, 24, 0.72);
+      border: 1px solid rgba(143, 188, 255, 0.14);
+      backdrop-filter: blur(8px);
+    }
+
+    .legend strong {
+      color: var(--accent);
+    }
+
+    @media (max-width: 720px) {
+      .hud {
+        flex-direction: column;
+      }
+
+      .stats {
+        justify-items: start;
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div class="hud">
+    <section class="panel">
+      <h1>Orbital Slingshot</h1>
+      <p class="subtitle">Launch from the left edge, bend around planets, and thread the target zone.</p>
+      <p class="hint" id="status">Click and drag from the ship to set angle and power.</p>
+    </section>
+    <section class="panel stats">
+      <p class="stat">Level <strong id="level">1</strong></p>
+      <p class="stat">Bodies <strong id="planet-count">0</strong></p>
+      <p class="stat">Power <strong id="power">0%</strong></p>
+    </section>
+  </div>
+  <div class="legend">
+    <strong>Controls:</strong> drag the ship to preview the slingshot arc, release to launch, press <strong>R</strong> to reset the current level.
+  </div>
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const levelLabel = document.getElementById("level");
+    const planetCountLabel = document.getElementById("planet-count");
+    const powerLabel = document.getElementById("power");
+    const statusLabel = document.getElementById("status");
+
+    const state = {
+      width: 0,
+      height: 0,
+      dpr: 1,
+      level: 1,
+      planets: [],
+      trail: [],
+      ghostTrail: [],
+      projectile: null,
+      launcher: null,
+      targetZone: null,
+      aiming: false,
+      simulating: false,
+      aimPoint: null,
+      statusTimer: 0,
+      lastFrame: 0
+    };
+
+    const G = 2400;
+    const maxLaunchSpeed = 470;
+    const previewSteps = 240;
+    const previewDt = 1 / 60;
+    const simulationStep = 1 / 120;
+    const trailLimit = 280;
+    const minPlanetCount = 3;
+
+    function resize() {
+      state.dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      state.width = window.innerWidth;
+      state.height = window.innerHeight;
+      canvas.width = Math.floor(state.width * state.dpr);
+      canvas.height = Math.floor(state.height * state.dpr);
+      ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+      buildLevel(state.level);
+    }
+
+    function createRng(seed) {
+      let value = seed >>> 0;
+      return function rand() {
+        value = (value * 1664525 + 1013904223) >>> 0;
+        return value / 4294967296;
+      };
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function distance(a, b) {
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function buildLevel(level) {
+      const rng = createRng(level * 9973 + Math.floor(state.width * 3 + state.height));
+      const launcher = {
+        x: Math.max(70, state.width * 0.1),
+        y: clamp(state.height * (0.28 + rng() * 0.44), 90, state.height - 90),
+        radius: 12
+      };
+      const targetZone = {
+        x: state.width - Math.max(90, state.width * 0.12),
+        y: clamp(state.height * (0.22 + rng() * 0.56), 90, state.height - 90),
+        radius: 34
+      };
+
+      const planets = [];
+      const count = clamp(minPlanetCount + level - 1, minPlanetCount, 5);
+      let guard = 0;
+      while (planets.length < count && guard < 2000) {
+        guard += 1;
+        const radius = 24 + rng() * 34 + level * 2;
+        const x = state.width * (0.28 + rng() * 0.46);
+        const y = state.height * (0.14 + rng() * 0.72);
+        const candidate = {
+          x,
+          y,
+          radius,
+          mass: radius * (26 + rng() * 18),
+          hue: Math.floor(180 + rng() * 140)
+        };
+
+        const overlapsPlanet = planets.some((planet) => distance(planet, candidate) < planet.radius + candidate.radius + 60);
+        const overlapsEndpoints =
+          distance(launcher, candidate) < launcher.radius + candidate.radius + 150 ||
+          distance(targetZone, candidate) < targetZone.radius + candidate.radius + 150;
+
+        if (!overlapsPlanet && !overlapsEndpoints) {
+          planets.push(candidate);
+        }
+      }
+
+      state.level = level;
+      state.planets = planets;
+      state.launcher = launcher;
+      state.targetZone = targetZone;
+      state.aiming = false;
+      state.simulating = false;
+      state.aimPoint = { x: launcher.x, y: launcher.y };
+      resetProjectile();
+      setStatus("Click and drag from the ship to set angle and power.");
+      levelLabel.textContent = String(level);
+      planetCountLabel.textContent = String(planets.length);
+      updatePower(0);
+    }
+
+    function resetProjectile() {
+      state.projectile = {
+        x: state.launcher.x,
+        y: state.launcher.y,
+        vx: 0,
+        vy: 0,
+        radius: 7,
+        active: false
+      };
+      state.trail = [];
+      state.ghostTrail = [];
+    }
+
+    function setStatus(message, hold = 0) {
+      statusLabel.textContent = message;
+      state.statusTimer = hold;
+    }
+
+    function updatePower(power) {
+      powerLabel.textContent = `${Math.round(power * 100)}%`;
+    }
+
+    function getAimVector(point) {
+      const dx = state.launcher.x - point.x;
+      const dy = state.launcher.y - point.y;
+      const drag = Math.hypot(dx, dy);
+      const power = clamp(drag / 180, 0, 1);
+      const speed = power * maxLaunchSpeed;
+      const scale = drag === 0 ? 0 : speed / drag;
+      return { vx: dx * scale, vy: dy * scale, power };
+    }
+
+    function computeGravity(position) {
+      let ax = 0;
+      let ay = 0;
+      for (const planet of state.planets) {
+        const dx = planet.x - position.x;
+        const dy = planet.y - position.y;
+        const distanceSq = Math.max(dx * dx + dy * dy, (planet.radius + 18) ** 2);
+        const distanceValue = Math.sqrt(distanceSq);
+        const accel = (G * planet.mass) / distanceSq;
+        ax += (dx / distanceValue) * accel;
+        ay += (dy / distanceValue) * accel;
+      }
+      return { ax, ay };
+    }
+
+    function advanceBody(body, dt) {
+      const gravity = computeGravity(body);
+      body.vx += gravity.ax * dt;
+      body.vy += gravity.ay * dt;
+      body.x += body.vx * dt;
+      body.y += body.vy * dt;
+    }
+
+    function collidesWithPlanet(body) {
+      return state.planets.find((planet) => distance(body, planet) <= planet.radius + body.radius);
+    }
+
+    function reachedTarget(body) {
+      return distance(body, state.targetZone) <= state.targetZone.radius + body.radius;
+    }
+
+    function outOfBounds(body) {
+      const margin = 80;
+      return (
+        body.x < -margin ||
+        body.x > state.width + margin ||
+        body.y < -margin ||
+        body.y > state.height + margin
+      );
+    }
+
+    function updateGhostTrajectory() {
+      if (!state.aiming || !state.aimPoint) {
+        state.ghostTrail = [];
+        return;
+      }
+
+      const launch = getAimVector(state.aimPoint);
+      updatePower(launch.power);
+      const sample = {
+        x: state.launcher.x,
+        y: state.launcher.y,
+        vx: launch.vx,
+        vy: launch.vy,
+        radius: state.projectile.radius
+      };
+      const points = [];
+      for (let i = 0; i < previewSteps; i += 1) {
+        advanceBody(sample, previewDt);
+        points.push({ x: sample.x, y: sample.y });
+        if (collidesWithPlanet(sample) || reachedTarget(sample) || outOfBounds(sample)) {
+          break;
+        }
+      }
+      state.ghostTrail = points;
+    }
+
+    function launchProjectile() {
+      if (!state.aimPoint) {
+        return;
+      }
+      const launch = getAimVector(state.aimPoint);
+      if (launch.power < 0.04) {
+        setStatus("Pull back farther to launch.", 1.2);
+        updatePower(0);
+        return;
+      }
+      state.projectile.x = state.launcher.x;
+      state.projectile.y = state.launcher.y;
+      state.projectile.vx = launch.vx;
+      state.projectile.vy = launch.vy;
+      state.projectile.active = true;
+      state.simulating = true;
+      state.trail = [{ x: state.projectile.x, y: state.projectile.y }];
+      state.ghostTrail = [];
+      setStatus("In flight. Curve through the gravity wells and reach the target.");
+    }
+
+    function finishAttempt(message, color, nextLevel = false) {
+      setStatus(message, 1.8);
+      statusLabel.style.color = color;
+      window.setTimeout(() => {
+        statusLabel.style.color = "";
+        if (nextLevel) {
+          buildLevel(state.level + 1);
+        } else {
+          resetProjectile();
+          setStatus("Adjust the line and try another slingshot.");
+        }
+      }, 700);
+      state.simulating = false;
+      state.projectile.active = false;
+    }
+
+    function updateSimulation(dt) {
+      if (!state.projectile.active) {
+        return;
+      }
+
+      let remaining = dt;
+      while (remaining > 0) {
+        const step = Math.min(simulationStep, remaining);
+        advanceBody(state.projectile, step);
+        state.trail.push({ x: state.projectile.x, y: state.projectile.y });
+        if (state.trail.length > trailLimit) {
+          state.trail.shift();
+        }
+
+        const hitPlanet = collidesWithPlanet(state.projectile);
+        if (hitPlanet) {
+          finishAttempt("Crashed into a planet. Press R or drag again to retry.", "var(--danger)");
+          return;
+        }
+        if (reachedTarget(state.projectile)) {
+          finishAttempt("Target reached. Advancing to the next sector.", "var(--success)", true);
+          return;
+        }
+        if (outOfBounds(state.projectile)) {
+          finishAttempt("Lost in deep space. Drag to relaunch.", "var(--danger)");
+          return;
+        }
+        remaining -= step;
+      }
+    }
+
+    function drawBackground() {
+      ctx.clearRect(0, 0, state.width, state.height);
+
+      const starCount = 90;
+      const rng = createRng(state.level * 431 + 17);
+      for (let i = 0; i < starCount; i += 1) {
+        const x = rng() * state.width;
+        const y = rng() * state.height;
+        const radius = rng() * 1.8;
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.2 + rng() * 0.7})`;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawGravityWell(planet) {
+      const gradient = ctx.createRadialGradient(planet.x, planet.y, planet.radius * 0.4, planet.x, planet.y, planet.radius * 3.2);
+      gradient.addColorStop(0, `hsla(${planet.hue}, 82%, 68%, 0.34)`);
+      gradient.addColorStop(1, `hsla(${planet.hue}, 82%, 68%, 0)`);
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(planet.x, planet.y, planet.radius * 3.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = `hsla(${planet.hue}, 80%, 72%, 0.18)`;
+      ctx.lineWidth = 1.2;
+      for (let i = 1; i <= 3; i += 1) {
+        ctx.beginPath();
+        ctx.arc(planet.x, planet.y, planet.radius * (1 + i * 0.68), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    function drawPlanet(planet) {
+      drawGravityWell(planet);
+      const gradient = ctx.createRadialGradient(
+        planet.x - planet.radius * 0.35,
+        planet.y - planet.radius * 0.45,
+        planet.radius * 0.1,
+        planet.x,
+        planet.y,
+        planet.radius
+      );
+      gradient.addColorStop(0, `hsl(${planet.hue}, 88%, 70%)`);
+      gradient.addColorStop(1, `hsl(${planet.hue}, 72%, 38%)`);
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(planet.x, planet.y, planet.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.28)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(planet.x, planet.y, planet.radius, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    function drawTargetZone() {
+      ctx.save();
+      ctx.strokeStyle = "rgba(110, 242, 197, 0.85)";
+      ctx.fillStyle = "rgba(110, 242, 197, 0.12)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(state.targetZone.x, state.targetZone.y, state.targetZone.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.setLineDash([8, 8]);
+      ctx.beginPath();
+      ctx.arc(state.targetZone.x, state.targetZone.y, state.targetZone.radius + 12, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawTrail(points, strokeStyle, width) {
+      if (points.length < 2) {
+        return;
+      }
+      ctx.save();
+      ctx.strokeStyle = strokeStyle;
+      ctx.lineWidth = width;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i += 1) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawLauncher() {
+      const ship = state.projectile.active ? state.projectile : state.launcher;
+      ctx.save();
+      ctx.translate(ship.x, ship.y);
+      const angle = Math.atan2(state.projectile.vy || 0, state.projectile.vx || 1);
+      ctx.rotate(state.projectile.active ? angle : -Math.PI / 12);
+      ctx.fillStyle = "#f5f8ff";
+      ctx.beginPath();
+      ctx.moveTo(15, 0);
+      ctx.lineTo(-10, -8);
+      ctx.lineTo(-5, 0);
+      ctx.lineTo(-10, 8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#5ad0ff";
+      ctx.beginPath();
+      ctx.arc(-1, 0, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawAimLine() {
+      if (!state.aiming || !state.aimPoint) {
+        return;
+      }
+      const launch = getAimVector(state.aimPoint);
+      ctx.save();
+      ctx.strokeStyle = "rgba(255, 209, 102, 0.9)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([10, 8]);
+      ctx.beginPath();
+      ctx.moveTo(state.launcher.x, state.launcher.y);
+      ctx.lineTo(state.aimPoint.x, state.aimPoint.y);
+      ctx.stroke();
+      ctx.restore();
+
+      const dx = state.launcher.x - state.aimPoint.x;
+      const dy = state.launcher.y - state.aimPoint.y;
+      const drag = Math.hypot(dx, dy);
+      const radius = clamp(10 + drag * 0.08, 12, 26);
+      ctx.fillStyle = `rgba(255, 159, 28, ${0.25 + launch.power * 0.45})`;
+      ctx.beginPath();
+      ctx.arc(state.launcher.x, state.launcher.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function render() {
+      drawBackground();
+      drawTargetZone();
+      for (const planet of state.planets) {
+        drawPlanet(planet);
+      }
+      drawTrail(state.ghostTrail, "rgba(255, 255, 255, 0.24)", 2);
+      drawTrail(state.trail, "rgba(151, 222, 255, 0.78)", 2.4);
+      drawAimLine();
+      drawLauncher();
+    }
+
+    function pointerPosition(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      };
+    }
+
+    function onPointerDown(event) {
+      if (state.projectile.active) {
+        return;
+      }
+      const point = pointerPosition(event);
+      if (distance(point, state.launcher) <= 34) {
+        state.aiming = true;
+        state.aimPoint = point;
+        updateGhostTrajectory();
+        canvas.setPointerCapture(event.pointerId);
+      }
+    }
+
+    function onPointerMove(event) {
+      if (!state.aiming) {
+        return;
+      }
+      state.aimPoint = pointerPosition(event);
+      updateGhostTrajectory();
+    }
+
+    function onPointerUp(event) {
+      if (!state.aiming) {
+        return;
+      }
+      state.aimPoint = pointerPosition(event);
+      state.aiming = false;
+      launchProjectile();
+      updatePower(0);
+    }
+
+    function gameLoop(timestamp) {
+      if (!state.lastFrame) {
+        state.lastFrame = timestamp;
+      }
+      const dt = Math.min(0.032, (timestamp - state.lastFrame) / 1000);
+      state.lastFrame = timestamp;
+
+      if (state.statusTimer > 0) {
+        state.statusTimer = Math.max(0, state.statusTimer - dt);
+        if (state.statusTimer === 0) {
+          statusLabel.style.color = "";
+        }
+      }
+
+      if (state.simulating) {
+        updateSimulation(dt);
+      }
+      render();
+      requestAnimationFrame(gameLoop);
+    }
+
+    window.addEventListener("resize", resize);
+    canvas.addEventListener("pointerdown", onPointerDown);
+    canvas.addEventListener("pointermove", onPointerMove);
+    canvas.addEventListener("pointerup", onPointerUp);
+    canvas.addEventListener("pointercancel", onPointerUp);
+    window.addEventListener("keydown", (event) => {
+      if (event.key.toLowerCase() === "r") {
+        buildLevel(state.level);
+      }
+    });
+
+    resize();
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>
