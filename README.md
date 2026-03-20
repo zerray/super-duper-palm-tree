@@ -193,6 +193,7 @@ This repository contains a simple agent-factory workflow for planning and comple
 新增 `gravity-golf/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的重力高尔夫物理游戏，包含：
 
 - 5 个手工设计的轨道高尔夫关卡，难度逐步加入 repulsor、黑洞、轨道行星与重力切换门
+- 提供简单 level select 界面，可直接跳转任意关卡并查看每洞 par / 已完成成绩
 - 点击并向后拖拽瞄准发射，发射前会显示 dotted trajectory 预览与力度提示，并支持移动端 pointer/touch 拖拽
 - 使用 Canvas 2D 与简单 Newtonian / Euler 重力模拟，让球在引力井之间弯曲飞行；撞上行星表面或黑洞时会丢球重置
 - 记录每洞与总杆数，进洞时带有收球视觉效果与简短音效，并支持逐洞重开或整局重玩
