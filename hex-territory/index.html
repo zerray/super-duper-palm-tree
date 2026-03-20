@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hex Territory</title>
+  <style>
+    :root {
+      --bg: #f2efe5;
+      --panel: rgba(255, 250, 242, 0.92);
+      --border: #d2c3ad;
+      --text: #2c241f;
+      --muted: #6e6358;
+      --player: #2f7fd1;
+      --player-strong: #155391;
+      --ai: #d9594c;
+      --ai-strong: #8e2f28;
+      --neutral: #ddd4c6;
+      --neutral-stroke: #a59b8e;
+      --free: rgba(47, 127, 209, 0.25);
+      --costly: rgba(217, 89, 76, 0.18);
+      --blocked: rgba(90, 90, 90, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.85), transparent 26%),
+        linear-gradient(160deg, #efe7d2 0%, #ddd7c7 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .app {
+      width: min(1100px, 100%);
+      background: var(--panel);
+      border: 2px solid var(--border);
+      border-radius: 28px;
+      box-shadow: 0 18px 48px rgba(57, 45, 35, 0.18);
+      padding: 22px;
+      display: grid;
+      gap: 20px;
+      grid-template-columns: 320px minmax(0, 1fr);
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    .sidebar {
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+
+    .panel {
+      background: rgba(255, 252, 247, 0.95);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 16px 18px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .title h1 {
+      font-size: clamp(2rem, 4vw, 2.6rem);
+      letter-spacing: 0.04em;
+    }
+
+    .title p,
+    .panel p,
+    .tips li {
+      color: var(--muted);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      border-radius: 16px;
+      padding: 12px;
+      background: #f7f1e7;
+      border: 1px solid var(--border);
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 1.6rem;
+    }
+
+    .player-accent strong {
+      color: var(--player-strong);
+    }
+
+    .ai-accent strong {
+      color: var(--ai-strong);
+    }
+
+    .status {
+      min-height: 3.2em;
+      line-height: 1.45;
+    }
+
+    .turn-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--neutral-stroke);
+    }
+
+    .dot.player {
+      background: var(--player);
+    }
+
+    .dot.ai {
+      background: var(--ai);
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(180deg, #3f3128 0%, #241c18 100%);
+      cursor: pointer;
+      transition: transform 120ms ease, opacity 120ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .tips {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .board-wrap {
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.85), transparent 28%),
+        linear-gradient(180deg, #f8f3ea 0%, #ece4d8 100%);
+      padding: 14px;
+      overflow: auto;
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .hex {
+      cursor: pointer;
+      transition: transform 120ms ease, fill 120ms ease, stroke 120ms ease;
+    }
+
+    .hex:hover {
+      transform: translateY(-1px);
+    }
+
+    .hex.unclaimed {
+      fill: var(--neutral);
+      stroke: var(--neutral-stroke);
+    }
+
+    .hex.player {
+      fill: var(--player);
+      stroke: var(--player-strong);
+    }
+
+    .hex.ai {
+      fill: var(--ai);
+      stroke: var(--ai-strong);
+    }
+
+    .hex.hover-free.unclaimed {
+      fill: var(--free);
+      stroke: var(--player);
+      stroke-width: 3;
+    }
+
+    .hex.hover-cost.unclaimed {
+      fill: var(--costly);
+      stroke: var(--ai);
+      stroke-width: 3;
+    }
+
+    .hex.hover-blocked.unclaimed {
+      fill: var(--blocked);
+      stroke-width: 2.5;
+      stroke-dasharray: 6 4;
+    }
+
+    .coords {
+      font-size: 11px;
+      font-weight: 700;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      pointer-events: none;
+      fill: rgba(44, 36, 31, 0.72);
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1px solid rgba(0, 0, 0, 0.18);
+    }
+
+    @media (max-width: 880px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="sidebar">
+      <div class="panel title">
+        <h1>Hex Territory</h1>
+        <p>Claim more hexes than the greedy AI before the board fills up.</p>
+      </div>
+
+      <div class="panel">
+        <div class="stats">
+          <div class="stat player-accent">
+            <span>Player Territory</span>
+            <strong id="player-territory">0</strong>
+          </div>
+          <div class="stat ai-accent">
+            <span>AI Territory</span>
+            <strong id="ai-territory">0</strong>
+          </div>
+          <div class="stat player-accent">
+            <span>Player Points</span>
+            <strong id="player-points">0</strong>
+          </div>
+          <div class="stat ai-accent">
+            <span>AI Points</span>
+            <strong id="ai-points">0</strong>
+          </div>
+        </div>
+        <div class="turn-pill"><span class="dot" id="turn-dot"></span><span id="turn-label">Player turn</span></div>
+        <p class="status" id="status-text"></p>
+        <button id="reset-button" type="button">Reset Game</button>
+      </div>
+
+      <div class="panel">
+        <h2>Rules</h2>
+        <ul class="tips">
+          <li>Adjacent claims are free.</li>
+          <li>Non-adjacent jumps cost 1 point.</li>
+          <li>The AI picks the move with the most neighboring AI hexes.</li>
+          <li>Hover empty hexes to preview free, costly, or blocked moves.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="board-wrap">
+      <svg id="board" role="img" aria-label="Hex territory board"></svg>
+      <div class="legend">
+        <span><i class="swatch" style="background: var(--player);"></i>Player</span>
+        <span><i class="swatch" style="background: var(--ai);"></i>AI</span>
+        <span><i class="swatch" style="background: var(--neutral);"></i>Unclaimed</span>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const CONFIG = {
+      cols: 7,
+      rows: 7,
+      size: 32,
+      startingPoints: 4,
+      aiDelayMs: 450
+    };
+
+    const OWNER = {
+      player: "player",
+      ai: "ai"
+    };
+
+    const state = {
+      board: new Map(),
+      currentTurn: OWNER.player,
+      points: {
+        player: CONFIG.startingPoints,
+        ai: CONFIG.startingPoints
+      },
+      hoveredKey: null,
+      message: "",
+      gameOver: false,
+      busy: false
+    };
+
+    const boardEl = document.getElementById("board");
+    const playerTerritoryEl = document.getElementById("player-territory");
+    const aiTerritoryEl = document.getElementById("ai-territory");
+    const playerPointsEl = document.getElementById("player-points");
+    const aiPointsEl = document.getElementById("ai-points");
+    const turnLabelEl = document.getElementById("turn-label");
+    const turnDotEl = document.getElementById("turn-dot");
+    const statusTextEl = document.getElementById("status-text");
+    const resetButtonEl = document.getElementById("reset-button");
+
+    function key(col, row) {
+      return `${col},${row}`;
+    }
+
+    function parseKey(value) {
+      const [col, row] = value.split(",").map(Number);
+      return { col, row };
+    }
+
+    function inBounds(col, row) {
+      return col >= 0 && row >= 0 && col < CONFIG.cols && row < CONFIG.rows;
+    }
+
+    function neighborOffsets(row) {
+      return row % 2 === 0
+        ? [[-1, 0], [1, 0], [-1, -1], [0, -1], [-1, 1], [0, 1]]
+        : [[-1, 0], [1, 0], [0, -1], [1, -1], [0, 1], [1, 1]];
+    }
+
+    function getNeighbors(col, row) {
+      return neighborOffsets(row)
+        .map(([dx, dy]) => ({ col: col + dx, row: row + dy }))
+        .filter((point) => inBounds(point.col, point.row));
+    }
+
+    function hasAdjacentOwner(col, row, owner) {
+      return getNeighbors(col, row).some((neighbor) => state.board.get(key(neighbor.col, neighbor.row)) === owner);
+    }
+
+    function getNeighborOwnerCount(col, row, owner) {
+      return getNeighbors(col, row).reduce((count, neighbor) => {
+        return count + (state.board.get(key(neighbor.col, neighbor.row)) === owner ? 1 : 0);
+      }, 0);
+    }
+
+    function getMoveCost(col, row, owner) {
+      if (state.board.get(key(col, row)) !== null) {
+        return null;
+      }
+
+      if (hasAdjacentOwner(col, row, owner)) {
+        return 0;
+      }
+
+      return state.points[owner] > 0 ? 1 : null;
+    }
+
+    function describeMove(col, row) {
+      if (state.board.get(key(col, row)) !== null) {
+        return "Claimed territory.";
+      }
+
+      const cost = getMoveCost(col, row, OWNER.player);
+      if (cost === 0) {
+        return `Free claim at ${col + 1}, ${row + 1}.`;
+      }
+
+      if (cost === 1) {
+        return `Jump claim costs 1 point at ${col + 1}, ${row + 1}.`;
+      }
+
+      return "Blocked: no adjacent territory and no points left.";
+    }
+
+    function territoryCounts() {
+      let player = 0;
+      let ai = 0;
+
+      state.board.forEach((owner) => {
+        if (owner === OWNER.player) {
+          player += 1;
+        } else if (owner === OWNER.ai) {
+          ai += 1;
+        }
+      });
+
+      return { player, ai };
+    }
+
+    function unclaimedKeys() {
+      return Array.from(state.board.entries())
+        .filter(([, owner]) => owner === null)
+        .map(([cellKey]) => cellKey);
+    }
+
+    function getLegalMoves(owner) {
+      return unclaimedKeys()
+        .map((cellKey) => {
+          const { col, row } = parseKey(cellKey);
+          const cost = getMoveCost(col, row, owner);
+          return cost === null ? null : { key: cellKey, col, row, cost };
+        })
+        .filter(Boolean);
+    }
+
+    function makePolygonPoints(cx, cy, size) {
+      const points = [];
+      for (let i = 0; i < 6; i += 1) {
+        const angle = ((60 * i) - 30) * (Math.PI / 180);
+        points.push(`${(cx + size * Math.cos(angle)).toFixed(2)},${(cy + size * Math.sin(angle)).toFixed(2)}`);
+      }
+      return points.join(" ");
+    }
+
+    function makeHexCenter(col, row) {
+      const width = Math.sqrt(3) * CONFIG.size;
+      const x = CONFIG.size + col * width + (row % 2) * (width / 2);
+      const y = CONFIG.size + row * (CONFIG.size * 1.5);
+      return { x, y };
+    }
+
+    function boardDimensions() {
+      const width = Math.sqrt(3) * CONFIG.size * (CONFIG.cols + 0.5) + CONFIG.size;
+      const height = CONFIG.size * 1.5 * (CONFIG.rows - 1) + CONFIG.size * 2;
+      return {
+        width: Math.ceil(width + 8),
+        height: Math.ceil(height + 8)
+      };
+    }
+
+    function setMessage(text) {
+      state.message = text;
+    }
+
+    function updateHud() {
+      const counts = territoryCounts();
+      playerTerritoryEl.textContent = String(counts.player);
+      aiTerritoryEl.textContent = String(counts.ai);
+      playerPointsEl.textContent = String(state.points.player);
+      aiPointsEl.textContent = String(state.points.ai);
+      turnLabelEl.textContent = state.gameOver
+        ? "Game over"
+        : state.currentTurn === OWNER.player
+          ? "Player turn"
+          : "AI turn";
+      turnDotEl.className = `dot ${state.gameOver ? "" : state.currentTurn}`;
+      statusTextEl.textContent = state.message;
+    }
+
+    function updateGameOver() {
+      const emptyLeft = unclaimedKeys().length;
+      const playerMoves = getLegalMoves(OWNER.player).length;
+      const aiMoves = getLegalMoves(OWNER.ai).length;
+      const reason = emptyLeft === 0 ? "Board full" : "No legal moves remain";
+
+      if (emptyLeft > 0 && (playerMoves > 0 || aiMoves > 0)) {
+        return false;
+      }
+
+      const counts = territoryCounts();
+      state.gameOver = true;
+      if (counts.player > counts.ai) {
+        setMessage(`${reason}. Player wins ${counts.player} to ${counts.ai}.`);
+      } else if (counts.ai > counts.player) {
+        setMessage(`${reason}. AI wins ${counts.ai} to ${counts.player}.`);
+      } else {
+        setMessage(`${reason}. Draw at ${counts.player} each.`);
+      }
+      return true;
+    }
+
+    function claim(owner, col, row, cost) {
+      state.board.set(key(col, row), owner);
+      state.points[owner] -= cost;
+    }
+
+    function renderBoard() {
+      const dimensions = boardDimensions();
+      boardEl.setAttribute("viewBox", `0 0 ${dimensions.width} ${dimensions.height}`);
+
+      const fragments = [];
+      for (let row = 0; row < CONFIG.rows; row += 1) {
+        for (let col = 0; col < CONFIG.cols; col += 1) {
+          const cellKey = key(col, row);
+          const owner = state.board.get(cellKey);
+          const { x, y } = makeHexCenter(col, row);
+          const hoverClass = cellKey === state.hoveredKey && owner === null
+            ? (() => {
+                const cost = getMoveCost(col, row, OWNER.player);
+                if (cost === 0) {
+                  return "hover-free";
+                }
+                if (cost === 1) {
+                  return "hover-cost";
+                }
+                return "hover-blocked";
+              })()
+            : "";
+
+          fragments.push(
+            `<g data-key="${cellKey}">` +
+              `<polygon class="hex ${owner || "unclaimed"} ${hoverClass}" data-col="${col}" data-row="${row}" points="${makePolygonPoints(x, y, CONFIG.size)}"></polygon>` +
+              `<text class="coords" x="${x}" y="${y}">${col + 1},${row + 1}</text>` +
+            `</g>`
+          );
+        }
+      }
+
+      boardEl.innerHTML = fragments.join("");
+      updateHud();
+    }
+
+    function nextTurn() {
+      if (updateGameOver()) {
+        renderBoard();
+        return;
+      }
+
+      state.currentTurn = state.currentTurn === OWNER.player ? OWNER.ai : OWNER.player;
+      if (state.currentTurn === OWNER.player && getLegalMoves(OWNER.player).length === 0) {
+        setMessage("Player has no legal move. AI takes another turn.");
+        state.currentTurn = OWNER.ai;
+      }
+
+      renderBoard();
+
+      if (state.currentTurn === OWNER.ai && !state.gameOver) {
+        state.busy = true;
+        window.setTimeout(runAiTurn, CONFIG.aiDelayMs);
+      }
+    }
+
+    function runAiTurn() {
+      const moves = getLegalMoves(OWNER.ai);
+      if (moves.length === 0) {
+        setMessage("AI has no legal move. Turn passes back to the player.");
+        state.busy = false;
+        state.currentTurn = OWNER.player;
+        updateGameOver();
+        renderBoard();
+        return;
+      }
+
+      moves.sort((left, right) => {
+        const neighborDiff = getNeighborOwnerCount(right.col, right.row, OWNER.ai) - getNeighborOwnerCount(left.col, left.row, OWNER.ai);
+        if (neighborDiff !== 0) {
+          return neighborDiff;
+        }
+
+        const costDiff = left.cost - right.cost;
+        if (costDiff !== 0) {
+          return costDiff;
+        }
+
+        const centerLeft = Math.abs(left.col - (CONFIG.cols - 1) / 2) + Math.abs(left.row - (CONFIG.rows - 1) / 2);
+        const centerRight = Math.abs(right.col - (CONFIG.cols - 1) / 2) + Math.abs(right.row - (CONFIG.rows - 1) / 2);
+        return centerLeft - centerRight;
+      });
+
+      const move = moves[0];
+      claim(OWNER.ai, move.col, move.row, move.cost);
+      setMessage(move.cost === 0
+        ? `AI expands for free at ${move.col + 1}, ${move.row + 1}.`
+        : `AI jumps to ${move.col + 1}, ${move.row + 1} and spends 1 point.`);
+      state.busy = false;
+      nextTurn();
+    }
+
+    function tryPlayerMove(col, row) {
+      if (state.gameOver || state.busy || state.currentTurn !== OWNER.player) {
+        return;
+      }
+
+      const cost = getMoveCost(col, row, OWNER.player);
+      if (cost === null) {
+        setMessage(describeMove(col, row));
+        renderBoard();
+        return;
+      }
+
+      claim(OWNER.player, col, row, cost);
+      setMessage(cost === 0
+        ? `Player claims ${col + 1}, ${row + 1} for free.`
+        : `Player jumps to ${col + 1}, ${row + 1} and spends 1 point.`);
+      nextTurn();
+    }
+
+    function handleBoardEvent(event) {
+      const polygon = event.target.closest(".hex");
+      if (!polygon) {
+        return null;
+      }
+
+      return {
+        col: Number(polygon.dataset.col),
+        row: Number(polygon.dataset.row)
+      };
+    }
+
+    function bindEvents() {
+      boardEl.addEventListener("click", (event) => {
+        const cell = handleBoardEvent(event);
+        if (!cell) {
+          return;
+        }
+        tryPlayerMove(cell.col, cell.row);
+      });
+
+      boardEl.addEventListener("pointermove", (event) => {
+        const cell = handleBoardEvent(event);
+        const nextHover = cell ? key(cell.col, cell.row) : null;
+        if (nextHover !== state.hoveredKey) {
+          state.hoveredKey = nextHover;
+          if (cell && state.currentTurn === OWNER.player && !state.gameOver && !state.busy) {
+            setMessage(describeMove(cell.col, cell.row));
+          }
+          renderBoard();
+        }
+      });
+
+      boardEl.addEventListener("pointerleave", () => {
+        state.hoveredKey = null;
+        if (!state.gameOver && state.currentTurn === OWNER.player && !state.busy) {
+          setMessage("Choose an empty hex. Adjacent claims are free; jumps cost 1 point.");
+        }
+        renderBoard();
+      });
+
+      resetButtonEl.addEventListener("click", () => {
+        initializeGame();
+      });
+    }
+
+    function initializeGame() {
+      state.board = new Map();
+      for (let row = 0; row < CONFIG.rows; row += 1) {
+        for (let col = 0; col < CONFIG.cols; col += 1) {
+          state.board.set(key(col, row), null);
+        }
+      }
+
+      state.points.player = CONFIG.startingPoints;
+      state.points.ai = CONFIG.startingPoints;
+      state.currentTurn = OWNER.player;
+      state.hoveredKey = null;
+      state.gameOver = false;
+      state.busy = false;
+
+      const playerStart = { col: 1, row: Math.floor(CONFIG.rows / 2) };
+      const aiStart = { col: CONFIG.cols - 2, row: Math.floor(CONFIG.rows / 2) };
+      state.board.set(key(playerStart.col, playerStart.row), OWNER.player);
+      state.board.set(key(aiStart.col, aiStart.row), OWNER.ai);
+
+      setMessage("Choose an empty hex. Adjacent claims are free; jumps cost 1 point.");
+      renderBoard();
+    }
+
+    bindEvents();
+    initializeGame();
+  </script>
+</body>
+</html>

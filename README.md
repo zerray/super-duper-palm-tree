@@ -55,3 +55,14 @@ This repository contains a simple agent-factory workflow for planning and comple
 - BPM 滑块调速、节点触发高亮，以及一键清空
 
 直接用浏览器打开 `sound-palette/index.html` 即可运行。
+
+## Hex Territory
+
+新增 `hex-territory/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的六边形领地争夺策略小游戏，包含：
+
+- 默认 7x7 六边形网格与 SVG 渲染
+- 玩家点击空地扩张，邻接占领免费，远跳占领消耗 1 点
+- 简单贪心 AI 自动回合，优先选择相邻己方领地更多的落点
+- 实时显示玩家与 AI 的领地数、点数、当前回合与胜负结果
+
+直接用浏览器打开 `hex-territory/index.html` 即可游玩。
