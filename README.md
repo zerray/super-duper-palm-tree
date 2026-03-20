@@ -44,3 +44,14 @@ This repository contains a simple agent-factory workflow for planning and comple
 - `Regenerate` 生成新种子场景，`Export PNG` 导出当前画面
 
 直接用浏览器打开 `pixel-landscape/index.html` 即可运行。
+
+## Sound Palette
+
+新增 `sound-palette/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的音乐步进音序器玩具，包含：
+
+- 8x8 可点击网格，可逐格开关音符
+- 自动循环的播放头，会按列触发当前激活节点
+- 基于 Web Audio API 振荡器的五声音阶音高映射
+- BPM 滑块调速、节点触发高亮，以及一键清空
+
+直接用浏览器打开 `sound-palette/index.html` 即可运行。
