@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orbital Slingshot</title>
+  <style>
+    :root {
+      --bg-a: #04111f;
+      --bg-b: #0e2740;
+      --panel: rgba(7, 21, 37, 0.78);
+      --line: rgba(155, 214, 255, 0.3);
+      --text: #eff7ff;
+      --muted: #9db9d3;
+      --accent: #ffd166;
+      --success: #8bf3b2;
+      --danger: #ff8b94;
+      --ghost: rgba(142, 226, 255, 0.58);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 20%, rgba(77, 152, 215, 0.25), transparent 30%),
+        radial-gradient(circle at 80% 15%, rgba(255, 209, 102, 0.18), transparent 26%),
+        linear-gradient(180deg, var(--bg-b) 0%, var(--bg-a) 100%);
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .hud {
+      position: fixed;
+      top: 18px;
+      left: 18px;
+      right: 18px;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      pointer-events: none;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px 16px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+      max-width: min(420px, calc(100vw - 36px));
+    }
+
+    .panel h1,
+    .panel p {
+      margin: 0;
+    }
+
+    .panel h1 {
+      font-size: clamp(1.5rem, 4vw, 2.2rem);
+      letter-spacing: 0.04em;
+      margin-bottom: 8px;
+    }
+
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .status {
+      margin-top: 8px;
+      color: var(--text);
+      min-height: 1.2em;
+    }
+
+    .hint {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <div class="hud">
+    <div class="panel">
+      <h1>Orbital Slingshot</h1>
+      <div class="stats">
+        <span id="levelLabel">Level 1</span>
+        <span id="planetLabel">Planets: 3</span>
+        <span id="stateLabel">Aiming</span>
+      </div>
+      <p class="status" id="statusText">Drag from the ship to set angle and power, then release.</p>
+      <p class="hint">Reach the glowing target zone on the far side. Press <strong>R</strong> to retry.</p>
+    </div>
+  </div>
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const levelLabel = document.getElementById("levelLabel");
+    const planetLabel = document.getElementById("planetLabel");
+    const stateLabel = document.getElementById("stateLabel");
+    const statusText = document.getElementById("statusText");
+
+    const game = {
+      level: 1,
+      planets: [],
+      launchPoint: { x: 0, y: 0 },
+      target: { x: 0, y: 0, radius: 36 },
+      projectile: null,
+      trail: [],
+      preview: [],
+      state: "aiming",
+      messageTimer: 0,
+      pointer: { x: 0, y: 0, down: false, dragging: false },
+      stars: [],
+      width: 0,
+      height: 0
+    };
+
+    const PHYSICS = {
+      G: 2400,
+      dt: 1 / 60,
+      maxTrail: 360,
+      previewSteps: 220,
+      previewStride: 2,
+      minDistance: 28,
+      maxLaunchSpeed: 420
+    };
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth * window.devicePixelRatio;
+      canvas.height = window.innerHeight * window.devicePixelRatio;
+      canvas.style.width = window.innerWidth + "px";
+      canvas.style.height = window.innerHeight + "px";
+      ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+      game.width = window.innerWidth;
+      game.height = window.innerHeight;
+      createStars();
+      generateLevel(game.level);
+    }
+
+    function createStars() {
+      const count = Math.max(80, Math.floor((game.width * game.height) / 14000));
+      game.stars = [];
+      for (let i = 0; i < count; i += 1) {
+        game.stars.push({
+          x: Math.random() * game.width,
+          y: Math.random() * game.height,
+          r: Math.random() * 1.6 + 0.3,
+          a: Math.random() * 0.7 + 0.2
+        });
+      }
+    }
+
+    function randomRange(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function distance(a, b) {
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function generateLevel(level) {
+      const planetCount = clamp(2 + level, 3, 5);
+      const margin = Math.min(110, game.width * 0.12);
+      const corridorY = randomRange(game.height * 0.32, game.height * 0.68);
+      game.launchPoint = { x: margin, y: corridorY };
+      game.target = {
+        x: game.width - margin,
+        y: clamp(corridorY + randomRange(-game.height * 0.2, game.height * 0.2), 70, game.height - 70),
+        radius: clamp(Math.min(game.width, game.height) * 0.045, 28, 42)
+      };
+
+      game.planets = [];
+      const colors = ["#6ec5ff", "#ffd166", "#ff8fab", "#c0f56a", "#c4a1ff"];
+      let attempts = 0;
+      while (game.planets.length < planetCount && attempts < 600) {
+        attempts += 1;
+        const radius = randomRange(26, 52);
+        const candidate = {
+          x: randomRange(game.width * 0.28, game.width * 0.76),
+          y: randomRange(80, game.height - 80),
+          radius,
+          mass: radius * randomRange(180, 290),
+          color: colors[game.planets.length % colors.length]
+        };
+
+        const tooCloseToLaunch = distance(candidate, game.launchPoint) < radius + 150;
+        const tooCloseToTarget = distance(candidate, game.target) < radius + game.target.radius + 120;
+        const overlaps = game.planets.some((planet) => distance(candidate, planet) < radius + planet.radius + 26);
+        if (tooCloseToLaunch || tooCloseToTarget || overlaps) {
+          continue;
+        }
+        game.planets.push(candidate);
+      }
+
+      resetProjectile();
+      updateHud(`Level ${level}: bend around the gravity wells.`);
+    }
+
+    function resetProjectile() {
+      game.projectile = {
+        x: game.launchPoint.x,
+        y: game.launchPoint.y,
+        vx: 0,
+        vy: 0,
+        radius: 7,
+        active: false
+      };
+      game.trail = [];
+      game.preview = [];
+      game.state = "aiming";
+      game.pointer.dragging = false;
+    }
+
+    function updateHud(message) {
+      levelLabel.textContent = `Level ${game.level}`;
+      planetLabel.textContent = `Planets: ${game.planets.length}`;
+      stateLabel.textContent = game.state.charAt(0).toUpperCase() + game.state.slice(1);
+      statusText.textContent = message;
+    }
+
+    function computeGravity(body) {
+      let ax = 0;
+      let ay = 0;
+      for (const planet of game.planets) {
+        const dx = planet.x - body.x;
+        const dy = planet.y - body.y;
+        const distSq = Math.max(dx * dx + dy * dy, (planet.radius + PHYSICS.minDistance) ** 2);
+        const dist = Math.sqrt(distSq);
+        const accel = (PHYSICS.G * planet.mass) / distSq;
+        ax += (dx / dist) * accel;
+        ay += (dy / dist) * accel;
+      }
+      return { ax, ay };
+    }
+
+    function integrate(body, dt) {
+      const gravity = computeGravity(body);
+      body.vx += gravity.ax * dt;
+      body.vy += gravity.ay * dt;
+      body.x += body.vx * dt;
+      body.y += body.vy * dt;
+    }
+
+    function buildPreview(pointerX, pointerY) {
+      const dx = game.launchPoint.x - pointerX;
+      const dy = game.launchPoint.y - pointerY;
+      const power = clamp(Math.hypot(dx, dy) * 1.7, 60, PHYSICS.maxLaunchSpeed);
+      const angle = Math.atan2(dy, dx);
+      const sample = {
+        x: game.launchPoint.x,
+        y: game.launchPoint.y,
+        vx: Math.cos(angle) * power,
+        vy: Math.sin(angle) * power
+      };
+
+      const points = [];
+      for (let i = 0; i < PHYSICS.previewSteps; i += 1) {
+        integrate(sample, PHYSICS.dt);
+        if (i % PHYSICS.previewStride === 0) {
+          points.push({ x: sample.x, y: sample.y });
+        }
+        if (collidesWithPlanet(sample) || isOutOfBounds(sample)) {
+          break;
+        }
+        if (distance(sample, game.target) <= game.target.radius) {
+          points.push({ x: sample.x, y: sample.y });
+          break;
+        }
+      }
+      game.preview = points;
+    }
+
+    function collidesWithPlanet(body) {
+      return game.planets.some((planet) => distance(body, planet) <= planet.radius + (body.radius || 0));
+    }
+
+    function isOutOfBounds(body) {
+      return body.x < -60 || body.x > game.width + 60 || body.y < -60 || body.y > game.height + 60;
+    }
+
+    function launch(pointerX, pointerY) {
+      const dx = game.launchPoint.x - pointerX;
+      const dy = game.launchPoint.y - pointerY;
+      const speed = clamp(Math.hypot(dx, dy) * 1.7, 60, PHYSICS.maxLaunchSpeed);
+      const angle = Math.atan2(dy, dx);
+      game.projectile.x = game.launchPoint.x;
+      game.projectile.y = game.launchPoint.y;
+      game.projectile.vx = Math.cos(angle) * speed;
+      game.projectile.vy = Math.sin(angle) * speed;
+      game.projectile.active = true;
+      game.trail = [{ x: game.projectile.x, y: game.projectile.y }];
+      game.preview = [];
+      game.state = "launched";
+      updateHud("Flight underway. Curve into the target zone.");
+    }
+
+    function pointerPosition(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      };
+    }
+
+    canvas.addEventListener("pointerdown", (event) => {
+      if (game.state !== "aiming") {
+        return;
+      }
+      const pos = pointerPosition(event);
+      if (distance(pos, game.launchPoint) > 48) {
+        return;
+      }
+      game.pointer.down = true;
+      game.pointer.dragging = true;
+      game.pointer.x = pos.x;
+      game.pointer.y = pos.y;
+      buildPreview(pos.x, pos.y);
+    });
+
+    canvas.addEventListener("pointermove", (event) => {
+      const pos = pointerPosition(event);
+      game.pointer.x = pos.x;
+      game.pointer.y = pos.y;
+      if (game.pointer.dragging && game.state === "aiming") {
+        buildPreview(pos.x, pos.y);
+      }
+    });
+
+    function releasePointer() {
+      if (game.pointer.dragging && game.state === "aiming") {
+        launch(game.pointer.x, game.pointer.y);
+      }
+      game.pointer.down = false;
+      game.pointer.dragging = false;
+    }
+
+    canvas.addEventListener("pointerup", releasePointer);
+    canvas.addEventListener("pointerleave", () => {
+      game.pointer.down = false;
+      game.pointer.dragging = false;
+    });
+
+    window.addEventListener("keydown", (event) => {
+      if (event.key.toLowerCase() === "r") {
+        resetProjectile();
+        updateHud("Level reset. Drag from the ship to try a new line.");
+      }
+    });
+
+    function completeLevel() {
+      game.projectile.active = false;
+      game.state = "success";
+      updateHud("Target reached. Generating a denser gravity field.");
+      window.setTimeout(() => {
+        game.level += 1;
+        generateLevel(game.level);
+      }, 900);
+    }
+
+    function failLevel(message) {
+      game.projectile.active = false;
+      game.state = "resetting";
+      updateHud(message);
+      window.setTimeout(() => {
+        resetProjectile();
+        updateHud("Drag from the ship to relaunch.");
+      }, 900);
+    }
+
+    function update() {
+      if (!game.projectile.active) {
+        return;
+      }
+
+      integrate(game.projectile, PHYSICS.dt);
+      game.trail.push({ x: game.projectile.x, y: game.projectile.y });
+      if (game.trail.length > PHYSICS.maxTrail) {
+        game.trail.shift();
+      }
+
+      if (distance(game.projectile, game.target) <= game.target.radius) {
+        completeLevel();
+        return;
+      }
+
+      if (collidesWithPlanet(game.projectile)) {
+        failLevel("Your craft was captured by a planet. Reposition and try again.");
+        return;
+      }
+
+      if (isOutOfBounds(game.projectile)) {
+        failLevel("The ship drifted into deep space. Retry the launch.");
+      }
+    }
+
+    function drawBackground() {
+      const gradient = ctx.createLinearGradient(0, 0, 0, game.height);
+      gradient.addColorStop(0, "#0f2740");
+      gradient.addColorStop(1, "#05101d");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, game.width, game.height);
+
+      for (const star of game.stars) {
+        ctx.fillStyle = `rgba(255,255,255,${star.a})`;
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawPlanets() {
+      for (const planet of game.planets) {
+        const gravityWell = ctx.createRadialGradient(
+          planet.x,
+          planet.y,
+          planet.radius * 0.6,
+          planet.x,
+          planet.y,
+          planet.radius * 3.2
+        );
+        gravityWell.addColorStop(0, "rgba(255,255,255,0.08)");
+        gravityWell.addColorStop(0.35, planet.color + "40");
+        gravityWell.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = gravityWell;
+        ctx.beginPath();
+        ctx.arc(planet.x, planet.y, planet.radius * 3.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(255,255,255,0.12)";
+        ctx.lineWidth = 1;
+        for (let ring = 1.5; ring <= 3; ring += 0.75) {
+          ctx.beginPath();
+          ctx.arc(planet.x, planet.y, planet.radius * ring, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        const fill = ctx.createRadialGradient(
+          planet.x - planet.radius * 0.3,
+          planet.y - planet.radius * 0.35,
+          planet.radius * 0.25,
+          planet.x,
+          planet.y,
+          planet.radius
+        );
+        fill.addColorStop(0, "#ffffff");
+        fill.addColorStop(0.12, planet.color);
+        fill.addColorStop(1, "#0f1726");
+        ctx.fillStyle = fill;
+        ctx.beginPath();
+        ctx.arc(planet.x, planet.y, planet.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawTarget() {
+      const pulse = 1 + Math.sin(performance.now() * 0.005) * 0.08;
+      ctx.strokeStyle = "rgba(139,243,178,0.95)";
+      ctx.fillStyle = "rgba(139,243,178,0.14)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(game.target.x, game.target.y, game.target.radius * pulse, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(game.target.x, game.target.y, game.target.radius * 0.45, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    function drawLaunchPoint() {
+      ctx.fillStyle = "#d8f0ff";
+      ctx.beginPath();
+      ctx.arc(game.launchPoint.x, game.launchPoint.y, 10, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(216,240,255,0.3)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(game.launchPoint.x, game.launchPoint.y, 24, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    function drawPreview() {
+      if (!game.preview.length) {
+        return;
+      }
+      ctx.strokeStyle = "rgba(142, 226, 255, 0.7)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([7, 8]);
+      ctx.beginPath();
+      ctx.moveTo(game.launchPoint.x, game.launchPoint.y);
+      for (const point of game.preview) {
+        ctx.lineTo(point.x, point.y);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      if (game.pointer.dragging) {
+        ctx.strokeStyle = "rgba(255, 209, 102, 0.9)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(game.launchPoint.x, game.launchPoint.y);
+        ctx.lineTo(game.pointer.x, game.pointer.y);
+        ctx.stroke();
+      }
+    }
+
+    function drawTrail() {
+      if (game.trail.length < 2) {
+        return;
+      }
+      ctx.lineWidth = 3;
+      for (let i = 1; i < game.trail.length; i += 1) {
+        const prev = game.trail[i - 1];
+        const point = game.trail[i];
+        const alpha = i / game.trail.length;
+        ctx.strokeStyle = `rgba(255, 209, 102, ${alpha * 0.9})`;
+        ctx.beginPath();
+        ctx.moveTo(prev.x, prev.y);
+        ctx.lineTo(point.x, point.y);
+        ctx.stroke();
+      }
+    }
+
+    function drawProjectile() {
+      const ship = game.projectile;
+      ctx.save();
+      ctx.translate(ship.x, ship.y);
+      const angle = Math.atan2(ship.vy || 0, ship.vx || 1);
+      ctx.rotate(angle);
+      ctx.fillStyle = "#f7fbff";
+      ctx.beginPath();
+      ctx.moveTo(12, 0);
+      ctx.lineTo(-8, -6);
+      ctx.lineTo(-3, 0);
+      ctx.lineTo(-8, 6);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(255, 181, 71, 0.8)";
+      ctx.beginPath();
+      ctx.moveTo(-8, -3);
+      ctx.lineTo(-16, 0);
+      ctx.lineTo(-8, 3);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function draw() {
+      drawBackground();
+      drawPlanets();
+      drawTarget();
+      drawLaunchPoint();
+      drawPreview();
+      drawTrail();
+      drawProjectile();
+    }
+
+    function loop() {
+      update();
+      draw();
+      stateLabel.textContent = game.state.charAt(0).toUpperCase() + game.state.slice(1);
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

@@ -44,3 +44,14 @@ This repository contains a simple agent-factory workflow for planning and comple
 - `Regenerate` 生成新种子场景，`Export PNG` 导出当前画面
 
 直接用浏览器打开 `pixel-landscape/index.html` 即可运行。
+
+## Orbital Slingshot
+
+新增 `slingshot-game/index.html`，提供一个可直接在浏览器中打开的引力弹弓游戏原型，包含：
+
+- 每关 3 至 5 颗带可视化引力井的行星
+- 拖拽瞄准与发射，飞船受牛顿引力实时影响
+- 发射前幽灵轨迹预览，发射后保留完整飞行尾迹
+- 命中目标区域后进入下一关并重新生成关卡
+
+直接用浏览器打开 `slingshot-game/index.html` 即可运行。
