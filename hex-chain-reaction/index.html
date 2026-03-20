@@ -266,6 +266,27 @@
       box-shadow: 0 10px 16px rgba(47, 79, 52, 0.2);
     }
 
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .field select {
+      width: 100%;
+      min-height: 42px;
+      padding: 0 14px;
+      border: 1px solid rgba(74, 58, 40, 0.14);
+      border-radius: 14px;
+      font: inherit;
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.88);
+    }
+
     .overlay {
       position: fixed;
       inset: 0;
@@ -332,6 +353,14 @@
       <div class="card">
         <h2>Match Controls</h2>
         <p class="muted">Local hot-seat only. Chain reactions resolve one wave at a time before the turn changes.</p>
+        <div class="field">
+          <label for="sizeSelect">Grid size</label>
+          <select id="sizeSelect">
+            <option value="5">5 × 5</option>
+            <option value="7" selected>7 × 7</option>
+            <option value="9">9 × 9</option>
+          </select>
+        </div>
         <button class="action" id="restartButton" type="button">Restart Match</button>
       </div>
 
@@ -340,6 +369,7 @@
         <div class="badge-row">
           <div class="badge">Blue cells: <span id="blueCount">0</span></div>
           <div class="badge">Red cells: <span id="redCount">0</span></div>
+          <div class="badge">Moves: <span id="moveCount">0</span></div>
           <div class="badge">Cascade step: <span id="cascadeCount">0</span></div>
         </div>
         <p class="muted" id="detailText">Blue begins. Corner hexes overflow later than center hexes because capacity matches live neighbor count.</p>
@@ -365,8 +395,7 @@
   </div>
 
   <script>
-    const BOARD_ROWS = 7;
-    const BOARD_COLS = 7;
+    const DEFAULT_GRID_SIZE = 7;
     const ANIMATION_STEP_MS = 240;
     const HEX_RADIUS = 38;
     const HEX_H_SPACING = Math.sqrt(3) * HEX_RADIUS;
@@ -397,8 +426,10 @@
     const boardLabel = document.getElementById("boardLabel");
     const blueCount = document.getElementById("blueCount");
     const redCount = document.getElementById("redCount");
+    const moveCount = document.getElementById("moveCount");
     const cascadeCount = document.getElementById("cascadeCount");
     const detailText = document.getElementById("detailText");
+    const sizeSelect = document.getElementById("sizeSelect");
     const restartButton = document.getElementById("restartButton");
     const playAgainButton = document.getElementById("playAgainButton");
     const winnerOverlay = document.getElementById("winnerOverlay");
@@ -406,6 +437,7 @@
     const winnerText = document.getElementById("winnerText");
 
     const state = {
+      gridSize: DEFAULT_GRID_SIZE,
       currentPlayer: PLAYER_ONE,
       board: new Map(),
       offsetCells: [],
@@ -415,6 +447,7 @@
         [PLAYER_ONE]: 0,
         [PLAYER_TWO]: 0
       },
+      totalMoves: 0,
       highlightedKeys: new Set(),
       cascadeStep: 0
     };
@@ -444,8 +477,8 @@
     function createBoardMap() {
       const board = new Map();
       const offsetCells = [];
-      for (let row = 0; row < BOARD_ROWS; row += 1) {
-        for (let col = 0; col < BOARD_COLS; col += 1) {
+      for (let row = 0; row < state.gridSize; row += 1) {
+        for (let col = 0; col < state.gridSize; col += 1) {
           const { q, r } = offsetToAxial(col, row);
           const key = keyFor(q, r);
           board.set(key, {
@@ -549,8 +582,8 @@
     }
 
     function renderBoard() {
-      const width = 180 + HEX_H_SPACING * (BOARD_COLS + 2);
-      const height = 160 + HEX_V_SPACING * (BOARD_ROWS - 1) + HEX_RADIUS * 2;
+      const width = 180 + HEX_H_SPACING * (state.gridSize + 2);
+      const height = 160 + HEX_V_SPACING * (state.gridSize - 1) + HEX_RADIUS * 2;
       boardSvg.setAttribute("viewBox", `0 0 ${width} ${height}`);
       boardSvg.innerHTML = "";
 
@@ -615,9 +648,10 @@
         : state.resolving
           ? "Resolving chain reaction..."
           : `${PLAYER_NAMES[state.currentPlayer]} to move.`;
-      boardLabel.textContent = `${BOARD_ROWS} × ${BOARD_COLS}`;
+      boardLabel.textContent = `${state.gridSize} × ${state.gridSize}`;
       blueCount.textContent = `${summary.blueOwned} cells / ${summary.blueTokens} tokens`;
       redCount.textContent = `${summary.redOwned} cells / ${summary.redTokens} tokens`;
+      moveCount.textContent = `${state.totalMoves}`;
       cascadeCount.textContent = `${state.cascadeStep}`;
     }
 
@@ -703,6 +737,7 @@
       cell.owner = state.currentPlayer;
       cell.count += 1;
       state.movesPlayed[state.currentPlayer] += 1;
+      state.totalMoves += 1;
       detailText.textContent = `${PLAYER_NAMES[state.currentPlayer]} played at axial ${q},${r}.`;
       render();
 
@@ -717,6 +752,7 @@
     }
 
     function resetGame() {
+      state.gridSize = Number(sizeSelect.value) || DEFAULT_GRID_SIZE;
       const { board, offsetCells } = createBoardMap();
       state.currentPlayer = PLAYER_ONE;
       state.board = board;
@@ -727,6 +763,7 @@
         [PLAYER_ONE]: 0,
         [PLAYER_TWO]: 0
       };
+      state.totalMoves = 0;
       state.highlightedKeys = new Set();
       state.cascadeStep = 0;
       closeWinnerOverlay();
@@ -734,6 +771,7 @@
       render();
     }
 
+    sizeSelect.value = String(DEFAULT_GRID_SIZE);
     restartButton.addEventListener("click", resetGame);
     playAgainButton.addEventListener("click", resetGame);
 
