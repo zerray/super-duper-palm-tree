@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hex Chain Reaction Online</title>
+  <style>
+    :root {
+      --bg: #f4efe4;
+      --panel: rgba(255, 250, 241, 0.92);
+      --panel-border: rgba(74, 58, 40, 0.12);
+      --ink: #33261b;
+      --muted: #736250;
+      --p1: #1f6fd1;
+      --p1-soft: #dce9ff;
+      --p2: #d65042;
+      --p2-soft: #ffdcd7;
+      --hex: #efe1c7;
+      --hex-edge: #b8a284;
+      --burst: #f2bd4f;
+      --button: #466d49;
+      --button-dark: #2f4f34;
+      --shadow: rgba(51, 38, 27, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 20px;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.78), transparent 30%),
+        linear-gradient(180deg, #faf5ed 0%, var(--bg) 100%);
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1.65fr) minmax(280px, 340px);
+      gap: 18px;
+    }
+
+    .surface,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      box-shadow: 0 18px 40px var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .surface {
+      padding: 24px;
+    }
+
+    .panel {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.25rem, 5vw, 4rem);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+      max-width: 8ch;
+    }
+
+    .lede,
+    .muted {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .stats {
+      margin-top: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .chip {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(74, 58, 40, 0.1);
+      background: rgba(255, 255, 255, 0.74);
+      color: var(--muted);
+    }
+
+    .chip strong {
+      color: var(--ink);
+    }
+
+    .chip.turn-p1 strong {
+      color: var(--p1);
+    }
+
+    .chip.turn-p2 strong {
+      color: var(--p2);
+    }
+
+    .board-shell {
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 20px;
+      border: 1px solid rgba(74, 58, 40, 0.1);
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.82), rgba(245, 236, 221, 0.92)),
+        repeating-linear-gradient(135deg, rgba(74, 58, 40, 0.03) 0 16px, transparent 16px 32px);
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .hex-tile {
+      fill: var(--hex);
+      stroke: var(--hex-edge);
+      stroke-width: 1.5;
+      cursor: pointer;
+      transition: fill 120ms ease, stroke 120ms ease, transform 120ms ease;
+    }
+
+    .hex-tile.clickable:hover {
+      fill: #f7eecf;
+      stroke: #d4ab5c;
+      stroke-width: 2.6;
+    }
+
+    .hex-tile.p1 {
+      fill: var(--p1-soft);
+      stroke: var(--p1);
+      stroke-width: 2.4;
+    }
+
+    .hex-tile.p2 {
+      fill: var(--p2-soft);
+      stroke: var(--p2);
+      stroke-width: 2.4;
+    }
+
+    .hex-tile.blocked {
+      cursor: default;
+    }
+
+    .hex-tile.overflowing {
+      fill: #fff1ca;
+      stroke: var(--burst);
+      stroke-width: 4;
+      filter: drop-shadow(0 0 10px rgba(242, 189, 79, 0.7));
+    }
+
+    .token {
+      pointer-events: none;
+    }
+
+    .token.p1 {
+      fill: var(--p1);
+    }
+
+    .token.p2 {
+      fill: var(--p2);
+    }
+
+    .count-text,
+    .capacity-text {
+      pointer-events: none;
+      text-anchor: middle;
+      font-weight: 700;
+      user-select: none;
+    }
+
+    .count-text {
+      fill: rgba(51, 38, 27, 0.86);
+      font-size: 16px;
+    }
+
+    .capacity-text {
+      fill: rgba(51, 38, 27, 0.34);
+      font-size: 12px;
+    }
+
+    .card {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(74, 58, 40, 0.1);
+      background: rgba(255, 255, 255, 0.76);
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .badge {
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(74, 58, 40, 0.1);
+      background: rgba(255, 255, 255, 0.76);
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .legend {
+      display: grid;
+      gap: 8px;
+      font-size: 0.94rem;
+      color: var(--muted);
+    }
+
+    .legend-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(74, 58, 40, 0.16);
+    }
+
+    .swatch.p1 {
+      background: var(--p1);
+    }
+
+    .swatch.p2 {
+      background: var(--p2);
+    }
+
+    .swatch.burst {
+      background: #fff1ca;
+      border-color: var(--burst);
+    }
+
+    .action {
+      min-height: 46px;
+      border: 0;
+      border-radius: 999px;
+      color: #f7f2ea;
+      background: linear-gradient(180deg, var(--button), var(--button-dark));
+      box-shadow: 0 10px 16px rgba(47, 79, 52, 0.2);
+    }
+
+    .control-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .control-row label {
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .size-select {
+      min-width: 84px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(74, 58, 40, 0.16);
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--ink);
+    }
+
+    textarea.session-box {
+      width: 100%;
+      min-height: 100px;
+      resize: vertical;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(74, 58, 40, 0.16);
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--ink);
+      font: 0.85rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .network-status {
+      min-height: 3.2em;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.94rem;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(20, 14, 10, 0.42);
+    }
+
+    .overlay.open {
+      display: flex;
+    }
+
+    .modal {
+      width: min(420px, 100%);
+      padding: 24px;
+      border-radius: 24px;
+      background: rgba(255, 251, 244, 0.97);
+      box-shadow: 0 24px 44px rgba(20, 14, 10, 0.24);
+      display: grid;
+      gap: 14px;
+      text-align: center;
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 14px;
+      }
+
+      .surface,
+      .panel {
+        border-radius: 18px;
+      }
+
+      .surface {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="surface">
+      <h1>Hex Chain Reaction Online</h1>
+      <p class="lede">Upgrade the original hot-seat rules into a browser-to-browser duel. Create a WebRTC session, exchange the offer and answer once, then take turns from separate browsers while every cascade stays in sync.</p>
+      <div class="stats">
+        <div class="chip" id="turnChip"><strong>Turn:</strong> <span id="turnLabel">Blue</span></div>
+        <div class="chip"><strong>Status:</strong> <span id="statusText">Blue to move.</span></div>
+        <div class="chip"><strong>Board:</strong> <span id="boardLabel">Radius 7</span></div>
+        <div class="chip"><strong>Move:</strong> <span id="moveLabel">0</span></div>
+      </div>
+      <div class="board-shell">
+        <svg id="board" aria-label="Hex Chain Reaction board"></svg>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="card">
+        <h2>Match Controls</h2>
+        <p class="muted">Host is Blue and guest is Red. Only the host can change board radius or restart the match, and every move is synced over a direct peer connection.</p>
+        <div class="control-row">
+          <label for="sizeSelect">Board radius</label>
+          <select id="sizeSelect" class="size-select" aria-label="Board radius">
+            <option value="5">Radius 5</option>
+            <option value="7" selected>Radius 7</option>
+            <option value="9">Radius 9</option>
+          </select>
+        </div>
+        <button class="action" id="restartButton" type="button">New Game</button>
+      </div>
+
+      <div class="card">
+        <h2>Online Session</h2>
+        <p class="muted">1. Host clicks Create Offer. 2. Guest pastes the offer and clicks Join From Offer. 3. Host pastes the answer and clicks Accept Answer.</p>
+        <div class="badge-row">
+          <div class="badge">Role: <span id="roleLabel">Offline</span></div>
+          <div class="badge">Link: <span id="connectionLabel">Not connected</span></div>
+        </div>
+        <div class="network-status" id="networkStatus">No peer session yet.</div>
+        <button class="action" id="createOfferButton" type="button">Create Offer</button>
+        <textarea id="localSessionBox" class="session-box" readonly placeholder="Your offer or answer will appear here."></textarea>
+        <textarea id="remoteSessionBox" class="session-box" placeholder="Paste the remote offer or answer here."></textarea>
+        <button class="action" id="joinOfferButton" type="button">Join From Offer</button>
+        <button class="action" id="acceptAnswerButton" type="button">Accept Answer</button>
+      </div>
+
+      <div class="card">
+        <h2>Live State</h2>
+        <div class="badge-row">
+          <div class="badge">Blue cells: <span id="blueCount">0</span></div>
+          <div class="badge">Red cells: <span id="redCount">0</span></div>
+          <div class="badge">Blue tokens: <span id="blueTokens">0</span></div>
+          <div class="badge">Red tokens: <span id="redTokens">0</span></div>
+          <div class="badge">Cascade step: <span id="cascadeCount">0</span></div>
+        </div>
+        <p class="muted" id="detailText">Blue begins. Corners hold fewer tokens than the center because each hex uses its real neighbor count as capacity.</p>
+      </div>
+
+      <div class="card">
+        <h2>Rules</h2>
+        <div class="legend">
+          <div class="legend-line"><span class="swatch p1"></span><span>Blue host and red guest alternate turns. You may only place on an empty hex or one you already control.</span></div>
+          <div class="legend-line"><span class="swatch p2"></span><span>Every added token can strengthen your frontier or set up a forced conversion sequence on the next burst.</span></div>
+          <div class="legend-line"><span class="swatch burst"></span><span>When tokens exceed a cell's neighbor count, it explodes outward, converts adjacent cells, and keeps chaining until the board stabilizes on both peers.</span></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="overlay" id="winnerOverlay" aria-hidden="true">
+    <div class="modal">
+      <h2 id="winnerTitle">Blue Wins</h2>
+      <p class="muted" id="winnerText">The losing player has no tokens remaining on the board.</p>
+      <button class="action" id="playAgainButton" type="button">Play Again</button>
+    </div>
+  </div>
+
+  <script>
+    const DEFAULT_RADIUS = 7;
+    const ANIMATION_STEP_MS = 160;
+    const HEX_RADIUS = 32;
+    const HEX_H_SPACING = Math.sqrt(3) * HEX_RADIUS;
+    const HEX_V_SPACING = 1.5 * HEX_RADIUS;
+    const PLAYER_ONE = 1;
+    const PLAYER_TWO = 2;
+    const DIRECTIONS = [
+      [1, 0],
+      [1, -1],
+      [0, -1],
+      [-1, 0],
+      [-1, 1],
+      [0, 1]
+    ];
+    const PLAYER_NAMES = {
+      [PLAYER_ONE]: "Blue",
+      [PLAYER_TWO]: "Red"
+    };
+    const PLAYER_CLASS = {
+      [PLAYER_ONE]: "p1",
+      [PLAYER_TWO]: "p2"
+    };
+
+    const boardSvg = document.getElementById("board");
+    const turnChip = document.getElementById("turnChip");
+    const turnLabel = document.getElementById("turnLabel");
+    const statusText = document.getElementById("statusText");
+    const boardLabel = document.getElementById("boardLabel");
+    const moveLabel = document.getElementById("moveLabel");
+    const blueCount = document.getElementById("blueCount");
+    const redCount = document.getElementById("redCount");
+    const blueTokens = document.getElementById("blueTokens");
+    const redTokens = document.getElementById("redTokens");
+    const cascadeCount = document.getElementById("cascadeCount");
+    const detailText = document.getElementById("detailText");
+    const restartButton = document.getElementById("restartButton");
+    const playAgainButton = document.getElementById("playAgainButton");
+    const sizeSelect = document.getElementById("sizeSelect");
+    const winnerOverlay = document.getElementById("winnerOverlay");
+    const winnerTitle = document.getElementById("winnerTitle");
+    const winnerText = document.getElementById("winnerText");
+    const roleLabel = document.getElementById("roleLabel");
+    const connectionLabel = document.getElementById("connectionLabel");
+    const networkStatus = document.getElementById("networkStatus");
+    const createOfferButton = document.getElementById("createOfferButton");
+    const joinOfferButton = document.getElementById("joinOfferButton");
+    const acceptAnswerButton = document.getElementById("acceptAnswerButton");
+    const localSessionBox = document.getElementById("localSessionBox");
+    const remoteSessionBox = document.getElementById("remoteSessionBox");
+
+    const state = {
+      gridRadius: DEFAULT_RADIUS,
+      currentPlayer: PLAYER_ONE,
+      board: new Map(),
+      cells: [],
+      resolving: false,
+      winner: 0,
+      totalMoves: 0,
+      highlightedKeys: new Set(),
+      cascadeStep: 0,
+      localPlayer: 0,
+      connectionState: "offline"
+    };
+
+    const network = {
+      peerConnection: null,
+      dataChannel: null,
+      pendingRemoteDescription: null
+    };
+
+    function sleep(ms) {
+      return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+
+    function keyFor(q, r) {
+      return `${q},${r}`;
+    }
+
+    function axialToCube(q, r) {
+      return { x: q, y: -q - r, z: r };
+    }
+
+    function cubeDistanceFromOrigin(cube) {
+      return Math.max(Math.abs(cube.x), Math.abs(cube.y), Math.abs(cube.z));
+    }
+
+    function isWithinRadius(q, r, radius) {
+      return cubeDistanceFromOrigin(axialToCube(q, r)) < radius;
+    }
+
+    function axialToPixel(q, r) {
+      return {
+        x: HEX_H_SPACING * (q + r / 2),
+        y: HEX_V_SPACING * r
+      };
+    }
+
+    function createBoardMap(radius) {
+      const board = new Map();
+      const cells = [];
+      for (let q = -(radius - 1); q <= radius - 1; q += 1) {
+        for (let r = -(radius - 1); r <= radius - 1; r += 1) {
+          if (!isWithinRadius(q, r, radius)) {
+            continue;
+          }
+          const key = keyFor(q, r);
+          const cell = { q, r, owner: 0, count: 0 };
+          board.set(key, cell);
+          cells.push({ key, q, r });
+        }
+      }
+      cells.sort((a, b) => a.r - b.r || a.q - b.q);
+      return { board, cells };
+    }
+
+    function getCellFromBoard(board, q, r) {
+      return board.get(keyFor(q, r)) || null;
+    }
+
+    function getCell(q, r) {
+      return getCellFromBoard(state.board, q, r);
+    }
+
+    function getNeighborsFromBoard(board, q, r) {
+      const neighbors = [];
+      for (const [dq, dr] of DIRECTIONS) {
+        const neighbor = getCellFromBoard(board, q + dq, r + dr);
+        if (neighbor) {
+          neighbors.push(neighbor);
+        }
+      }
+      return neighbors;
+    }
+
+    function getNeighbors(q, r) {
+      return getNeighborsFromBoard(state.board, q, r);
+    }
+
+    function getNeighborCount(cell, board = state.board) {
+      return getNeighborsFromBoard(board, cell.q, cell.r).length;
+    }
+
+    function isLegalMove(cell, player) {
+      return Boolean(cell) && (cell.owner === 0 || cell.owner === player);
+    }
+
+    function getOverflowQueue(board) {
+      const queue = [];
+      for (const cell of board.values()) {
+        if (cell.owner !== 0 && cell.count > getNeighborCount(cell, board)) {
+          queue.push(cell);
+        }
+      }
+      return queue;
+    }
+
+    function summarizeBoard(board = state.board) {
+      let blueOwned = 0;
+      let redOwned = 0;
+      let blueTokenCount = 0;
+      let redTokenCount = 0;
+      for (const cell of board.values()) {
+        if (cell.owner === PLAYER_ONE) {
+          blueOwned += 1;
+          blueTokenCount += cell.count;
+        } else if (cell.owner === PLAYER_TWO) {
+          redOwned += 1;
+          redTokenCount += cell.count;
+        }
+      }
+      return { blueOwned, redOwned, blueTokenCount, redTokenCount };
+    }
+
+    function getWinnerForBoard(board, totalMoves) {
+      if (totalMoves < 2) {
+        return 0;
+      }
+      const summary = summarizeBoard(board);
+      if (summary.blueTokenCount === 0 && summary.redTokenCount > 0) {
+        return PLAYER_TWO;
+      }
+      if (summary.redTokenCount === 0 && summary.blueTokenCount > 0) {
+        return PLAYER_ONE;
+      }
+      return 0;
+    }
+
+    function buildHexPoints(cx, cy) {
+      const points = [];
+      for (let index = 0; index < 6; index += 1) {
+        const angle = ((60 * index) - 30) * Math.PI / 180;
+        const x = cx + HEX_RADIUS * Math.cos(angle);
+        const y = cy + HEX_RADIUS * Math.sin(angle);
+        points.push(`${x.toFixed(2)},${y.toFixed(2)}`);
+      }
+      return points.join(" ");
+    }
+
+    function getTokenOffsets(count) {
+      const patterns = {
+        1: [[0, 0]],
+        2: [[-8, 0], [8, 0]],
+        3: [[0, -8], [-9, 9], [9, 9]],
+        4: [[-9, -9], [9, -9], [-9, 9], [9, 9]],
+        5: [[0, 0], [-12, -10], [12, -10], [-12, 10], [12, 10]],
+        6: [[-13, -11], [0, -11], [13, -11], [-13, 11], [0, 11], [13, 11]]
+      };
+      return patterns[Math.min(count, 6)] || patterns[6];
+    }
+
+    function getBoardBounds() {
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minY = Infinity;
+      let maxY = -Infinity;
+      for (const entry of state.cells) {
+        const { x, y } = axialToPixel(entry.q, entry.r);
+        minX = Math.min(minX, x);
+        maxX = Math.max(maxX, x);
+        minY = Math.min(minY, y);
+        maxY = Math.max(maxY, y);
+      }
+      const padding = HEX_RADIUS * 2.6;
+      return {
+        width: (maxX - minX) + padding * 2,
+        height: (maxY - minY) + padding * 2,
+        offsetX: padding - minX,
+        offsetY: padding - minY
+      };
+    }
+
+    function renderBoard() {
+      const bounds = getBoardBounds();
+      boardSvg.setAttribute("viewBox", `0 0 ${bounds.width} ${bounds.height}`);
+      boardSvg.innerHTML = "";
+
+      for (const entry of state.cells) {
+        const cell = state.board.get(entry.key);
+        const position = axialToPixel(cell.q, cell.r);
+        const x = position.x + bounds.offsetX;
+        const y = position.y + bounds.offsetY;
+        const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+        const tile = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+        const classes = ["hex-tile"];
+        if (cell.owner) {
+          classes.push(PLAYER_CLASS[cell.owner]);
+        }
+        if (!state.resolving && !state.winner && isLegalMove(cell, state.currentPlayer)) {
+          classes.push("clickable");
+        } else {
+          classes.push("blocked");
+        }
+        if (state.highlightedKeys.has(entry.key)) {
+          classes.push("overflowing");
+        }
+        tile.setAttribute("class", classes.join(" "));
+        tile.setAttribute("points", buildHexPoints(x, y));
+        tile.addEventListener("click", () => handleCellClick(cell.q, cell.r));
+        group.appendChild(tile);
+
+        const capacity = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        capacity.setAttribute("class", "capacity-text");
+        capacity.setAttribute("x", String(x));
+        capacity.setAttribute("y", String(y - 16));
+        capacity.textContent = `${getNeighborCount(cell)}`;
+        group.appendChild(capacity);
+
+        if (cell.owner !== 0 && cell.count > 0) {
+          for (const [offsetX, offsetY] of getTokenOffsets(cell.count)) {
+            const token = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            token.setAttribute("class", `token ${PLAYER_CLASS[cell.owner]}`);
+            token.setAttribute("cx", String(x + offsetX));
+            token.setAttribute("cy", String(y + offsetY));
+            token.setAttribute("r", "6.5");
+            group.appendChild(token);
+          }
+
+          const countText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          countText.setAttribute("class", "count-text");
+          countText.setAttribute("x", String(x));
+          countText.setAttribute("y", String(y + 6));
+          countText.textContent = `${cell.count}`;
+          group.appendChild(countText);
+        }
+
+        boardSvg.appendChild(group);
+      }
+    }
+
+    function renderHud() {
+      const summary = summarizeBoard();
+      turnChip.className = `chip ${state.currentPlayer === PLAYER_ONE ? "turn-p1" : "turn-p2"}`;
+      turnLabel.textContent = PLAYER_NAMES[state.currentPlayer];
+      statusText.textContent = state.winner
+        ? `${PLAYER_NAMES[state.winner]} wins.`
+        : state.resolving
+          ? "Resolving chain reaction..."
+          : `${PLAYER_NAMES[state.currentPlayer]} to move.`;
+      boardLabel.textContent = `Radius ${state.gridRadius}`;
+      moveLabel.textContent = `${state.totalMoves}`;
+      blueCount.textContent = `${summary.blueOwned}`;
+      redCount.textContent = `${summary.redOwned}`;
+      blueTokens.textContent = `${summary.blueTokenCount}`;
+      redTokens.textContent = `${summary.redTokenCount}`;
+      cascadeCount.textContent = `${state.cascadeStep}`;
+      roleLabel.textContent = state.localPlayer ? PLAYER_NAMES[state.localPlayer] : "Offline";
+      connectionLabel.textContent = state.connectionState;
+      sizeSelect.disabled = state.localPlayer === PLAYER_TWO;
+      restartButton.disabled = state.localPlayer === PLAYER_TWO;
+      playAgainButton.disabled = state.localPlayer === PLAYER_TWO;
+    }
+
+    function render() {
+      renderBoard();
+      renderHud();
+    }
+
+    function openWinnerOverlay(winner) {
+      winnerTitle.textContent = `${PLAYER_NAMES[winner]} Wins`;
+      winnerText.textContent = `${PLAYER_NAMES[winner]} is the last player with tokens on the board.`;
+      winnerOverlay.classList.add("open");
+      winnerOverlay.setAttribute("aria-hidden", "false");
+    }
+
+    function closeWinnerOverlay() {
+      winnerOverlay.classList.remove("open");
+      winnerOverlay.setAttribute("aria-hidden", "true");
+    }
+
+    async function resolveChainReaction(activePlayer) {
+      state.resolving = true;
+      state.cascadeStep = 0;
+      render();
+
+      let safety = 0;
+      while (true) {
+        const queue = getOverflowQueue(state.board);
+        if (queue.length === 0) {
+          break;
+        }
+
+        state.cascadeStep += 1;
+        state.highlightedKeys = new Set(queue.map((cell) => keyFor(cell.q, cell.r)));
+        detailText.textContent = `Cascade step ${state.cascadeStep}: ${queue.length} hex${queue.length === 1 ? "" : "es"} burst outward.`;
+        render();
+        await sleep(ANIMATION_STEP_MS);
+
+        const additions = new Map();
+        for (const cell of queue) {
+          const neighbors = getNeighbors(cell.q, cell.r);
+          cell.count -= neighbors.length;
+          if (cell.count <= 0) {
+            cell.count = 0;
+            cell.owner = 0;
+          }
+          for (const neighbor of neighbors) {
+            const neighborKey = keyFor(neighbor.q, neighbor.r);
+            additions.set(neighborKey, (additions.get(neighborKey) || 0) + 1);
+          }
+        }
+
+        for (const [neighborKey, amount] of additions.entries()) {
+          const target = state.board.get(neighborKey);
+          target.owner = activePlayer;
+          target.count += amount;
+        }
+
+        state.highlightedKeys = new Set();
+        render();
+        await sleep(ANIMATION_STEP_MS);
+
+        safety += 1;
+        if (safety > 500) {
+          detailText.textContent = "Cascade safety limit reached.";
+          break;
+        }
+      }
+
+      state.resolving = false;
+      state.highlightedKeys = new Set();
+      state.winner = getWinnerForBoard(state.board, state.totalMoves);
+      if (state.winner) {
+        openWinnerOverlay(state.winner);
+      } else {
+        state.currentPlayer = activePlayer === PLAYER_ONE ? PLAYER_TWO : PLAYER_ONE;
+        detailText.textContent = `${PLAYER_NAMES[state.currentPlayer]} to move.`;
+      }
+      render();
+    }
+
+    async function commitMove(q, r, player) {
+      const cell = getCell(q, r);
+      if (!isLegalMove(cell, player)) {
+        return;
+      }
+
+      closeWinnerOverlay();
+      cell.owner = player;
+      cell.count += 1;
+      state.totalMoves += 1;
+      detailText.textContent = `${PLAYER_NAMES[player]} played at axial ${q},${r}.`;
+      render();
+      await resolveChainReaction(player);
+    }
+
+    function setNetworkStatus(message, connectionState = state.connectionState) {
+      state.connectionState = connectionState;
+      networkStatus.textContent = message;
+      renderHud();
+    }
+
+    function isChannelOpen() {
+      return Boolean(network.dataChannel) && network.dataChannel.readyState === "open";
+    }
+
+    function sendNetworkMessage(payload) {
+      if (!isChannelOpen()) {
+        return;
+      }
+      network.dataChannel.send(JSON.stringify(payload));
+    }
+
+    function serializeState() {
+      return {
+        gridRadius: state.gridRadius,
+        currentPlayer: state.currentPlayer,
+        winner: state.winner,
+        totalMoves: state.totalMoves,
+        cascadeStep: state.cascadeStep,
+        board: Array.from(state.board.values()).map((cell) => ({
+          q: cell.q,
+          r: cell.r,
+          owner: cell.owner,
+          count: cell.count
+        }))
+      };
+    }
+
+    function applySerializedState(snapshot) {
+      const { board, cells } = createBoardMap(snapshot.gridRadius || DEFAULT_RADIUS);
+      for (const entry of snapshot.board || []) {
+        const cell = board.get(keyFor(entry.q, entry.r));
+        if (!cell) {
+          continue;
+        }
+        cell.owner = entry.owner || 0;
+        cell.count = entry.count || 0;
+      }
+      state.gridRadius = snapshot.gridRadius || DEFAULT_RADIUS;
+      state.currentPlayer = snapshot.currentPlayer || PLAYER_ONE;
+      state.board = board;
+      state.cells = cells;
+      state.resolving = false;
+      state.winner = snapshot.winner || 0;
+      state.totalMoves = snapshot.totalMoves || 0;
+      state.highlightedKeys = new Set();
+      state.cascadeStep = snapshot.cascadeStep || 0;
+      sizeSelect.value = String(state.gridRadius);
+      detailText.textContent = state.winner
+        ? `${PLAYER_NAMES[state.winner]} has already won this match.`
+        : `${PLAYER_NAMES[state.currentPlayer]} to move.`;
+      if (state.winner) {
+        openWinnerOverlay(state.winner);
+      } else {
+        closeWinnerOverlay();
+      }
+      render();
+    }
+
+    function configureDataChannel(channel) {
+      network.dataChannel = channel;
+      network.dataChannel.addEventListener("open", () => {
+        setNetworkStatus("Peer channel open. Match state is syncing.", "connected");
+        if (state.localPlayer === PLAYER_ONE) {
+          sendNetworkMessage({ type: "sync", snapshot: serializeState() });
+        }
+      });
+      network.dataChannel.addEventListener("close", () => {
+        setNetworkStatus("Peer channel closed.", "disconnected");
+      });
+      network.dataChannel.addEventListener("message", async (event) => {
+        const message = JSON.parse(event.data);
+        if (message.type === "sync" && message.snapshot) {
+          applySerializedState(message.snapshot);
+          return;
+        }
+        if (message.type === "reset") {
+          resetGame(message.radius || DEFAULT_RADIUS, true);
+          return;
+        }
+        if (message.type === "move") {
+          await commitMove(message.q, message.r, message.player);
+        }
+      });
+    }
+
+    function createPeerConnection() {
+      if (network.peerConnection) {
+        network.peerConnection.close();
+      }
+      network.peerConnection = new RTCPeerConnection();
+      network.peerConnection.addEventListener("iceconnectionstatechange", () => {
+        const iceState = network.peerConnection ? network.peerConnection.iceConnectionState : "disconnected";
+        if (iceState === "connected" || iceState === "completed") {
+          setNetworkStatus("Peer linked. Waiting for the data channel to open.", "connecting");
+        } else if (iceState === "failed" || iceState === "disconnected" || iceState === "closed") {
+          setNetworkStatus(`ICE state: ${iceState}.`, iceState);
+        }
+      });
+      network.peerConnection.addEventListener("datachannel", (event) => {
+        configureDataChannel(event.channel);
+      });
+      return network.peerConnection;
+    }
+
+    function waitForIceGathering(peerConnection) {
+      if (peerConnection.iceGatheringState === "complete") {
+        return Promise.resolve();
+      }
+      return new Promise((resolve) => {
+        function onStateChange() {
+          if (peerConnection.iceGatheringState === "complete") {
+            peerConnection.removeEventListener("icegatheringstatechange", onStateChange);
+            resolve();
+          }
+        }
+        peerConnection.addEventListener("icegatheringstatechange", onStateChange);
+      });
+    }
+
+    async function createOffer() {
+      state.localPlayer = PLAYER_ONE;
+      const peerConnection = createPeerConnection();
+      configureDataChannel(peerConnection.createDataChannel("hex-chain-reaction"));
+      setNetworkStatus("Creating offer. Share it with the guest after it appears below.", "connecting");
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+      await waitForIceGathering(peerConnection);
+      localSessionBox.value = JSON.stringify(peerConnection.localDescription);
+      remoteSessionBox.value = "";
+      render();
+    }
+
+    async function joinFromOffer() {
+      const raw = remoteSessionBox.value.trim();
+      if (!raw) {
+        setNetworkStatus("Paste a host offer first.", "offline");
+        return;
+      }
+      state.localPlayer = PLAYER_TWO;
+      const peerConnection = createPeerConnection();
+      setNetworkStatus("Joining host offer. Share the generated answer back to the host.", "connecting");
+      const offer = JSON.parse(raw);
+      await peerConnection.setRemoteDescription(offer);
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+      await waitForIceGathering(peerConnection);
+      localSessionBox.value = JSON.stringify(peerConnection.localDescription);
+      render();
+    }
+
+    async function acceptAnswer() {
+      const raw = remoteSessionBox.value.trim();
+      if (!raw || !network.peerConnection) {
+        setNetworkStatus("Create an offer first, then paste the guest answer.", state.connectionState);
+        return;
+      }
+      await network.peerConnection.setRemoteDescription(JSON.parse(raw));
+      setNetworkStatus("Answer accepted. Finalizing peer connection.", "connecting");
+    }
+
+    async function handleCellClick(q, r) {
+      if (state.resolving || state.winner) {
+        return;
+      }
+      if (!isChannelOpen()) {
+        detailText.textContent = "Open a peer session before taking online turns.";
+        return;
+      }
+      if (state.currentPlayer !== state.localPlayer) {
+        detailText.textContent = `Waiting for ${PLAYER_NAMES[state.currentPlayer]} to move.`;
+        return;
+      }
+      const cell = getCell(q, r);
+      if (!isLegalMove(cell, state.currentPlayer)) {
+        detailText.textContent = `Choose an empty hex or one controlled by ${PLAYER_NAMES[state.currentPlayer]}.`;
+        return;
+      }
+      sendNetworkMessage({ type: "move", q, r, player: state.currentPlayer });
+      await commitMove(q, r, state.currentPlayer);
+    }
+
+    function resetGame(forcedRadius = null, fromRemote = false) {
+      if (!fromRemote && state.localPlayer === PLAYER_TWO) {
+        detailText.textContent = "Only the host can restart the shared online match.";
+        return;
+      }
+      const nextRadius = forcedRadius || Number(sizeSelect.value) || DEFAULT_RADIUS;
+      const { board, cells } = createBoardMap(nextRadius);
+      state.gridRadius = nextRadius;
+      state.currentPlayer = PLAYER_ONE;
+      state.board = board;
+      state.cells = cells;
+      state.resolving = false;
+      state.winner = 0;
+      state.totalMoves = 0;
+      state.highlightedKeys = new Set();
+      state.cascadeStep = 0;
+      closeWinnerOverlay();
+      detailText.textContent = "Blue begins. Corners hold fewer tokens than the center because each hex uses its real neighbor count as capacity.";
+      sizeSelect.value = String(nextRadius);
+      if (!fromRemote && state.localPlayer === PLAYER_ONE && isChannelOpen()) {
+        sendNetworkMessage({ type: "reset", radius: nextRadius });
+      }
+      render();
+    }
+
+    restartButton.addEventListener("click", () => resetGame());
+    playAgainButton.addEventListener("click", () => resetGame());
+    sizeSelect.addEventListener("change", () => resetGame());
+    createOfferButton.addEventListener("click", () => {
+      createOffer().catch((error) => {
+        setNetworkStatus(`Failed to create offer: ${error.message}`, "offline");
+      });
+    });
+    joinOfferButton.addEventListener("click", () => {
+      joinFromOffer().catch((error) => {
+        setNetworkStatus(`Failed to join offer: ${error.message}`, "offline");
+      });
+    });
+    acceptAnswerButton.addEventListener("click", () => {
+      acceptAnswer().catch((error) => {
+        setNetworkStatus(`Failed to accept answer: ${error.message}`, state.connectionState);
+      });
+    });
+
+    resetGame();
+    render();
+  </script>
+</body>
+</html>

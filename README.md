@@ -148,6 +148,17 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `hex-chain-reaction/index.html` 即可游玩。
 
+## Hex Chain Reaction Online
+
+新增 `hex-chain-reaction-online/index.html`，在原有 Hex Chain Reaction 规则上升级为浏览器间联网对战版本，包含：
+
+- 基于 WebRTC DataChannel 的点对点同步，无需单独后端服务
+- 主机创建 offer、访客粘贴加入、再由主机粘贴 answer 的手动建连流程
+- 主机固定为蓝方、访客固定为红方，双方从各自浏览器轮流落子
+- 棋盘重开、半径设置与连锁反应结果都会同步到对端
+
+直接用浏览器打开 `hex-chain-reaction-online/index.html`，按页面提示交换 offer / answer 后即可联机对战。
+
 ## Kaleidoscope Drawing Toy
 
 新增 `kaleidoscope/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的万花筒绘画玩具，包含：
