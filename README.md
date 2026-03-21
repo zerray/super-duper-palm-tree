@@ -6,6 +6,15 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 仓库根目录新增 `index.html` 作为统一入口页，用卡片方式汇总当前已完成的可玩 mini-games，并直接链接到各自的 `index.html`。直接在浏览器打开根目录 `index.html` 即可浏览和启动游戏。
 
+## 在线多人游戏
+
+当前仓库里已经升级为支持联机房间的游戏如下，均可直接在浏览器中打开后通过 `Create Room` / `Join Room` 一起游玩：
+
+- `hex-chain-reaction/index.html`：支持双人在线对战。
+- `hex-color-conquest/index.html`：支持双人在线颜色扩张对战。
+- `hex-territory/index.html`：支持双人在线领土争夺对战。
+- `typing-speed-test/index.html`：支持房主与玩家同步开始的在线打字竞速。
+
 ## Conway's Game of Life
 
 新增 `game-of-life/index.html`，提供一个可直接在浏览器中打开的康威生命游戏模拟器，包含：
