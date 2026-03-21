@@ -309,11 +309,11 @@
       { slug: "gravity-well-sandbox", title: "Gravity Well Sandbox", description: "Place attractors and repulsors, then fire particle streams through chaotic trajectories.", category: "Sandbox", featured: true },
       { slug: "gravity-well-slingshot", title: "Gravity Well Slingshot", description: "A variant slingshot challenge that leans into curved shots and gravity-assisted routing.", category: "Action", featured: false },
       { slug: "hex-chain", title: "Hex Chain", description: "A compact hex-grid strategy game about positioning and chain-building on a tiled board.", category: "Strategy", featured: false },
-      { slug: "hex-chain-reaction", title: "Hex Chain Reaction", description: "Trigger cascading captures across a hex board in a more explosive tactical format.", category: "Strategy", featured: false },
+      { slug: "hex-chain-reaction", title: "Hex Chain Reaction", description: "Trigger cascading captures across a hex board in a more explosive tactical format, with an optional online duel room.", category: "Strategy", featured: false, multiplayer: true },
       { slug: "hex-colony", title: "Hex Colony", description: "A hex-based colony management prototype with light systems and territorial growth.", category: "Strategy", featured: false },
-      { slug: "hex-color-conquest", title: "Hex Color Conquest", description: "Expand across a hex map by leveraging color adjacency and area control.", category: "Strategy", featured: false },
+      { slug: "hex-color-conquest", title: "Hex Color Conquest", description: "Expand across a hex map by leveraging color adjacency and area control in solo or room-based online play.", category: "Strategy", featured: false, multiplayer: true },
       { slug: "hex-color-idle-factory", title: "Hex Color Idle Factory", description: "An idle factory loop that turns color-coded hex production into escalating output.", category: "Idle", featured: false },
-      { slug: "hex-territory", title: "Hex Territory Capture", description: "A turn-based hex game where surrounded enemy regions flip to your control.", category: "Strategy", featured: true },
+      { slug: "hex-territory", title: "Hex Territory Capture", description: "A turn-based hex game where surrounded enemy regions flip to your control, now with optional online rooms.", category: "Strategy", featured: true, multiplayer: true },
       { slug: "idle-ecosystem", title: "Idle Ecosystem", description: "Grow a self-sustaining little world and watch interacting systems evolve over time.", category: "Idle", featured: false },
       { slug: "kaleidoscope", title: "Kaleidoscope", description: "A visual toy for drawing mirrored patterns and exploring colorful symmetry.", category: "Creative", featured: false },
       { slug: "nie-xiaoqian-rpg", title: "Nie Xiaoqian RPG", description: "A lightweight HD-2D inspired browser RPG with exploration, dialogue, and turn-based battles.", category: "Adventure", featured: true },
@@ -324,11 +324,11 @@
       { slug: "pixel-synth-sequencer", title: "Pixel Synth Sequencer", description: "A synth-focused pixel sequencer for layering simple electronic patterns in the browser.", category: "Music", featured: false },
       { slug: "rhythm-tap", title: "Rhythm Tap Reflex", description: "A four-lane rhythm reaction game built around fast key presses and rising pressure.", category: "Music", featured: false },
       { slug: "slingshot-game", title: "Orbital Slingshot", description: "Thread a ship through multi-body gravity puzzles and hit the goal with a single launch.", category: "Puzzle", featured: false },
-      { slug: "snake-game", title: "Snake Game", description: "A clean browser take on the classic arcade snake loop.", category: "Arcade", featured: false },
+      { slug: "snake-game", title: "Snake Game", description: "A clean browser take on the classic arcade snake loop, with a linked two-player online variant.", category: "Arcade", featured: false, multiplayer: true },
       { slug: "sokoban-game", title: "Sokoban Warehouse", description: "Push crates through hand-built warehouse levels with undo and persistent progress.", category: "Puzzle", featured: false },
       { slug: "sound-palette", title: "Sound Palette", description: "A colorful step sequencer toy that turns clicks on an 8x8 grid into looping melodies.", category: "Music", featured: false },
       { slug: "soundscape-garden", title: "Soundscape Garden", description: "An ambient sound toy that lets you layer audio elements into a reactive garden scene.", category: "Music", featured: false },
-      { slug: "typing-speed-test", title: "Typing Speed Test", description: "A browser typing challenge with live WPM, accuracy, and personal best tracking.", category: "Skill", featured: false },
+      { slug: "typing-speed-test", title: "Typing Speed Test", description: "A browser typing challenge with live WPM, accuracy, personal best tracking, and optional room races.", category: "Skill", featured: false, multiplayer: true },
       { slug: "waveform-dj", title: "Waveform DJ", description: "A DJ-style audio toy for shaping loops and experimenting with waveform-driven playback.", category: "Music", featured: false },
       { slug: "wfc-painter", title: "WFC Painter", description: "A creative procedural art tool that paints tiling results with wave function collapse ideas.", category: "Creative", featured: false }
     ];
@@ -361,7 +361,7 @@
 
       const tag = document.createElement("span");
       tag.className = "tag";
-      tag.textContent = game.category;
+      tag.textContent = game.multiplayer ? `${game.category} • Online` : game.category;
 
       const description = document.createElement("p");
       description.className = "card-copy";
