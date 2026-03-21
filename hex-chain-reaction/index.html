@@ -39,7 +39,8 @@
     }
 
     button,
-    select {
+    select,
+    input {
       font: inherit;
     }
 
@@ -291,6 +292,16 @@
       color: var(--ink);
     }
 
+    .room-input {
+      flex: 1 1 140px;
+      min-width: 0;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(74, 58, 40, 0.16);
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--ink);
+    }
+
     .overlay {
       position: fixed;
       inset: 0;
@@ -357,7 +368,27 @@
     <aside class="panel">
       <div class="card">
         <h2>Match Controls</h2>
-        <p class="muted">Two-player hot-seat. Place on empty cells or cells you already control, then pass the device once the board finishes cascading.</p>
+        <p class="muted">Play in local hot-seat or switch to tab-to-tab link play. In link mode, open the same room in two windows and assign Blue / Red seats.</p>
+        <div class="control-row">
+          <label for="modeSelect">Match mode</label>
+          <select id="modeSelect" class="size-select" aria-label="Match mode">
+            <option value="local" selected>Hot-seat</option>
+            <option value="network">Link play</option>
+          </select>
+        </div>
+        <div class="control-row">
+          <label for="roomCodeInput">Room code</label>
+          <input id="roomCodeInput" class="room-input" type="text" maxlength="24" value="hex-room" aria-label="Room code">
+          <button class="action" id="copyInviteButton" type="button">Copy Invite</button>
+        </div>
+        <div class="control-row">
+          <label for="seatSelect">Seat</label>
+          <select id="seatSelect" class="size-select" aria-label="Seat">
+            <option value="1">Blue</option>
+            <option value="2">Red</option>
+            <option value="0">Spectator</option>
+          </select>
+        </div>
         <div class="control-row">
           <label for="sizeSelect">Board radius</label>
           <select id="sizeSelect" class="size-select" aria-label="Board radius">
@@ -367,6 +398,7 @@
           </select>
         </div>
         <button class="action" id="restartButton" type="button">New Game</button>
+        <p class="muted" id="networkNote">Local mode: both players use one screen.</p>
       </div>
 
       <div class="card">
@@ -402,6 +434,7 @@
 
   <script>
     const DEFAULT_RADIUS = 7;
+    const DEFAULT_ROOM_CODE = "hex-room";
     const ANIMATION_STEP_MS = 160;
     const HEX_RADIUS = 32;
     const HEX_H_SPACING = Math.sqrt(3) * HEX_RADIUS;
@@ -424,6 +457,8 @@
       [PLAYER_ONE]: "p1",
       [PLAYER_TWO]: "p2"
     };
+    const MATCH_MODE_LOCAL = "local";
+    const MATCH_MODE_NETWORK = "network";
 
     const boardSvg = document.getElementById("board");
     const turnChip = document.getElementById("turnChip");
@@ -440,6 +475,11 @@
     const restartButton = document.getElementById("restartButton");
     const playAgainButton = document.getElementById("playAgainButton");
     const sizeSelect = document.getElementById("sizeSelect");
+    const modeSelect = document.getElementById("modeSelect");
+    const roomCodeInput = document.getElementById("roomCodeInput");
+    const seatSelect = document.getElementById("seatSelect");
+    const copyInviteButton = document.getElementById("copyInviteButton");
+    const networkNote = document.getElementById("networkNote");
     const winnerOverlay = document.getElementById("winnerOverlay");
     const winnerTitle = document.getElementById("winnerTitle");
     const winnerText = document.getElementById("winnerText");
@@ -455,9 +495,177 @@
       highlightedKeys: new Set(),
       cascadeStep: 0
     };
+    const networkState = {
+      instanceId: `hex-chain-${Math.random().toString(36).slice(2, 10)}`,
+      channel: null,
+      channelName: ""
+    };
 
     function sleep(ms) {
       return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+
+    function sanitizeRoomCode(value) {
+      const cleaned = String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9-_]/g, "-")
+        .replace(/-+/g, "-")
+        .slice(0, 24);
+      return cleaned || DEFAULT_ROOM_CODE;
+    }
+
+    function getRoomCodeFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return sanitizeRoomCode(params.get("room") || DEFAULT_ROOM_CODE);
+    }
+
+    function updateRoomInUrl(roomCode) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("room", roomCode);
+      window.history.replaceState({}, "", url);
+    }
+
+    function getSelectedSeat() {
+      return Number(seatSelect.value);
+    }
+
+    function isNetworkModeEnabled() {
+      return modeSelect.value === MATCH_MODE_NETWORK;
+    }
+
+    function canUseBroadcastChannel() {
+      return typeof window.BroadcastChannel === "function";
+    }
+
+    function canLocalPlayerAct() {
+      if (!isNetworkModeEnabled()) {
+        return true;
+      }
+      const localSeat = getSelectedSeat();
+      return localSeat !== 0 && localSeat === state.currentPlayer;
+    }
+
+    function serializeState() {
+      return {
+        gridRadius: state.gridRadius,
+        currentPlayer: state.currentPlayer,
+        winner: state.winner,
+        totalMoves: state.totalMoves,
+        cascadeStep: state.cascadeStep,
+        detailText: detailText.textContent,
+        board: Array.from(state.board.values()).map((cell) => ({
+          q: cell.q,
+          r: cell.r,
+          owner: cell.owner,
+          count: cell.count
+        }))
+      };
+    }
+
+    function applySnapshot(snapshot) {
+      if (!snapshot || !Array.isArray(snapshot.board)) {
+        return;
+      }
+      const nextRadius = Number(snapshot.gridRadius) || DEFAULT_RADIUS;
+      const { board, cells } = createBoardMap(nextRadius);
+      for (const entry of snapshot.board) {
+        const cell = board.get(keyFor(entry.q, entry.r));
+        if (!cell) {
+          continue;
+        }
+        cell.owner = entry.owner === PLAYER_ONE || entry.owner === PLAYER_TWO ? entry.owner : 0;
+        cell.count = Math.max(0, Number(entry.count) || 0);
+      }
+      state.gridRadius = nextRadius;
+      state.currentPlayer = snapshot.currentPlayer === PLAYER_TWO ? PLAYER_TWO : PLAYER_ONE;
+      state.board = board;
+      state.cells = cells;
+      state.resolving = false;
+      state.winner = snapshot.winner === PLAYER_TWO ? PLAYER_TWO : snapshot.winner === PLAYER_ONE ? PLAYER_ONE : 0;
+      state.totalMoves = Math.max(0, Number(snapshot.totalMoves) || 0);
+      state.highlightedKeys = new Set();
+      state.cascadeStep = Math.max(0, Number(snapshot.cascadeStep) || 0);
+      sizeSelect.value = String(nextRadius);
+      detailText.textContent = typeof snapshot.detailText === "string" && snapshot.detailText
+        ? snapshot.detailText
+        : "Linked state updated.";
+      if (state.winner) {
+        openWinnerOverlay(state.winner);
+      } else {
+        closeWinnerOverlay();
+      }
+      render();
+    }
+
+    function postNetworkMessage(type, payload = {}) {
+      if (!networkState.channel) {
+        return;
+      }
+      networkState.channel.postMessage({
+        type,
+        senderId: networkState.instanceId,
+        payload
+      });
+    }
+
+    function broadcastSnapshot(reason) {
+      if (!isNetworkModeEnabled()) {
+        return;
+      }
+      postNetworkMessage("snapshot", {
+        reason,
+        snapshot: serializeState()
+      });
+    }
+
+    function updateNetworkNote() {
+      if (!isNetworkModeEnabled()) {
+        networkNote.textContent = "Local mode: both players use one screen.";
+        return;
+      }
+      if (!canUseBroadcastChannel()) {
+        networkNote.textContent = "Link play requires BroadcastChannel support in this browser.";
+        return;
+      }
+      const seat = getSelectedSeat();
+      const seatLabel = seat === PLAYER_ONE ? "Blue" : seat === PLAYER_TWO ? "Red" : "Spectator";
+      networkNote.textContent = `Link play room ${sanitizeRoomCode(roomCodeInput.value)}. This window is ${seatLabel}. Open the same URL in another tab or browser window to sync.`;
+    }
+
+    function teardownNetworkChannel() {
+      if (networkState.channel) {
+        networkState.channel.close();
+      }
+      networkState.channel = null;
+      networkState.channelName = "";
+    }
+
+    function setupNetworkChannel() {
+      teardownNetworkChannel();
+      updateNetworkNote();
+      if (!isNetworkModeEnabled() || !canUseBroadcastChannel()) {
+        return;
+      }
+      const roomCode = sanitizeRoomCode(roomCodeInput.value);
+      roomCodeInput.value = roomCode;
+      updateRoomInUrl(roomCode);
+      networkState.channelName = `hex-chain-reaction:${roomCode}`;
+      networkState.channel = new BroadcastChannel(networkState.channelName);
+      networkState.channel.addEventListener("message", (event) => {
+        const message = event.data || {};
+        if (message.senderId === networkState.instanceId) {
+          return;
+        }
+        if (message.type === "request-sync") {
+          postNetworkMessage("snapshot", { reason: "sync-response", snapshot: serializeState() });
+          return;
+        }
+        if (message.type === "snapshot") {
+          applySnapshot(message.payload && message.payload.snapshot);
+        }
+      });
+      postNetworkMessage("request-sync");
     }
 
     function keyFor(q, r) {
@@ -680,11 +888,15 @@
       const summary = summarizeBoard();
       turnChip.className = `chip ${state.currentPlayer === PLAYER_ONE ? "turn-p1" : "turn-p2"}`;
       turnLabel.textContent = PLAYER_NAMES[state.currentPlayer];
-      statusText.textContent = state.winner
-        ? `${PLAYER_NAMES[state.winner]} wins.`
-        : state.resolving
-          ? "Resolving chain reaction..."
-          : `${PLAYER_NAMES[state.currentPlayer]} to move.`;
+      if (state.winner) {
+        statusText.textContent = `${PLAYER_NAMES[state.winner]} wins.`;
+      } else if (state.resolving) {
+        statusText.textContent = "Resolving chain reaction...";
+      } else if (isNetworkModeEnabled() && !canLocalPlayerAct()) {
+        statusText.textContent = `Waiting for ${PLAYER_NAMES[state.currentPlayer]} in room ${sanitizeRoomCode(roomCodeInput.value)}.`;
+      } else {
+        statusText.textContent = `${PLAYER_NAMES[state.currentPlayer]} to move.`;
+      }
       boardLabel.textContent = `Radius ${state.gridRadius}`;
       moveLabel.textContent = `${state.totalMoves}`;
       blueCount.textContent = `${summary.blueOwned}`;
@@ -785,10 +997,16 @@
       detailText.textContent = `${PLAYER_NAMES[player]} played at axial ${q},${r}.`;
       render();
       await resolveChainReaction(player);
+      broadcastSnapshot("move");
     }
 
     async function handleCellClick(q, r) {
       if (state.resolving || state.winner) {
+        return;
+      }
+      if (!canLocalPlayerAct()) {
+        detailText.textContent = `This window is not controlling ${PLAYER_NAMES[state.currentPlayer]}. Switch seats or wait for the remote player.`;
+        render();
         return;
       }
       const cell = getCell(q, r);
@@ -814,13 +1032,44 @@
       closeWinnerOverlay();
       detailText.textContent = "Blue begins. Corners hold fewer tokens than the center because each hex uses its real neighbor count as capacity.";
       render();
+      broadcastSnapshot("reset");
+      updateNetworkNote();
+    }
+
+    function handleModeOrRoomChange() {
+      roomCodeInput.value = sanitizeRoomCode(roomCodeInput.value);
+      updateNetworkNote();
+      setupNetworkChannel();
+      render();
     }
 
     restartButton.addEventListener("click", resetGame);
     playAgainButton.addEventListener("click", resetGame);
     sizeSelect.addEventListener("change", resetGame);
+    modeSelect.addEventListener("change", handleModeOrRoomChange);
+    roomCodeInput.addEventListener("change", handleModeOrRoomChange);
+    seatSelect.addEventListener("change", () => {
+      updateNetworkNote();
+      render();
+    });
+    copyInviteButton.addEventListener("click", async () => {
+      const roomCode = sanitizeRoomCode(roomCodeInput.value);
+      roomCodeInput.value = roomCode;
+      updateRoomInUrl(roomCode);
+      updateNetworkNote();
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        detailText.textContent = `Invite link copied for room ${roomCode}.`;
+      } catch (error) {
+        detailText.textContent = `Share this URL for room ${roomCode}: ${window.location.href}`;
+      }
+      render();
+    });
 
+    roomCodeInput.value = getRoomCodeFromUrl();
+    updateNetworkNote();
     resetGame();
+    setupNetworkChannel();
   </script>
 </body>
 </html>
