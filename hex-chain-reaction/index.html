@@ -39,7 +39,8 @@
     }
 
     button,
-    select {
+    select,
+    input {
       font: inherit;
     }
 
@@ -291,6 +292,33 @@
       color: var(--ink);
     }
 
+    .room-input {
+      flex: 1 1 180px;
+      min-width: 0;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(74, 58, 40, 0.16);
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--ink);
+    }
+
+    .secondary-action {
+      min-height: 42px;
+      padding: 0 16px;
+      border: 1px solid rgba(74, 58, 40, 0.14);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.86);
+      color: var(--ink);
+    }
+
+    .secondary-action:disabled,
+    .action:disabled,
+    .size-select:disabled,
+    .room-input:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
     .overlay {
       position: fixed;
       inset: 0;
@@ -357,7 +385,7 @@
     <aside class="panel">
       <div class="card">
         <h2>Match Controls</h2>
-        <p class="muted">Two-player hot-seat. Place on empty cells or cells you already control, then pass the device once the board finishes cascading.</p>
+        <p class="muted">Supports two-player hot-seat and online PvP. Hosts play blue, guests play red, and hot-seat remains available as the offline fallback.</p>
         <div class="control-row">
           <label for="sizeSelect">Board radius</label>
           <select id="sizeSelect" class="size-select" aria-label="Board radius">
@@ -365,6 +393,18 @@
             <option value="7" selected>Radius 7</option>
             <option value="9">Radius 9</option>
           </select>
+        </div>
+        <div class="control-row">
+          <button class="secondary-action" id="hostButton" type="button">Create Online Room</button>
+          <span class="badge">Mode: <span id="networkModeLabel">Local hot-seat</span></span>
+        </div>
+        <div class="control-row">
+          <input id="roomCodeInput" class="room-input" type="text" placeholder="Enter room code" aria-label="Room code">
+          <button class="secondary-action" id="joinButton" type="button">Join Room</button>
+        </div>
+        <div class="badge-row">
+          <div class="badge">Room code: <span id="roomCodeLabel">Offline</span></div>
+          <div class="badge">Network: <span id="networkStatusLabel">Local-only</span></div>
         </div>
         <button class="action" id="restartButton" type="button">New Game</button>
       </div>
@@ -384,7 +424,7 @@
       <div class="card">
         <h2>Rules</h2>
         <div class="legend">
-          <div class="legend-line"><span class="swatch p1"></span><span>Blue and red alternate turns in hot-seat mode. You may only place on an empty hex or one you already control.</span></div>
+          <div class="legend-line"><span class="swatch p1"></span><span>Blue and red alternate turns. In online PvP, the host is blue and the guest is red. You may only place on an empty hex or one you already control.</span></div>
           <div class="legend-line"><span class="swatch p2"></span><span>Every added token can strengthen your frontier or set up a forced conversion sequence on the next burst.</span></div>
           <div class="legend-line"><span class="swatch burst"></span><span>When tokens exceed a cell's neighbor count, it explodes outward, converts adjacent cells, and keeps chaining until the board stabilizes.</span></div>
         </div>
@@ -400,6 +440,7 @@
     </div>
   </div>
 
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script>
     const DEFAULT_RADIUS = 7;
     const ANIMATION_STEP_MS = 160;
@@ -440,6 +481,12 @@
     const restartButton = document.getElementById("restartButton");
     const playAgainButton = document.getElementById("playAgainButton");
     const sizeSelect = document.getElementById("sizeSelect");
+    const hostButton = document.getElementById("hostButton");
+    const joinButton = document.getElementById("joinButton");
+    const roomCodeInput = document.getElementById("roomCodeInput");
+    const roomCodeLabel = document.getElementById("roomCodeLabel");
+    const networkModeLabel = document.getElementById("networkModeLabel");
+    const networkStatusLabel = document.getElementById("networkStatusLabel");
     const winnerOverlay = document.getElementById("winnerOverlay");
     const winnerTitle = document.getElementById("winnerTitle");
     const winnerText = document.getElementById("winnerText");
@@ -456,12 +503,284 @@
       cascadeStep: 0
     };
 
+    const network = {
+      mode: "local",
+      peer: null,
+      connection: null,
+      roomCode: "",
+      pendingMove: false
+    };
+
     function sleep(ms) {
       return new Promise((resolve) => window.setTimeout(resolve, ms));
     }
 
     function keyFor(q, r) {
       return `${q},${r}`;
+    }
+
+    function isOnlineMode() {
+      return network.mode === "host" || network.mode === "guest";
+    }
+
+    function isHost() {
+      return network.mode === "host";
+    }
+
+    function getLocalPlayer() {
+      if (network.mode === "host") {
+        return PLAYER_ONE;
+      }
+      if (network.mode === "guest") {
+        return PLAYER_TWO;
+      }
+      return state.currentPlayer;
+    }
+
+    function setNetworkStatus(message) {
+      networkStatusLabel.textContent = message;
+    }
+
+    function updateNetworkUi() {
+      const online = isOnlineMode();
+      const connected = Boolean(network.connection && network.connection.open);
+      networkModeLabel.textContent = network.mode === "host"
+        ? "Online host"
+        : network.mode === "guest"
+          ? "Online guest"
+          : "Local hot-seat";
+      roomCodeLabel.textContent = network.roomCode || "Offline";
+      hostButton.disabled = online;
+      joinButton.disabled = online;
+      roomCodeInput.disabled = online;
+      sizeSelect.disabled = network.mode === "guest";
+      if (!online) {
+        setNetworkStatus("Local-only");
+      } else if (!connected) {
+        setNetworkStatus(network.mode === "host" ? "Waiting for guest..." : "Connecting...");
+      }
+    }
+
+    function serializeBoard(board = state.board) {
+      return Array.from(board.values()).map((cell) => ({
+        q: cell.q,
+        r: cell.r,
+        owner: cell.owner,
+        count: cell.count
+      }));
+    }
+
+    function createSnapshot() {
+      return {
+        gridRadius: state.gridRadius,
+        currentPlayer: state.currentPlayer,
+        totalMoves: state.totalMoves,
+        cascadeStep: state.cascadeStep,
+        winner: state.winner,
+        detailText: detailText.textContent,
+        board: serializeBoard()
+      };
+    }
+
+    function getOnlineDetailText(reason = "sync") {
+      if (state.winner) {
+        return `${PLAYER_NAMES[state.winner]} wins.`;
+      }
+      if (reason === "initial-sync") {
+        return state.currentPlayer === getLocalPlayer()
+          ? `Connected. Your turn as ${PLAYER_NAMES[state.currentPlayer]}.`
+          : `Connected. Waiting for ${PLAYER_NAMES[state.currentPlayer]} to move.`;
+      }
+      if (reason === "reset") {
+        return state.currentPlayer === getLocalPlayer()
+          ? "Online match reset. Your move opens the board."
+          : "Online match reset. Waiting for blue to move.";
+      }
+      return state.currentPlayer === getLocalPlayer()
+        ? `Your turn as ${PLAYER_NAMES[state.currentPlayer]}.`
+        : `Waiting for ${PLAYER_NAMES[state.currentPlayer]} to move.`;
+    }
+
+    function applySnapshot(snapshot, reason = "sync") {
+      const { board, cells } = createBoardMap(snapshot.gridRadius);
+      for (const entry of snapshot.board) {
+        const cell = board.get(keyFor(entry.q, entry.r));
+        if (cell) {
+          cell.owner = entry.owner;
+          cell.count = entry.count;
+        }
+      }
+      state.gridRadius = snapshot.gridRadius;
+      state.currentPlayer = snapshot.currentPlayer;
+      state.board = board;
+      state.cells = cells;
+      state.resolving = false;
+      state.winner = snapshot.winner;
+      state.totalMoves = snapshot.totalMoves;
+      state.highlightedKeys = new Set();
+      state.cascadeStep = snapshot.cascadeStep || 0;
+      sizeSelect.value = String(snapshot.gridRadius);
+      detailText.textContent = isOnlineMode() ? getOnlineDetailText(reason) : snapshot.detailText;
+      closeWinnerOverlay();
+      if (state.winner) {
+        openWinnerOverlay(state.winner);
+      }
+      network.pendingMove = false;
+      render();
+    }
+
+    function destroyConnection() {
+      if (network.connection) {
+        network.connection.close();
+      }
+      network.connection = null;
+    }
+
+    function destroyPeer() {
+      destroyConnection();
+      if (network.peer) {
+        network.peer.destroy();
+      }
+      network.peer = null;
+      network.mode = "local";
+      network.roomCode = "";
+      network.pendingMove = false;
+      updateNetworkUi();
+    }
+
+    function sendNetworkMessage(payload) {
+      if (network.connection && network.connection.open) {
+        network.connection.send(payload);
+      }
+    }
+
+    function syncStateToGuest(reason) {
+      if (!isHost()) {
+        return;
+      }
+      sendNetworkMessage({ type: "sync-state", reason, snapshot: createSnapshot() });
+    }
+
+    function handleConnection(connection) {
+      if (network.connection && network.connection !== connection) {
+        connection.close();
+        return;
+      }
+
+      network.connection = connection;
+      connection.on("open", () => {
+        network.pendingMove = false;
+        if (isHost()) {
+          setNetworkStatus("Guest connected");
+          syncStateToGuest("initial-sync");
+        } else {
+          setNetworkStatus("Connected to host");
+        }
+        updateNetworkUi();
+      });
+      connection.on("data", async (payload) => {
+        if (!payload || typeof payload !== "object") {
+          return;
+        }
+        if (payload.type === "sync-state" && payload.snapshot) {
+          applySnapshot(payload.snapshot, payload.reason);
+          return;
+        }
+        if (payload.type === "request-move" && isHost()) {
+          if (state.resolving || state.winner || state.currentPlayer !== PLAYER_TWO) {
+            return;
+          }
+          await commitMove(payload.q, payload.r, PLAYER_TWO);
+          return;
+        }
+        if (payload.type === "request-reset" && isHost()) {
+          resetGame(false);
+          syncStateToGuest("reset");
+        }
+      });
+      connection.on("close", () => {
+        const priorMode = network.mode;
+        destroyPeer();
+        detailText.textContent = priorMode === "local"
+          ? detailText.textContent
+          : "Network session ended. Back in local hot-seat mode.";
+        render();
+      });
+      connection.on("error", () => {
+        setNetworkStatus("Connection error");
+      });
+    }
+
+    function ensurePeer() {
+      if (typeof window.Peer !== "function") {
+        detailText.textContent = "PeerJS failed to load, so online play is unavailable.";
+        setNetworkStatus("PeerJS unavailable");
+        render();
+        return null;
+      }
+      return new window.Peer();
+    }
+
+    function hostOnlineGame() {
+      if (isOnlineMode()) {
+        return;
+      }
+      const peer = ensurePeer();
+      if (!peer) {
+        return;
+      }
+      network.mode = "host";
+      network.peer = peer;
+      network.roomCode = "";
+      network.pendingMove = false;
+      detailText.textContent = "Creating room...";
+      updateNetworkUi();
+
+      peer.on("open", (id) => {
+        network.roomCode = id;
+        detailText.textContent = "Room ready. Share the code and wait for a guest.";
+        updateNetworkUi();
+      });
+      peer.on("connection", (connection) => {
+        detailText.textContent = "Guest joined. Blue moves first.";
+        handleConnection(connection);
+      });
+      peer.on("error", () => {
+        detailText.textContent = "Unable to host an online room. Staying in local mode.";
+        destroyPeer();
+        render();
+      });
+    }
+
+    function joinOnlineGame() {
+      if (isOnlineMode()) {
+        return;
+      }
+      const roomCode = roomCodeInput.value.trim();
+      if (!roomCode) {
+        detailText.textContent = "Enter a room code to join the host.";
+        render();
+        return;
+      }
+      const peer = ensurePeer();
+      if (!peer) {
+        return;
+      }
+      network.mode = "guest";
+      network.peer = peer;
+      network.roomCode = roomCode;
+      network.pendingMove = false;
+      detailText.textContent = "Joining room...";
+      updateNetworkUi();
+
+      peer.on("open", () => {
+        handleConnection(peer.connect(roomCode, { reliable: true }));
+      });
+      peer.on("error", () => {
+        detailText.textContent = "Unable to join that room code. Back in local hot-seat mode.";
+        destroyPeer();
+        render();
+      });
     }
 
     function axialToCube(q, r) {
@@ -634,7 +953,8 @@
         if (cell.owner) {
           classes.push(PLAYER_CLASS[cell.owner]);
         }
-        if (!state.resolving && !state.winner && isLegalMove(cell, state.currentPlayer)) {
+        const localTurn = !isOnlineMode() || state.currentPlayer === getLocalPlayer();
+        if (!state.resolving && !state.winner && localTurn && isLegalMove(cell, state.currentPlayer)) {
           classes.push("clickable");
         } else {
           classes.push("blocked");
@@ -692,6 +1012,7 @@
       blueTokens.textContent = `${summary.blueTokenCount}`;
       redTokens.textContent = `${summary.redTokenCount}`;
       cascadeCount.textContent = `${state.cascadeStep}`;
+      updateNetworkUi();
     }
 
     function render() {
@@ -767,7 +1088,11 @@
         openWinnerOverlay(state.winner);
       } else {
         state.currentPlayer = activePlayer === PLAYER_ONE ? PLAYER_TWO : PLAYER_ONE;
-        detailText.textContent = `${PLAYER_NAMES[state.currentPlayer]} to move.`;
+        detailText.textContent = isOnlineMode()
+          ? state.currentPlayer === getLocalPlayer()
+            ? `Your turn as ${PLAYER_NAMES[state.currentPlayer]}.`
+            : `Waiting for ${PLAYER_NAMES[state.currentPlayer]} to move.`
+          : `${PLAYER_NAMES[state.currentPlayer]} to move.`;
       }
       render();
     }
@@ -785,10 +1110,18 @@
       detailText.textContent = `${PLAYER_NAMES[player]} played at axial ${q},${r}.`;
       render();
       await resolveChainReaction(player);
+      if (isHost()) {
+        syncStateToGuest("move");
+      }
     }
 
     async function handleCellClick(q, r) {
-      if (state.resolving || state.winner) {
+      if (state.resolving || state.winner || network.pendingMove) {
+        return;
+      }
+      if (isOnlineMode() && state.currentPlayer !== getLocalPlayer()) {
+        detailText.textContent = `Waiting for ${PLAYER_NAMES[state.currentPlayer]} to move.`;
+        render();
         return;
       }
       const cell = getCell(q, r);
@@ -796,10 +1129,17 @@
         detailText.textContent = `Choose an empty hex or one controlled by ${PLAYER_NAMES[state.currentPlayer]}.`;
         return;
       }
+      if (network.mode === "guest") {
+        network.pendingMove = true;
+        detailText.textContent = `Sent move ${q},${r} to host.`;
+        sendNetworkMessage({ type: "request-move", q, r });
+        render();
+        return;
+      }
       await commitMove(q, r, state.currentPlayer);
     }
 
-    function resetGame() {
+    function resetGame(broadcast = true) {
       const nextRadius = Number(sizeSelect.value) || DEFAULT_RADIUS;
       const { board, cells } = createBoardMap(nextRadius);
       state.gridRadius = nextRadius;
@@ -812,13 +1152,39 @@
       state.highlightedKeys = new Set();
       state.cascadeStep = 0;
       closeWinnerOverlay();
-      detailText.textContent = "Blue begins. Corners hold fewer tokens than the center because each hex uses its real neighbor count as capacity.";
+      detailText.textContent = isOnlineMode()
+        ? state.currentPlayer === getLocalPlayer()
+          ? "Online match reset. Your move opens the board."
+          : "Online match reset. Waiting for blue to move."
+        : "Blue begins. Corners hold fewer tokens than the center because each hex uses its real neighbor count as capacity.";
       render();
+      if (broadcast && isHost()) {
+        syncStateToGuest("reset");
+      }
     }
 
-    restartButton.addEventListener("click", resetGame);
-    playAgainButton.addEventListener("click", resetGame);
-    sizeSelect.addEventListener("change", resetGame);
+    restartButton.addEventListener("click", () => {
+      if (network.mode === "guest") {
+        sendNetworkMessage({ type: "request-reset" });
+        detailText.textContent = "Asked the host to reset the match.";
+        render();
+        return;
+      }
+      resetGame(true);
+    });
+    playAgainButton.addEventListener("click", () => {
+      if (network.mode === "guest") {
+        sendNetworkMessage({ type: "request-reset" });
+        closeWinnerOverlay();
+        detailText.textContent = "Asked the host to start a rematch.";
+        render();
+        return;
+      }
+      resetGame(true);
+    });
+    sizeSelect.addEventListener("change", () => resetGame(true));
+    hostButton.addEventListener("click", hostOnlineGame);
+    joinButton.addEventListener("click", joinOnlineGame);
 
     resetGame();
   </script>
