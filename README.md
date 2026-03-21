@@ -2,6 +2,10 @@
 
 This repository contains a simple agent-factory workflow for planning and completing repository tasks with Claude and Codex agents.
 
+## Mini-Game Showcase
+
+仓库根目录新增 `index.html` 作为统一入口页，用卡片方式汇总当前已完成的可玩 mini-games，并直接链接到各自的 `index.html`。直接在浏览器打开根目录 `index.html` 即可浏览和启动游戏。
+
 ## Conway's Game of Life
 
 新增 `game-of-life/index.html`，提供一个可直接在浏览器中打开的康威生命游戏模拟器，包含：
