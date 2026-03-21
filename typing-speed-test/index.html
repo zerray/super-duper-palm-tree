@@ -242,7 +242,22 @@
       </div>
       <div class="card">
         <p>Fifteen built-in passages are included, from short warmups to denser technical text.</p>
-        <p class="hint">Press start, begin typing, and the timer will begin on your first keystroke.</p>
+        <p class="hint">Press start, begin typing, and the timer will begin on your first keystroke. Online race mode shares the same passage between host and guest.</p>
+      </div>
+      <div class="card">
+        <div class="best">Online Race</div>
+        <p class="hint">Host starts the race and picks the passage. Both sides see live progress and WPM.</p>
+        <p class="hint">Mode: <strong id="network-mode">Local</strong> | Room: <strong id="room-code">------</strong></p>
+        <div class="button-row">
+          <button id="create-room" class="secondary" type="button">Create Room</button>
+          <button id="copy-room" class="secondary" type="button">Copy Code</button>
+        </div>
+        <input id="join-room" type="text" maxlength="6" placeholder="ABC123" style="width:100%;margin-top:12px;padding:12px 16px;border:1px solid var(--border);border-radius:18px;font:inherit;">
+        <div class="button-row" style="margin-top:12px;">
+          <button id="join-room-button" class="secondary" type="button">Join Room</button>
+          <button id="leave-room" class="secondary" type="button">Leave Room</button>
+        </div>
+        <p class="hint" id="network-status">Local mode.</p>
       </div>
       <div>
         <button id="start-button" class="primary" type="button">Start Test</button>
@@ -266,6 +281,11 @@
         <div class="card">
           <span class="stat-label">Errors</span>
           <strong id="errors" class="stat-value">0</strong>
+        </div>
+        <div class="card">
+          <span class="stat-label">Opponent</span>
+          <strong id="opponent-progress" class="stat-value">0%</strong>
+          <span class="hint" id="opponent-wpm">0 WPM</span>
         </div>
       </div>
 
@@ -316,6 +336,8 @@
     </section>
   </div>
 
+  <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+  <script src="../shared/peer-room.js"></script>
   <script>
     const BEST_WPM_KEY = "typing-speed-test-best-wpm";
     const passages = [
@@ -351,11 +373,50 @@
     const finalAccuracyDisplay = document.getElementById("final-accuracy");
     const finalTimeDisplay = document.getElementById("final-time");
     const finalErrorsDisplay = document.getElementById("final-errors");
+    const opponentProgressDisplay = document.getElementById("opponent-progress");
+    const opponentWpmDisplay = document.getElementById("opponent-wpm");
+    const networkModeEl = document.getElementById("network-mode");
+    const roomCodeEl = document.getElementById("room-code");
+    const createRoomButton = document.getElementById("create-room");
+    const copyRoomButton = document.getElementById("copy-room");
+    const joinRoomInput = document.getElementById("join-room");
+    const joinRoomButton = document.getElementById("join-room-button");
+    const leaveRoomButton = document.getElementById("leave-room");
+    const networkStatusEl = document.getElementById("network-status");
+    const startButton = document.getElementById("start-button");
+    const retryButton = document.getElementById("retry-button");
+    const newButton = document.getElementById("new-button");
 
     let currentPassage = "";
     let startTime = null;
     let timerId = null;
     let completed = false;
+    let remoteProgress = 0;
+    let remoteWpm = 0;
+
+    function isRemoteMatch() {
+      return room.getContext().connected;
+    }
+
+    function updateRemoteHud() {
+      opponentProgressDisplay.textContent = `${remoteProgress}%`;
+      opponentWpmDisplay.textContent = `${remoteWpm} WPM`;
+    }
+
+    function updateControlLock() {
+      const context = room.getContext();
+      const guestLocked = context.connected && context.isGuest;
+      startButton.disabled = guestLocked;
+      retryButton.disabled = guestLocked;
+      newButton.disabled = guestLocked;
+    }
+
+    function sendRaceState(type, extra = {}) {
+      room.send({
+        type,
+        ...extra
+      });
+    }
 
     function readBestWpm() {
       return Number(window.localStorage.getItem(BEST_WPM_KEY) || "0");
@@ -485,7 +546,15 @@
       completed = true;
       typingInput.disabled = true;
       stopTimer();
-      showResults(renderLiveStats(textValue));
+      const stats = renderLiveStats(textValue);
+      showResults(stats);
+      if (isRemoteMatch()) {
+        sendRaceState("finish", {
+          progress: 100,
+          wpm: stats.wpm,
+          accuracy: stats.accuracy
+        });
+      }
     }
 
     function beginTest(nextPassage) {
@@ -498,6 +567,9 @@
       resultsModal.hidden = true;
       startScreen.hidden = true;
       testScreen.hidden = false;
+      remoteProgress = 0;
+      remoteWpm = 0;
+      updateRemoteHud();
       renderPassage("");
       renderLiveStats("");
       typingInput.focus();
@@ -516,26 +588,82 @@
       }, 100);
     }
 
-    document.getElementById("start-button").addEventListener("click", () => {
-      beginTest(pickRandomPassage());
+    function startRace(nextPassage) {
+      beginTest(nextPassage);
+      if (isRemoteMatch() && room.getContext().isHost) {
+        sendRaceState("start", { passage: nextPassage });
+      }
+    }
+
+    startButton.addEventListener("click", () => {
+      startRace(pickRandomPassage());
     });
 
-    document.getElementById("retry-button").addEventListener("click", () => {
-      beginTest(currentPassage);
+    retryButton.addEventListener("click", () => {
+      startRace(currentPassage);
     });
 
-    document.getElementById("new-button").addEventListener("click", () => {
-      beginTest(pickRandomPassage(currentPassage));
+    newButton.addEventListener("click", () => {
+      startRace(pickRandomPassage(currentPassage));
     });
 
     typingInput.addEventListener("input", () => {
       startTimerIfNeeded();
       renderPassage(typingInput.value);
-      renderLiveStats(typingInput.value);
+      const stats = renderLiveStats(typingInput.value);
+      if (isRemoteMatch()) {
+        const progress = currentPassage.length === 0 ? 0 : Math.round((typingInput.value.length / currentPassage.length) * 100);
+        sendRaceState("progress", { progress, wpm: stats.wpm, accuracy: stats.accuracy });
+      }
       finishTest();
     });
 
+    const room = createPeerRoom({
+      elements: {
+        mode: networkModeEl,
+        roomCode: roomCodeEl,
+        createButton: createRoomButton,
+        copyButton: copyRoomButton,
+        joinInput: joinRoomInput,
+        joinButton: joinRoomButton,
+        leaveButton: leaveRoomButton,
+        status: networkStatusEl
+      },
+      onConnected(context) {
+        updateControlLock();
+        if (context.isGuest) {
+          networkStatusEl.textContent = "Connected as guest. Wait for the host to start the race.";
+        }
+      },
+      onDisconnected() {
+        updateControlLock();
+      },
+      onMessage(message) {
+        if (!message || typeof message !== "object") {
+          return;
+        }
+        if (message.type === "start" && room.getContext().isGuest) {
+          beginTest(message.passage);
+          networkStatusEl.textContent = "Race started by host.";
+          return;
+        }
+        if (message.type === "progress") {
+          remoteProgress = message.progress || 0;
+          remoteWpm = message.wpm || 0;
+          updateRemoteHud();
+          return;
+        }
+        if (message.type === "finish") {
+          remoteProgress = 100;
+          remoteWpm = message.wpm || 0;
+          updateRemoteHud();
+        }
+      }
+    });
+
     renderBestWpm();
+    updateRemoteHud();
+    updateControlLock();
   </script>
 </body>
 </html>
