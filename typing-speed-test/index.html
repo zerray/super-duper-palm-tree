@@ -90,10 +90,63 @@
       padding: 18px;
     }
 
+    .lobby-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .lobby-card {
+      display: grid;
+      gap: 12px;
+    }
+
     .stats {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 12px;
+    }
+
+    .network-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .network-input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 12px 16px;
+      background: #fffdf9;
+      color: var(--text);
+    }
+
+    .status-text {
+      min-height: 1.3em;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .room-code {
+      font-weight: 700;
+      word-break: break-all;
+    }
+
+    .opponent-progress {
+      width: 100%;
+      height: 12px;
+      margin-top: 10px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e5d9c9;
+    }
+
+    .opponent-progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #a95525 0%, #d98b4c 100%);
+      transition: width 120ms ease;
     }
 
     .stat-label {
@@ -220,6 +273,7 @@
         padding: 20px;
       }
 
+      .lobby-grid,
       .stats,
       .result-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -244,8 +298,33 @@
         <p>Fifteen built-in passages are included, from short warmups to denser technical text.</p>
         <p class="hint">Press start, begin typing, and the timer will begin on your first keystroke.</p>
       </div>
-      <div>
-        <button id="start-button" class="primary" type="button">Start Test</button>
+      <div class="lobby-grid">
+        <section class="card lobby-card">
+          <div>
+            <strong>Solo</strong>
+            <p class="hint">Play locally with a random passage and track your personal best.</p>
+          </div>
+          <div class="network-row">
+            <button id="start-button" class="primary" type="button">Start Solo Test</button>
+          </div>
+        </section>
+        <section class="card lobby-card">
+          <div>
+            <strong>Online Race</strong>
+            <p class="hint">Create a room or join with a PeerJS room code. Both players race on the same passage.</p>
+          </div>
+          <div class="network-row">
+            <button id="create-room-button" class="primary" type="button">Create Room</button>
+            <button id="start-match-button" class="secondary" type="button" disabled>Start Online Match</button>
+          </div>
+          <div id="room-code" class="room-code"></div>
+          <input id="join-room-input" class="network-input" type="text" placeholder="Enter room code">
+          <div class="network-row">
+            <button id="join-room-button" class="secondary" type="button">Join Room</button>
+            <button id="leave-room-button" class="secondary" type="button" disabled>Leave Room</button>
+          </div>
+          <div id="network-status" class="status-text">Online multiplayer is optional. If PeerJS is unavailable, solo play still works.</div>
+        </section>
       </div>
     </section>
 
@@ -266,6 +345,13 @@
         <div class="card">
           <span class="stat-label">Errors</span>
           <strong id="errors" class="stat-value">0</strong>
+        </div>
+        <div class="card">
+          <span class="stat-label">Opponent</span>
+          <strong id="opponent-progress-label" class="stat-value">0%</strong>
+          <div class="opponent-progress" aria-hidden="true">
+            <div id="opponent-progress-fill" class="opponent-progress-fill"></div>
+          </div>
         </div>
       </div>
 
@@ -313,9 +399,11 @@
         <button id="retry-button" class="primary" type="button">Retry Passage</button>
         <button id="new-button" class="secondary" type="button">New Passage</button>
       </div>
+      <p id="result-note" class="hint">Solo mode lets you retry or switch passages freely.</p>
     </section>
   </div>
 
+  <script src="https://unpkg.com/peerjs/dist/peerjs.min.js"></script>
   <script>
     const BEST_WPM_KEY = "typing-speed-test-best-wpm";
     const passages = [
@@ -351,11 +439,191 @@
     const finalAccuracyDisplay = document.getElementById("final-accuracy");
     const finalTimeDisplay = document.getElementById("final-time");
     const finalErrorsDisplay = document.getElementById("final-errors");
+    const resultNote = document.getElementById("result-note");
+    const createRoomButton = document.getElementById("create-room-button");
+    const startMatchButton = document.getElementById("start-match-button");
+    const joinRoomButton = document.getElementById("join-room-button");
+    const leaveRoomButton = document.getElementById("leave-room-button");
+    const joinRoomInput = document.getElementById("join-room-input");
+    const networkStatus = document.getElementById("network-status");
+    const roomCode = document.getElementById("room-code");
+    const opponentProgressLabel = document.getElementById("opponent-progress-label");
+    const opponentProgressFill = document.getElementById("opponent-progress-fill");
 
     let currentPassage = "";
     let startTime = null;
     let timerId = null;
     let completed = false;
+    let peer = null;
+    let connection = null;
+    let isOnlineMode = false;
+    let isHost = false;
+    let remoteProgress = 0;
+    let remoteStarted = false;
+
+    function hasPeerSupport() {
+      return typeof window.Peer === "function";
+    }
+
+    function setNetworkStatus(message) {
+      networkStatus.textContent = message;
+    }
+
+    function resetOpponentProgress() {
+      remoteProgress = 0;
+      remoteStarted = false;
+      opponentProgressLabel.textContent = "0%";
+      opponentProgressFill.style.width = "0%";
+    }
+
+    function updateOpponentProgress(progress, hasStarted) {
+      remoteProgress = Math.max(0, Math.min(100, Math.round(progress)));
+      remoteStarted = Boolean(hasStarted);
+      const label = remoteStarted ? `${remoteProgress}%` : "Waiting";
+      opponentProgressLabel.textContent = isOnlineMode ? label : "0%";
+      opponentProgressFill.style.width = isOnlineMode ? `${remoteProgress}%` : "0%";
+    }
+
+    function updateLobbyControls() {
+      const connected = Boolean(connection && connection.open);
+      createRoomButton.disabled = !hasPeerSupport() || connected || Boolean(peer && isHost);
+      joinRoomButton.disabled = !hasPeerSupport() || connected;
+      joinRoomInput.disabled = connected;
+      leaveRoomButton.disabled = !connected && !peer;
+      startMatchButton.disabled = !connected || !isHost;
+    }
+
+    function sendNetworkMessage(payload) {
+      if (connection && connection.open) {
+        connection.send(payload);
+      }
+    }
+
+    function closeNetworkSession(statusMessage) {
+      if (connection) {
+        connection.close();
+        connection = null;
+      }
+      if (peer) {
+        peer.destroy();
+        peer = null;
+      }
+      isOnlineMode = false;
+      isHost = false;
+      roomCode.textContent = "";
+      resetOpponentProgress();
+      updateLobbyControls();
+      setNetworkStatus(statusMessage);
+    }
+
+    function attachConnection(nextConnection) {
+      connection = nextConnection;
+
+      connection.on("open", () => {
+        isOnlineMode = true;
+        updateLobbyControls();
+        setNetworkStatus(isHost ? "Guest connected. Start the online match when ready." : "Connected to room. Waiting for the host to start.");
+      });
+
+      connection.on("data", (message) => {
+        handleNetworkMessage(message);
+      });
+
+      connection.on("close", () => {
+        closeNetworkSession("Connection closed. Solo mode is still available.");
+      });
+
+      connection.on("error", () => {
+        closeNetworkSession("Online connection failed. Solo mode is still available.");
+      });
+    }
+
+    function createHostPeer() {
+      if (!hasPeerSupport()) {
+        setNetworkStatus("PeerJS failed to load, so online rooms are unavailable in this browser session.");
+        updateLobbyControls();
+        return;
+      }
+
+      closeNetworkSession("Preparing a new room...");
+      isHost = true;
+      peer = new window.Peer();
+      setNetworkStatus("Creating room...");
+      updateLobbyControls();
+
+      peer.on("open", (id) => {
+        roomCode.textContent = `Room Code: ${id}`;
+        setNetworkStatus("Room ready. Share the code, then wait for your opponent.");
+        updateLobbyControls();
+      });
+
+      peer.on("connection", (incomingConnection) => {
+        if (connection && connection.open) {
+          incomingConnection.close();
+          return;
+        }
+        attachConnection(incomingConnection);
+      });
+
+      peer.on("error", () => {
+        closeNetworkSession("Unable to create a room. Try refreshing the page.");
+      });
+    }
+
+    function joinHostPeer(roomId) {
+      if (!hasPeerSupport()) {
+        setNetworkStatus("PeerJS failed to load, so online rooms are unavailable in this browser session.");
+        updateLobbyControls();
+        return;
+      }
+
+      closeNetworkSession("Connecting to room...");
+      isHost = false;
+      peer = new window.Peer();
+      updateLobbyControls();
+
+      peer.on("open", () => {
+        roomCode.textContent = `Joined Room: ${roomId}`;
+        attachConnection(peer.connect(roomId, { reliable: true }));
+        setNetworkStatus("Connecting to host...");
+      });
+
+      peer.on("error", () => {
+        closeNetworkSession("Unable to join that room. Check the code and try again.");
+      });
+    }
+
+    function startOnlineRound(nextPassage) {
+      if (!isHost || !connection || !connection.open) {
+        return;
+      }
+
+      sendNetworkMessage({ type: "start-round", passage: nextPassage });
+      beginTest(nextPassage, true);
+      setNetworkStatus("Online match in progress.");
+    }
+
+    function handleNetworkMessage(message) {
+      if (!message || typeof message !== "object") {
+        return;
+      }
+
+      if (message.type === "start-round" && typeof message.passage === "string") {
+        beginTest(message.passage, true);
+        setNetworkStatus("Online match in progress.");
+        return;
+      }
+
+      if (message.type === "progress") {
+        updateOpponentProgress(message.progress, message.started);
+        return;
+      }
+
+      if (message.type === "finished") {
+        updateOpponentProgress(100, true);
+        return;
+      }
+    }
 
     function readBestWpm() {
       return Number(window.localStorage.getItem(BEST_WPM_KEY) || "0");
@@ -472,6 +740,13 @@
       finalAccuracyDisplay.textContent = `${stats.accuracy}%`;
       finalTimeDisplay.textContent = formatSeconds(stats.elapsedMs);
       finalErrorsDisplay.textContent = String(stats.errors);
+      if (isOnlineMode) {
+        resultNote.textContent = isHost
+          ? `Online match complete. Opponent progress: ${remoteProgress}%. Only the host can start the next round.`
+          : `Online match complete. Opponent progress: ${remoteProgress}%. Wait for the host to launch a rematch.`;
+      } else {
+        resultNote.textContent = "Solo mode lets you retry or switch passages freely.";
+      }
       resultsModal.hidden = false;
       writeBestWpm(stats.wpm);
     }
@@ -485,19 +760,26 @@
       completed = true;
       typingInput.disabled = true;
       stopTimer();
+      if (isOnlineMode) {
+        sendNetworkMessage({ type: "finished" });
+      }
       showResults(renderLiveStats(textValue));
     }
 
-    function beginTest(nextPassage) {
+    function beginTest(nextPassage, onlineMode = false) {
       currentPassage = nextPassage;
       startTime = null;
       completed = false;
+      isOnlineMode = onlineMode;
       stopTimer();
       typingInput.value = "";
       typingInput.disabled = false;
       resultsModal.hidden = true;
       startScreen.hidden = true;
       testScreen.hidden = false;
+      retryButton.disabled = isOnlineMode && !isHost;
+      newButton.disabled = isOnlineMode && !isHost;
+      resetOpponentProgress();
       renderPassage("");
       renderLiveStats("");
       typingInput.focus();
@@ -516,25 +798,72 @@
       }, 100);
     }
 
+    const retryButton = document.getElementById("retry-button");
+    const newButton = document.getElementById("new-button");
+
     document.getElementById("start-button").addEventListener("click", () => {
       beginTest(pickRandomPassage());
     });
 
-    document.getElementById("retry-button").addEventListener("click", () => {
+    retryButton.addEventListener("click", () => {
+      if (isOnlineMode) {
+        startOnlineRound(currentPassage);
+        return;
+      }
       beginTest(currentPassage);
     });
 
-    document.getElementById("new-button").addEventListener("click", () => {
-      beginTest(pickRandomPassage(currentPassage));
+    newButton.addEventListener("click", () => {
+      const nextPassage = pickRandomPassage(currentPassage);
+      if (isOnlineMode) {
+        startOnlineRound(nextPassage);
+        return;
+      }
+      beginTest(nextPassage);
     });
 
     typingInput.addEventListener("input", () => {
       startTimerIfNeeded();
       renderPassage(typingInput.value);
       renderLiveStats(typingInput.value);
+      if (isOnlineMode) {
+        const progress = currentPassage.length === 0
+          ? 0
+          : Math.round((typingInput.value.length / currentPassage.length) * 100);
+        sendNetworkMessage({
+          type: "progress",
+          progress,
+          started: Boolean(startTime)
+        });
+      }
       finishTest();
     });
 
+    createRoomButton.addEventListener("click", () => {
+      createHostPeer();
+    });
+
+    joinRoomButton.addEventListener("click", () => {
+      const roomId = joinRoomInput.value.trim();
+      if (!roomId) {
+        setNetworkStatus("Enter a room code before joining.");
+        return;
+      }
+      joinHostPeer(roomId);
+    });
+
+    leaveRoomButton.addEventListener("click", () => {
+      closeNetworkSession("Disconnected from online multiplayer.");
+    });
+
+    startMatchButton.addEventListener("click", () => {
+      startOnlineRound(pickRandomPassage());
+    });
+
+    if (!hasPeerSupport()) {
+      setNetworkStatus("PeerJS failed to load, so online rooms are unavailable in this browser session.");
+    }
+    updateLobbyControls();
     renderBestWpm();
   </script>
 </body>
