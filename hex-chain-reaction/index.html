@@ -357,7 +357,7 @@
     <aside class="panel">
       <div class="card">
         <h2>Match Controls</h2>
-        <p class="muted">Two-player hot-seat. Place on empty cells or cells you already control, then pass the device once the board finishes cascading.</p>
+        <p class="muted">Two-player hot-seat by default, with an optional PeerJS room for online blue-vs-red play.</p>
         <div class="control-row">
           <label for="sizeSelect">Board radius</label>
           <select id="sizeSelect" class="size-select" aria-label="Board radius">
@@ -367,6 +367,28 @@
           </select>
         </div>
         <button class="action" id="restartButton" type="button">New Game</button>
+      </div>
+
+      <div class="card">
+        <h2>Online Room</h2>
+        <p class="muted">Host plays blue, guest plays red. The host runs the cascade logic and syncs the resolved board after every turn.</p>
+        <div class="badge-row">
+          <div class="badge">Mode: <span id="networkMode">Local</span></div>
+          <div class="badge">Room: <span id="roomCode">------</span></div>
+        </div>
+        <div class="control-row">
+          <button class="action" id="createRoomButton" type="button">Create Room</button>
+          <button class="action" id="copyRoomButton" type="button">Copy Code</button>
+        </div>
+        <div class="control-row">
+          <label for="joinRoomInput">Join code</label>
+          <input id="joinRoomInput" class="size-select" type="text" maxlength="6" placeholder="ABC123" autocomplete="off">
+        </div>
+        <div class="control-row">
+          <button class="action" id="joinRoomButton" type="button">Join Room</button>
+          <button class="action" id="leaveRoomButton" type="button">Leave Room</button>
+        </div>
+        <p class="muted" id="networkStatus">Local mode.</p>
       </div>
 
       <div class="card">
@@ -400,6 +422,8 @@
     </div>
   </div>
 
+  <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+  <script src="../shared/peer-room.js"></script>
   <script>
     const DEFAULT_RADIUS = 7;
     const ANIMATION_STEP_MS = 160;
@@ -443,6 +467,14 @@
     const winnerOverlay = document.getElementById("winnerOverlay");
     const winnerTitle = document.getElementById("winnerTitle");
     const winnerText = document.getElementById("winnerText");
+    const networkMode = document.getElementById("networkMode");
+    const roomCode = document.getElementById("roomCode");
+    const createRoomButton = document.getElementById("createRoomButton");
+    const copyRoomButton = document.getElementById("copyRoomButton");
+    const joinRoomInput = document.getElementById("joinRoomInput");
+    const joinRoomButton = document.getElementById("joinRoomButton");
+    const leaveRoomButton = document.getElementById("leaveRoomButton");
+    const networkStatus = document.getElementById("networkStatus");
 
     const state = {
       gridRadius: DEFAULT_RADIUS,
@@ -455,6 +487,79 @@
       highlightedKeys: new Set(),
       cascadeStep: 0
     };
+
+    function getRemoteRole() {
+      return room.getContext();
+    }
+
+    function canControlPlayer(player) {
+      const context = getRemoteRole();
+      if (!context.connected) {
+        return true;
+      }
+      return context.isHost ? player === PLAYER_ONE : player === PLAYER_TWO;
+    }
+
+    function updateNetworkControls() {
+      const context = getRemoteRole();
+      const guestLocked = context.connected && context.isGuest;
+      sizeSelect.disabled = guestLocked;
+      restartButton.disabled = guestLocked;
+      playAgainButton.disabled = guestLocked;
+    }
+
+    function serializeState() {
+      return {
+        gridRadius: state.gridRadius,
+        currentPlayer: state.currentPlayer,
+        totalMoves: state.totalMoves,
+        winner: state.winner,
+        cascadeStep: state.cascadeStep,
+        detail: detailText.textContent,
+        cells: state.cells.map((entry) => {
+          const cell = state.board.get(entry.key);
+          return { q: cell.q, r: cell.r, owner: cell.owner, count: cell.count };
+        })
+      };
+    }
+
+    function hydrateState(snapshot) {
+      if (!snapshot || !Array.isArray(snapshot.cells)) {
+        return;
+      }
+      sizeSelect.value = String(snapshot.gridRadius);
+      state.gridRadius = snapshot.gridRadius;
+      state.currentPlayer = snapshot.currentPlayer;
+      state.totalMoves = snapshot.totalMoves;
+      state.winner = snapshot.winner;
+      state.resolving = false;
+      state.highlightedKeys = new Set();
+      state.cascadeStep = snapshot.cascadeStep || 0;
+      const { board, cells } = createBoardMap(snapshot.gridRadius);
+      for (const entry of snapshot.cells) {
+        const cell = board.get(keyFor(entry.q, entry.r));
+        if (cell) {
+          cell.owner = entry.owner;
+          cell.count = entry.count;
+        }
+      }
+      state.board = board;
+      state.cells = cells;
+      detailText.textContent = snapshot.detail || detailText.textContent;
+      if (state.winner) {
+        openWinnerOverlay(state.winner);
+      } else {
+        closeWinnerOverlay();
+      }
+      updateNetworkControls();
+      render();
+    }
+
+    function syncRemoteState(reason = "sync") {
+      if (getRemoteRole().isHost) {
+        room.send({ type: "sync", reason, snapshot: serializeState() });
+      }
+    }
 
     function sleep(ms) {
       return new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -634,7 +739,7 @@
         if (cell.owner) {
           classes.push(PLAYER_CLASS[cell.owner]);
         }
-        if (!state.resolving && !state.winner && isLegalMove(cell, state.currentPlayer)) {
+        if (!state.resolving && !state.winner && isLegalMove(cell, state.currentPlayer) && canControlPlayer(state.currentPlayer)) {
           classes.push("clickable");
         } else {
           classes.push("blocked");
@@ -692,6 +797,7 @@
       blueTokens.textContent = `${summary.blueTokenCount}`;
       redTokens.textContent = `${summary.redTokenCount}`;
       cascadeCount.textContent = `${state.cascadeStep}`;
+      updateNetworkControls();
     }
 
     function render() {
@@ -770,6 +876,7 @@
         detailText.textContent = `${PLAYER_NAMES[state.currentPlayer]} to move.`;
       }
       render();
+      syncRemoteState("resolved-turn");
     }
 
     async function commitMove(q, r, player) {
@@ -787,19 +894,10 @@
       await resolveChainReaction(player);
     }
 
-    async function handleCellClick(q, r) {
-      if (state.resolving || state.winner) {
-        return;
-      }
-      const cell = getCell(q, r);
-      if (!isLegalMove(cell, state.currentPlayer)) {
-        detailText.textContent = `Choose an empty hex or one controlled by ${PLAYER_NAMES[state.currentPlayer]}.`;
-        return;
-      }
-      await commitMove(q, r, state.currentPlayer);
-    }
-
     function resetGame() {
+      if (getRemoteRole().connected && getRemoteRole().isGuest) {
+        return;
+      }
       const nextRadius = Number(sizeSelect.value) || DEFAULT_RADIUS;
       const { board, cells } = createBoardMap(nextRadius);
       state.gridRadius = nextRadius;
@@ -814,13 +912,83 @@
       closeWinnerOverlay();
       detailText.textContent = "Blue begins. Corners hold fewer tokens than the center because each hex uses its real neighbor count as capacity.";
       render();
+      syncRemoteState("reset");
     }
+
+    function handleNetworkMessage(message) {
+      if (!message || typeof message !== "object") {
+        return;
+      }
+      if (message.type === "sync" && !getRemoteRole().isHost) {
+        hydrateState(message.snapshot);
+        return;
+      }
+      if (message.type === "move" && getRemoteRole().isHost) {
+        if (state.currentPlayer !== PLAYER_TWO || state.resolving || state.winner) {
+          return;
+        }
+        const cell = getCell(message.q, message.r);
+        if (!isLegalMove(cell, PLAYER_TWO)) {
+          return;
+        }
+        commitMove(message.q, message.r, PLAYER_TWO);
+      }
+    }
+
+    const room = createPeerRoom({
+      elements: {
+        mode: networkMode,
+        roomCode,
+        createButton: createRoomButton,
+        copyButton: copyRoomButton,
+        joinInput: joinRoomInput,
+        joinButton: joinRoomButton,
+        leaveButton: leaveRoomButton,
+        status: networkStatus
+      },
+      onConnected(context) {
+        if (context.isHost) {
+          syncRemoteState("initial-sync");
+        }
+        updateNetworkControls();
+        render();
+      },
+      onDisconnected() {
+        updateNetworkControls();
+        render();
+      },
+      onMessage(message) {
+        handleNetworkMessage(message);
+      }
+    });
 
     restartButton.addEventListener("click", resetGame);
     playAgainButton.addEventListener("click", resetGame);
     sizeSelect.addEventListener("change", resetGame);
 
     resetGame();
+
+    async function handleCellClick(q, r) {
+      if (state.resolving || state.winner) {
+        return;
+      }
+      if (!canControlPlayer(state.currentPlayer)) {
+        detailText.textContent = "Wait for the remote player to finish their turn.";
+        return;
+      }
+      const context = getRemoteRole();
+      if (context.connected && context.isGuest) {
+        room.send({ type: "move", q, r });
+        detailText.textContent = `Sent red move at axial ${q},${r}. Waiting for host resolution.`;
+        return;
+      }
+      const cell = getCell(q, r);
+      if (!isLegalMove(cell, state.currentPlayer)) {
+        detailText.textContent = `Choose an empty hex or one controlled by ${PLAYER_NAMES[state.currentPlayer]}.`;
+        return;
+      }
+      await commitMove(q, r, state.currentPlayer);
+    }
   </script>
 </body>
 </html>
