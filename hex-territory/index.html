@@ -37,7 +37,8 @@
         linear-gradient(180deg, #f8f3ea 0%, var(--bg) 100%);
     }
 
-    button {
+    button,
+    input {
       font: inherit;
       cursor: pointer;
     }
@@ -239,6 +240,16 @@
       box-shadow: 0 10px 16px rgba(57, 95, 54, 0.18);
     }
 
+    .room-field {
+      width: 100%;
+      min-height: 42px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(73, 57, 39, 0.14);
+      background: rgba(255, 255, 255, 0.84);
+      color: var(--ink);
+    }
+
     .status {
       min-height: 3.2em;
       color: var(--muted);
@@ -298,10 +309,25 @@
         <p class="status" id="status-text">Your turn. Pick any empty hex to start expanding.</p>
       </section>
 
+      <section class="card">
+        <h2>Online Duel</h2>
+        <div class="legend">
+          <div class="legend-item"><span class="swatch player"></span><span>Role: <strong id="network-role">Local</strong></span></div>
+          <div class="legend-item"><span class="swatch empty"></span><span>Room: <strong id="room-code">Not connected</strong></span></div>
+        </div>
+        <input id="room-input" class="room-field" type="text" placeholder="Enter room code">
+        <button class="control" id="create-room" type="button">Create Room</button>
+        <button class="control" id="join-room" type="button">Join Room</button>
+        <button class="control" id="disconnect-room" type="button">Disconnect</button>
+        <p class="muted" id="network-status">Local mode. Create a room or join one.</p>
+      </section>
+
       <button class="control" id="new-game" type="button">New Game</button>
     </aside>
   </div>
 
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="../shared/peer-multiplayer.js"></script>
   <script>
     const BOARD_RADIUS = 6;
     const HEX_SIZE = 34;
@@ -324,6 +350,13 @@
     const emptyCountEl = document.getElementById("empty-count");
     const statusTextEl = document.getElementById("status-text");
     const newGameButton = document.getElementById("new-game");
+    const roomInput = document.getElementById("room-input");
+    const roomCode = document.getElementById("room-code");
+    const networkRole = document.getElementById("network-role");
+    const networkStatus = document.getElementById("network-status");
+    const createRoomButton = document.getElementById("create-room");
+    const joinRoomButton = document.getElementById("join-room");
+    const disconnectRoomButton = document.getElementById("disconnect-room");
 
     const cells = [];
     const cellMap = new Map();
@@ -332,12 +365,55 @@
     let aiTimer = null;
     let gameOver = false;
 
+    function isOnlineMatch() {
+      return multiplayer.isConnected();
+    }
+
+    function localOwner() {
+      if (!isOnlineMatch()) {
+        return "player";
+      }
+      return multiplayer.isHost() ? "player" : "ai";
+    }
+
+    function displayOwnerName(owner) {
+      if (!isOnlineMatch()) {
+        return owner === "player" ? "Player" : "AI";
+      }
+      return owner === "player" ? "Blue" : "Red";
+    }
+
+    function canLocalPlayerAct() {
+      return !gameOver && currentTurn === localOwner();
+    }
+
+    function serializeState() {
+      return {
+        currentTurn,
+        gameOver,
+        cells: Array.from(state.entries()),
+        status: statusTextEl.textContent
+      };
+    }
+
+    function applySnapshot(snapshot) {
+      if (!snapshot || !Array.isArray(snapshot.cells)) {
+        return;
+      }
+      state = new Map(snapshot.cells);
+      currentTurn = snapshot.currentTurn || "player";
+      gameOver = Boolean(snapshot.gameOver);
+      setStatus(snapshot.status || statusTextEl.textContent);
+      updateHud();
+      renderBoard();
+    }
+
     function keyFor(q, r) {
       return `${q},${r}`;
     }
 
     function ownerName(owner) {
-      return owner === "player" ? "Player" : "AI";
+      return displayOwnerName(owner);
     }
 
     function otherOwner(owner) {
@@ -514,11 +590,11 @@
         hex.dataset.key = cell.key;
         hex.dataset.hexagon = "true";
 
-        if (highlightKey && highlightKey === cell.key && owner === null && currentTurn === "player" && !gameOver) {
+        if (highlightKey && highlightKey === cell.key && owner === null && canLocalPlayerAct()) {
           hex.classList.add("hover");
         }
 
-        if (owner !== null || currentTurn !== "player" || gameOver) {
+        if (owner !== null || !canLocalPlayerAct()) {
           hex.classList.add("disabled");
         } else {
           hex.addEventListener("mouseenter", () => renderBoard(cell.key));
@@ -547,9 +623,9 @@
       const counts = countTiles(state);
 
       if (counts.player > counts.ai) {
-        setStatus(`Board full. You win ${counts.player} to ${counts.ai}.`);
+        setStatus(`Board full. ${ownerName("player")} wins ${counts.player} to ${counts.ai}.`);
       } else if (counts.ai > counts.player) {
-        setStatus(`Board full. AI wins ${counts.ai} to ${counts.player}.`);
+        setStatus(`Board full. ${ownerName("ai")} wins ${counts.ai} to ${counts.player}.`);
       } else {
         setStatus(`Board full. Draw game at ${counts.player} each.`);
       }
@@ -567,7 +643,7 @@
       return false;
     }
 
-    function commitMove(cell, owner) {
+    function commitMove(cell, owner, shouldBroadcast = false) {
       const result = simulateMove(state, cell, owner);
       state = result.nextState;
       updateHud();
@@ -580,21 +656,31 @@
         setStatus(`${ownerName(owner)} placed at ${cell.q}, ${cell.r}. No captures this turn.`);
       }
 
+      if (shouldBroadcast && multiplayer.isConnected()) {
+        multiplayer.send({ type: "move", key: cell.key, owner });
+      }
+
       return captures;
     }
 
     function handlePlayerMove(cell) {
-      if (currentTurn !== "player" || gameOver || state.get(cell.key) !== null) {
+      if (!canLocalPlayerAct() || state.get(cell.key) !== null) {
         return;
       }
 
-      commitMove(cell, "player");
+      commitMove(cell, localOwner(), multiplayer.isConnected());
       if (evaluateGameState()) {
         return;
       }
 
-      currentTurn = "ai";
+      currentTurn = otherOwner(localOwner());
       updateHud();
+      if (isOnlineMatch()) {
+        setStatus(`Waiting for ${ownerName(currentTurn)} to move.`);
+        renderBoard();
+        return;
+      }
+
       setStatus("AI is evaluating the board...");
       renderBoard();
       aiTimer = window.setTimeout(takeAiTurn, AI_DELAY_MS);
@@ -622,7 +708,11 @@
       renderBoard();
     }
 
-    function resetGame() {
+    function resetGame(broadcast = true) {
+      if (multiplayer.isConnected() && multiplayer.isGuest() && broadcast) {
+        setStatus("Only the host can reset an online duel.");
+        return;
+      }
       if (aiTimer !== null) {
         window.clearTimeout(aiTimer);
       }
@@ -632,7 +722,62 @@
       updateHud();
       setStatus("Your turn. Pick any empty hex to start expanding.");
       renderBoard();
+      if (broadcast && multiplayer.isHost() && multiplayer.isConnected()) {
+        multiplayer.send({ type: "reset" });
+        multiplayer.send({ type: "snapshot", snapshot: serializeState() });
+      }
     }
+
+    const multiplayer = createPeerMultiplayer({
+      elements: {
+        roomInput,
+        roomCode,
+        role: networkRole,
+        status: networkStatus,
+        createButton: createRoomButton,
+        joinButton: joinRoomButton,
+        disconnectButton: disconnectRoomButton
+      },
+      getSnapshot: serializeState,
+      applySnapshot,
+      onRoleChange(role) {
+        const guest = role === "guest";
+        newGameButton.disabled = guest;
+        if (role === "host") {
+          setStatus("Room ready. You play blue; wait for red to join.");
+          resetGame(false);
+        } else if (role === "guest") {
+          setStatus("Joined as red. Waiting for the host state.");
+        } else {
+          newGameButton.disabled = false;
+          resetGame(false);
+        }
+      },
+      onResetLocal() {
+        newGameButton.disabled = false;
+        resetGame(false);
+      },
+      onMessage(message) {
+        if (message.type === "reset") {
+          resetGame(false);
+          return;
+        }
+        if (message.type === "move") {
+          const cell = cellMap.get(message.key);
+          if (!cell || state.get(cell.key) !== null || gameOver) {
+            return;
+          }
+          commitMove(cell, message.owner, false);
+          if (evaluateGameState()) {
+            return;
+          }
+          currentTurn = otherOwner(message.owner);
+          updateHud();
+          setStatus(`Your turn. ${ownerName(message.owner)} just played at ${cell.q}, ${cell.r}.`);
+          renderBoard();
+        }
+      }
+    });
 
     newGameButton.addEventListener("click", resetGame);
 

@@ -32,7 +32,8 @@
         linear-gradient(180deg, #171d35 0%, #090d18 100%);
     }
 
-    button {
+    button,
+    input {
       font: inherit;
       cursor: pointer;
     }
@@ -245,6 +246,16 @@
       box-shadow: 0 12px 24px rgba(255, 183, 3, 0.24);
     }
 
+    .room-field {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(5, 10, 20, 0.55);
+      color: var(--text);
+    }
+
     .overlay {
       position: absolute;
       inset: 0;
@@ -331,9 +342,23 @@
         <h2>Markers</h2>
         <p class="rules">Diamond markers show the player root and the AI root so you can track each connected region during the flood animations.</p>
       </section>
+
+      <section class="card">
+        <h2>Online Duel</h2>
+        <p class="rules">Default mode stays local against the greedy AI. Create a room to play as cyan, or join one to play as coral.</p>
+        <p class="rules">Role: <strong id="network-role">Local</strong></p>
+        <p class="rules">Room: <strong id="room-code">Not connected</strong></p>
+        <input id="room-input" class="room-field" type="text" placeholder="Enter room code">
+        <button class="action" id="create-room" type="button">Create Room</button>
+        <button class="action" id="join-room" type="button">Join Room</button>
+        <button class="action" id="disconnect-room" type="button">Disconnect</button>
+        <p class="rules" id="network-status">Local mode. Create a room or join one.</p>
+      </section>
     </aside>
   </div>
 
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="../shared/peer-multiplayer.js"></script>
   <script>
     const BOARD_ROWS = 7;
     const BOARD_COLS = 7;
@@ -366,6 +391,70 @@
     const overlayTitleEl = document.getElementById("game-over-title");
     const overlayTextEl = document.getElementById("game-over-text");
     const playAgainButton = document.getElementById("play-again-button");
+    const roomInput = document.getElementById("room-input");
+    const roomCode = document.getElementById("room-code");
+    const networkRole = document.getElementById("network-role");
+    const networkStatus = document.getElementById("network-status");
+    const createRoomButton = document.getElementById("create-room");
+    const joinRoomButton = document.getElementById("join-room");
+    const disconnectRoomButton = document.getElementById("disconnect-room");
+
+    function isOnlineMatch() {
+      return multiplayer.isConnected();
+    }
+
+    function localOwner() {
+      if (!isOnlineMatch()) {
+        return OWNER_PLAYER;
+      }
+      return multiplayer.isHost() ? OWNER_PLAYER : OWNER_AI;
+    }
+
+    function ownerLabel(owner) {
+      if (!isOnlineMatch()) {
+        return owner === OWNER_PLAYER ? "Player" : "AI";
+      }
+      return owner === OWNER_PLAYER ? "Cyan" : "Coral";
+    }
+
+    function canLocalPlayerAct() {
+      return !state.locked && !state.over && state.turn === localOwner();
+    }
+
+    function serializeState() {
+      return {
+        cells: state.cells.map((cell) => ({
+          row: cell.row,
+          col: cell.col,
+          colorIndex: cell.colorIndex,
+          owner: cell.owner
+        })),
+        turn: state.turn,
+        locked: state.locked,
+        over: state.over,
+        status: statusTextEl.textContent
+      };
+    }
+
+    function applySnapshot(snapshot) {
+      if (!snapshot || !Array.isArray(snapshot.cells)) {
+        return;
+      }
+      state.cells = snapshot.cells.map((cell) => ({
+        ...cell,
+        polygon: null,
+        marker: null
+      }));
+      state.turn = snapshot.turn || OWNER_PLAYER;
+      state.locked = Boolean(snapshot.locked);
+      state.over = Boolean(snapshot.over);
+      board.innerHTML = "";
+      renderBoard();
+      renderPalette();
+      updateStatus(snapshot.status || statusTextEl.textContent);
+      updateHud();
+      overlayEl.classList.toggle("show", state.over);
+    }
 
     function cellKey(row, col) {
       return `${row},${col}`;
@@ -587,7 +676,7 @@
       const playerColor = getCellAt(playerRoot).colorIndex;
       const aiColor = getCellAt(aiRoot).colorIndex;
       Array.from(palette.children).forEach((button, index) => {
-        const disabled = state.locked || state.over || state.turn !== OWNER_PLAYER || index === playerColor || index === aiColor;
+        const disabled = state.locked || state.over || !canLocalPlayerAct() || index === playerColor || index === aiColor;
         button.disabled = disabled;
         button.classList.toggle("selected", index === playerColor);
       });
@@ -600,7 +689,7 @@
     function updateHud() {
       playerScoreEl.textContent = String(countOwned(OWNER_PLAYER));
       aiScoreEl.textContent = String(countOwned(OWNER_AI));
-      turnLabelEl.textContent = state.over ? "Finished" : state.turn === OWNER_PLAYER ? "Player" : "AI";
+      turnLabelEl.textContent = state.over ? "Finished" : ownerLabel(state.turn);
       refreshPaletteState();
     }
 
@@ -634,9 +723,9 @@
       const aiScore = countOwned(OWNER_AI);
       let title = "Draw";
       if (playerScore > aiScore) {
-        title = "You Win";
+        title = `${ownerLabel(OWNER_PLAYER)} Wins`;
       } else if (aiScore > playerScore) {
-        title = "AI Wins";
+        title = `${ownerLabel(OWNER_AI)} Wins`;
       }
       overlayTitleEl.textContent = title;
       overlayTextEl.textContent = `Final score: ${playerScore} to ${aiScore}. Every hex is claimed, so the larger empire takes the board.`;
@@ -645,17 +734,20 @@
       updateHud();
     }
 
-    function commitMove(owner, colorIndex) {
+    function commitMove(owner, colorIndex, shouldBroadcast = false) {
       const previous = state.cells.map((cell) => ({ row: cell.row, col: cell.col, colorIndex: cell.colorIndex, owner: cell.owner }));
       const result = applyColorChoice(state.cells, owner, colorIndex);
       state.cells = result.cells;
       syncBoard(false, previous);
       updateHud();
+      if (shouldBroadcast && multiplayer.isConnected()) {
+        multiplayer.send({ type: "move", owner, colorIndex });
+      }
       return result.captured;
     }
 
     function handlePlayerTurn(colorIndex) {
-      if (state.locked || state.over || state.turn !== OWNER_PLAYER) {
+      if (!canLocalPlayerAct()) {
         return;
       }
       const playerColor = getCellAt(playerRoot).colorIndex;
@@ -665,15 +757,20 @@
       }
 
       state.locked = true;
-      const captured = commitMove(OWNER_PLAYER, colorIndex);
-      updateStatus(captured > 0 ? `You captured ${captured} neutral ${captured === 1 ? "hex" : "hexes"}. The AI is thinking.` : "No immediate capture. The AI is thinking.");
+      const currentOwner = localOwner();
+      const captured = commitMove(currentOwner, colorIndex, multiplayer.isConnected());
+      const remoteLabel = isOnlineMatch() ? ownerLabel(currentOwner === OWNER_PLAYER ? OWNER_AI : OWNER_PLAYER) : "AI";
+      updateStatus(captured > 0 ? `${ownerLabel(currentOwner)} captured ${captured} neutral ${captured === 1 ? "hex" : "hexes"}. ${remoteLabel} is up next.` : `${ownerLabel(currentOwner)} changed color without an immediate capture. ${remoteLabel} is up next.`);
       if (allClaimed()) {
         finishGame();
         return;
       }
 
-      state.turn = OWNER_AI;
+      state.turn = currentOwner === OWNER_PLAYER ? OWNER_AI : OWNER_PLAYER;
       updateHud();
+      if (isOnlineMatch()) {
+        return;
+      }
       window.setTimeout(takeAiTurn, AI_DELAY_MS);
     }
 
@@ -697,13 +794,72 @@
       updateHud();
     }
 
-    function resetGame() {
+    function resetGame(broadcast = true) {
+      if (multiplayer.isConnected() && multiplayer.isGuest() && broadcast) {
+        updateStatus("Only the host can reset an online duel.");
+        return;
+      }
       state.turn = OWNER_PLAYER;
       state.locked = false;
       state.over = false;
       overlayEl.classList.remove("show");
       buildBoard();
+      if (broadcast && multiplayer.isHost() && multiplayer.isConnected()) {
+        multiplayer.send({ type: "reset" });
+        multiplayer.send({ type: "snapshot", snapshot: serializeState() });
+      }
     }
+
+    const multiplayer = createPeerMultiplayer({
+      elements: {
+        roomInput,
+        roomCode,
+        role: networkRole,
+        status: networkStatus,
+        createButton: createRoomButton,
+        joinButton: joinRoomButton,
+        disconnectButton: disconnectRoomButton
+      },
+      getSnapshot: serializeState,
+      applySnapshot,
+      onRoleChange(role) {
+        playAgainButton.disabled = role === "guest";
+        if (role === "host") {
+          updateStatus("Room ready. You are cyan; wait for coral to join.");
+          resetGame(false);
+        } else if (role === "guest") {
+          updateStatus("Joined as coral. Waiting for the host state.");
+        } else {
+          playAgainButton.disabled = false;
+          resetGame(false);
+        }
+      },
+      onResetLocal() {
+        playAgainButton.disabled = false;
+        resetGame(false);
+      },
+      onMessage(message) {
+        if (message.type === "reset") {
+          resetGame(false);
+          return;
+        }
+        if (message.type === "move") {
+          if (state.over || message.owner !== state.turn) {
+            return;
+          }
+          state.locked = true;
+          const captured = commitMove(message.owner, message.colorIndex, false);
+          if (allClaimed()) {
+            finishGame();
+            return;
+          }
+          state.turn = message.owner === OWNER_PLAYER ? OWNER_AI : OWNER_PLAYER;
+          state.locked = false;
+          updateStatus(captured > 0 ? `${ownerLabel(message.owner)} claimed ${captured} hexes. Your move.` : `${ownerLabel(message.owner)} changed color. Your move.`);
+          updateHud();
+        }
+      }
+    });
 
     playAgainButton.addEventListener("click", resetGame);
 
