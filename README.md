@@ -6,6 +6,23 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 仓库根目录新增 `index.html` 作为统一入口页，用卡片方式汇总当前已完成的可玩 mini-games，并直接链接到各自的 `index.html`。直接在浏览器打开根目录 `index.html` 即可浏览和启动游戏。
 
+## Multiplayer Upgrade Candidates
+
+当前仓库尚未提供统一的房间、状态同步或实时通信层。针对“添加多玩家联网功能”这一需求，现阶段最直接的前置工作是先筛出规则与交互上明确适合升级为联网多人版的游戏：
+
+- `hex-chain-reaction`：已具备双人轮流落子的 hot-seat 基础，最适合直接升级为在线 PvP。
+- `hex-territory`：天然适合双人回合制对战，可将现有 AI 对手替换为远端玩家。
+- `hex-chain`：六边形棋盘策略对抗玩法，适合做双人同步对战。
+- `hex-color-conquest`：领地争夺核心天然支持多人竞争，占点与结算逻辑易于同步。
+- `snake-game`：可扩展为双蛇竞速或对抗，适合做同局实时联网。
+- `gravity-golf`：可扩展为轮流击球比杆或同图竞速，适合异步或房间制多人。
+- `sokoban-game`：可扩展为同图协作推箱子，适合做双人合作解谜。
+- `rhythm-tap`：可扩展为房间内分数对战，适合同步谱面下的多人竞分。
+- `typing-speed-test`：可扩展为多人实时竞速打字，对局同步成本较低。
+- `waveform-dj`、`sound-palette`、`pixel-pulse-sequencer`：更适合做协作式多人创作房间，而非传统对战。
+
+这份候选清单可作为后续实现联网多人版本时的范围基线，优先级建议从 `hex-chain-reaction` 与 `hex-territory` 开始。
+
 ## Conway's Game of Life
 
 新增 `game-of-life/index.html`，提供一个可直接在浏览器中打开的康威生命游戏模拟器，包含：
