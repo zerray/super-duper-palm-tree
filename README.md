@@ -77,6 +77,7 @@ This repository contains a simple agent-factory workflow for planning and comple
 - 约 127 格的小型六边形棋盘与 SVG 渲染
 - 点击空白六边形落子，被完全包围的敌方连通块会被翻转占领
 - 使用“优先最大化吃子，其次最大化己方邻接数”的贪心 AI 对手
+- 支持基于 PeerJS 的在线双人房间，主机执蓝方、客机执红方，并在加入时同步当前棋局
 - 棋盘填满后自动结算胜负，并支持 `New Game` 立即重开
 
 直接用浏览器打开 `hex-territory/index.html` 即可游玩。
@@ -143,10 +144,21 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 - 默认 radius 7、可切换到 radius 5 或 9 的 SVG 六边形棋盘，使用轴坐标与 `Map` 保存格子状态
 - 双人 hot-seat 轮流落子，只能下在空格或己方控制的格子上
+- 支持基于 PeerJS 的在线双人房间，主机为蓝方、客机为红方，并同步落子与重开局
 - 当 token 数量超过该格实际邻居数时触发爆裂，并以短延迟逐步播放连锁反应
 - 当前玩家提示、回合统计、重新开始按钮，以及一方在连锁结算后失去全部 token 时的胜利结算
 
 直接用浏览器打开 `hex-chain-reaction/index.html` 即可游玩。
+
+## Hex Color Conquest
+
+新增 `hex-color-conquest/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的六边形染色扩张策略游戏，包含：
+
+- 7x7 六边形棋盘、6 种固定调色板，以及基于 flood-fill 的势力扩张规则
+- 本地模式下使用贪心 AI 对手，在线模式下通过 PeerJS 房间改为双人对战
+- 主机在随机开局后向客机同步完整棋盘状态，双方随后同步颜色选择与结算
+
+直接用浏览器打开 `hex-color-conquest/index.html` 即可游玩。
 
 ## Kaleidoscope Drawing Toy
 

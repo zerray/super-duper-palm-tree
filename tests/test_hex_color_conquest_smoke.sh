@@ -21,6 +21,10 @@ grep -q 'function chooseAiMove()' "$app_file" || fail "AI chooser missing"
 grep -q 'window.setTimeout(takeAiTurn, AI_DELAY_MS)' "$app_file" || fail "AI delay missing"
 grep -q 'id="board"' "$app_file" || fail "svg board missing"
 grep -q 'id="play-again-button"' "$app_file" || fail "play again button missing"
-grep -q 'game ends when all hexes are claimed' "$app_file" || fail "rules text missing"
+grep -q 'Create Room' "$app_file" || fail "online host control missing"
+grep -q 'Join Room' "$app_file" || fail "online guest control missing"
+grep -q 'peerjs@1.5.4' "$app_file" || fail "PeerJS client missing"
+grep -q 'function serializeSnapshot' "$app_file" || fail "snapshot sync missing"
+grep -q 'online mode turns the opposite root into a remote player' "$app_file" || fail "online rules text missing"
 
 printf 'hex color conquest smoke test passed\n'

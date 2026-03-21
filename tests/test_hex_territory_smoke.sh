@@ -20,6 +20,10 @@ grep -q 'function chooseAiMove()' "$app_file" || fail "AI move picker missing"
 grep -q 'captures === bestMove.captures && adjacency > bestMove.adjacency' "$app_file" || fail "greedy AI tiebreak missing"
 grep -q 'window.setTimeout(takeAiTurn, AI_DELAY_MS)' "$app_file" || fail "AI delay missing"
 grep -q 'Hex Territory Strategy' "$app_file" || fail "game title missing"
-grep -q 'captured and changes color' "$app_file" || fail "capture rules text missing"
+grep -q 'Create Room' "$app_file" || fail "online host control missing"
+grep -q 'Join Room' "$app_file" || fail "online guest control missing"
+grep -q 'peerjs@1.5.4' "$app_file" || fail "PeerJS client missing"
+grep -q 'function serializeSnapshot' "$app_file" || fail "snapshot sync missing"
+grep -q 'remote player' "$app_file" || fail "online rules copy missing"
 
 printf 'hex territory smoke test passed\n'

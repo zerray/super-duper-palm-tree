@@ -22,11 +22,14 @@ grep -q 'function isWithinRadius' "$app_file" || fail "hex radius bounds missing
 grep -q 'function getNeighborsFromBoard' "$app_file" || fail "neighbor lookup missing"
 grep -q 'cell.count > getNeighborCount(cell, board)' "$app_file" || fail "overflow threshold missing"
 grep -q 'id="sizeSelect"' "$app_file" || fail "board size control missing"
-grep -q 'Two-player hot-seat' "$app_file" || fail "hot-seat copy missing"
+grep -q 'Create Room' "$app_file" || fail "online host control missing"
+grep -q 'Join Room' "$app_file" || fail "online guest control missing"
+grep -q 'peerjs@1.5.4' "$app_file" || fail "PeerJS client missing"
 grep -q 'async function resolveChainReaction' "$app_file" || fail "animated chain reaction missing"
 grep -q 'New Game' "$app_file" || fail "restart control missing"
 grep -q 'Move:' "$app_file" || fail "move counter missing"
 grep -q 'Take turns placing tokens on a hex grid' "$app_file" || fail "rules copy missing"
+grep -q 'function serializeSnapshot' "$app_file" || fail "snapshot sync missing"
 grep -q 'last player with tokens on the board' "$app_file" || fail "win condition text missing"
 
 printf 'hex chain reaction smoke test passed\n'
