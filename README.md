@@ -6,6 +6,24 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 仓库根目录新增 `index.html` 作为统一入口页，用卡片方式汇总当前已完成的可玩 mini-games，并直接链接到各自的 `index.html`。直接在浏览器打开根目录 `index.html` 即可浏览和启动游戏。
 
+## 多人联网候选游戏清单
+
+针对 issue「添加多玩家联网功能」，当前仓库里最适合升级为多人联网版本的游戏如下：
+
+- `hex-territory/index.html`：回合制六边形领土争夺，天然适合同步棋盘状态与轮次。
+- `hex-chain-reaction/index.html`：双人 hot-seat 连锁反应规则已存在，最容易升级为远端双人对战。
+- `hex-color-conquest/index.html`：颜色选择与版图占领属于低频操作，适合做房间制对战同步。
+- `snake-game/index.html`：可扩展为双蛇同屏竞速或对抗，主要同步双方位置、食物与胜负状态。
+- `sokoban-game/index.html`：可扩展为双人协作推箱子，主要同步地图、角色位置与步数。
+- `gravity-golf/index.html`：可扩展为轮流击球比杆的在线对战，主要同步关卡、杆数与回合。
+- `waveform-dj/index.html`：可扩展为多人协作混音房间，主要同步轨道参数与播放状态。
+- `beat-grid/index.html`：可扩展为多人共创节奏谱面，主要同步音符矩阵与播放游标。
+- `pixel-pulse-sequencer/index.html`：可扩展为多人协作音序器，主要同步步进网格与 BPM。
+- `pixel-synth-sequencer/index.html`：可扩展为多人协作编曲，主要同步音轨与参数面板。
+- `kaleidoscope/index.html`：可扩展为多人实时共绘，主要同步笔触事件与画布状态。
+
+其余以单人生成、单人沙盒或纯自动演化为核心的页面，当前优先级较低，不作为首批联网改造对象。
+
 ## Conway's Game of Life
 
 新增 `game-of-life/index.html`，提供一个可直接在浏览器中打开的康威生命游戏模拟器，包含：
