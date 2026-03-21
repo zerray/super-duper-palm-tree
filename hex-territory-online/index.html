@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hex Territory Online</title>
+  <style>
+    :root {
+      --bg: #f3efe4;
+      --panel: rgba(255, 251, 243, 0.92);
+      --panel-border: rgba(73, 57, 39, 0.16);
+      --ink: #35271b;
+      --muted: #6e5e50;
+      --player: #2c7be5;
+      --player-soft: #d9e9ff;
+      --ai: #d65c4f;
+      --ai-soft: #ffdcd7;
+      --empty: #efe4cb;
+      --empty-edge: #bca98a;
+      --highlight: #f3c969;
+      --button: #4d7a49;
+      --button-dark: #395f36;
+      --button-alt: #2f5d82;
+      --button-alt-dark: #244967;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 24px;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.75), transparent 30%),
+        linear-gradient(180deg, #f8f3ea 0%, var(--bg) 100%);
+    }
+
+    button,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(1340px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(300px, 380px);
+      gap: 20px;
+    }
+
+    .surface,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      box-shadow: 0 18px 40px rgba(53, 39, 27, 0.1);
+      backdrop-filter: blur(10px);
+    }
+
+    .surface {
+      padding: 24px;
+    }
+
+    .panel {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+      max-width: 12ch;
+    }
+
+    .lede {
+      margin-top: 12px;
+      max-width: 64ch;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    .stats {
+      margin-top: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .chip {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(73, 57, 39, 0.12);
+      background: rgba(255, 255, 255, 0.7);
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .chip strong {
+      color: var(--ink);
+    }
+
+    .chip.player strong {
+      color: var(--player);
+    }
+
+    .chip.ai strong {
+      color: var(--ai);
+    }
+
+    .board-wrap {
+      margin-top: 18px;
+      border-radius: 20px;
+      border: 1px solid rgba(73, 57, 39, 0.1);
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.75), rgba(245, 236, 221, 0.92)),
+        repeating-linear-gradient(135deg, rgba(73, 57, 39, 0.025) 0 16px, transparent 16px 32px);
+      padding: 16px;
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .hex {
+      fill: var(--empty);
+      stroke: var(--empty-edge);
+      stroke-width: 1.5;
+      cursor: pointer;
+      transition: fill 120ms ease, stroke 120ms ease, transform 120ms ease;
+    }
+
+    .hex.player {
+      fill: var(--player-soft);
+      stroke: var(--player);
+      stroke-width: 2.4;
+    }
+
+    .hex.ai {
+      fill: var(--ai-soft);
+      stroke: var(--ai);
+      stroke-width: 2.4;
+    }
+
+    .hex.hover {
+      fill: #f8edbf;
+      stroke: var(--highlight);
+      stroke-width: 3;
+    }
+
+    .hex.disabled {
+      cursor: default;
+    }
+
+    .stone {
+      pointer-events: none;
+    }
+
+    .stone.player {
+      fill: var(--player);
+    }
+
+    .stone.ai {
+      fill: var(--ai);
+    }
+
+    .card {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(73, 57, 39, 0.1);
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .card h2 {
+      font-size: 1rem;
+    }
+
+    .muted,
+    .status,
+    .connection-help {
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.94rem;
+    }
+
+    .status {
+      min-height: 3.2em;
+    }
+
+    .legend {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.93rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(53, 39, 27, 0.18);
+    }
+
+    .swatch.player {
+      background: var(--player-soft);
+      border-color: var(--player);
+    }
+
+    .swatch.ai {
+      background: var(--ai-soft);
+      border-color: var(--ai);
+    }
+
+    .swatch.empty {
+      background: var(--empty);
+      border-color: var(--empty-edge);
+    }
+
+    .controls,
+    .signal-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .control {
+      min-height: 46px;
+      border: 0;
+      border-radius: 999px;
+      color: #f7f5ee;
+      background: linear-gradient(180deg, var(--button), var(--button-dark));
+      box-shadow: 0 10px 16px rgba(57, 95, 54, 0.18);
+    }
+
+    .control.secondary {
+      background: linear-gradient(180deg, var(--button-alt), var(--button-alt-dark));
+      box-shadow: 0 10px 16px rgba(36, 73, 103, 0.18);
+    }
+
+    .control:disabled {
+      opacity: 0.55;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 110px;
+      resize: vertical;
+      border-radius: 14px;
+      border: 1px solid rgba(73, 57, 39, 0.18);
+      padding: 10px 12px;
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.88);
+    }
+
+    code {
+      font-size: 0.9em;
+    }
+
+    @media (max-width: 920px) {
+      body {
+        padding: 16px;
+      }
+
+      .app {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <main class="surface">
+      <h1>Hex Territory Online</h1>
+      <p class="lede">
+        An online-upgraded version of Hex Territory. Play solo against the built-in AI or use a
+        WebRTC peer connection so two browsers can battle over the same board together.
+      </p>
+      <div class="stats">
+        <div class="chip">Mode: <strong id="mode-label">Solo vs AI</strong></div>
+        <div class="chip">Turn: <strong id="turn-label">Blue</strong></div>
+        <div class="chip player">Blue: <strong id="player-count">0</strong></div>
+        <div class="chip ai">Red: <strong id="ai-count">0</strong></div>
+        <div class="chip">Empty: <strong id="empty-count">127</strong></div>
+      </div>
+      <div class="board-wrap">
+        <svg id="board" viewBox="0 0 900 820" aria-label="Hex territory board"></svg>
+      </div>
+    </main>
+
+    <aside class="panel">
+      <section class="card">
+        <h2>Rules</h2>
+        <p class="muted">
+          Click any empty hex on your turn. After each move, any adjacent enemy cluster with no path to an
+          empty hex is captured and changes color.
+        </p>
+      </section>
+
+      <section class="card">
+        <h2>Match Mode</h2>
+        <div class="controls">
+          <button class="control" id="solo-mode" type="button">Solo vs AI</button>
+          <button class="control secondary" id="online-mode" type="button">Online 1v1</button>
+        </div>
+        <p class="connection-help" id="connection-state">
+          Solo mode is active. Switch to online mode to host or join a peer-to-peer room.
+        </p>
+      </section>
+
+      <section class="card">
+        <h2>Online Handshake</h2>
+        <p class="connection-help">
+          Host: click <code>Host Match</code>, send the local signal to your opponent, then paste their answer into
+          remote signal and apply it. Joiner: paste the host offer, click <code>Join Match</code>, then send your
+          generated answer back to the host.
+        </p>
+        <div class="controls">
+          <button class="control secondary" id="host-match" type="button">Host Match</button>
+          <button class="control secondary" id="join-match" type="button">Join Match</button>
+        </div>
+        <label class="muted" for="local-signal">Local signal</label>
+        <textarea id="local-signal" readonly placeholder="Generated SDP will appear here."></textarea>
+        <div class="signal-actions">
+          <button class="control secondary" id="copy-signal" type="button">Copy Local Signal</button>
+          <button class="control secondary" id="clear-signal" type="button">Clear Signals</button>
+        </div>
+        <label class="muted" for="remote-signal">Remote signal</label>
+        <textarea id="remote-signal" placeholder="Paste the other player's offer or answer here."></textarea>
+        <button class="control secondary" id="apply-remote" type="button">Apply Remote Signal</button>
+      </section>
+
+      <section class="card">
+        <h2>Status</h2>
+        <p class="status" id="status-text">Your turn. Pick any empty hex to start expanding.</p>
+      </section>
+
+      <section class="card">
+        <h2>Legend</h2>
+        <div class="legend">
+          <div class="legend-item"><span class="swatch player"></span><span>Blue territory</span></div>
+          <div class="legend-item"><span class="swatch ai"></span><span>Red territory</span></div>
+          <div class="legend-item"><span class="swatch empty"></span><span>Empty hex</span></div>
+        </div>
+      </section>
+
+      <button class="control" id="new-game" type="button">New Match</button>
+    </aside>
+  </div>
+
+  <script>
+    const BOARD_RADIUS = 6;
+    const HEX_SIZE = 34;
+    const CENTER_X = 450;
+    const CENTER_Y = 410;
+    const AI_DELAY_MS = 500;
+    const ICE_SERVERS = { iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }] };
+    const DIRECTIONS = [
+      [1, 0, -1],
+      [1, -1, 0],
+      [0, -1, 1],
+      [-1, 0, 1],
+      [-1, 1, 0],
+      [0, 1, -1]
+    ];
+
+    const boardEl = document.getElementById("board");
+    const modeLabelEl = document.getElementById("mode-label");
+    const turnLabelEl = document.getElementById("turn-label");
+    const playerCountEl = document.getElementById("player-count");
+    const aiCountEl = document.getElementById("ai-count");
+    const emptyCountEl = document.getElementById("empty-count");
+    const statusTextEl = document.getElementById("status-text");
+    const connectionStateEl = document.getElementById("connection-state");
+    const newGameButton = document.getElementById("new-game");
+    const soloModeButton = document.getElementById("solo-mode");
+    const onlineModeButton = document.getElementById("online-mode");
+    const hostMatchButton = document.getElementById("host-match");
+    const joinMatchButton = document.getElementById("join-match");
+    const applyRemoteButton = document.getElementById("apply-remote");
+    const copySignalButton = document.getElementById("copy-signal");
+    const clearSignalButton = document.getElementById("clear-signal");
+    const localSignalEl = document.getElementById("local-signal");
+    const remoteSignalEl = document.getElementById("remote-signal");
+
+    const cells = [];
+    const cellMap = new Map();
+    let state = new Map();
+    let currentTurn = "player";
+    let aiTimer = null;
+    let gameOver = false;
+    let matchMode = "solo";
+    let onlineRole = null;
+    let peerConnection = null;
+    let peerChannel = null;
+    let remoteDescriptionSet = false;
+
+    function keyFor(q, r) {
+      return `${q},${r}`;
+    }
+
+    function ownerName(owner) {
+      return owner === "player" ? "Blue" : "Red";
+    }
+
+    function turnName(owner) {
+      if (gameOver) {
+        return "Finished";
+      }
+      if (matchMode === "solo") {
+        return owner === "player" ? "Blue" : "AI";
+      }
+      return ownerName(owner);
+    }
+
+    function otherOwner(owner) {
+      return owner === "player" ? "ai" : "player";
+    }
+
+    function setStatus(message) {
+      statusTextEl.textContent = message;
+    }
+
+    function setConnectionState(message) {
+      connectionStateEl.textContent = message;
+    }
+
+    function isOnlineConnected() {
+      return matchMode === "online" && peerChannel && peerChannel.readyState === "open";
+    }
+
+    function localOnlineOwner() {
+      return onlineRole === "guest" ? "ai" : "player";
+    }
+
+    function canLocalPlay() {
+      if (gameOver) {
+        return false;
+      }
+      if (matchMode === "solo") {
+        return currentTurn === "player";
+      }
+      if (!isOnlineConnected()) {
+        return false;
+      }
+      return currentTurn === localOnlineOwner();
+    }
+
+    function generateBoardCells() {
+      for (let q = -BOARD_RADIUS; q <= BOARD_RADIUS; q += 1) {
+        const rMin = Math.max(-BOARD_RADIUS, -q - BOARD_RADIUS);
+        const rMax = Math.min(BOARD_RADIUS, -q + BOARD_RADIUS);
+        for (let r = rMin; r <= rMax; r += 1) {
+          const s = -q - r;
+          cells.push({ q, r, s, key: keyFor(q, r) });
+        }
+      }
+    }
+
+    function axialToPixel(q, r) {
+      const x = CENTER_X + HEX_SIZE * Math.sqrt(3) * (q + r / 2);
+      const y = CENTER_Y + HEX_SIZE * 1.5 * r;
+      return { x, y };
+    }
+
+    function hexagonPoints(cx, cy) {
+      const points = [];
+      for (let i = 0; i < 6; i += 1) {
+        const angle = (Math.PI / 180) * (60 * i - 30);
+        const x = cx + HEX_SIZE * Math.cos(angle);
+        const y = cy + HEX_SIZE * Math.sin(angle);
+        points.push(`${x.toFixed(2)},${y.toFixed(2)}`);
+      }
+      return points.join(" ");
+    }
+
+    function neighborsOf(cell) {
+      return DIRECTIONS
+        .map(([dq, dr]) => cellMap.get(keyFor(cell.q + dq, cell.r + dr)))
+        .filter(Boolean);
+    }
+
+    function countOwnedNeighbors(stateMap, cell, owner) {
+      return neighborsOf(cell).filter((neighbor) => stateMap.get(neighbor.key) === owner).length;
+    }
+
+    function findClusterAndLiberties(stateMap, startCell, owner) {
+      const visited = new Set([startCell.key]);
+      const queue = [startCell];
+      const cluster = [];
+      let touchesEmpty = false;
+
+      while (queue.length > 0) {
+        const cell = queue.pop();
+        cluster.push(cell);
+
+        for (const neighbor of neighborsOf(cell)) {
+          const neighborOwner = stateMap.get(neighbor.key);
+          if (neighborOwner === null) {
+            touchesEmpty = true;
+            continue;
+          }
+          if (neighborOwner !== owner || visited.has(neighbor.key)) {
+            continue;
+          }
+          visited.add(neighbor.key);
+          queue.push(neighbor);
+        }
+      }
+
+      return { cluster, touchesEmpty };
+    }
+
+    function applyCaptures(stateMap, placedCell, owner) {
+      const opponent = otherOwner(owner);
+      const checked = new Set();
+      const capturedKeys = new Set();
+
+      for (const neighbor of neighborsOf(placedCell)) {
+        if (stateMap.get(neighbor.key) !== opponent || checked.has(neighbor.key)) {
+          continue;
+        }
+
+        const { cluster, touchesEmpty } = findClusterAndLiberties(stateMap, neighbor, opponent);
+        for (const member of cluster) {
+          checked.add(member.key);
+        }
+
+        if (!touchesEmpty) {
+          for (const member of cluster) {
+            stateMap.set(member.key, owner);
+            capturedKeys.add(member.key);
+          }
+        }
+      }
+
+      return capturedKeys;
+    }
+
+    function simulateMove(stateMap, cell, owner) {
+      if (stateMap.get(cell.key) !== null) {
+        return null;
+      }
+      const nextState = new Map(stateMap);
+      nextState.set(cell.key, owner);
+      const capturedKeys = applyCaptures(nextState, cell, owner);
+      return { nextState, capturedKeys };
+    }
+
+    function countTiles(stateMap) {
+      let player = 0;
+      let ai = 0;
+      let empty = 0;
+
+      for (const value of stateMap.values()) {
+        if (value === "player") {
+          player += 1;
+        } else if (value === "ai") {
+          ai += 1;
+        } else {
+          empty += 1;
+        }
+      }
+
+      return { player, ai, empty };
+    }
+
+    function chooseAiMove() {
+      let bestMove = null;
+
+      for (const cell of cells) {
+        if (state.get(cell.key) !== null) {
+          continue;
+        }
+
+        const simulated = simulateMove(state, cell, "ai");
+        const captures = simulated.capturedKeys.size;
+        const adjacency = countOwnedNeighbors(simulated.nextState, cell, "ai");
+        const distance = Math.abs(cell.q) + Math.abs(cell.r) + Math.abs(cell.s);
+
+        if (
+          !bestMove ||
+          captures > bestMove.captures ||
+          (captures === bestMove.captures && adjacency > bestMove.adjacency) ||
+          (captures === bestMove.captures && adjacency === bestMove.adjacency && distance < bestMove.distance)
+        ) {
+          bestMove = { cell, captures, adjacency, distance };
+        }
+      }
+
+      return bestMove;
+    }
+
+    function updateHud() {
+      const counts = countTiles(state);
+      modeLabelEl.textContent = matchMode === "solo" ? "Solo vs AI" : onlineRole === "guest" ? "Online Guest" : "Online Host";
+      turnLabelEl.textContent = turnName(currentTurn);
+      playerCountEl.textContent = counts.player;
+      aiCountEl.textContent = counts.ai;
+      emptyCountEl.textContent = counts.empty;
+      newGameButton.disabled = matchMode === "online" && onlineRole === "guest";
+    }
+
+    function renderBoard(highlightKey = null) {
+      boardEl.innerHTML = "";
+
+      for (const cell of cells) {
+        const { x, y } = axialToPixel(cell.q, cell.r);
+        const owner = state.get(cell.key);
+        const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        const hex = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+        hex.setAttribute("points", hexagonPoints(x, y));
+        hex.setAttribute("class", `hex ${owner || ""}`.trim());
+        hex.dataset.key = cell.key;
+        hex.dataset.hexagon = "true";
+
+        if (highlightKey && highlightKey === cell.key && owner === null && canLocalPlay()) {
+          hex.classList.add("hover");
+        }
+
+        if (owner !== null || !canLocalPlay()) {
+          hex.classList.add("disabled");
+        } else {
+          hex.addEventListener("mouseenter", () => renderBoard(cell.key));
+          hex.addEventListener("mouseleave", () => renderBoard());
+          hex.addEventListener("click", () => handleLocalMove(cell));
+        }
+
+        group.appendChild(hex);
+
+        if (owner !== null) {
+          const stone = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          stone.setAttribute("cx", x);
+          stone.setAttribute("cy", y);
+          stone.setAttribute("r", HEX_SIZE * 0.52);
+          stone.setAttribute("class", `stone ${owner}`);
+          group.appendChild(stone);
+        }
+
+        boardEl.appendChild(group);
+      }
+    }
+
+    function finishGame() {
+      gameOver = true;
+      currentTurn = "player";
+      const counts = countTiles(state);
+
+      if (counts.player > counts.ai) {
+        setStatus(`Board full. Blue wins ${counts.player} to ${counts.ai}.`);
+      } else if (counts.ai > counts.player) {
+        setStatus(matchMode === "solo"
+          ? `Board full. AI wins ${counts.ai} to ${counts.player}.`
+          : `Board full. Red wins ${counts.ai} to ${counts.player}.`);
+      } else {
+        setStatus(`Board full. Draw game at ${counts.player} each.`);
+      }
+
+      updateHud();
+      renderBoard();
+    }
+
+    function evaluateGameState() {
+      const counts = countTiles(state);
+      if (counts.empty === 0) {
+        finishGame();
+        return true;
+      }
+      return false;
+    }
+
+    function commitMove(cell, owner) {
+      const result = simulateMove(state, cell, owner);
+      state = result.nextState;
+      updateHud();
+      renderBoard();
+
+      const captures = result.capturedKeys.size;
+      if (captures > 0) {
+        setStatus(`${ownerName(owner)} placed at ${cell.q}, ${cell.r} and captured ${captures} hex${captures === 1 ? "" : "es"}.`);
+      } else {
+        setStatus(`${ownerName(owner)} placed at ${cell.q}, ${cell.r}. No captures this turn.`);
+      }
+
+      return captures;
+    }
+
+    function exportSnapshot() {
+      return {
+        stateEntries: Array.from(state.entries()),
+        currentTurn,
+        gameOver,
+        status: statusTextEl.textContent
+      };
+    }
+
+    function importSnapshot(snapshot) {
+      state = new Map(snapshot.stateEntries);
+      currentTurn = snapshot.currentTurn;
+      gameOver = snapshot.gameOver;
+      updateHud();
+      renderBoard();
+      setStatus(snapshot.status);
+    }
+
+    function sendPeerMessage(type, payload = {}) {
+      if (!isOnlineConnected()) {
+        return;
+      }
+      peerChannel.send(JSON.stringify({ type, payload }));
+    }
+
+    function syncOnlineState() {
+      if (onlineRole !== "host") {
+        return;
+      }
+      sendPeerMessage("sync", exportSnapshot());
+    }
+
+    function clearAiTimer() {
+      if (aiTimer !== null) {
+        window.clearTimeout(aiTimer);
+        aiTimer = null;
+      }
+    }
+
+    function resetBoardState() {
+      clearAiTimer();
+      state = new Map(cells.map((cell) => [cell.key, null]));
+      currentTurn = "player";
+      gameOver = false;
+      updateHud();
+      setStatus(matchMode === "solo"
+        ? "Your turn. Pick any empty hex to start expanding."
+        : onlineRole === "guest"
+          ? "Waiting for the host to start or sync the match."
+          : "Blue starts. Share your host signal to begin the online match.");
+      renderBoard();
+    }
+
+    function resetGame() {
+      if (matchMode === "online" && onlineRole === "guest") {
+        setStatus("Only the host can reset the online match.");
+        return;
+      }
+      resetBoardState();
+      if (matchMode === "online" && onlineRole === "host") {
+        syncOnlineState();
+      }
+    }
+
+    function handleSoloPlayerMove(cell) {
+      commitMove(cell, "player");
+      if (evaluateGameState()) {
+        return;
+      }
+
+      currentTurn = "ai";
+      updateHud();
+      setStatus("AI is evaluating the board...");
+      renderBoard();
+      aiTimer = window.setTimeout(takeAiTurn, AI_DELAY_MS);
+    }
+
+    function handleHostOnlineMove(cell) {
+      commitMove(cell, "player");
+      if (evaluateGameState()) {
+        syncOnlineState();
+        return;
+      }
+
+      currentTurn = "ai";
+      updateHud();
+      setStatus("Waiting for the remote player.");
+      renderBoard();
+      syncOnlineState();
+    }
+
+    function handleGuestOnlineMove(cell) {
+      sendPeerMessage("move", { key: cell.key });
+      setStatus(`Move request sent for ${cell.q}, ${cell.r}. Waiting for host confirmation...`);
+      renderBoard();
+    }
+
+    function handleLocalMove(cell) {
+      if (state.get(cell.key) !== null || !canLocalPlay()) {
+        return;
+      }
+
+      if (matchMode === "solo") {
+        handleSoloPlayerMove(cell);
+        return;
+      }
+
+      if (onlineRole === "host") {
+        handleHostOnlineMove(cell);
+        return;
+      }
+
+      handleGuestOnlineMove(cell);
+    }
+
+    function takeAiTurn() {
+      if (gameOver || matchMode !== "solo") {
+        return;
+      }
+
+      const move = chooseAiMove();
+      if (!move) {
+        finishGame();
+        return;
+      }
+
+      commitMove(move.cell, "ai");
+      if (evaluateGameState()) {
+        return;
+      }
+
+      currentTurn = "player";
+      updateHud();
+      setStatus(`Your turn. AI preferred ${move.captures} captures and ${move.adjacency} adjacent allies.`);
+      renderBoard();
+    }
+
+    function closePeerConnection() {
+      remoteDescriptionSet = false;
+      if (peerChannel) {
+        peerChannel.close();
+      }
+      if (peerConnection) {
+        peerConnection.close();
+      }
+      peerChannel = null;
+      peerConnection = null;
+      onlineRole = null;
+    }
+
+    function updateLocalSignal() {
+      if (!peerConnection || !peerConnection.localDescription) {
+        return;
+      }
+      localSignalEl.value = JSON.stringify(peerConnection.localDescription);
+    }
+
+    function wireChannel(channel) {
+      peerChannel = channel;
+      peerChannel.onopen = () => {
+        setConnectionState(`Online 1v1 connected as ${onlineRole === "guest" ? "guest" : "host"}.`);
+        if (onlineRole === "host") {
+          setStatus("Opponent connected. Blue moves first.");
+          syncOnlineState();
+        } else {
+          setStatus("Connected. Waiting for the host to sync the current board.");
+          renderBoard();
+        }
+        updateHud();
+      };
+      peerChannel.onclose = () => {
+        setConnectionState("Peer connection closed.");
+        renderBoard();
+        updateHud();
+      };
+      peerChannel.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        handlePeerMessage(message);
+      };
+    }
+
+    function createPeerConnection(role) {
+      closePeerConnection();
+      onlineRole = role;
+      peerConnection = new RTCPeerConnection(ICE_SERVERS);
+      peerConnection.onicecandidate = () => {
+        if (peerConnection.iceGatheringState === "complete") {
+          updateLocalSignal();
+        }
+      };
+      peerConnection.onconnectionstatechange = () => {
+        if (!peerConnection) {
+          return;
+        }
+        if (peerConnection.connectionState === "failed") {
+          setConnectionState("Peer connection failed. Create a fresh offer or answer.");
+        }
+      };
+
+      if (role === "host") {
+        wireChannel(peerConnection.createDataChannel("hex-territory-online"));
+      } else {
+        peerConnection.ondatachannel = (event) => wireChannel(event.channel);
+      }
+
+      updateHud();
+      renderBoard();
+    }
+
+    async function hostOnlineMatch() {
+      matchMode = "online";
+      createPeerConnection("host");
+      resetBoardState();
+      setConnectionState("Hosting. Send the local signal to your opponent, then paste their answer below.");
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+      updateLocalSignal();
+    }
+
+    async function joinOnlineMatch() {
+      const raw = remoteSignalEl.value.trim();
+      if (!raw) {
+        setConnectionState("Paste the host offer into remote signal before joining.");
+        return;
+      }
+
+      matchMode = "online";
+      createPeerConnection("guest");
+      resetBoardState();
+      setConnectionState("Joining. Creating answer for the host.");
+
+      const remoteDescription = JSON.parse(raw);
+      await peerConnection.setRemoteDescription(remoteDescription);
+      remoteDescriptionSet = true;
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+      updateLocalSignal();
+      setConnectionState("Answer ready. Send your local signal back to the host.");
+    }
+
+    async function applyRemoteSignal() {
+      const raw = remoteSignalEl.value.trim();
+      if (!raw || !peerConnection) {
+        setConnectionState("Create or join a match before applying a remote signal.");
+        return;
+      }
+
+      const remoteDescription = JSON.parse(raw);
+      if (remoteDescriptionSet && onlineRole === "guest") {
+        setConnectionState("Guest already has the host offer. Wait for the host to finish the handshake.");
+        return;
+      }
+
+      await peerConnection.setRemoteDescription(remoteDescription);
+      remoteDescriptionSet = true;
+      setConnectionState("Remote signal applied. Waiting for the data channel to open.");
+    }
+
+    async function copyLocalSignal() {
+      if (!localSignalEl.value) {
+        setConnectionState("No local signal is ready yet.");
+        return;
+      }
+      await navigator.clipboard.writeText(localSignalEl.value);
+      setConnectionState("Local signal copied to clipboard.");
+    }
+
+    function clearSignals() {
+      localSignalEl.value = "";
+      remoteSignalEl.value = "";
+      setConnectionState(matchMode === "online"
+        ? "Signals cleared. Existing peer connection remains active until you recreate it."
+        : "Solo mode is active. Switch to online mode to host or join a peer-to-peer room.");
+    }
+
+    function switchToSoloMode() {
+      closePeerConnection();
+      matchMode = "solo";
+      localSignalEl.value = "";
+      remoteSignalEl.value = "";
+      setConnectionState("Solo mode is active. Switch to online mode to host or join a peer-to-peer room.");
+      resetBoardState();
+    }
+
+    function switchToOnlineMode() {
+      matchMode = "online";
+      clearAiTimer();
+      updateHud();
+      renderBoard();
+      setConnectionState("Online mode armed. Host or join a match to begin.");
+      setStatus("Choose Host Match or Join Match to start the WebRTC handshake.");
+    }
+
+    function handlePeerMessage(message) {
+      if (!message || typeof message !== "object") {
+        return;
+      }
+
+      if (message.type === "sync") {
+        importSnapshot(message.payload);
+        return;
+      }
+
+      if (message.type === "move" && onlineRole === "host") {
+        if (currentTurn !== "ai" || gameOver) {
+          return;
+        }
+        const cell = cellMap.get(message.payload.key);
+        if (!cell || state.get(cell.key) !== null) {
+          return;
+        }
+        commitMove(cell, "ai");
+        if (!evaluateGameState()) {
+          currentTurn = "player";
+          updateHud();
+          setStatus("Your turn. The remote player has moved.");
+          renderBoard();
+        }
+        syncOnlineState();
+      }
+    }
+
+    newGameButton.addEventListener("click", resetGame);
+    soloModeButton.addEventListener("click", switchToSoloMode);
+    onlineModeButton.addEventListener("click", switchToOnlineMode);
+    hostMatchButton.addEventListener("click", () => {
+      hostOnlineMatch().catch(() => setConnectionState("Could not create host offer. Try again."));
+    });
+    joinMatchButton.addEventListener("click", () => {
+      joinOnlineMatch().catch(() => setConnectionState("Could not create join answer. Check the pasted offer and try again."));
+    });
+    applyRemoteButton.addEventListener("click", () => {
+      applyRemoteSignal().catch(() => setConnectionState("Could not apply that remote signal."));
+    });
+    copySignalButton.addEventListener("click", () => {
+      copyLocalSignal().catch(() => setConnectionState("Clipboard copy failed. Copy the local signal manually."));
+    });
+    clearSignalButton.addEventListener("click", clearSignals);
+
+    generateBoardCells();
+    for (const cell of cells) {
+      cellMap.set(cell.key, cell);
+    }
+    resetBoardState();
+  </script>
+</body>
+</html>
