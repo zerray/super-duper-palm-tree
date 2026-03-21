@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>贪吃蛇双人联网版</title>
+  <style>
+    :root {
+      --bg: #f5efe0;
+      --panel: rgba(255, 249, 238, 0.96);
+      --grid: #241d19;
+      --accent: #cf5c36;
+      --accent-dark: #8f2d14;
+      --text: #2f241f;
+      --muted: #77645b;
+      --border: #d8c5a6;
+      --host: #2e6d21;
+      --guest: #245da8;
+      --food: #814130;
+      --cell-size: min(4.9vw, 22px);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "PingFang SC", "Noto Sans SC", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, #fff5d8 0%, transparent 30%),
+        linear-gradient(160deg, #f3d8a6 0%, #f6efe4 54%, #efe1c0 100%);
+      padding: 24px;
+    }
+
+    .app {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      background: var(--panel);
+      border: 2px solid var(--border);
+      border-radius: 24px;
+      box-shadow: 0 18px 45px rgba(90, 57, 29, 0.18);
+      padding: 24px;
+      display: grid;
+      gap: 20px;
+      grid-template-columns: minmax(0, 1fr) 360px;
+    }
+
+    .board-panel,
+    .side-panel,
+    .panel {
+      display: grid;
+      gap: 14px;
+    }
+
+    h1,
+    h2,
+    p,
+    ul {
+      margin: 0;
+    }
+
+    .title p,
+    .note,
+    .panel li,
+    .status-line {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat,
+    .panel {
+      background: #fff9ee;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 1.2rem;
+    }
+
+    #board {
+      width: calc(var(--cell-size) * 18);
+      height: calc(var(--cell-size) * 18);
+      max-width: 100%;
+      aspect-ratio: 1;
+      display: grid;
+      grid-template-columns: repeat(18, 1fr);
+      grid-template-rows: repeat(18, 1fr);
+      gap: 2px;
+      padding: 10px;
+      background: linear-gradient(180deg, #46372f 0%, #241d19 100%);
+      border-radius: 22px;
+      border: 3px solid #1c1612;
+      user-select: none;
+      touch-action: none;
+    }
+
+    .cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      background: #302723;
+      font-size: clamp(0.8rem, 1.8vw, 1rem);
+    }
+
+    .cell.host {
+      background: #4e9f3d;
+    }
+
+    .cell.host.head {
+      background: var(--host);
+    }
+
+    .cell.guest {
+      background: #4f8ed8;
+    }
+
+    .cell.guest.head {
+      background: var(--guest);
+    }
+
+    .cell.food {
+      background: var(--food);
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 11px 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 120ms ease, opacity 120ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+      transform: none;
+    }
+
+    .primary {
+      color: #fff;
+      background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dark) 100%);
+    }
+
+    .secondary {
+      color: var(--text);
+      background: #ead8b6;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-weight: 700;
+    }
+
+    select,
+    textarea {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      background: #fffdf7;
+    }
+
+    textarea {
+      min-height: 116px;
+      resize: vertical;
+    }
+
+    .status-line strong {
+      color: var(--text);
+    }
+
+    .code {
+      word-break: break-word;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 0.84rem;
+    }
+
+    .back-link {
+      color: var(--accent-dark);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    @media (max-width: 920px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .hud {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      #board {
+        width: min(92vw, 460px);
+        height: min(92vw, 460px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="board-panel">
+      <div class="title">
+        <h1>贪吃蛇双人联网版</h1>
+        <p>房主负责权威模拟，另一位玩家通过 WebRTC DataChannel 联机加入。无需后端，但双方需要手动交换一次连接串。</p>
+      </div>
+
+      <section class="hud" aria-label="联机游戏状态">
+        <div class="stat">
+          <span class="stat-label">你的身份</span>
+          <strong id="role-label">房主</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">连接状态</span>
+          <strong id="connection-label">未连接</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">房主分数</span>
+          <strong id="host-score">0</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">客机分数</span>
+          <strong id="guest-score">0</strong>
+        </div>
+      </section>
+
+      <div id="board" aria-label="双人贪吃蛇棋盘" role="application"></div>
+
+      <section class="panel">
+        <h2>比赛状态</h2>
+        <p id="match-status" class="status-line">尚未开局。连接成功后由房主点击“开始比赛”。</p>
+      </section>
+    </section>
+
+    <aside class="side-panel">
+      <section class="panel">
+        <h2>房间设置</h2>
+        <label for="role-select">
+          连接模式
+          <select id="role-select">
+            <option value="host">创建房间（房主）</option>
+            <option value="guest">加入房间（客机）</option>
+          </select>
+        </label>
+        <div class="button-row">
+          <button id="prepare-button" class="primary" type="button">生成连接串</button>
+          <button id="apply-button" class="secondary" type="button">应用远端连接串</button>
+          <button id="start-button" class="secondary" type="button">开始比赛</button>
+        </div>
+        <p class="note">房主先生成邀请串并发送给客机；客机生成应答串后再发回房主。双方连上后，共用同一个棋盘和食物刷新。</p>
+      </section>
+
+      <section class="panel">
+        <h2>连接串</h2>
+        <label for="local-signal">
+          你的连接串
+          <textarea id="local-signal" readonly placeholder="点击“生成连接串”后会出现在这里。"></textarea>
+        </label>
+        <label for="remote-signal">
+          远端连接串
+          <textarea id="remote-signal" placeholder="把对方发来的连接串粘贴到这里，然后点击“应用远端连接串”。"></textarea>
+        </label>
+      </section>
+
+      <section class="panel">
+        <h2>操作说明</h2>
+        <ul>
+          <li>双方都使用方向键或 `WASD` 控制自己的蛇。</li>
+          <li>先拿到 50 分的一方获胜；撞墙或撞到蛇身会直接出局。</li>
+          <li>房主绿色，客机蓝色；苹果会在双方共享的棋盘里刷新。</li>
+        </ul>
+      </section>
+
+      <section class="panel">
+        <h2>返回单人版</h2>
+        <p class="note">保留原始本地排行榜与单机玩法。</p>
+        <a class="back-link" href="./index.html">打开原版贪吃蛇</a>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    const GRID_SIZE = 18;
+    const TICK_MS = 180;
+    const WIN_SCORE = 50;
+    const ICE_SERVERS = [{ urls: "stun:stun.l.google.com:19302" }];
+
+    const board = document.getElementById("board");
+    const roleSelect = document.getElementById("role-select");
+    const prepareButton = document.getElementById("prepare-button");
+    const applyButton = document.getElementById("apply-button");
+    const startButton = document.getElementById("start-button");
+    const localSignal = document.getElementById("local-signal");
+    const remoteSignal = document.getElementById("remote-signal");
+    const roleLabel = document.getElementById("role-label");
+    const connectionLabel = document.getElementById("connection-label");
+    const hostScoreNode = document.getElementById("host-score");
+    const guestScoreNode = document.getElementById("guest-score");
+    const matchStatus = document.getElementById("match-status");
+
+    const cells = [];
+
+    let peerConnection = null;
+    let dataChannel = null;
+    let hostLoopId = null;
+    let role = "host";
+    let lastRemoteState = null;
+    let hostState = createInitialState();
+
+    function createBoard() {
+      const fragment = document.createDocumentFragment();
+      for (let index = 0; index < GRID_SIZE * GRID_SIZE; index += 1) {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        fragment.appendChild(cell);
+        cells.push(cell);
+      }
+      board.appendChild(fragment);
+    }
+
+    function createInitialState() {
+      const state = {
+        phase: "waiting",
+        winner: "",
+        food: { x: 8, y: 8 },
+        snakes: {
+          host: {
+            id: "host",
+            label: "房主",
+            body: [
+              { x: 4, y: 9 },
+              { x: 3, y: 9 },
+              { x: 2, y: 9 }
+            ],
+            direction: { x: 1, y: 0 },
+            pendingDirection: { x: 1, y: 0 },
+            alive: true,
+            score: 0
+          },
+          guest: {
+            id: "guest",
+            label: "客机",
+            body: [
+              { x: 13, y: 9 },
+              { x: 14, y: 9 },
+              { x: 15, y: 9 }
+            ],
+            direction: { x: -1, y: 0 },
+            pendingDirection: { x: -1, y: 0 },
+            alive: true,
+            score: 0
+          }
+        }
+      };
+      state.food = spawnFood(state.snakes);
+      return state;
+    }
+
+    function cloneState(state) {
+      return JSON.parse(JSON.stringify(state));
+    }
+
+    function getIndex(x, y) {
+      return y * GRID_SIZE + x;
+    }
+
+    function isConnected() {
+      return Boolean(dataChannel && dataChannel.readyState === "open");
+    }
+
+    function setConnectionLabel(text) {
+      connectionLabel.textContent = text;
+    }
+
+    function setMatchStatus(text) {
+      matchStatus.textContent = text;
+    }
+
+    function updateRoleUi() {
+      roleLabel.textContent = role === "host" ? "房主" : "客机";
+      startButton.disabled = role !== "host" || !isConnected();
+      prepareButton.textContent = role === "host" ? "生成邀请串" : "生成应答串";
+    }
+
+    function renderState(state) {
+      for (const cell of cells) {
+        cell.className = "cell";
+        cell.textContent = "";
+      }
+
+      if (state.food) {
+        const foodCell = cells[getIndex(state.food.x, state.food.y)];
+        foodCell.classList.add("food");
+        foodCell.textContent = "🍎";
+      }
+
+      [["host", "🟢", "🟩"], ["guest", "🔵", "🟦"]].forEach(([playerId, headEmoji, bodyEmoji]) => {
+        const snake = state.snakes[playerId];
+        snake.body.forEach((segment, index) => {
+          const cell = cells[getIndex(segment.x, segment.y)];
+          cell.classList.add(playerId);
+          if (index === 0) {
+            cell.classList.add("head");
+            cell.textContent = headEmoji;
+          } else {
+            cell.textContent = bodyEmoji;
+          }
+        });
+      });
+
+      hostScoreNode.textContent = String(state.snakes.host.score);
+      guestScoreNode.textContent = String(state.snakes.guest.score);
+
+      if (state.phase === "waiting") {
+        setMatchStatus("尚未开局。连接成功后由房主点击“开始比赛”。");
+      } else if (state.phase === "running") {
+        setMatchStatus("比赛进行中。先到 50 分，或等对方出局。");
+      } else if (state.phase === "finished") {
+        setMatchStatus(state.winner ? `${state.winner} 获胜。点击“开始比赛”可重新开局。` : "比赛结束。");
+      }
+    }
+
+    function spawnFood(snakes) {
+      const occupied = new Set();
+      Object.values(snakes).forEach((snake) => {
+        snake.body.forEach((segment) => {
+          occupied.add(`${segment.x},${segment.y}`);
+        });
+      });
+
+      const freeCells = [];
+      for (let y = 0; y < GRID_SIZE; y += 1) {
+        for (let x = 0; x < GRID_SIZE; x += 1) {
+          const key = `${x},${y}`;
+          if (!occupied.has(key)) {
+            freeCells.push({ x, y });
+          }
+        }
+      }
+
+      return freeCells[Math.floor(Math.random() * freeCells.length)];
+    }
+
+    function queueDirection(playerId, nextDirection) {
+      const snake = hostState.snakes[playerId];
+      if (!snake || !snake.alive || hostState.phase !== "running") {
+        return;
+      }
+
+      const current = snake.direction;
+      const isOpposite =
+        nextDirection.x + current.x === 0 &&
+        nextDirection.y + current.y === 0;
+
+      if (!isOpposite) {
+        snake.pendingDirection = nextDirection;
+      }
+    }
+
+    function collisionWithBodies(nextHead, moverId, willGrow) {
+      const players = ["host", "guest"];
+      return players.some((playerId) => {
+        const snake = hostState.snakes[playerId];
+        return snake.body.some((segment, index) => {
+          if (playerId === moverId && index === snake.body.length - 1 && !willGrow) {
+            return false;
+          }
+          return segment.x === nextHead.x && segment.y === nextHead.y;
+        });
+      });
+    }
+
+    function evaluateWinner() {
+      const hostSnake = hostState.snakes.host;
+      const guestSnake = hostState.snakes.guest;
+
+      if (hostSnake.score >= WIN_SCORE) {
+        finishMatch("房主");
+        return true;
+      }
+      if (guestSnake.score >= WIN_SCORE) {
+        finishMatch("客机");
+        return true;
+      }
+      if (!hostSnake.alive && !guestSnake.alive) {
+        finishMatch("平局");
+        return true;
+      }
+      if (!hostSnake.alive) {
+        finishMatch("客机");
+        return true;
+      }
+      if (!guestSnake.alive) {
+        finishMatch("房主");
+        return true;
+      }
+      return false;
+    }
+
+    function finishMatch(winner) {
+      hostState.phase = "finished";
+      hostState.winner = winner;
+      if (hostLoopId) {
+        window.clearInterval(hostLoopId);
+        hostLoopId = null;
+      }
+      broadcastState();
+      renderState(hostState);
+    }
+
+    function tickHost() {
+      if (hostState.phase !== "running") {
+        return;
+      }
+
+      ["host", "guest"].forEach((playerId) => {
+        const snake = hostState.snakes[playerId];
+        if (!snake.alive) {
+          return;
+        }
+
+        snake.direction = snake.pendingDirection;
+        const nextHead = {
+          x: snake.body[0].x + snake.direction.x,
+          y: snake.body[0].y + snake.direction.y
+        };
+
+        const willGrow = nextHead.x === hostState.food.x && nextHead.y === hostState.food.y;
+        const hitWall =
+          nextHead.x < 0 ||
+          nextHead.x >= GRID_SIZE ||
+          nextHead.y < 0 ||
+          nextHead.y >= GRID_SIZE;
+        const hitBody = collisionWithBodies(nextHead, playerId, willGrow);
+
+        if (hitWall || hitBody) {
+          snake.alive = false;
+          return;
+        }
+
+        snake.body.unshift(nextHead);
+        if (willGrow) {
+          snake.score += 10;
+          hostState.food = spawnFood(hostState.snakes);
+        } else {
+          snake.body.pop();
+        }
+      });
+
+      if (!evaluateWinner()) {
+        broadcastState();
+        renderState(hostState);
+      }
+    }
+
+    function sendMessage(payload) {
+      if (!isConnected()) {
+        return;
+      }
+      dataChannel.send(JSON.stringify(payload));
+    }
+
+    function broadcastState() {
+      sendMessage({ type: "state", state: cloneState(hostState) });
+    }
+
+    function resetHostMatch() {
+      hostState = createInitialState();
+      hostState.phase = "running";
+      lastRemoteState = cloneState(hostState);
+      if (hostLoopId) {
+        window.clearInterval(hostLoopId);
+      }
+      hostLoopId = window.setInterval(tickHost, TICK_MS);
+      renderState(hostState);
+      broadcastState();
+    }
+
+    function handleIncomingMessage(event) {
+      const payload = JSON.parse(event.data);
+
+      if (payload.type === "input" && role === "host") {
+        queueDirection("guest", payload.direction);
+        return;
+      }
+
+      if (payload.type === "state" && role === "guest") {
+        lastRemoteState = payload.state;
+        renderState(lastRemoteState);
+      }
+    }
+
+    function bindDataChannel(channel) {
+      dataChannel = channel;
+      dataChannel.addEventListener("open", () => {
+        setConnectionLabel("已连接");
+        updateRoleUi();
+        if (role === "host") {
+          broadcastState();
+        }
+      });
+      dataChannel.addEventListener("close", () => {
+        setConnectionLabel("已断开");
+        updateRoleUi();
+      });
+      dataChannel.addEventListener("message", handleIncomingMessage);
+    }
+
+    function resetConnection() {
+      if (hostLoopId) {
+        window.clearInterval(hostLoopId);
+        hostLoopId = null;
+      }
+      if (dataChannel) {
+        dataChannel.close();
+      }
+      if (peerConnection) {
+        peerConnection.close();
+      }
+      peerConnection = null;
+      dataChannel = null;
+      hostState = createInitialState();
+      lastRemoteState = null;
+      localSignal.value = "";
+      remoteSignal.value = "";
+      setConnectionLabel("未连接");
+      renderState(hostState);
+      updateRoleUi();
+    }
+
+    async function waitForIceGatheringComplete(connection) {
+      if (connection.iceGatheringState === "complete") {
+        return;
+      }
+
+      await new Promise((resolve) => {
+        function handleIceStateChange() {
+          if (connection.iceGatheringState === "complete") {
+            connection.removeEventListener("icegatheringstatechange", handleIceStateChange);
+            resolve();
+          }
+        }
+        connection.addEventListener("icegatheringstatechange", handleIceStateChange);
+      });
+    }
+
+    function createPeerConnection() {
+      const connection = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+      connection.addEventListener("connectionstatechange", () => {
+        const state = connection.connectionState;
+        if (state === "connected") {
+          setConnectionLabel("已连接");
+        } else if (state === "connecting") {
+          setConnectionLabel("连接中");
+        } else if (state === "failed") {
+          setConnectionLabel("连接失败");
+        }
+      });
+      return connection;
+    }
+
+    async function prepareLocalSignal() {
+      resetConnection();
+      peerConnection = createPeerConnection();
+
+      if (role === "host") {
+        bindDataChannel(peerConnection.createDataChannel("snake-sync"));
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        await waitForIceGatheringComplete(peerConnection);
+        localSignal.value = JSON.stringify(peerConnection.localDescription);
+      } else {
+        const rawOffer = remoteSignal.value.trim();
+        if (!rawOffer) {
+          setMatchStatus("请先把房主发来的邀请串粘贴到“远端连接串”。");
+          return;
+        }
+        peerConnection.addEventListener("datachannel", (event) => {
+          bindDataChannel(event.channel);
+        });
+        await peerConnection.setRemoteDescription(JSON.parse(rawOffer));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        await waitForIceGatheringComplete(peerConnection);
+        localSignal.value = JSON.stringify(peerConnection.localDescription);
+        setMatchStatus("把你的应答串发回给房主，等对方应用后就会连上。");
+      }
+    }
+
+    async function applyRemoteSignal() {
+      if (!peerConnection) {
+        setMatchStatus("请先点击“生成连接串”。");
+        return;
+      }
+
+      const rawRemote = remoteSignal.value.trim();
+      if (!rawRemote) {
+        setMatchStatus("远端连接串不能为空。");
+        return;
+      }
+
+      await peerConnection.setRemoteDescription(JSON.parse(rawRemote));
+      if (role === "host") {
+        setMatchStatus("已应用客机应答串，等待 DataChannel 建立。");
+      }
+    }
+
+    function startMatch() {
+      if (role !== "host" || !isConnected()) {
+        return;
+      }
+      resetHostMatch();
+    }
+
+    function handleKeyDown(event) {
+      const key = event.key.toLowerCase();
+      const nextDirections = {
+        arrowup: { x: 0, y: -1 },
+        w: { x: 0, y: -1 },
+        arrowdown: { x: 0, y: 1 },
+        s: { x: 0, y: 1 },
+        arrowleft: { x: -1, y: 0 },
+        a: { x: -1, y: 0 },
+        arrowright: { x: 1, y: 0 },
+        d: { x: 1, y: 0 }
+      };
+
+      const nextDirection = nextDirections[key];
+      if (!nextDirection) {
+        return;
+      }
+
+      event.preventDefault();
+
+      if (role === "host") {
+        queueDirection("host", nextDirection);
+      } else {
+        sendMessage({ type: "input", direction: nextDirection });
+      }
+    }
+
+    roleSelect.addEventListener("change", () => {
+      role = roleSelect.value;
+      resetConnection();
+      setMatchStatus(role === "host"
+        ? "房主模式：先生成邀请串发给客机。"
+        : "客机模式：先粘贴房主邀请串，再生成应答串。");
+    });
+    prepareButton.addEventListener("click", () => {
+      prepareLocalSignal().catch((error) => {
+        setMatchStatus("生成连接串失败：" + error.message);
+      });
+    });
+    applyButton.addEventListener("click", () => {
+      applyRemoteSignal().catch((error) => {
+        setMatchStatus("应用远端连接串失败：" + error.message);
+      });
+    });
+    startButton.addEventListener("click", startMatch);
+    document.addEventListener("keydown", handleKeyDown);
+
+    createBoard();
+    updateRoleUi();
+    renderState(hostState);
+    setMatchStatus("房主模式：先生成邀请串发给客机。");
+  </script>
+</body>
+</html>

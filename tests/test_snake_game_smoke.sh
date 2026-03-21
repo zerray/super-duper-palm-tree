@@ -17,5 +17,6 @@ grep -q 'window.localStorage' "$game_file" || fail "localStorage leaderboard sup
 grep -q 'arrowup' "$game_file" || fail "keyboard controls missing"
 grep -q 'id="score"' "$game_file" || fail "score display missing"
 grep -q 'id="leaderboard-list"' "$game_file" || fail "leaderboard UI missing"
+grep -q 'href="./multiplayer.html"' "$game_file" || fail "multiplayer version link missing"
 
 printf 'snake game smoke test passed\n'
