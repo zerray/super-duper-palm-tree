@@ -245,6 +245,40 @@
       line-height: 1.45;
     }
 
+    .stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .field-label {
+      font-size: 0.85rem;
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .input,
+    .textarea {
+      width: 100%;
+      border: 1px solid rgba(73, 57, 39, 0.16);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--ink);
+      font: inherit;
+      padding: 12px 14px;
+    }
+
+    .textarea {
+      min-height: 88px;
+      resize: vertical;
+    }
+
+    .control.secondary {
+      background: linear-gradient(180deg, #7589b6, #556893);
+      box-shadow: 0 10px 16px rgba(85, 104, 147, 0.18);
+    }
+
     @media (max-width: 920px) {
       body {
         padding: 16px;
@@ -298,6 +332,25 @@
         <p class="status" id="status-text">Your turn. Pick any empty hex to start expanding.</p>
       </section>
 
+      <section class="card">
+        <h2>Multiplayer</h2>
+        <div class="stack">
+          <label class="field-label" for="mode-select">Mode</label>
+          <select class="input" id="mode-select">
+            <option value="ai">Solo vs AI</option>
+            <option value="online">Online 1v1 (WebRTC)</option>
+          </select>
+          <label class="field-label" for="local-signal">Your Signal</label>
+          <textarea class="textarea" id="local-signal" readonly placeholder="Create a host or join flow to generate an offer / answer."></textarea>
+          <label class="field-label" for="remote-signal">Remote Signal</label>
+          <textarea class="textarea" id="remote-signal" placeholder="Paste the other player's offer / answer JSON here."></textarea>
+          <button class="control secondary" id="host-online" type="button">Create Host Offer</button>
+          <button class="control secondary" id="join-online" type="button">Create Join Answer</button>
+          <button class="control secondary" id="apply-remote-signal" type="button">Apply Remote Signal</button>
+        </div>
+        <p class="muted">Online mode is peer-to-peer. Host shares the offer JSON, guest pastes it and replies with an answer JSON, then both sides can play blue vs red across the network.</p>
+      </section>
+
       <button class="control" id="new-game" type="button">New Game</button>
     </aside>
   </div>
@@ -324,6 +377,12 @@
     const emptyCountEl = document.getElementById("empty-count");
     const statusTextEl = document.getElementById("status-text");
     const newGameButton = document.getElementById("new-game");
+    const modeSelectEl = document.getElementById("mode-select");
+    const localSignalEl = document.getElementById("local-signal");
+    const remoteSignalEl = document.getElementById("remote-signal");
+    const hostOnlineButton = document.getElementById("host-online");
+    const joinOnlineButton = document.getElementById("join-online");
+    const applyRemoteSignalButton = document.getElementById("apply-remote-signal");
 
     const cells = [];
     const cellMap = new Map();
@@ -331,12 +390,20 @@
     let currentTurn = "player";
     let aiTimer = null;
     let gameOver = false;
+    let gameMode = "ai";
+    let onlineRole = "solo";
+    let peerConnection = null;
+    let peerChannel = null;
+    let onlineReady = false;
 
     function keyFor(q, r) {
       return `${q},${r}`;
     }
 
     function ownerName(owner) {
+      if (gameMode === "online") {
+        return owner === "player" ? "Blue" : "Red";
+      }
       return owner === "player" ? "Player" : "AI";
     }
 
@@ -497,6 +564,43 @@
       emptyCountEl.textContent = counts.empty;
     }
 
+    function serializeState() {
+      return Object.fromEntries(state.entries());
+    }
+
+    function importState(snapshot) {
+      state = new Map(Object.entries(snapshot.state));
+      currentTurn = snapshot.currentTurn;
+      gameOver = snapshot.gameOver;
+      updateHud();
+      renderBoard();
+      setStatus(snapshot.status);
+    }
+
+    function localOnlineOwner() {
+      if (gameMode !== "online") {
+        return "player";
+      }
+      if (onlineRole === "host") {
+        return "player";
+      }
+      if (onlineRole === "guest") {
+        return "ai";
+      }
+      return null;
+    }
+
+    function isLocalPlayersTurn() {
+      if (gameOver) {
+        return false;
+      }
+      if (gameMode === "ai") {
+        return currentTurn === "player";
+      }
+      const owner = localOnlineOwner();
+      return Boolean(owner) && owner === currentTurn && onlineReady;
+    }
+
     function setStatus(message) {
       statusTextEl.textContent = message;
     }
@@ -514,11 +618,11 @@
         hex.dataset.key = cell.key;
         hex.dataset.hexagon = "true";
 
-        if (highlightKey && highlightKey === cell.key && owner === null && currentTurn === "player" && !gameOver) {
+        if (highlightKey && highlightKey === cell.key && owner === null && isLocalPlayersTurn()) {
           hex.classList.add("hover");
         }
 
-        if (owner !== null || currentTurn !== "player" || gameOver) {
+        if (owner !== null || !isLocalPlayersTurn()) {
           hex.classList.add("disabled");
         } else {
           hex.addEventListener("mouseenter", () => renderBoard(cell.key));
@@ -547,9 +651,13 @@
       const counts = countTiles(state);
 
       if (counts.player > counts.ai) {
-        setStatus(`Board full. You win ${counts.player} to ${counts.ai}.`);
+        setStatus(gameMode === "online"
+          ? `Board full. Blue wins ${counts.player} to ${counts.ai}.`
+          : `Board full. You win ${counts.player} to ${counts.ai}.`);
       } else if (counts.ai > counts.player) {
-        setStatus(`Board full. AI wins ${counts.ai} to ${counts.player}.`);
+        setStatus(gameMode === "online"
+          ? `Board full. Red wins ${counts.ai} to ${counts.player}.`
+          : `Board full. AI wins ${counts.ai} to ${counts.player}.`);
       } else {
         setStatus(`Board full. Draw game at ${counts.player} each.`);
       }
@@ -583,8 +691,49 @@
       return captures;
     }
 
+    function syncOnlineState(statusOverride = statusTextEl.textContent) {
+      if (gameMode !== "online" || !peerChannel || peerChannel.readyState !== "open") {
+        return;
+      }
+      peerChannel.send(JSON.stringify({
+        type: "state-sync",
+        snapshot: {
+          state: serializeState(),
+          currentTurn,
+          gameOver,
+          status: statusOverride
+        }
+      }));
+    }
+
     function handlePlayerMove(cell) {
-      if (currentTurn !== "player" || gameOver || state.get(cell.key) !== null) {
+      if (gameOver || state.get(cell.key) !== null) {
+        return;
+      }
+
+      if (gameMode === "online") {
+        const owner = localOnlineOwner();
+        if (!onlineReady || currentTurn !== owner) {
+          return;
+        }
+
+        if (owner === "player") {
+          commitMove(cell, owner);
+          if (!evaluateGameState()) {
+            currentTurn = "ai";
+            updateHud();
+            setStatus("Red to move over the peer connection.");
+            renderBoard();
+          }
+          syncOnlineState();
+        } else if (peerChannel && peerChannel.readyState === "open") {
+          peerChannel.send(JSON.stringify({ type: "move", key: cell.key }));
+          setStatus("Move sent to host. Waiting for synchronized board state...");
+        }
+        return;
+      }
+
+      if (currentTurn !== "player") {
         return;
       }
 
@@ -625,16 +774,188 @@
     function resetGame() {
       if (aiTimer !== null) {
         window.clearTimeout(aiTimer);
+        aiTimer = null;
       }
       state = new Map(cells.map((cell) => [cell.key, null]));
       currentTurn = "player";
       gameOver = false;
       updateHud();
+      if (gameMode === "online") {
+        if (onlineRole === "host") {
+          setStatus("Online match ready. Blue moves first.");
+          renderBoard();
+          syncOnlineState();
+        } else if (onlineRole === "guest") {
+          setStatus("Connected as red. Waiting for the host to start or sync the board.");
+          renderBoard();
+        } else {
+          setStatus("Switch to online mode and complete signaling to start a peer match.");
+          renderBoard();
+        }
+        return;
+      }
+
       setStatus("Your turn. Pick any empty hex to start expanding.");
       renderBoard();
     }
 
-    newGameButton.addEventListener("click", resetGame);
+    function closePeerConnection() {
+      onlineReady = false;
+      if (peerChannel) {
+        peerChannel.close();
+      }
+      if (peerConnection) {
+        peerConnection.close();
+      }
+      peerChannel = null;
+      peerConnection = null;
+    }
+
+    function updateSignalBox(value) {
+      localSignalEl.value = value ? JSON.stringify(value, null, 2) : "";
+    }
+
+    function attachPeerChannel(channel) {
+      peerChannel = channel;
+      peerChannel.addEventListener("open", () => {
+        onlineReady = true;
+        setStatus(onlineRole === "host" ? "Peer connected. Blue moves first." : "Peer connected. Waiting for host sync.");
+        if (onlineRole === "host") {
+          resetGame();
+        } else {
+          renderBoard();
+        }
+      });
+      peerChannel.addEventListener("close", () => {
+        onlineReady = false;
+        setStatus("Peer connection closed.");
+        renderBoard();
+      });
+      peerChannel.addEventListener("message", (event) => {
+        const message = JSON.parse(event.data);
+        if (message.type === "move" && onlineRole === "host") {
+          const cell = cellMap.get(message.key);
+          if (!cell || currentTurn !== "ai" || state.get(cell.key) !== null || gameOver) {
+            return;
+          }
+          commitMove(cell, "ai");
+          if (!evaluateGameState()) {
+            currentTurn = "player";
+            updateHud();
+            setStatus("Blue to move.");
+            renderBoard();
+          }
+          syncOnlineState();
+          return;
+        }
+
+        if (message.type === "state-sync") {
+          importState(message.snapshot);
+          return;
+        }
+
+        if (message.type === "reset-request" && onlineRole === "host") {
+          resetGame();
+        }
+      });
+    }
+
+    function createPeerConnection() {
+      closePeerConnection();
+      peerConnection = new RTCPeerConnection({
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+      });
+      peerConnection.addEventListener("icecandidate", () => {
+        if (!peerConnection || peerConnection.iceGatheringState !== "complete" || !peerConnection.localDescription) {
+          return;
+        }
+        updateSignalBox(peerConnection.localDescription);
+      });
+      peerConnection.addEventListener("datachannel", (event) => {
+        attachPeerChannel(event.channel);
+      });
+      return peerConnection;
+    }
+
+    async function createHostOffer() {
+      gameMode = "online";
+      onlineRole = "host";
+      modeSelectEl.value = "online";
+      const connection = createPeerConnection();
+      attachPeerChannel(connection.createDataChannel("hex-territory-online"));
+      const offer = await connection.createOffer();
+      await connection.setLocalDescription(offer);
+      setStatus("Host offer created. Share the JSON with your opponent, then paste their answer below.");
+      renderBoard();
+    }
+
+    async function createJoinAnswer() {
+      gameMode = "online";
+      onlineRole = "guest";
+      modeSelectEl.value = "online";
+      const payload = remoteSignalEl.value.trim();
+      if (!payload) {
+        setStatus("Paste the host offer JSON first.");
+        return;
+      }
+      const remoteDescription = JSON.parse(payload);
+      const connection = createPeerConnection();
+      await connection.setRemoteDescription(remoteDescription);
+      const answer = await connection.createAnswer();
+      await connection.setLocalDescription(answer);
+      setStatus("Join answer created. Send it back to the host and wait for the synchronized board.");
+      renderBoard();
+    }
+
+    async function applyRemoteSignal() {
+      if (!peerConnection) {
+        setStatus("Create a host offer or join answer first.");
+        return;
+      }
+      const payload = remoteSignalEl.value.trim();
+      if (!payload) {
+        setStatus("Paste the remote JSON before applying it.");
+        return;
+      }
+      const remoteDescription = JSON.parse(payload);
+      await peerConnection.setRemoteDescription(remoteDescription);
+      setStatus("Remote signal applied. Waiting for the peer connection to open...");
+      renderBoard();
+    }
+
+    newGameButton.addEventListener("click", () => {
+      if (gameMode === "online" && onlineRole === "guest" && peerChannel && peerChannel.readyState === "open") {
+        peerChannel.send(JSON.stringify({ type: "reset-request" }));
+        setStatus("Reset request sent to host.");
+        return;
+      }
+      resetGame();
+    });
+    hostOnlineButton.addEventListener("click", () => {
+      createHostOffer().catch((error) => {
+        setStatus(`Failed to create host offer: ${error.message}`);
+      });
+    });
+    joinOnlineButton.addEventListener("click", () => {
+      createJoinAnswer().catch((error) => {
+        setStatus(`Failed to create join answer: ${error.message}`);
+      });
+    });
+    applyRemoteSignalButton.addEventListener("click", () => {
+      applyRemoteSignal().catch((error) => {
+        setStatus(`Failed to apply remote signal: ${error.message}`);
+      });
+    });
+    modeSelectEl.addEventListener("change", () => {
+      gameMode = modeSelectEl.value;
+      if (gameMode === "ai") {
+        closePeerConnection();
+        onlineRole = "solo";
+        updateSignalBox(null);
+        remoteSignalEl.value = "";
+      }
+      resetGame();
+    });
 
     generateBoardCells();
     for (const cell of cells) {

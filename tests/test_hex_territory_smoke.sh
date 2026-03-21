@@ -19,6 +19,10 @@ grep -q 'function applyCaptures' "$app_file" || fail "capture application missin
 grep -q 'function chooseAiMove()' "$app_file" || fail "AI move picker missing"
 grep -q 'captures === bestMove.captures && adjacency > bestMove.adjacency' "$app_file" || fail "greedy AI tiebreak missing"
 grep -q 'window.setTimeout(takeAiTurn, AI_DELAY_MS)' "$app_file" || fail "AI delay missing"
+grep -q 'Online 1v1 (WebRTC)' "$app_file" || fail "online mode label missing"
+grep -q 'new RTCPeerConnection' "$app_file" || fail "webrtc peer connection missing"
+grep -q 'function syncOnlineState' "$app_file" || fail "online state sync missing"
+grep -q 'type: "state-sync"' "$app_file" || fail "state sync message missing"
 grep -q 'Hex Territory Strategy' "$app_file" || fail "game title missing"
 grep -q 'captured and changes color' "$app_file" || fail "capture rules text missing"
 
