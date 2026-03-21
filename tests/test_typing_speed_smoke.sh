@@ -20,5 +20,10 @@ grep -q 'calculateStats' "$app_file" || fail "live stats calculation missing"
 grep -q 'class="char' "$app_file" || fail "character highlighting markup missing"
 grep -q 'Retry Passage' "$app_file" || fail "retry action missing"
 grep -q 'New Passage' "$app_file" || fail "new passage action missing"
+grep -q 'RTCPeerConnection' "$app_file" || fail "webrtc multiplayer support missing"
+grep -q 'Host Multiplayer Race' "$app_file" || fail "host multiplayer action missing"
+grep -q 'Join Multiplayer Race' "$app_file" || fail "join multiplayer action missing"
+grep -q 'Generate Host Code' "$app_file" || fail "manual signaling flow missing"
+grep -q 'opponent-progress' "$app_file" || fail "opponent progress display missing"
 
 printf 'typing speed smoke test passed\n'

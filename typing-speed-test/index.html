@@ -142,6 +142,56 @@
       gap: 14px;
     }
 
+    .stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .mode-actions,
+    .network-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .network-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+    }
+
+    .field-label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .signal-box {
+      min-height: 140px;
+      border-radius: 16px;
+      padding: 12px;
+    }
+
+    .status-line {
+      margin: 0;
+      min-height: 1.5em;
+      color: var(--accent-dark);
+      font-weight: 700;
+    }
+
+    .status-line.muted {
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    .network-panel[hidden],
+    .opponent-card[hidden] {
+      display: none;
+    }
+
     textarea {
       width: 100%;
       min-height: 150px;
@@ -242,10 +292,35 @@
       </div>
       <div class="card">
         <p>Fifteen built-in passages are included, from short warmups to denser technical text.</p>
-        <p class="hint">Press start, begin typing, and the timer will begin on your first keystroke.</p>
+        <p class="hint">Play solo, or race another player through a direct WebRTC link by exchanging share codes.</p>
       </div>
-      <div>
-        <button id="start-button" class="primary" type="button">Start Test</button>
+      <div class="card stack">
+        <div class="mode-actions">
+          <button id="start-button" class="primary" type="button">Start Solo Test</button>
+          <button id="host-button" class="secondary" type="button">Host Multiplayer Race</button>
+          <button id="join-button" class="secondary" type="button">Join Multiplayer Race</button>
+        </div>
+        <p id="connection-status" class="status-line muted">Solo mode is ready.</p>
+      </div>
+      <div id="network-panel" class="card stack network-panel" hidden>
+        <div class="network-grid">
+          <div>
+            <label class="field-label" for="local-signal">Your Share Code</label>
+            <textarea id="local-signal" class="signal-box" readonly placeholder="Generate or answer a connection to produce a code."></textarea>
+          </div>
+          <div>
+            <label class="field-label" for="remote-signal">Remote Share Code</label>
+            <textarea id="remote-signal" class="signal-box" placeholder="Paste the other player's code here."></textarea>
+          </div>
+        </div>
+        <div class="network-actions">
+          <button id="generate-offer-button" class="primary" type="button" hidden>Generate Host Code</button>
+          <button id="generate-answer-button" class="primary" type="button" hidden>Create Join Code</button>
+          <button id="apply-answer-button" class="primary" type="button" hidden>Complete Connection</button>
+          <button id="start-race-button" class="secondary" type="button" hidden>Start Multiplayer Race</button>
+          <button id="reset-network-button" class="secondary" type="button">Reset Connection</button>
+        </div>
+        <p id="network-hint" class="hint">Use two browsers or devices. Host shares a code, joiner pastes it, creates a reply code, then the host pastes that reply to finish the link.</p>
       </div>
     </section>
 
@@ -267,6 +342,11 @@
           <span class="stat-label">Errors</span>
           <strong id="errors" class="stat-value">0</strong>
         </div>
+        <div id="opponent-card" class="card opponent-card" hidden>
+          <span class="stat-label">Opponent</span>
+          <strong id="opponent-progress" class="stat-value">0%</strong>
+          <div class="best" id="opponent-meta">0 WPM · 100%</div>
+        </div>
       </div>
 
       <div id="passage-display" class="card passage" aria-live="polite"></div>
@@ -281,6 +361,7 @@
           placeholder="The timer starts on your first keystroke."
         ></textarea>
         <p class="hint">Correct characters are green, errors are red, and remaining text stays gray.</p>
+        <p id="race-status" class="status-line muted">Solo run active.</p>
       </div>
     </section>
   </main>
@@ -289,7 +370,7 @@
     <section class="result-card">
       <div>
         <h2>Results</h2>
-        <p>Passage complete. Review your stats or jump into another round.</p>
+        <p id="result-summary">Passage complete. Review your stats or jump into another round.</p>
       </div>
       <div class="result-grid">
         <div class="card">
@@ -337,6 +418,12 @@
       "The final benchmark combined numbers, symbols, and longer sentences to see whether accuracy held once fatigue started to set in."
     ];
 
+    const rtcConfig = {
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" }
+      ]
+    };
+
     const startScreen = document.getElementById("start-screen");
     const testScreen = document.getElementById("test-screen");
     const passageDisplay = document.getElementById("passage-display");
@@ -351,11 +438,32 @@
     const finalAccuracyDisplay = document.getElementById("final-accuracy");
     const finalTimeDisplay = document.getElementById("final-time");
     const finalErrorsDisplay = document.getElementById("final-errors");
+    const connectionStatus = document.getElementById("connection-status");
+    const networkPanel = document.getElementById("network-panel");
+    const localSignal = document.getElementById("local-signal");
+    const remoteSignal = document.getElementById("remote-signal");
+    const generateOfferButton = document.getElementById("generate-offer-button");
+    const generateAnswerButton = document.getElementById("generate-answer-button");
+    const applyAnswerButton = document.getElementById("apply-answer-button");
+    const startRaceButton = document.getElementById("start-race-button");
+    const resetNetworkButton = document.getElementById("reset-network-button");
+    const networkHint = document.getElementById("network-hint");
+    const opponentCard = document.getElementById("opponent-card");
+    const opponentProgress = document.getElementById("opponent-progress");
+    const opponentMeta = document.getElementById("opponent-meta");
+    const raceStatus = document.getElementById("race-status");
+    const resultSummary = document.getElementById("result-summary");
 
     let currentPassage = "";
     let startTime = null;
     let timerId = null;
     let completed = false;
+    let gameMode = "solo";
+    let peerRole = null;
+    let peerConnection = null;
+    let dataChannel = null;
+    let remoteReady = false;
+    let remoteState = null;
 
     function readBestWpm() {
       return Number(window.localStorage.getItem(BEST_WPM_KEY) || "0");
@@ -467,13 +575,53 @@
       }
     }
 
+    function buildResultSummary(stats) {
+      if (gameMode !== "multiplayer") {
+        return "Passage complete. Review your stats or jump into another round.";
+      }
+      if (!remoteState || !remoteState.completed) {
+        return `You finished at ${stats.wpm} WPM. Opponent progress: ${remoteState ? remoteState.progress : 0}%.`;
+      }
+      if (stats.elapsedMs <= remoteState.elapsedMs) {
+        return `You finished first. You: ${stats.wpm} WPM, opponent: ${remoteState.wpm} WPM.`;
+      }
+      return `Opponent finished first. You: ${stats.wpm} WPM, opponent: ${remoteState.wpm} WPM.`;
+    }
+
     function showResults(stats) {
       finalWpmDisplay.textContent = String(stats.wpm);
       finalAccuracyDisplay.textContent = `${stats.accuracy}%`;
       finalTimeDisplay.textContent = formatSeconds(stats.elapsedMs);
       finalErrorsDisplay.textContent = String(stats.errors);
+      resultSummary.textContent = buildResultSummary(stats);
       resultsModal.hidden = false;
       writeBestWpm(stats.wpm);
+    }
+
+    function buildProgressPayload(stats) {
+      return {
+        accuracy: stats.accuracy,
+        completed,
+        elapsedMs: stats.elapsedMs,
+        errors: stats.errors,
+        progress: currentPassage ? Math.round((typingInput.value.length / currentPassage.length) * 100) : 0,
+        wpm: stats.wpm
+      };
+    }
+
+    function updateOpponentCard() {
+      if (!remoteState) {
+        return;
+      }
+      opponentProgress.textContent = `${remoteState.progress}%`;
+      opponentMeta.textContent = `${remoteState.wpm} WPM · ${remoteState.accuracy}%`;
+      if (!completed) {
+        raceStatus.textContent = remoteState.completed
+          ? `Opponent finished at ${remoteState.wpm} WPM. Complete the passage to post your result.`
+          : `Opponent progress: ${remoteState.progress}% · ${remoteState.wpm} WPM.`;
+      } else if (!resultsModal.hidden) {
+        resultSummary.textContent = buildResultSummary(calculateStats(typingInput.value));
+      }
     }
 
     function finishTest() {
@@ -485,7 +633,17 @@
       completed = true;
       typingInput.disabled = true;
       stopTimer();
-      showResults(renderLiveStats(textValue));
+      const stats = renderLiveStats(textValue);
+      if (gameMode === "multiplayer") {
+        sendNetworkMessage({
+          type: "progress",
+          payload: buildProgressPayload(stats)
+        });
+        raceStatus.textContent = remoteState && remoteState.completed
+          ? `Race complete. Opponent ${remoteState.wpm} WPM.`
+          : "You finished. Waiting for the opponent to complete the passage.";
+      }
+      showResults(stats);
     }
 
     function beginTest(nextPassage) {
@@ -500,6 +658,25 @@
       testScreen.hidden = false;
       renderPassage("");
       renderLiveStats("");
+
+      if (gameMode === "multiplayer") {
+        remoteState = {
+          accuracy: 100,
+          completed: false,
+          elapsedMs: 0,
+          errors: 0,
+          progress: 0,
+          wpm: 0
+        };
+        opponentCard.hidden = false;
+        updateOpponentCard();
+        raceStatus.textContent = "Multiplayer race active. Both players are typing the same passage.";
+      } else {
+        remoteState = null;
+        opponentCard.hidden = true;
+        raceStatus.textContent = "Solo run active.";
+      }
+
       typingInput.focus();
     }
 
@@ -516,26 +693,288 @@
       }, 100);
     }
 
+    function setStatus(message, muted = false) {
+      connectionStatus.textContent = message;
+      connectionStatus.classList.toggle("muted", muted);
+    }
+
+    function updateNetworkPanel() {
+      networkPanel.hidden = peerRole === null;
+      generateOfferButton.hidden = peerRole !== "host";
+      applyAnswerButton.hidden = peerRole !== "host";
+      generateAnswerButton.hidden = peerRole !== "guest";
+      startRaceButton.hidden = !(peerRole === "host" && remoteReady);
+      if (peerRole === "host") {
+        networkHint.textContent = "Generate a host code, share it, then paste the join code you receive back.";
+      } else if (peerRole === "guest") {
+        networkHint.textContent = "Paste the host code, create your join code, and send it back to the host.";
+      } else {
+        networkHint.textContent = "Use two browsers or devices. Host shares a code, joiner pastes it, creates a reply code, then the host pastes that reply to finish the link.";
+      }
+    }
+
+    function resetNetworkState() {
+      if (dataChannel) {
+        dataChannel.onopen = null;
+        dataChannel.onmessage = null;
+        dataChannel.onclose = null;
+        dataChannel.onerror = null;
+        try {
+          dataChannel.close();
+        } catch (error) {
+          console.warn("Failed to close data channel", error);
+        }
+      }
+      if (peerConnection) {
+        peerConnection.ondatachannel = null;
+        peerConnection.onconnectionstatechange = null;
+        try {
+          peerConnection.close();
+        } catch (error) {
+          console.warn("Failed to close peer connection", error);
+        }
+      }
+      peerConnection = null;
+      dataChannel = null;
+      peerRole = null;
+      remoteReady = false;
+      remoteState = null;
+      gameMode = "solo";
+      localSignal.value = "";
+      remoteSignal.value = "";
+      updateNetworkPanel();
+      setStatus("Solo mode is ready.", true);
+    }
+
+    function waitForIceCompletion(connection) {
+      if (connection.iceGatheringState === "complete") {
+        return Promise.resolve();
+      }
+      return new Promise((resolve) => {
+        function onIceGatheringStateChange() {
+          if (connection.iceGatheringState === "complete") {
+            connection.removeEventListener("icegatheringstatechange", onIceGatheringStateChange);
+            resolve();
+          }
+        }
+        connection.addEventListener("icegatheringstatechange", onIceGatheringStateChange);
+      });
+    }
+
+    function attachDataChannel(channel) {
+      dataChannel = channel;
+      channel.addEventListener("open", () => {
+        remoteReady = true;
+        gameMode = "multiplayer";
+        setStatus(peerRole === "host" ? "Opponent connected. Start the race when ready." : "Connected. Waiting for the host to start the race.");
+        updateNetworkPanel();
+      });
+      channel.addEventListener("message", (event) => {
+        handleNetworkMessage(event.data);
+      });
+      channel.addEventListener("close", () => {
+        remoteReady = false;
+        setStatus("Connection closed. Reset and start a new race.");
+        updateNetworkPanel();
+      });
+      channel.addEventListener("error", () => {
+        setStatus("Connection error. Reset and try again.");
+      });
+    }
+
+    function createPeerConnection() {
+      const connection = new RTCPeerConnection(rtcConfig);
+      connection.addEventListener("connectionstatechange", () => {
+        if (connection.connectionState === "failed") {
+          setStatus("Peer connection failed. Reset and try again.");
+        }
+      });
+      if (peerRole === "guest") {
+        connection.addEventListener("datachannel", (event) => {
+          attachDataChannel(event.channel);
+        });
+      }
+      peerConnection = connection;
+      return connection;
+    }
+
+    function sendNetworkMessage(message) {
+      if (!dataChannel || dataChannel.readyState !== "open") {
+        return;
+      }
+      dataChannel.send(JSON.stringify(message));
+    }
+
+    function handleNetworkMessage(rawMessage) {
+      let message;
+      try {
+        message = JSON.parse(rawMessage);
+      } catch (error) {
+        console.warn("Ignoring malformed network message", error);
+        return;
+      }
+
+      if (message.type === "start" && typeof message.payload?.passage === "string") {
+        gameMode = "multiplayer";
+        beginTest(message.payload.passage);
+        return;
+      }
+
+      if (message.type === "progress" && message.payload) {
+        remoteState = {
+          accuracy: message.payload.accuracy,
+          completed: Boolean(message.payload.completed),
+          elapsedMs: message.payload.elapsedMs,
+          errors: message.payload.errors,
+          progress: message.payload.progress,
+          wpm: message.payload.wpm
+        };
+        updateOpponentCard();
+      }
+    }
+
+    async function generateHostCode() {
+      try {
+        if (!window.RTCPeerConnection) {
+          setStatus("This browser does not support RTCPeerConnection.");
+          return;
+        }
+        resetNetworkState();
+        peerRole = "host";
+        updateNetworkPanel();
+        setStatus("Generating host code...", true);
+        const connection = createPeerConnection();
+        attachDataChannel(connection.createDataChannel("typing-race"));
+        const offer = await connection.createOffer();
+        await connection.setLocalDescription(offer);
+        await waitForIceCompletion(connection);
+        localSignal.value = JSON.stringify(connection.localDescription);
+        setStatus("Host code ready. Share it with the joining player.");
+      } catch (error) {
+        console.error(error);
+        setStatus("Could not generate the host code. Reset and try again.");
+      }
+    }
+
+    async function createJoinCode() {
+      try {
+        if (!window.RTCPeerConnection) {
+          setStatus("This browser does not support RTCPeerConnection.");
+          return;
+        }
+        const offer = JSON.parse(remoteSignal.value);
+        resetNetworkState();
+        peerRole = "guest";
+        updateNetworkPanel();
+        remoteSignal.value = JSON.stringify(offer, null, 2);
+        setStatus("Creating join code...", true);
+        const connection = createPeerConnection();
+        await connection.setRemoteDescription(offer);
+        const answer = await connection.createAnswer();
+        await connection.setLocalDescription(answer);
+        await waitForIceCompletion(connection);
+        localSignal.value = JSON.stringify(connection.localDescription);
+        setStatus("Join code ready. Send it back to the host and wait for the race to start.");
+      } catch (error) {
+        console.error(error);
+        setStatus("Join code is invalid. Paste a valid host code and try again.");
+      }
+    }
+
+    async function completeConnection() {
+      try {
+        if (!peerConnection) {
+          setStatus("Generate a host code before completing the connection.");
+          return;
+        }
+        const answer = JSON.parse(remoteSignal.value);
+        await peerConnection.setRemoteDescription(answer);
+        setStatus("Remote answer applied. Waiting for the opponent to finish connecting.", true);
+      } catch (error) {
+        console.error(error);
+        setStatus("Could not apply the join code. Paste the full answer and try again.");
+      }
+    }
+
     document.getElementById("start-button").addEventListener("click", () => {
+      gameMode = "solo";
       beginTest(pickRandomPassage());
     });
 
+    document.getElementById("host-button").addEventListener("click", () => {
+      peerRole = "host";
+      updateNetworkPanel();
+      setStatus("Host mode selected. Generate a host code to begin.", true);
+    });
+
+    document.getElementById("join-button").addEventListener("click", () => {
+      peerRole = "guest";
+      updateNetworkPanel();
+      setStatus("Join mode selected. Paste a host code to create your reply code.", true);
+    });
+
+    generateOfferButton.addEventListener("click", generateHostCode);
+    generateAnswerButton.addEventListener("click", createJoinCode);
+    applyAnswerButton.addEventListener("click", completeConnection);
+    resetNetworkButton.addEventListener("click", resetNetworkState);
+
+    startRaceButton.addEventListener("click", () => {
+      if (!remoteReady) {
+        setStatus("Wait for the opponent to connect before starting the race.");
+        return;
+      }
+      const nextPassage = pickRandomPassage(currentPassage);
+      sendNetworkMessage({
+        type: "start",
+        payload: { passage: nextPassage }
+      });
+      beginTest(nextPassage);
+    });
+
     document.getElementById("retry-button").addEventListener("click", () => {
+      if (gameMode === "multiplayer" && peerRole === "guest") {
+        resultSummary.textContent = "Only the host can restart a multiplayer race. Wait for the next round.";
+        return;
+      }
       beginTest(currentPassage);
+      if (gameMode === "multiplayer" && peerRole === "host") {
+        sendNetworkMessage({
+          type: "start",
+          payload: { passage: currentPassage }
+        });
+      }
     });
 
     document.getElementById("new-button").addEventListener("click", () => {
-      beginTest(pickRandomPassage(currentPassage));
+      if (gameMode === "multiplayer" && peerRole === "guest") {
+        resultSummary.textContent = "Only the host can choose a new multiplayer passage. Wait for the next round.";
+        return;
+      }
+      const nextPassage = pickRandomPassage(currentPassage);
+      beginTest(nextPassage);
+      if (gameMode === "multiplayer" && peerRole === "host") {
+        sendNetworkMessage({
+          type: "start",
+          payload: { passage: nextPassage }
+        });
+      }
     });
 
     typingInput.addEventListener("input", () => {
       startTimerIfNeeded();
       renderPassage(typingInput.value);
-      renderLiveStats(typingInput.value);
+      const stats = renderLiveStats(typingInput.value);
+      if (gameMode === "multiplayer") {
+        sendNetworkMessage({
+          type: "progress",
+          payload: buildProgressPayload(stats)
+        });
+      }
       finishTest();
     });
 
     renderBestWpm();
+    updateNetworkPanel();
   </script>
 </body>
 </html>

@@ -36,6 +36,7 @@ This repository contains a simple agent-factory workflow for planning and comple
 - 逐字符高亮显示：正确为绿色、错误为红色、未输入为灰色
 - 完成后结果弹层，以及重试当前段落或切换新段落
 - 使用 `localStorage` 保存并展示个人最佳 WPM
+- 新增基于 WebRTC 手动交换连接码的双人联机竞速模式，可查看对手进度与结果
 
 直接用浏览器打开 `typing-speed-test/index.html` 即可开始测试。
 
