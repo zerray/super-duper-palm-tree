@@ -18,6 +18,8 @@ grep -q 'BEST_WPM_KEY = "typing-speed-test-best-wpm"' "$app_file" || fail "best 
 grep -q 'window.localStorage' "$app_file" || fail "localStorage support missing"
 grep -q 'calculateStats' "$app_file" || fail "live stats calculation missing"
 grep -q 'class="char' "$app_file" || fail "character highlighting markup missing"
+grep -q 'Online Race' "$app_file" || fail "online race card missing"
+grep -q 'createPeerRoom' "$app_file" || fail "peer room hookup missing"
 grep -q 'Retry Passage' "$app_file" || fail "retry action missing"
 grep -q 'New Passage' "$app_file" || fail "new passage action missing"
 
