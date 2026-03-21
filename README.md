@@ -77,6 +77,7 @@ This repository contains a simple agent-factory workflow for planning and comple
 - 约 127 格的小型六边形棋盘与 SVG 渲染
 - 点击空白六边形落子，被完全包围的敌方连通块会被翻转占领
 - 使用“优先最大化吃子，其次最大化己方邻接数”的贪心 AI 对手
+- 可选 PeerJS 联网房间，对应红蓝双方远程轮流对战
 - 棋盘填满后自动结算胜负，并支持 `New Game` 立即重开
 
 直接用浏览器打开 `hex-territory/index.html` 即可游玩。
@@ -143,6 +144,7 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 - 默认 radius 7、可切换到 radius 5 或 9 的 SVG 六边形棋盘，使用轴坐标与 `Map` 保存格子状态
 - 双人 hot-seat 轮流落子，只能下在空格或己方控制的格子上
+- 可选 PeerJS 联网房间，主机执蓝方、访客执红方，同步回合与重开局
 - 当 token 数量超过该格实际邻居数时触发爆裂，并以短延迟逐步播放连锁反应
 - 当前玩家提示、回合统计、重新开始按钮，以及一方在连锁结算后失去全部 token 时的胜利结算
 

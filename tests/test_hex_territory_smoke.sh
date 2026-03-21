@@ -19,6 +19,11 @@ grep -q 'function applyCaptures' "$app_file" || fail "capture application missin
 grep -q 'function chooseAiMove()' "$app_file" || fail "AI move picker missing"
 grep -q 'captures === bestMove.captures && adjacency > bestMove.adjacency' "$app_file" || fail "greedy AI tiebreak missing"
 grep -q 'window.setTimeout(takeAiTurn, AI_DELAY_MS)' "$app_file" || fail "AI delay missing"
+grep -q 'peerjs.min.js' "$app_file" || fail "PeerJS dependency missing"
+grep -q 'id="host-room"' "$app_file" || fail "host room control missing"
+grep -q 'id="join-room"' "$app_file" || fail "join room control missing"
+grep -q 'function hostOnlineMatch' "$app_file" || fail "host room handler missing"
+grep -q 'function joinOnlineMatch' "$app_file" || fail "join room handler missing"
 grep -q 'Hex Territory Strategy' "$app_file" || fail "game title missing"
 grep -q 'captured and changes color' "$app_file" || fail "capture rules text missing"
 
