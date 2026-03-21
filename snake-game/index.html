@@ -135,7 +135,8 @@
     }
 
     .controls,
-    .leaderboard {
+    .leaderboard,
+    .network-card {
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 18px;
@@ -243,7 +244,8 @@
       font-weight: 700;
     }
 
-    input {
+    input,
+    textarea {
       width: 100%;
       padding: 12px 14px;
       border-radius: 12px;
@@ -251,9 +253,25 @@
       font-size: 1rem;
     }
 
+    textarea {
+      min-height: 88px;
+      resize: vertical;
+      font: inherit;
+      background: #fffdf8;
+    }
+
     .note {
       color: var(--muted);
       font-size: 0.92rem;
+    }
+
+    .network-card {
+      display: grid;
+      gap: 12px;
+    }
+
+    .network-card h3 {
+      margin: 0;
     }
 
     @media (max-width: 860px) {
@@ -277,7 +295,7 @@
     <section class="board-panel">
       <div class="title">
         <h1>贪吃蛇</h1>
-        <p>静态页面即可运行，支持键盘操作、积分和本地排行榜。</p>
+        <p>静态页面即可运行，支持单机、WebRTC 联机协作、积分和本地排行榜。</p>
       </div>
 
       <section class="hud" aria-label="游戏状态">
@@ -293,6 +311,10 @@
           <span class="stat-label">游戏速度</span>
           <strong id="speed">慢</strong>
         </div>
+        <div class="stat">
+          <span class="stat-label">当前模式</span>
+          <strong id="mode-label">单机</strong>
+        </div>
       </section>
 
       <div id="board" aria-label="贪吃蛇棋盘" role="application"></div>
@@ -301,7 +323,7 @@
     <aside class="controls">
       <section>
         <h2>开始游戏</h2>
-        <p class="note">点击开始后，方向键或 WASD 控制移动。</p>
+        <p class="note">点击开始后，方向键或 WASD 控制移动。联机客机连接后也可共同控制同一条蛇。</p>
       </section>
 
       <div class="button-row">
@@ -315,7 +337,45 @@
           <li>方向键或 `WASD` 控制移动。</li>
           <li>撞墙或撞到自己即游戏结束。</li>
           <li>每吃一个苹果加 10 分，并略微加速。</li>
+          <li>联机模式使用手动复制连接码的 WebRTC 直连。</li>
         </ul>
+      </section>
+
+      <section class="network-card">
+        <div>
+          <h3>联机协作</h3>
+          <p id="network-status" class="note">当前为单机模式。需要两端手动交换连接码。</p>
+        </div>
+
+        <div class="button-row">
+          <button id="host-session" class="primary" type="button">创建主机连接码</button>
+          <button id="disconnect-session" class="secondary" type="button">断开联机</button>
+        </div>
+
+        <label for="local-offer">
+          主机连接码
+          <textarea id="local-offer" placeholder="主机点击创建后，把这里的内容发给另一位玩家。"></textarea>
+        </label>
+
+        <label for="remote-offer">
+          粘贴主机连接码
+          <textarea id="remote-offer" placeholder="客机把主机连接码粘贴到这里，然后生成应答码。"></textarea>
+        </label>
+
+        <div class="button-row">
+          <button id="join-session" class="secondary" type="button">生成加入应答码</button>
+          <button id="apply-answer" class="secondary" type="button">主机应用应答码</button>
+        </div>
+
+        <label for="local-answer">
+          客机应答码
+          <textarea id="local-answer" placeholder="客机生成后，把这里的内容发回给主机。"></textarea>
+        </label>
+
+        <label for="remote-answer">
+          粘贴客机应答码
+          <textarea id="remote-answer" placeholder="主机把客机应答码粘贴到这里，再应用应答码。"></textarea>
+        </label>
       </section>
 
       <section class="leaderboard">
@@ -351,11 +411,25 @@
     const MIN_SPEED = 75;
     const SPEED_STEP = 6;
     const LEADERBOARD_KEY = "snake-game-leaderboard";
+    const RTC_CONFIGURATION = {
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+    };
+    const NEXT_DIRECTIONS = {
+      arrowup: { x: 0, y: -1 },
+      w: { x: 0, y: -1 },
+      arrowdown: { x: 0, y: 1 },
+      s: { x: 0, y: 1 },
+      arrowleft: { x: -1, y: 0 },
+      a: { x: -1, y: 0 },
+      arrowright: { x: 1, y: 0 },
+      d: { x: 1, y: 0 }
+    };
 
     const board = document.getElementById("board");
     const scoreNode = document.getElementById("score");
     const bestScoreNode = document.getElementById("best-score");
     const speedNode = document.getElementById("speed");
+    const modeLabelNode = document.getElementById("mode-label");
     const leaderboardList = document.getElementById("leaderboard-list");
     const leaderboardEmpty = document.getElementById("leaderboard-empty");
     const startButton = document.getElementById("start-button");
@@ -365,6 +439,15 @@
     const playerNameInput = document.getElementById("player-name");
     const saveScoreButton = document.getElementById("save-score");
     const skipSaveButton = document.getElementById("skip-save");
+    const networkStatusNode = document.getElementById("network-status");
+    const hostSessionButton = document.getElementById("host-session");
+    const disconnectSessionButton = document.getElementById("disconnect-session");
+    const joinSessionButton = document.getElementById("join-session");
+    const applyAnswerButton = document.getElementById("apply-answer");
+    const localOfferInput = document.getElementById("local-offer");
+    const remoteOfferInput = document.getElementById("remote-offer");
+    const localAnswerInput = document.getElementById("local-answer");
+    const remoteAnswerInput = document.getElementById("remote-answer");
 
     const cells = [];
     let snake = [];
@@ -378,6 +461,9 @@
     let gameOver = false;
     let paused = false;
     let lastScoreSaved = false;
+    let multiplayerRole = "solo";
+    let peerConnection = null;
+    let dataChannel = null;
 
     function createBoard() {
       const fragment = document.createDocumentFragment();
@@ -448,10 +534,17 @@
       scoreNode.textContent = String(score);
       bestScoreNode.textContent = String(getBestScore());
       speedNode.textContent = currentSpeed <= 105 ? "快" : currentSpeed <= 145 ? "中" : "慢";
+      modeLabelNode.textContent =
+        multiplayerRole === "host" ? "主机协作" : multiplayerRole === "guest" ? "客机协作" : "单机";
       pauseButton.textContent = paused ? "继续" : "暂停";
     }
 
-    function setDirection(nextDirection) {
+    function setDirection(nextDirection, options = {}) {
+      if (multiplayerRole === "guest") {
+        sendDirection(nextDirection);
+        return;
+      }
+
       const isOpposite =
         nextDirection.x + direction.x === 0 &&
         nextDirection.y + direction.y === 0;
@@ -461,6 +554,9 @@
       }
 
       pendingDirection = nextDirection;
+      if (options.broadcast !== false) {
+        syncState();
+      }
     }
 
     function tick() {
@@ -503,9 +599,14 @@
 
       updateHud();
       render();
+      syncState();
     }
 
     function restartLoop() {
+      if (multiplayerRole === "guest") {
+        return;
+      }
+
       if (loopId) {
         window.clearInterval(loopId);
       }
@@ -513,10 +614,16 @@
     }
 
     function startGame() {
+      if (multiplayerRole === "guest") {
+        setNetworkStatus("客机等待主机开始，方向输入会实时发送给主机。");
+        return;
+      }
+
       gameStarted = true;
       gameOverOverlay.hidden = true;
       resetState();
       restartLoop();
+      syncState();
     }
 
     function finishGame() {
@@ -529,6 +636,7 @@
       playerNameInput.value = "";
       gameOverOverlay.hidden = false;
       playerNameInput.focus();
+      syncState();
     }
 
     function togglePause() {
@@ -537,6 +645,7 @@
       }
       paused = !paused;
       updateHud();
+      syncState();
     }
 
     function getLeaderboard() {
@@ -573,6 +682,11 @@
     }
 
     function saveCurrentScore() {
+      if (multiplayerRole === "guest") {
+        gameOverOverlay.hidden = true;
+        return;
+      }
+
       if (lastScoreSaved) {
         gameOverOverlay.hidden = true;
         return;
@@ -598,18 +712,221 @@
       renderLeaderboard();
     }
 
+    function setNetworkStatus(message) {
+      networkStatusNode.textContent = message;
+    }
+
+    function waitForIceGatheringComplete(connection) {
+      if (connection.iceGatheringState === "complete") {
+        return Promise.resolve();
+      }
+
+      return new Promise((resolve) => {
+        function handleStateChange() {
+          if (connection.iceGatheringState === "complete") {
+            connection.removeEventListener("icegatheringstatechange", handleStateChange);
+            resolve();
+          }
+        }
+
+        connection.addEventListener("icegatheringstatechange", handleStateChange);
+      });
+    }
+
+    function sendMessage(message) {
+      if (!dataChannel || dataChannel.readyState !== "open") {
+        return false;
+      }
+
+      dataChannel.send(JSON.stringify(message));
+      return true;
+    }
+
+    function serializeState() {
+      return {
+        snake,
+        direction,
+        pendingDirection,
+        food,
+        score,
+        currentSpeed,
+        gameStarted,
+        gameOver,
+        paused
+      };
+    }
+
+    function applyRemoteState(state) {
+      snake = state.snake;
+      direction = state.direction;
+      pendingDirection = state.pendingDirection;
+      food = state.food;
+      score = state.score;
+      currentSpeed = state.currentSpeed;
+      gameStarted = state.gameStarted;
+      gameOver = state.gameOver;
+      paused = state.paused;
+      gameOverOverlay.hidden = true;
+      updateHud();
+      render();
+    }
+
+    function syncState() {
+      if (multiplayerRole !== "host") {
+        return;
+      }
+
+      sendMessage({ type: "state", state: serializeState() });
+    }
+
+    function sendDirection(nextDirection) {
+      if (multiplayerRole !== "guest") {
+        return;
+      }
+
+      if (!sendMessage({ type: "direction", direction: nextDirection })) {
+        setNetworkStatus("客机尚未连接成功，暂时无法发送方向。");
+      }
+    }
+
+    function handlePeerMessage(payload) {
+      if (!payload || typeof payload !== "object") {
+        return;
+      }
+
+      if (payload.type === "state" && multiplayerRole === "guest" && payload.state) {
+        applyRemoteState(payload.state);
+        return;
+      }
+
+      if (payload.type === "direction" && multiplayerRole === "host" && payload.direction) {
+        if (!gameStarted) {
+          startGame();
+        }
+        setDirection(payload.direction, { broadcast: false });
+      }
+    }
+
+    function wireDataChannel(channel) {
+      dataChannel = channel;
+      dataChannel.addEventListener("open", () => {
+        setNetworkStatus(multiplayerRole === "host" ? "主机已联机，等待共同操作。" : "客机已联机，可以共同控制贪吃蛇。");
+        syncState();
+      });
+      dataChannel.addEventListener("close", () => {
+        setNetworkStatus("联机连接已关闭，已回到本地模式。");
+        cleanupConnection({ preserveRole: false, keepStatus: true });
+      });
+      dataChannel.addEventListener("message", (event) => {
+        try {
+          handlePeerMessage(JSON.parse(event.data));
+        } catch (error) {
+          setNetworkStatus("收到无法解析的联机消息。");
+        }
+      });
+    }
+
+    function createPeerConnection() {
+      const connection = new RTCPeerConnection(RTC_CONFIGURATION);
+      connection.addEventListener("connectionstatechange", () => {
+        if (connection.connectionState === "failed") {
+          setNetworkStatus("联机失败，请重新交换连接码。");
+        }
+      });
+      connection.addEventListener("datachannel", (event) => {
+        wireDataChannel(event.channel);
+      });
+      return connection;
+    }
+
+    function cleanupConnection(options = {}) {
+      const preserveRole = options.preserveRole === true;
+      const keepStatus = options.keepStatus === true;
+
+      if (dataChannel) {
+        dataChannel.onopen = null;
+        dataChannel.onclose = null;
+        dataChannel.onmessage = null;
+        if (dataChannel.readyState !== "closed") {
+          dataChannel.close();
+        }
+        dataChannel = null;
+      }
+
+      if (peerConnection) {
+        peerConnection.ondatachannel = null;
+        peerConnection.onconnectionstatechange = null;
+        peerConnection.close();
+        peerConnection = null;
+      }
+
+      localOfferInput.value = "";
+      localAnswerInput.value = "";
+      remoteOfferInput.value = "";
+      remoteAnswerInput.value = "";
+
+      if (!preserveRole) {
+        multiplayerRole = "solo";
+        if (!keepStatus) {
+          setNetworkStatus("当前为单机模式。需要两端手动交换连接码。");
+        }
+      }
+
+      updateHud();
+    }
+
+    async function createHostSession() {
+      cleanupConnection({ preserveRole: true });
+      multiplayerRole = "host";
+      peerConnection = createPeerConnection();
+      wireDataChannel(peerConnection.createDataChannel("snake-sync"));
+      setNetworkStatus("正在生成主机连接码，请稍候。");
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+      await waitForIceGatheringComplete(peerConnection);
+      localOfferInput.value = JSON.stringify(peerConnection.localDescription);
+      updateHud();
+      setNetworkStatus("主机连接码已生成，发给另一位玩家。");
+    }
+
+    async function joinSession() {
+      const rawOffer = remoteOfferInput.value.trim();
+      if (!rawOffer) {
+        setNetworkStatus("请先粘贴主机连接码。");
+        return;
+      }
+
+      cleanupConnection({ preserveRole: true });
+      multiplayerRole = "guest";
+      peerConnection = createPeerConnection();
+      setNetworkStatus("正在生成加入应答码，请稍候。");
+      await peerConnection.setRemoteDescription(JSON.parse(rawOffer));
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+      await waitForIceGatheringComplete(peerConnection);
+      localAnswerInput.value = JSON.stringify(peerConnection.localDescription);
+      updateHud();
+      setNetworkStatus("加入应答码已生成，发回给主机完成联机。");
+    }
+
+    async function applyAnswer() {
+      if (!peerConnection || multiplayerRole !== "host") {
+        setNetworkStatus("请先生成主机连接码。");
+        return;
+      }
+
+      const rawAnswer = remoteAnswerInput.value.trim();
+      if (!rawAnswer) {
+        setNetworkStatus("请先粘贴客机应答码。");
+        return;
+      }
+
+      await peerConnection.setRemoteDescription(JSON.parse(rawAnswer));
+      setNetworkStatus("主机已应用应答码，等待数据通道完成连接。");
+    }
+
     document.addEventListener("keydown", (event) => {
       const key = event.key.toLowerCase();
-      const nextDirections = {
-        arrowup: { x: 0, y: -1 },
-        w: { x: 0, y: -1 },
-        arrowdown: { x: 0, y: 1 },
-        s: { x: 0, y: 1 },
-        arrowleft: { x: -1, y: 0 },
-        a: { x: -1, y: 0 },
-        arrowright: { x: 1, y: 0 },
-        d: { x: 1, y: 0 }
-      };
 
       if (key === " " || key === "spacebar") {
         event.preventDefault();
@@ -617,7 +934,7 @@
         return;
       }
 
-      const nextDirection = nextDirections[key];
+      const nextDirection = NEXT_DIRECTIONS[key];
       if (!nextDirection) {
         return;
       }
@@ -634,6 +951,26 @@
     saveScoreButton.addEventListener("click", saveCurrentScore);
     skipSaveButton.addEventListener("click", () => {
       gameOverOverlay.hidden = true;
+    });
+    hostSessionButton.addEventListener("click", () => {
+      createHostSession().catch(() => {
+        cleanupConnection({ preserveRole: false });
+        setNetworkStatus("主机连接码生成失败，请重试。");
+      });
+    });
+    joinSessionButton.addEventListener("click", () => {
+      joinSession().catch(() => {
+        cleanupConnection({ preserveRole: false });
+        setNetworkStatus("加入应答码生成失败，请检查连接码格式。");
+      });
+    });
+    applyAnswerButton.addEventListener("click", () => {
+      applyAnswer().catch(() => {
+        setNetworkStatus("应答码应用失败，请检查粘贴内容。");
+      });
+    });
+    disconnectSessionButton.addEventListener("click", () => {
+      cleanupConnection({ preserveRole: false });
     });
 
     createBoard();
