@@ -291,6 +291,51 @@
       color: var(--ink);
     }
 
+    .network-modes,
+    .network-actions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .network-actions {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .network-button {
+      min-height: 42px;
+      border: 1px solid rgba(74, 58, 40, 0.12);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--ink);
+    }
+
+    .network-button.active {
+      background: linear-gradient(180deg, #eaf2ff, #d7e8ff);
+      border-color: rgba(31, 111, 209, 0.24);
+    }
+
+    .network-button:disabled,
+    .action:disabled,
+    .size-select:disabled {
+      cursor: not-allowed;
+      opacity: 0.58;
+      box-shadow: none;
+    }
+
+    .network-field {
+      width: 100%;
+      min-height: 88px;
+      resize: vertical;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(74, 58, 40, 0.14);
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--ink);
+      font: inherit;
+      line-height: 1.45;
+    }
+
     .overlay {
       position: fixed;
       inset: 0;
@@ -357,7 +402,7 @@
     <aside class="panel">
       <div class="card">
         <h2>Match Controls</h2>
-        <p class="muted">Two-player hot-seat. Place on empty cells or cells you already control, then pass the device once the board finishes cascading.</p>
+        <p class="muted">Local hot-seat still works, and the new online beta lets two players sync a match over a direct WebRTC data channel with manual offer / answer exchange.</p>
         <div class="control-row">
           <label for="sizeSelect">Board radius</label>
           <select id="sizeSelect" class="size-select" aria-label="Board radius">
@@ -367,6 +412,23 @@
           </select>
         </div>
         <button class="action" id="restartButton" type="button">New Game</button>
+      </div>
+
+      <div class="card">
+        <h2>Online Beta</h2>
+        <p class="muted" id="connectionText">Mode: local hot-seat. Switch to host or join, then exchange the generated signal text with the other player.</p>
+        <div class="network-modes">
+          <button class="network-button active" id="localModeButton" type="button">Local</button>
+          <button class="network-button" id="hostModeButton" type="button">Host</button>
+          <button class="network-button" id="joinModeButton" type="button">Join</button>
+        </div>
+        <div class="network-actions">
+          <button class="network-button" id="createSignalButton" type="button">Create Signal</button>
+          <button class="network-button" id="applySignalButton" type="button">Apply Remote Signal</button>
+        </div>
+        <textarea class="network-field" id="signalOutput" readonly aria-label="Generated signal text" placeholder="Your host offer or join answer will appear here."></textarea>
+        <button class="network-button" id="copySignalButton" type="button">Copy My Signal</button>
+        <textarea class="network-field" id="signalInput" aria-label="Remote signal text" placeholder="Paste the other player's signal here, then apply it."></textarea>
       </div>
 
       <div class="card">
@@ -384,7 +446,7 @@
       <div class="card">
         <h2>Rules</h2>
         <div class="legend">
-          <div class="legend-line"><span class="swatch p1"></span><span>Blue and red alternate turns in hot-seat mode. You may only place on an empty hex or one you already control.</span></div>
+          <div class="legend-line"><span class="swatch p1"></span><span>Blue and red alternate turns in local hot-seat or online host / guest mode. You may only place on an empty hex or one you already control.</span></div>
           <div class="legend-line"><span class="swatch p2"></span><span>Every added token can strengthen your frontier or set up a forced conversion sequence on the next burst.</span></div>
           <div class="legend-line"><span class="swatch burst"></span><span>When tokens exceed a cell's neighbor count, it explodes outward, converts adjacent cells, and keeps chaining until the board stabilizes.</span></div>
         </div>
@@ -443,6 +505,24 @@
     const winnerOverlay = document.getElementById("winnerOverlay");
     const winnerTitle = document.getElementById("winnerTitle");
     const winnerText = document.getElementById("winnerText");
+    const connectionText = document.getElementById("connectionText");
+    const localModeButton = document.getElementById("localModeButton");
+    const hostModeButton = document.getElementById("hostModeButton");
+    const joinModeButton = document.getElementById("joinModeButton");
+    const createSignalButton = document.getElementById("createSignalButton");
+    const applySignalButton = document.getElementById("applySignalButton");
+    const copySignalButton = document.getElementById("copySignalButton");
+    const signalOutput = document.getElementById("signalOutput");
+    const signalInput = document.getElementById("signalInput");
+
+    const NETWORK_MODE_LOCAL = "local";
+    const NETWORK_MODE_HOST = "host";
+    const NETWORK_MODE_JOIN = "join";
+    const RTC_CONFIG = {
+      iceServers: [
+        { urls: ["stun:stun.l.google.com:19302"] }
+      ]
+    };
 
     const state = {
       gridRadius: DEFAULT_RADIUS,
@@ -456,12 +536,25 @@
       cascadeStep: 0
     };
 
+    const networkState = {
+      mode: NETWORK_MODE_LOCAL,
+      localPlayer: PLAYER_ONE,
+      connection: null,
+      channel: null,
+      connected: false,
+      awaitingState: false
+    };
+
     function sleep(ms) {
       return new Promise((resolve) => window.setTimeout(resolve, ms));
     }
 
     function keyFor(q, r) {
       return `${q},${r}`;
+    }
+
+    function canUseOnlineMode() {
+      return typeof window.RTCPeerConnection === "function";
     }
 
     function axialToCube(q, r) {
@@ -634,7 +727,7 @@
         if (cell.owner) {
           classes.push(PLAYER_CLASS[cell.owner]);
         }
-        if (!state.resolving && !state.winner && isLegalMove(cell, state.currentPlayer)) {
+        if (canLocalPlayerAct() && !state.resolving && !state.winner && isLegalMove(cell, state.currentPlayer)) {
           classes.push("clickable");
         } else {
           classes.push("blocked");
@@ -697,6 +790,40 @@
     function render() {
       renderBoard();
       renderHud();
+      updateNetworkUi();
+    }
+
+    function setConnectionMessage(message) {
+      connectionText.textContent = message;
+    }
+
+    function updateNetworkUi() {
+      const unsupported = !canUseOnlineMode();
+      const inLocalMode = networkState.mode === NETWORK_MODE_LOCAL;
+      const inHostMode = networkState.mode === NETWORK_MODE_HOST;
+      const inJoinMode = networkState.mode === NETWORK_MODE_JOIN;
+      const ready = networkState.connected && networkState.channel && networkState.channel.readyState === "open";
+
+      localModeButton.classList.toggle("active", inLocalMode);
+      hostModeButton.classList.toggle("active", inHostMode);
+      joinModeButton.classList.toggle("active", inJoinMode);
+      hostModeButton.disabled = unsupported;
+      joinModeButton.disabled = unsupported;
+      createSignalButton.disabled = unsupported || inLocalMode || (inJoinMode && !signalInput.value.trim());
+      applySignalButton.disabled = unsupported || inLocalMode || !signalInput.value.trim();
+      copySignalButton.disabled = !signalOutput.value.trim();
+      sizeSelect.disabled = inJoinMode;
+      restartButton.disabled = inJoinMode && ready;
+      playAgainButton.disabled = inJoinMode && ready;
+    }
+
+    function canLocalPlayerAct() {
+      if (networkState.mode === NETWORK_MODE_LOCAL) {
+        return true;
+      }
+      return networkState.connected
+        && !networkState.awaitingState
+        && state.currentPlayer === networkState.localPlayer;
     }
 
     function openWinnerOverlay(winner) {
@@ -709,6 +836,280 @@
     function closeWinnerOverlay() {
       winnerOverlay.classList.remove("open");
       winnerOverlay.setAttribute("aria-hidden", "true");
+    }
+
+    function destroyPeerConnection() {
+      if (networkState.channel) {
+        networkState.channel.onopen = null;
+        networkState.channel.onclose = null;
+        networkState.channel.onmessage = null;
+        networkState.channel.close();
+      }
+      if (networkState.connection) {
+        networkState.connection.ondatachannel = null;
+        networkState.connection.onconnectionstatechange = null;
+        networkState.connection.close();
+      }
+      networkState.channel = null;
+      networkState.connection = null;
+      networkState.connected = false;
+      networkState.awaitingState = false;
+    }
+
+    function serializeState() {
+      return {
+        gridRadius: state.gridRadius,
+        currentPlayer: state.currentPlayer,
+        totalMoves: state.totalMoves,
+        cascadeStep: state.cascadeStep,
+        winner: state.winner,
+        board: Array.from(state.board.values(), (cell) => ({
+          q: cell.q,
+          r: cell.r,
+          owner: cell.owner,
+          count: cell.count
+        }))
+      };
+    }
+
+    function hydrateState(snapshot) {
+      const radius = Number(snapshot.gridRadius) || DEFAULT_RADIUS;
+      const { board, cells } = createBoardMap(radius);
+      for (const entry of snapshot.board || []) {
+        const cell = board.get(keyFor(entry.q, entry.r));
+        if (!cell) {
+          continue;
+        }
+        cell.owner = entry.owner;
+        cell.count = entry.count;
+      }
+      state.gridRadius = radius;
+      state.currentPlayer = snapshot.currentPlayer || PLAYER_ONE;
+      state.board = board;
+      state.cells = cells;
+      state.resolving = false;
+      state.winner = snapshot.winner || 0;
+      state.totalMoves = Number(snapshot.totalMoves) || 0;
+      state.highlightedKeys = new Set();
+      state.cascadeStep = Number(snapshot.cascadeStep) || 0;
+      sizeSelect.value = String(radius);
+      networkState.awaitingState = false;
+      if (state.winner) {
+        openWinnerOverlay(state.winner);
+      } else {
+        closeWinnerOverlay();
+      }
+      render();
+    }
+
+    function sendNetworkMessage(type, payload) {
+      if (!networkState.channel || networkState.channel.readyState !== "open") {
+        return;
+      }
+      networkState.channel.send(JSON.stringify({ type, payload }));
+    }
+
+    function syncStateToPeer() {
+      if (networkState.mode !== NETWORK_MODE_HOST || !networkState.connected) {
+        return;
+      }
+      sendNetworkMessage("state", serializeState());
+    }
+
+    function waitForIceGatheringComplete(connection) {
+      if (connection.iceGatheringState === "complete") {
+        return Promise.resolve();
+      }
+      return new Promise((resolve) => {
+        const handleChange = () => {
+          if (connection.iceGatheringState !== "complete") {
+            return;
+          }
+          connection.removeEventListener("icegatheringstatechange", handleChange);
+          resolve();
+        };
+        connection.addEventListener("icegatheringstatechange", handleChange);
+      });
+    }
+
+    function updateConnectionStatus() {
+      if (networkState.mode === NETWORK_MODE_LOCAL) {
+        setConnectionMessage("Mode: local hot-seat. Switch to host or join, then exchange the generated signal text with the other player.");
+        return;
+      }
+      if (networkState.connected) {
+        const role = networkState.mode === NETWORK_MODE_HOST ? "host" : "guest";
+        const color = PLAYER_NAMES[networkState.localPlayer];
+        setConnectionMessage(`Online ${role} connected. You are ${color}, and the match syncs after each resolved turn.`);
+        return;
+      }
+      if (networkState.mode === NETWORK_MODE_HOST) {
+        setConnectionMessage("Host mode. Create a host offer, share it, then paste the guest answer here to finish connecting.");
+        return;
+      }
+      setConnectionMessage("Join mode. Paste the host offer, apply it to generate an answer, then send that answer back to the host.");
+    }
+
+    function setupDataChannel(channel) {
+      networkState.channel = channel;
+      channel.onopen = () => {
+        networkState.connected = true;
+        networkState.awaitingState = false;
+        updateConnectionStatus();
+        render();
+        if (networkState.mode === NETWORK_MODE_HOST) {
+          syncStateToPeer();
+        }
+      };
+      channel.onclose = () => {
+        networkState.connected = false;
+        networkState.awaitingState = false;
+        updateConnectionStatus();
+        render();
+      };
+      channel.onmessage = async (event) => {
+        let message = null;
+        try {
+          message = JSON.parse(event.data);
+        } catch (error) {
+          detailText.textContent = "Received malformed network payload.";
+          return;
+        }
+        if (message.type === "state" && networkState.mode === NETWORK_MODE_JOIN) {
+          hydrateState(message.payload || {});
+          detailText.textContent = "Board synced from host.";
+          return;
+        }
+        if (message.type === "move" && networkState.mode === NETWORK_MODE_HOST) {
+          const { q, r } = message.payload || {};
+          if (state.resolving || state.winner || state.currentPlayer !== PLAYER_TWO) {
+            syncStateToPeer();
+            return;
+          }
+          const target = getCell(q, r);
+          if (!isLegalMove(target, PLAYER_TWO)) {
+            syncStateToPeer();
+            return;
+          }
+          await commitMove(q, r, PLAYER_TWO);
+          syncStateToPeer();
+        }
+      };
+    }
+
+    function ensurePeerConnection() {
+      if (networkState.connection) {
+        return networkState.connection;
+      }
+      const connection = new RTCPeerConnection(RTC_CONFIG);
+      connection.onconnectionstatechange = () => {
+        const stillConnected = ["connected", "completed"].includes(connection.connectionState);
+        if (!stillConnected && ["failed", "disconnected", "closed"].includes(connection.connectionState)) {
+          networkState.connected = false;
+          networkState.awaitingState = false;
+          updateConnectionStatus();
+          render();
+        }
+      };
+      connection.ondatachannel = (event) => {
+        setupDataChannel(event.channel);
+      };
+      if (networkState.mode === NETWORK_MODE_HOST) {
+        setupDataChannel(connection.createDataChannel("hex-chain-reaction"));
+      }
+      networkState.connection = connection;
+      return connection;
+    }
+
+    function setNetworkMode(mode) {
+      if (!canUseOnlineMode() && mode !== NETWORK_MODE_LOCAL) {
+        detailText.textContent = "This browser does not support WebRTC data channels.";
+        return;
+      }
+      destroyPeerConnection();
+      signalInput.value = "";
+      signalOutput.value = "";
+      networkState.mode = mode;
+      networkState.localPlayer = mode === NETWORK_MODE_JOIN ? PLAYER_TWO : PLAYER_ONE;
+      updateConnectionStatus();
+      resetGame({ syncPeer: false });
+      render();
+    }
+
+    async function createSignal() {
+      if (networkState.mode === NETWORK_MODE_LOCAL) {
+        return;
+      }
+      if (networkState.mode === NETWORK_MODE_JOIN && !signalInput.value.trim()) {
+        detailText.textContent = "Paste the host offer before generating a join answer.";
+        render();
+        return;
+      }
+
+      try {
+        if (networkState.mode === NETWORK_MODE_HOST) {
+          destroyPeerConnection();
+          updateConnectionStatus();
+          const connection = ensurePeerConnection();
+          const offer = await connection.createOffer();
+          await connection.setLocalDescription(offer);
+          await waitForIceGatheringComplete(connection);
+          signalOutput.value = JSON.stringify(connection.localDescription);
+          detailText.textContent = "Host offer ready to share.";
+          render();
+          return;
+        }
+
+        const remoteOffer = JSON.parse(signalInput.value);
+        destroyPeerConnection();
+        const connection = ensurePeerConnection();
+        await connection.setRemoteDescription(remoteOffer);
+        const answer = await connection.createAnswer();
+        await connection.setLocalDescription(answer);
+        await waitForIceGatheringComplete(connection);
+        signalOutput.value = JSON.stringify(connection.localDescription);
+        detailText.textContent = "Join answer ready. Send it back to the host.";
+        render();
+      } catch (error) {
+        detailText.textContent = `Signal generation failed: ${error.message}`;
+        render();
+      }
+    }
+
+    async function applyRemoteSignal() {
+      if (networkState.mode === NETWORK_MODE_LOCAL || !signalInput.value.trim()) {
+        return;
+      }
+
+      try {
+        const remoteDescription = JSON.parse(signalInput.value);
+        if (networkState.mode === NETWORK_MODE_HOST) {
+          const connection = ensurePeerConnection();
+          await connection.setRemoteDescription(remoteDescription);
+          detailText.textContent = "Guest answer applied. Waiting for the data channel to open.";
+          render();
+          return;
+        }
+        detailText.textContent = "Join mode uses Create Signal after pasting the host offer.";
+        render();
+      } catch (error) {
+        detailText.textContent = `Remote signal failed: ${error.message}`;
+        render();
+      }
+    }
+
+    async function copySignalToClipboard() {
+      const value = signalOutput.value.trim();
+      if (!value) {
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(value);
+        detailText.textContent = "Signal copied to clipboard.";
+      } catch (error) {
+        detailText.textContent = "Clipboard access failed. Copy the signal text manually.";
+      }
+      render();
     }
 
     async function resolveChainReaction(activePlayer) {
@@ -788,18 +1189,30 @@
     }
 
     async function handleCellClick(q, r) {
-      if (state.resolving || state.winner) {
+      if (state.resolving || state.winner || !canLocalPlayerAct()) {
         return;
       }
       const cell = getCell(q, r);
       if (!isLegalMove(cell, state.currentPlayer)) {
         detailText.textContent = `Choose an empty hex or one controlled by ${PLAYER_NAMES[state.currentPlayer]}.`;
+        render();
+        return;
+      }
+      if (networkState.mode === NETWORK_MODE_JOIN) {
+        networkState.awaitingState = true;
+        detailText.textContent = `Move sent to host at axial ${q},${r}. Waiting for the synced board.`;
+        render();
+        sendNetworkMessage("move", { q, r });
         return;
       }
       await commitMove(q, r, state.currentPlayer);
+      if (networkState.mode === NETWORK_MODE_HOST) {
+        syncStateToPeer();
+      }
     }
 
-    function resetGame() {
+    function resetGame(options = {}) {
+      const { syncPeer = true } = options;
       const nextRadius = Number(sizeSelect.value) || DEFAULT_RADIUS;
       const { board, cells } = createBoardMap(nextRadius);
       state.gridRadius = nextRadius;
@@ -812,15 +1225,48 @@
       state.highlightedKeys = new Set();
       state.cascadeStep = 0;
       closeWinnerOverlay();
+      networkState.awaitingState = false;
       detailText.textContent = "Blue begins. Corners hold fewer tokens than the center because each hex uses its real neighbor count as capacity.";
       render();
+      if (syncPeer) {
+        syncStateToPeer();
+      }
     }
 
-    restartButton.addEventListener("click", resetGame);
-    playAgainButton.addEventListener("click", resetGame);
-    sizeSelect.addEventListener("change", resetGame);
+    restartButton.addEventListener("click", () => {
+      if (networkState.mode === NETWORK_MODE_JOIN && networkState.connected) {
+        detailText.textContent = "Only the host can restart an online match.";
+        render();
+        return;
+      }
+      resetGame();
+    });
+    playAgainButton.addEventListener("click", () => {
+      if (networkState.mode === NETWORK_MODE_JOIN && networkState.connected) {
+        detailText.textContent = "Only the host can restart an online match.";
+        render();
+        return;
+      }
+      resetGame();
+    });
+    sizeSelect.addEventListener("change", () => {
+      if (networkState.mode === NETWORK_MODE_JOIN && networkState.connected) {
+        detailText.textContent = "Only the host can change board size during an online match.";
+        render();
+        return;
+      }
+      resetGame();
+    });
+    localModeButton.addEventListener("click", () => setNetworkMode(NETWORK_MODE_LOCAL));
+    hostModeButton.addEventListener("click", () => setNetworkMode(NETWORK_MODE_HOST));
+    joinModeButton.addEventListener("click", () => setNetworkMode(NETWORK_MODE_JOIN));
+    createSignalButton.addEventListener("click", createSignal);
+    applySignalButton.addEventListener("click", applyRemoteSignal);
+    copySignalButton.addEventListener("click", copySignalToClipboard);
+    signalInput.addEventListener("input", updateNetworkUi);
 
-    resetGame();
+    updateConnectionStatus();
+    resetGame({ syncPeer: false });
   </script>
 </body>
 </html>
