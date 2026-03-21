@@ -291,6 +291,45 @@
       color: var(--ink);
     }
 
+    .network-stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .network-row {
+      display: grid;
+      gap: 8px;
+    }
+
+    .network-row input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(74, 58, 40, 0.16);
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--ink);
+      font: inherit;
+    }
+
+    .network-code {
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(31, 111, 209, 0.08);
+      border: 1px dashed rgba(31, 111, 209, 0.35);
+      color: var(--ink);
+      word-break: break-all;
+    }
+
+    .network-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .network-actions .action {
+      flex: 1 1 140px;
+    }
+
     .overlay {
       position: fixed;
       inset: 0;
@@ -357,7 +396,7 @@
     <aside class="panel">
       <div class="card">
         <h2>Match Controls</h2>
-        <p class="muted">Two-player hot-seat. Place on empty cells or cells you already control, then pass the device once the board finishes cascading.</p>
+        <p class="muted">Play locally on one device or host an online peer room. Blue is the host, red joins remotely, and the board syncs after each legal move.</p>
         <div class="control-row">
           <label for="sizeSelect">Board radius</label>
           <select id="sizeSelect" class="size-select" aria-label="Board radius">
@@ -367,6 +406,23 @@
           </select>
         </div>
         <button class="action" id="restartButton" type="button">New Game</button>
+      </div>
+
+      <div class="card">
+        <h2>Online Match</h2>
+        <div class="network-stack">
+          <p class="muted" id="networkStatus">Hot-seat mode is active. Host a room to play as Blue, or join one to play as Red.</p>
+          <div class="network-code">Host code: <strong id="hostCode">Not hosting</strong></div>
+          <div class="network-actions">
+            <button class="action" id="hostButton" type="button">Host Online Match</button>
+            <button class="action" id="disconnectButton" type="button">Leave Online Match</button>
+          </div>
+          <div class="network-row">
+            <label for="joinCodeInput">Join host code</label>
+            <input id="joinCodeInput" type="text" placeholder="Paste host code to join as Red" autocomplete="off">
+          </div>
+          <button class="action" id="joinButton" type="button">Join Match</button>
+        </div>
       </div>
 
       <div class="card">
@@ -384,7 +440,7 @@
       <div class="card">
         <h2>Rules</h2>
         <div class="legend">
-          <div class="legend-line"><span class="swatch p1"></span><span>Blue and red alternate turns in hot-seat mode. You may only place on an empty hex or one you already control.</span></div>
+          <div class="legend-line"><span class="swatch p1"></span><span>Blue and red alternate turns. You may only place on an empty hex or one you already control, whether playing hot-seat or online.</span></div>
           <div class="legend-line"><span class="swatch p2"></span><span>Every added token can strengthen your frontier or set up a forced conversion sequence on the next burst.</span></div>
           <div class="legend-line"><span class="swatch burst"></span><span>When tokens exceed a cell's neighbor count, it explodes outward, converts adjacent cells, and keeps chaining until the board stabilizes.</span></div>
         </div>
@@ -400,6 +456,7 @@
     </div>
   </div>
 
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script>
     const DEFAULT_RADIUS = 7;
     const ANIMATION_STEP_MS = 160;
@@ -443,6 +500,19 @@
     const winnerOverlay = document.getElementById("winnerOverlay");
     const winnerTitle = document.getElementById("winnerTitle");
     const winnerText = document.getElementById("winnerText");
+    const networkStatus = document.getElementById("networkStatus");
+    const hostCode = document.getElementById("hostCode");
+    const hostButton = document.getElementById("hostButton");
+    const disconnectButton = document.getElementById("disconnectButton");
+    const joinCodeInput = document.getElementById("joinCodeInput");
+    const joinButton = document.getElementById("joinButton");
+
+    const NETWORK_ROLE_LOCAL = "local";
+    const NETWORK_ROLE_HOST = "host";
+    const NETWORK_ROLE_GUEST = "guest";
+    const NETWORK_EVENT_SYNC = "sync-state";
+    const NETWORK_EVENT_MOVE = "move-request";
+    const NETWORK_EVENT_JOIN = "join-request";
 
     const state = {
       gridRadius: DEFAULT_RADIUS,
@@ -453,11 +523,293 @@
       winner: 0,
       totalMoves: 0,
       highlightedKeys: new Set(),
-      cascadeStep: 0
+      cascadeStep: 0,
+      detailMessage: "Blue begins. Corners hold fewer tokens than the center because each hex uses its real neighbor count as capacity.",
+      network: {
+        role: NETWORK_ROLE_LOCAL,
+        peer: null,
+        conn: null,
+        connected: false,
+        hostId: "",
+        remoteId: ""
+      }
     };
 
     function sleep(ms) {
       return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+
+    function isPeerAvailable() {
+      return typeof window.Peer === "function";
+    }
+
+    function getLocalPlayerForCurrentMode() {
+      if (state.network.role === NETWORK_ROLE_HOST) {
+        return PLAYER_ONE;
+      }
+      if (state.network.role === NETWORK_ROLE_GUEST) {
+        return PLAYER_TWO;
+      }
+      return 0;
+    }
+
+    function canLocalPlayerAct() {
+      if (state.network.role === NETWORK_ROLE_LOCAL) {
+        return true;
+      }
+      if (state.network.role === NETWORK_ROLE_HOST && !state.network.connected) {
+        return true;
+      }
+      return state.network.connected && state.currentPlayer === getLocalPlayerForCurrentMode();
+    }
+
+    function setDetailMessage(message) {
+      state.detailMessage = message;
+      detailText.textContent = message;
+    }
+
+    function updateNetworkUi() {
+      const guestLocked = state.network.role === NETWORK_ROLE_GUEST;
+      sizeSelect.disabled = guestLocked;
+      restartButton.disabled = guestLocked;
+      playAgainButton.disabled = guestLocked;
+      disconnectButton.disabled = !state.network.peer;
+      hostCode.textContent = state.network.role === NETWORK_ROLE_HOST
+        ? (state.network.hostId || "Not hosting")
+        : state.network.role === NETWORK_ROLE_GUEST
+          ? (state.network.remoteId || joinCodeInput.value.trim() || "Connecting...")
+          : "Not hosting";
+
+      if (!isPeerAvailable()) {
+        networkStatus.textContent = "Peer-to-peer networking is unavailable in this browser, so hot-seat mode stays active.";
+        return;
+      }
+
+      if (state.network.role === NETWORK_ROLE_LOCAL) {
+        networkStatus.textContent = "Hot-seat mode is active. Host a room to play as Blue, or join one to play as Red.";
+        return;
+      }
+
+      if (state.network.role === NETWORK_ROLE_HOST) {
+        networkStatus.textContent = state.network.connected
+          ? `Online match live. You are Blue and ${state.network.remoteId || "your guest"} is Red.`
+          : "Hosting as Blue. Share the host code and wait for Red to connect.";
+        return;
+      }
+
+      networkStatus.textContent = state.network.connected
+        ? `Connected to ${state.network.remoteId || "host"}. You are Red in this online match.`
+        : "Connecting to the host as Red...";
+    }
+
+    function serializeBoard(board = state.board) {
+      return state.cells.map((entry) => {
+        const cell = board.get(entry.key);
+        return {
+          q: cell.q,
+          r: cell.r,
+          owner: cell.owner,
+          count: cell.count
+        };
+      });
+    }
+
+    function buildSnapshot() {
+      return {
+        gridRadius: state.gridRadius,
+        currentPlayer: state.currentPlayer,
+        totalMoves: state.totalMoves,
+        cascadeStep: state.cascadeStep,
+        winner: state.winner,
+        detailMessage: state.detailMessage,
+        board: serializeBoard()
+      };
+    }
+
+    function applySnapshot(snapshot) {
+      const nextRadius = Number(snapshot.gridRadius) || DEFAULT_RADIUS;
+      const { board, cells } = createBoardMap(nextRadius);
+      for (const item of snapshot.board || []) {
+        const cell = board.get(keyFor(item.q, item.r));
+        if (!cell) {
+          continue;
+        }
+        cell.owner = item.owner || 0;
+        cell.count = item.count || 0;
+      }
+
+      state.gridRadius = nextRadius;
+      state.currentPlayer = snapshot.currentPlayer || PLAYER_ONE;
+      state.board = board;
+      state.cells = cells;
+      state.resolving = false;
+      state.winner = snapshot.winner || 0;
+      state.totalMoves = snapshot.totalMoves || 0;
+      state.highlightedKeys = new Set();
+      state.cascadeStep = snapshot.cascadeStep || 0;
+      sizeSelect.value = String(nextRadius);
+      closeWinnerOverlay();
+      setDetailMessage(snapshot.detailMessage || "Board synchronized from host.");
+      if (state.winner) {
+        openWinnerOverlay(state.winner);
+      }
+      render();
+      updateNetworkUi();
+    }
+
+    function sendNetworkMessage(type, payload = {}) {
+      if (!state.network.conn || !state.network.connected) {
+        return;
+      }
+      state.network.conn.send({ type, payload });
+    }
+
+    function broadcastSnapshot() {
+      if (state.network.role !== NETWORK_ROLE_HOST || !state.network.connected) {
+        return;
+      }
+      sendNetworkMessage(NETWORK_EVENT_SYNC, buildSnapshot());
+    }
+
+    function destroyPeerSession() {
+      const activeConn = state.network.conn;
+      const activePeer = state.network.peer;
+      state.network.role = NETWORK_ROLE_LOCAL;
+      state.network.peer = null;
+      state.network.conn = null;
+      state.network.connected = false;
+      state.network.hostId = "";
+      state.network.remoteId = "";
+      if (activeConn) {
+        activeConn.close();
+      }
+      if (activePeer) {
+        activePeer.destroy();
+      }
+      updateNetworkUi();
+    }
+
+    function handleRemoteDisconnect() {
+      if (!state.network.peer && !state.network.conn && state.network.role === NETWORK_ROLE_LOCAL) {
+        return;
+      }
+      const previousRole = state.network.role;
+      destroyPeerSession();
+      setDetailMessage(previousRole === NETWORK_ROLE_GUEST
+        ? "Disconnected from the host. Hot-seat mode is active again."
+        : "Your online opponent disconnected. Hot-seat mode is active again.");
+      render();
+    }
+
+    function attachConnection(conn) {
+      state.network.conn = conn;
+      state.network.remoteId = conn.peer || "";
+
+      conn.on("open", () => {
+        state.network.connected = true;
+        if (state.network.role === NETWORK_ROLE_GUEST) {
+          sendNetworkMessage(NETWORK_EVENT_JOIN);
+          setDetailMessage("Connected to the host. Waiting for Blue's move.");
+        } else {
+          setDetailMessage("Red connected. Blue plays first.");
+          broadcastSnapshot();
+        }
+        updateNetworkUi();
+      });
+
+      conn.on("data", async (message) => {
+        if (!message || typeof message !== "object") {
+          return;
+        }
+
+        if (message.type === NETWORK_EVENT_SYNC && state.network.role === NETWORK_ROLE_GUEST) {
+          applySnapshot(message.payload || {});
+          return;
+        }
+
+        if (message.type === NETWORK_EVENT_JOIN && state.network.role === NETWORK_ROLE_HOST) {
+          broadcastSnapshot();
+          return;
+        }
+
+        if (message.type === NETWORK_EVENT_MOVE && state.network.role === NETWORK_ROLE_HOST) {
+          const nextMove = message.payload || {};
+          if (state.currentPlayer !== PLAYER_TWO || state.resolving || state.winner) {
+            return;
+          }
+          await commitMove(nextMove.q, nextMove.r, PLAYER_TWO);
+          broadcastSnapshot();
+        }
+      });
+
+      conn.on("close", handleRemoteDisconnect);
+      conn.on("error", () => {
+        setDetailMessage("Peer connection error. Returning to hot-seat mode.");
+        handleRemoteDisconnect();
+      });
+    }
+
+    function createPeer(role, onReady) {
+      if (!isPeerAvailable()) {
+        setDetailMessage("Peer-to-peer networking is unavailable, so only hot-seat mode can be used here.");
+        updateNetworkUi();
+        return;
+      }
+
+      destroyPeerSession();
+      state.network.role = role;
+      state.network.peer = new window.Peer();
+
+      state.network.peer.on("open", (id) => {
+        state.network.hostId = id;
+        updateNetworkUi();
+        if (typeof onReady === "function") {
+          onReady();
+        }
+      });
+
+      state.network.peer.on("connection", (conn) => {
+        if (state.network.role !== NETWORK_ROLE_HOST) {
+          conn.close();
+          return;
+        }
+        if (state.network.conn && state.network.connected) {
+          conn.close();
+          setDetailMessage("Only one remote opponent can join this match.");
+          return;
+        }
+        attachConnection(conn);
+      });
+
+      state.network.peer.on("error", () => {
+        setDetailMessage("Peer setup failed. Hot-seat mode remains available.");
+        destroyPeerSession();
+      });
+
+      state.network.peer.on("disconnected", handleRemoteDisconnect);
+      updateNetworkUi();
+    }
+
+    function hostOnlineMatch() {
+      createPeer(NETWORK_ROLE_HOST);
+      setDetailMessage("Creating online room for Blue...");
+    }
+
+    function joinOnlineMatch() {
+      const targetHostId = joinCodeInput.value.trim();
+      if (!targetHostId) {
+        setDetailMessage("Paste a host code before joining as Red.");
+        return;
+      }
+
+      createPeer(NETWORK_ROLE_GUEST, () => {
+        if (!state.network.peer) {
+          return;
+        }
+        const conn = state.network.peer.connect(targetHostId, { reliable: true });
+        attachConnection(conn);
+      });
+      setDetailMessage(`Connecting to host ${targetHostId} as Red...`);
     }
 
     function keyFor(q, r) {
@@ -634,7 +986,7 @@
         if (cell.owner) {
           classes.push(PLAYER_CLASS[cell.owner]);
         }
-        if (!state.resolving && !state.winner && isLegalMove(cell, state.currentPlayer)) {
+        if (!state.resolving && !state.winner && canLocalPlayerAct() && isLegalMove(cell, state.currentPlayer)) {
           classes.push("clickable");
         } else {
           classes.push("blocked");
@@ -697,6 +1049,7 @@
     function render() {
       renderBoard();
       renderHud();
+      updateNetworkUi();
     }
 
     function openWinnerOverlay(winner) {
@@ -725,7 +1078,7 @@
 
         state.cascadeStep += 1;
         state.highlightedKeys = new Set(queue.map((cell) => keyFor(cell.q, cell.r)));
-        detailText.textContent = `Cascade step ${state.cascadeStep}: ${queue.length} hex${queue.length === 1 ? "" : "es"} burst outward.`;
+        setDetailMessage(`Cascade step ${state.cascadeStep}: ${queue.length} hex${queue.length === 1 ? "" : "es"} burst outward.`);
         render();
         await sleep(ANIMATION_STEP_MS);
 
@@ -755,7 +1108,7 @@
 
         safety += 1;
         if (safety > 500) {
-          detailText.textContent = "Cascade safety limit reached.";
+          setDetailMessage("Cascade safety limit reached.");
           break;
         }
       }
@@ -767,7 +1120,7 @@
         openWinnerOverlay(state.winner);
       } else {
         state.currentPlayer = activePlayer === PLAYER_ONE ? PLAYER_TWO : PLAYER_ONE;
-        detailText.textContent = `${PLAYER_NAMES[state.currentPlayer]} to move.`;
+        setDetailMessage(`${PLAYER_NAMES[state.currentPlayer]} to move.`);
       }
       render();
     }
@@ -782,7 +1135,7 @@
       cell.owner = player;
       cell.count += 1;
       state.totalMoves += 1;
-      detailText.textContent = `${PLAYER_NAMES[player]} played at axial ${q},${r}.`;
+      setDetailMessage(`${PLAYER_NAMES[player]} played at axial ${q},${r}.`);
       render();
       await resolveChainReaction(player);
     }
@@ -791,12 +1144,30 @@
       if (state.resolving || state.winner) {
         return;
       }
+      if (state.network.role === NETWORK_ROLE_GUEST) {
+        if (!state.network.connected) {
+          setDetailMessage("Wait for the host connection before placing tokens.");
+          return;
+        }
+        if (state.currentPlayer !== PLAYER_TWO) {
+          setDetailMessage("It is Blue's turn on the host board.");
+          return;
+        }
+        sendNetworkMessage(NETWORK_EVENT_MOVE, { q, r });
+        setDetailMessage(`Requested move at axial ${q},${r}. Waiting for host confirmation...`);
+        return;
+      }
+      if (state.network.role === NETWORK_ROLE_HOST && state.currentPlayer !== PLAYER_ONE) {
+        setDetailMessage("Wait for Red's remote move.");
+        return;
+      }
       const cell = getCell(q, r);
       if (!isLegalMove(cell, state.currentPlayer)) {
-        detailText.textContent = `Choose an empty hex or one controlled by ${PLAYER_NAMES[state.currentPlayer]}.`;
+        setDetailMessage(`Choose an empty hex or one controlled by ${PLAYER_NAMES[state.currentPlayer]}.`);
         return;
       }
       await commitMove(q, r, state.currentPlayer);
+      broadcastSnapshot();
     }
 
     function resetGame() {
@@ -812,10 +1183,14 @@
       state.highlightedKeys = new Set();
       state.cascadeStep = 0;
       closeWinnerOverlay();
-      detailText.textContent = "Blue begins. Corners hold fewer tokens than the center because each hex uses its real neighbor count as capacity.";
+      setDetailMessage("Blue begins. Corners hold fewer tokens than the center because each hex uses its real neighbor count as capacity.");
       render();
+      broadcastSnapshot();
     }
 
+    hostButton.addEventListener("click", hostOnlineMatch);
+    disconnectButton.addEventListener("click", handleRemoteDisconnect);
+    joinButton.addEventListener("click", joinOnlineMatch);
     restartButton.addEventListener("click", resetGame);
     playAgainButton.addEventListener("click", resetGame);
     sizeSelect.addEventListener("change", resetGame);
