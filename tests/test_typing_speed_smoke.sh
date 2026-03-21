@@ -20,5 +20,10 @@ grep -q 'calculateStats' "$app_file" || fail "live stats calculation missing"
 grep -q 'class="char' "$app_file" || fail "character highlighting markup missing"
 grep -q 'Retry Passage' "$app_file" || fail "retry action missing"
 grep -q 'New Passage' "$app_file" || fail "new passage action missing"
+grep -q 'peerjs@1.5.5' "$app_file" || fail "peerjs dependency missing"
+grep -q 'Create Room' "$app_file" || fail "create room control missing"
+grep -q 'function createHostPeer()' "$app_file" || fail "host room logic missing"
+grep -q 'function joinHostPeer()' "$app_file" || fail "join room logic missing"
+grep -q 'id="opponent-progress"' "$app_file" || fail "opponent progress UI missing"
 
 printf 'typing speed smoke test passed\n'

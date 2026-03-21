@@ -21,5 +21,9 @@ grep -q 'captures === bestMove.captures && adjacency > bestMove.adjacency' "$app
 grep -q 'window.setTimeout(takeAiTurn, AI_DELAY_MS)' "$app_file" || fail "AI delay missing"
 grep -q 'Hex Territory Strategy' "$app_file" || fail "game title missing"
 grep -q 'captured and changes color' "$app_file" || fail "capture rules text missing"
+grep -q 'peerjs@1.5.5' "$app_file" || fail "peerjs dependency missing"
+grep -q 'Create Room' "$app_file" || fail "create room control missing"
+grep -q 'function hostRoom()' "$app_file" || fail "host room logic missing"
+grep -q 'function joinRoom()' "$app_file" || fail "join room logic missing"
 
 printf 'hex territory smoke test passed\n'

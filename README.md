@@ -36,6 +36,7 @@ This repository contains a simple agent-factory workflow for planning and comple
 - 逐字符高亮显示：正确为绿色、错误为红色、未输入为灰色
 - 完成后结果弹层，以及重试当前段落或切换新段落
 - 使用 `localStorage` 保存并展示个人最佳 WPM
+- 可选 PeerJS 房间联机竞速，实时查看对手 WPM 与进度
 
 直接用浏览器打开 `typing-speed-test/index.html` 即可开始测试。
 
@@ -69,6 +70,14 @@ This repository contains a simple agent-factory workflow for planning and comple
 - Canvas 渲染、步数统计、通关提示与已解锁关卡持久化
 
 直接用浏览器打开 `sokoban-game/index.html` 即可游玩。
+
+## Multiplayer Upgrades
+
+以下游戏已在原页面上补充可选的 PeerJS 联机房间模式，仍然保留原本的单机玩法：
+
+- `hex-chain-reaction/index.html`：保留本地 hot-seat，同时支持在线房主/客人对战
+- `hex-territory/index.html`：保留蓝方对 AI，联机时切换为蓝方对远端红方
+- `typing-speed-test/index.html`：保留单人练习，同时支持共享段落的实时竞速
 
 ## Hex Territory Capture
 

@@ -189,6 +189,28 @@
       font-size: 1rem;
     }
 
+    .network-stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .network-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .network-actions input {
+      flex: 1 1 140px;
+      min-width: 0;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(73, 57, 39, 0.14);
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--ink);
+      font: inherit;
+    }
+
     .muted {
       color: var(--muted);
       line-height: 1.45;
@@ -279,7 +301,7 @@
       <section class="card">
         <h2>Rules</h2>
         <p class="muted">
-          Click any empty hex on your turn. After each move, any adjacent enemy cluster with no path to an
+          Click any empty hex on your turn. In local mode the red side is AI; in online mode that same red side is a remote player. After each move, any adjacent enemy cluster with no path to an
           empty hex is captured and changes color.
         </p>
       </section>
@@ -298,10 +320,25 @@
         <p class="status" id="status-text">Your turn. Pick any empty hex to start expanding.</p>
       </section>
 
+      <section class="card network-stack">
+        <h2>Online Match</h2>
+        <div class="legend">
+          <div class="legend-item"><span class="swatch player"></span><span>Room: <strong id="room-code">Offline</strong></span></div>
+          <div class="legend-item"><span class="swatch ai"></span><span>Mode: <strong id="mode-label">AI Practice</strong></span></div>
+        </div>
+        <div class="network-actions">
+          <button class="control" id="host-room" type="button">Create Room</button>
+          <input id="join-code" type="text" maxlength="24" placeholder="Room code">
+          <button class="control" id="join-room" type="button">Join Room</button>
+        </div>
+        <p class="muted" id="network-status">Offline AI mode remains available when no room is connected.</p>
+      </section>
+
       <button class="control" id="new-game" type="button">New Game</button>
     </aside>
   </div>
 
+  <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <script>
     const BOARD_RADIUS = 6;
     const HEX_SIZE = 34;
@@ -324,6 +361,12 @@
     const emptyCountEl = document.getElementById("empty-count");
     const statusTextEl = document.getElementById("status-text");
     const newGameButton = document.getElementById("new-game");
+    const hostRoomButton = document.getElementById("host-room");
+    const joinRoomButton = document.getElementById("join-room");
+    const joinCodeInput = document.getElementById("join-code");
+    const roomCodeEl = document.getElementById("room-code");
+    const modeLabelEl = document.getElementById("mode-label");
+    const networkStatusEl = document.getElementById("network-status");
 
     const cells = [];
     const cellMap = new Map();
@@ -331,17 +374,192 @@
     let currentTurn = "player";
     let aiTimer = null;
     let gameOver = false;
+    const network = {
+      peer: null,
+      connection: null,
+      role: "local",
+      roomCode: "",
+      connected: false
+    };
 
     function keyFor(q, r) {
       return `${q},${r}`;
     }
 
     function ownerName(owner) {
-      return owner === "player" ? "Player" : "AI";
+      if (owner === "player") {
+        return network.connected ? "Blue" : "Player";
+      }
+      return network.connected ? "Red" : "AI";
     }
 
     function otherOwner(owner) {
       return owner === "player" ? "ai" : "player";
+    }
+
+    function sanitizeRoomCode(value) {
+      return value.trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
+    }
+
+    function hasPeerSupport() {
+      return typeof window.Peer === "function";
+    }
+
+    function localOwner() {
+      if (network.role === "host") {
+        return "player";
+      }
+      if (network.role === "guest") {
+        return "ai";
+      }
+      return "player";
+    }
+
+    function isOnlineMatch() {
+      return network.connected && network.role !== "local";
+    }
+
+    function canLocalPlayTurn(owner = currentTurn) {
+      if (!isOnlineMatch()) {
+        return owner === "player";
+      }
+      return localOwner() === owner;
+    }
+
+    function setNetworkStatus(message) {
+      networkStatusEl.textContent = message;
+    }
+
+    function updateNetworkUi() {
+      roomCodeEl.textContent = network.roomCode || "Offline";
+      if (network.role === "host") {
+        modeLabelEl.textContent = network.connected ? "Online Host" : "Host Waiting";
+      } else if (network.role === "guest") {
+        modeLabelEl.textContent = network.connected ? "Online Guest" : "Guest Joining";
+      } else {
+        modeLabelEl.textContent = "AI Practice";
+      }
+    }
+
+    function sendNetworkMessage(payload) {
+      if (network.connection && network.connection.open) {
+        network.connection.send(payload);
+      }
+    }
+
+    function closeNetworkSession(silent = false) {
+      const activeConnection = network.connection;
+      const activePeer = network.peer;
+      network.connection = null;
+      network.peer = null;
+      network.role = "local";
+      network.roomCode = "";
+      network.connected = false;
+      if (!silent) {
+        setNetworkStatus("Returned to offline AI mode.");
+      }
+      if (activeConnection && activeConnection.open) {
+        activeConnection.close();
+      }
+      if (activePeer) {
+        activePeer.destroy();
+      }
+      updateNetworkUi();
+    }
+
+    function applyConnection(connection) {
+      network.connection = connection;
+      connection.on("open", () => {
+        network.connected = true;
+        updateNetworkUi();
+        setNetworkStatus(network.role === "host"
+          ? "Opponent connected. Blue opens the board."
+          : "Connected to host. Waiting for the opening move.");
+        if (network.role === "host") {
+          sendNetworkMessage({ type: "reset" });
+        }
+      });
+      connection.on("data", (payload) => {
+        if (!payload || typeof payload !== "object") {
+          return;
+        }
+        if (payload.type === "move" && typeof payload.key === "string") {
+          const targetCell = cellMap.get(payload.key);
+          if (targetCell) {
+            commitMove(targetCell, payload.owner, true);
+            if (!evaluateGameState()) {
+              currentTurn = otherOwner(payload.owner);
+              updateHud();
+              renderBoard();
+            }
+          }
+          return;
+        }
+        if (payload.type === "reset") {
+          resetGame(true);
+        }
+      });
+      connection.on("close", () => {
+        closeNetworkSession(true);
+        setNetworkStatus("Room closed. Offline AI mode restored.");
+      });
+      connection.on("error", () => {
+        closeNetworkSession(true);
+        setNetworkStatus("Network error. Offline AI mode restored.");
+      });
+    }
+
+    function hostRoom() {
+      if (!hasPeerSupport()) {
+        setNetworkStatus("PeerJS did not load, so online rooms are unavailable.");
+        return;
+      }
+      closeNetworkSession(true);
+      network.role = "host";
+      network.peer = new window.Peer();
+      updateNetworkUi();
+      setNetworkStatus("Creating room...");
+      network.peer.on("open", (id) => {
+        network.roomCode = id;
+        updateNetworkUi();
+        setNetworkStatus("Room ready. Share the code and wait for a guest.");
+      });
+      network.peer.on("connection", (connection) => {
+        if (network.connection && network.connection.open) {
+          connection.close();
+          return;
+        }
+        applyConnection(connection);
+      });
+      network.peer.on("error", () => {
+        closeNetworkSession(true);
+        setNetworkStatus("Could not create room.");
+      });
+    }
+
+    function joinRoom() {
+      const roomCode = sanitizeRoomCode(joinCodeInput.value);
+      if (!roomCode) {
+        setNetworkStatus("Enter a room code first.");
+        return;
+      }
+      if (!hasPeerSupport()) {
+        setNetworkStatus("PeerJS did not load, so online rooms are unavailable.");
+        return;
+      }
+      closeNetworkSession(true);
+      network.role = "guest";
+      network.roomCode = roomCode;
+      network.peer = new window.Peer();
+      updateNetworkUi();
+      setNetworkStatus(`Joining room ${roomCode}...`);
+      network.peer.on("open", () => {
+        applyConnection(network.peer.connect(roomCode, { reliable: true }));
+      });
+      network.peer.on("error", () => {
+        closeNetworkSession(true);
+        setNetworkStatus("Could not join that room.");
+      });
     }
 
     function generateBoardCells() {
@@ -491,7 +709,13 @@
 
     function updateHud() {
       const counts = countTiles(state);
-      turnLabelEl.textContent = gameOver ? "Finished" : ownerName(currentTurn);
+      if (gameOver) {
+        turnLabelEl.textContent = "Finished";
+      } else if (isOnlineMatch()) {
+        turnLabelEl.textContent = `${ownerName(currentTurn)}${canLocalPlayTurn() ? " (you)" : " (remote)"}`;
+      } else {
+        turnLabelEl.textContent = ownerName(currentTurn);
+      }
       playerCountEl.textContent = counts.player;
       aiCountEl.textContent = counts.ai;
       emptyCountEl.textContent = counts.empty;
@@ -514,11 +738,11 @@
         hex.dataset.key = cell.key;
         hex.dataset.hexagon = "true";
 
-        if (highlightKey && highlightKey === cell.key && owner === null && currentTurn === "player" && !gameOver) {
+        if (highlightKey && highlightKey === cell.key && owner === null && canLocalPlayTurn() && !gameOver) {
           hex.classList.add("hover");
         }
 
-        if (owner !== null || currentTurn !== "player" || gameOver) {
+        if (owner !== null || !canLocalPlayTurn() || gameOver) {
           hex.classList.add("disabled");
         } else {
           hex.addEventListener("mouseenter", () => renderBoard(cell.key));
@@ -547,9 +771,9 @@
       const counts = countTiles(state);
 
       if (counts.player > counts.ai) {
-        setStatus(`Board full. You win ${counts.player} to ${counts.ai}.`);
+        setStatus(`Board full. ${network.connected ? "Blue" : "You"} win ${counts.player} to ${counts.ai}.`);
       } else if (counts.ai > counts.player) {
-        setStatus(`Board full. AI wins ${counts.ai} to ${counts.player}.`);
+        setStatus(`Board full. ${network.connected ? "Red" : "AI"} wins ${counts.ai} to ${counts.player}.`);
       } else {
         setStatus(`Board full. Draw game at ${counts.player} each.`);
       }
@@ -567,7 +791,7 @@
       return false;
     }
 
-    function commitMove(cell, owner) {
+    function commitMove(cell, owner, isRemote = false) {
       const result = simulateMove(state, cell, owner);
       state = result.nextState;
       updateHud();
@@ -580,24 +804,33 @@
         setStatus(`${ownerName(owner)} placed at ${cell.q}, ${cell.r}. No captures this turn.`);
       }
 
+      if (!isRemote && isOnlineMatch()) {
+        sendNetworkMessage({ type: "move", key: cell.key, owner });
+      }
+
       return captures;
     }
 
     function handlePlayerMove(cell) {
-      if (currentTurn !== "player" || gameOver || state.get(cell.key) !== null) {
+      if (gameOver || state.get(cell.key) !== null || !canLocalPlayTurn()) {
         return;
       }
 
-      commitMove(cell, "player");
+      commitMove(cell, currentTurn);
       if (evaluateGameState()) {
         return;
       }
 
-      currentTurn = "ai";
+      currentTurn = otherOwner(currentTurn);
       updateHud();
-      setStatus("AI is evaluating the board...");
-      renderBoard();
-      aiTimer = window.setTimeout(takeAiTurn, AI_DELAY_MS);
+      if (isOnlineMatch()) {
+        setStatus("Move sent. Waiting for the remote player.");
+        renderBoard();
+      } else {
+        setStatus("AI is evaluating the board...");
+        renderBoard();
+        aiTimer = window.setTimeout(takeAiTurn, AI_DELAY_MS);
+      }
     }
 
     function takeAiTurn() {
@@ -622,7 +855,7 @@
       renderBoard();
     }
 
-    function resetGame() {
+    function resetGame(isRemote = false) {
       if (aiTimer !== null) {
         window.clearTimeout(aiTimer);
       }
@@ -630,17 +863,25 @@
       currentTurn = "player";
       gameOver = false;
       updateHud();
-      setStatus("Your turn. Pick any empty hex to start expanding.");
+      setStatus(isOnlineMatch()
+        ? (canLocalPlayTurn() ? "Your turn. Pick any empty hex to start expanding." : "Blue opens the online board.")
+        : "Your turn. Pick any empty hex to start expanding.");
       renderBoard();
+      if (!isRemote && network.role === "host" && network.connected) {
+        sendNetworkMessage({ type: "reset" });
+      }
     }
 
     newGameButton.addEventListener("click", resetGame);
+    hostRoomButton.addEventListener("click", hostRoom);
+    joinRoomButton.addEventListener("click", joinRoom);
 
     generateBoardCells();
     for (const cell of cells) {
       cellMap.set(cell.key, cell);
     }
     resetGame();
+    updateNetworkUi();
   </script>
 </body>
 </html>
