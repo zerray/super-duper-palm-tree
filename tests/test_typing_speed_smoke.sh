@@ -20,5 +20,10 @@ grep -q 'calculateStats' "$app_file" || fail "live stats calculation missing"
 grep -q 'class="char' "$app_file" || fail "character highlighting markup missing"
 grep -q 'Retry Passage' "$app_file" || fail "retry action missing"
 grep -q 'New Passage' "$app_file" || fail "new passage action missing"
+grep -q 'peerjs@1.5.4/dist/peerjs.min.js' "$app_file" || fail "PeerJS multiplayer dependency missing"
+grep -q 'Create Room' "$app_file" || fail "create room control missing"
+grep -q 'Join Room' "$app_file" || fail "join room control missing"
+grep -q 'Start Online Race' "$app_file" || fail "online race start control missing"
+grep -q 'Opponent Progress' "$app_file" || fail "opponent progress panel missing"
 
 printf 'typing speed smoke test passed\n'

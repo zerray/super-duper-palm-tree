@@ -215,6 +215,86 @@
       flex-wrap: wrap;
     }
 
+    .network-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    .network-panel {
+      display: grid;
+      gap: 12px;
+    }
+
+    .network-actions,
+    .network-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .network-code {
+      display: grid;
+      gap: 8px;
+    }
+
+    .network-code strong {
+      font-size: 1.3rem;
+      word-break: break-all;
+    }
+
+    .network-input,
+    .room-input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: #fffdf9;
+      color: var(--text);
+      font: inherit;
+    }
+
+    .status-text {
+      font-size: 0.95rem;
+      color: var(--muted);
+      min-height: 1.4em;
+    }
+
+    .status-text.connected {
+      color: var(--green);
+    }
+
+    .status-text.error {
+      color: var(--red);
+    }
+
+    .opponent-card {
+      display: grid;
+      gap: 10px;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: #e5d9c6;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), #4b8fb3);
+      transition: width 120ms ease;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+      transform: none;
+    }
+
     @media (max-width: 700px) {
       .app {
         padding: 20px;
@@ -244,8 +324,39 @@
         <p>Fifteen built-in passages are included, from short warmups to denser technical text.</p>
         <p class="hint">Press start, begin typing, and the timer will begin on your first keystroke.</p>
       </div>
-      <div>
-        <button id="start-button" class="primary" type="button">Start Test</button>
+      <div class="network-grid">
+        <div class="card network-panel">
+          <div>
+            <strong>Solo Mode</strong>
+            <p class="hint">Practice locally with random passages and personal best tracking.</p>
+          </div>
+          <div>
+            <button id="start-button" class="primary" type="button">Start Test</button>
+          </div>
+        </div>
+        <div class="card network-panel">
+          <div>
+            <strong>Online Race</strong>
+            <p class="hint">Create a room or join a friend. Both players race on the same passage.</p>
+          </div>
+          <div class="network-actions">
+            <button id="create-room-button" class="primary" type="button">Create Room</button>
+            <button id="start-online-button" class="secondary" type="button" disabled>Start Online Race</button>
+          </div>
+          <label class="network-code" for="room-code-input">
+            <span class="hint">Join with a room code</span>
+            <input id="room-code-input" class="room-input" type="text" placeholder="Paste room code" autocomplete="off">
+          </label>
+          <div class="network-row">
+            <button id="join-room-button" class="secondary" type="button">Join Room</button>
+            <button id="disconnect-button" class="secondary" type="button" disabled>Disconnect</button>
+          </div>
+          <div class="network-code">
+            <span class="hint">Your room code</span>
+            <strong id="room-code-display">Not created</strong>
+          </div>
+          <p id="network-status" class="status-text">Peer-to-peer multiplayer is idle.</p>
+        </div>
       </div>
     </section>
 
@@ -270,6 +381,34 @@
       </div>
 
       <div id="passage-display" class="card passage" aria-live="polite"></div>
+
+      <div class="card opponent-card">
+        <div class="header">
+          <strong>Opponent Progress</strong>
+          <span id="opponent-finish" class="hint">Not connected</span>
+        </div>
+        <div class="progress-track" aria-hidden="true">
+          <div id="opponent-progress-bar" class="progress-fill"></div>
+        </div>
+        <div class="stats">
+          <div class="card">
+            <span class="stat-label">Progress</span>
+            <strong id="opponent-progress" class="stat-value">0%</strong>
+          </div>
+          <div class="card">
+            <span class="stat-label">WPM</span>
+            <strong id="opponent-wpm" class="stat-value">0</strong>
+          </div>
+          <div class="card">
+            <span class="stat-label">Accuracy</span>
+            <strong id="opponent-accuracy" class="stat-value">100%</strong>
+          </div>
+          <div class="card">
+            <span class="stat-label">Errors</span>
+            <strong id="opponent-errors" class="stat-value">0</strong>
+          </div>
+        </div>
+      </div>
 
       <div class="controls">
         <textarea
@@ -316,6 +455,7 @@
     </section>
   </div>
 
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script>
     const BEST_WPM_KEY = "typing-speed-test-best-wpm";
     const passages = [
@@ -351,11 +491,230 @@
     const finalAccuracyDisplay = document.getElementById("final-accuracy");
     const finalTimeDisplay = document.getElementById("final-time");
     const finalErrorsDisplay = document.getElementById("final-errors");
+    const retryButton = document.getElementById("retry-button");
+    const newButton = document.getElementById("new-button");
+    const createRoomButton = document.getElementById("create-room-button");
+    const joinRoomButton = document.getElementById("join-room-button");
+    const startOnlineButton = document.getElementById("start-online-button");
+    const disconnectButton = document.getElementById("disconnect-button");
+    const roomCodeInput = document.getElementById("room-code-input");
+    const roomCodeDisplay = document.getElementById("room-code-display");
+    const networkStatus = document.getElementById("network-status");
+    const opponentProgressDisplay = document.getElementById("opponent-progress");
+    const opponentWpmDisplay = document.getElementById("opponent-wpm");
+    const opponentAccuracyDisplay = document.getElementById("opponent-accuracy");
+    const opponentErrorsDisplay = document.getElementById("opponent-errors");
+    const opponentProgressBar = document.getElementById("opponent-progress-bar");
+    const opponentFinishDisplay = document.getElementById("opponent-finish");
 
     let currentPassage = "";
     let startTime = null;
     let timerId = null;
     let completed = false;
+    let peer = null;
+    let connection = null;
+    let networkRole = "local";
+    let currentMode = "local";
+    let opponentState = {
+      progress: 0,
+      wpm: 0,
+      accuracy: 100,
+      errors: 0,
+      finished: false
+    };
+
+    function setNetworkStatus(message, tone = "muted") {
+      networkStatus.textContent = message;
+      networkStatus.className = `status-text${tone === "muted" ? "" : ` ${tone}`}`;
+    }
+
+    function resetOpponentState() {
+      opponentState = {
+        progress: 0,
+        wpm: 0,
+        accuracy: 100,
+        errors: 0,
+        finished: false
+      };
+      renderOpponentState();
+    }
+
+    function renderOpponentState() {
+      opponentProgressDisplay.textContent = `${opponentState.progress}%`;
+      opponentWpmDisplay.textContent = String(opponentState.wpm);
+      opponentAccuracyDisplay.textContent = `${opponentState.accuracy}%`;
+      opponentErrorsDisplay.textContent = String(opponentState.errors);
+      opponentProgressBar.style.width = `${opponentState.progress}%`;
+
+      if (currentMode !== "online" || !isConnectionOpen()) {
+        opponentFinishDisplay.textContent = "Not connected";
+      } else if (opponentState.finished) {
+        opponentFinishDisplay.textContent = "Finished";
+      } else {
+        opponentFinishDisplay.textContent = "Racing";
+      }
+    }
+
+    function supportsOnlinePlay() {
+      return typeof window.Peer === "function";
+    }
+
+    function isConnectionOpen() {
+      return Boolean(connection && connection.open);
+    }
+
+    function updateNetworkButtons() {
+      const connected = isConnectionOpen();
+      createRoomButton.disabled = peer !== null;
+      joinRoomButton.disabled = peer !== null;
+      disconnectButton.disabled = !peer;
+      startOnlineButton.disabled = !(connected && networkRole === "host");
+      const hostCanRematch = currentMode !== "online" || networkRole === "host";
+      retryButton.disabled = !hostCanRematch;
+      newButton.disabled = !hostCanRematch;
+    }
+
+    function sendNetworkMessage(payload) {
+      if (!isConnectionOpen()) {
+        return;
+      }
+      connection.send(payload);
+    }
+
+    function cleanupConnectionState() {
+      if (peer) {
+        peer.destroy();
+        peer = null;
+      }
+      connection = null;
+      if (currentMode === "online") {
+        currentMode = "local";
+      }
+      if (networkRole !== "local") {
+        networkRole = "local";
+      }
+      roomCodeDisplay.textContent = "Not created";
+      updateNetworkButtons();
+      resetOpponentState();
+    }
+
+    function disconnectNetwork(announce = true) {
+      if (connection) {
+        connection.close();
+      }
+      if (peer) {
+        peer.destroy();
+        peer = null;
+      }
+      cleanupConnectionState();
+      if (announce) {
+        setNetworkStatus("Peer-to-peer multiplayer is idle.");
+      }
+    }
+
+    function handleRemoteProgress(payload) {
+      opponentState = {
+        progress: payload.progress,
+        wpm: payload.wpm,
+        accuracy: payload.accuracy,
+        errors: payload.errors,
+        finished: payload.finished
+      };
+      renderOpponentState();
+    }
+
+    function handleNetworkMessage(payload) {
+      if (!payload || typeof payload !== "object") {
+        return;
+      }
+
+      if (payload.type === "start" && typeof payload.passage === "string") {
+        beginTest(payload.passage, "online");
+        return;
+      }
+
+      if (payload.type === "progress") {
+        handleRemoteProgress(payload);
+      }
+    }
+
+    function attachConnection(nextConnection) {
+      connection = nextConnection;
+      updateNetworkButtons();
+
+      connection.on("open", () => {
+        setNetworkStatus(
+          networkRole === "host"
+            ? "Opponent connected. Start the online race when ready."
+            : "Connected. Waiting for the host to start the race.",
+          "connected"
+        );
+        updateNetworkButtons();
+        resetOpponentState();
+      });
+
+      connection.on("data", handleNetworkMessage);
+
+      connection.on("close", () => {
+        setNetworkStatus("Connection closed. Multiplayer returned to idle.", "error");
+        cleanupConnectionState();
+      });
+
+      connection.on("error", () => {
+        setNetworkStatus("Network error. Disconnect and create or join a new room.", "error");
+      });
+    }
+
+    function createRoom() {
+      if (!supportsOnlinePlay() || peer) {
+        return;
+      }
+
+      networkRole = "host";
+      setNetworkStatus("Creating room...", "muted");
+      peer = new window.Peer();
+      updateNetworkButtons();
+
+      peer.on("open", (id) => {
+        roomCodeDisplay.textContent = id;
+        setNetworkStatus("Room created. Share the code and wait for your opponent.", "connected");
+      });
+
+      peer.on("connection", (incomingConnection) => {
+        if (connection && connection !== incomingConnection) {
+          incomingConnection.close();
+          return;
+        }
+        attachConnection(incomingConnection);
+      });
+
+      peer.on("error", () => {
+        setNetworkStatus("Could not create a room. Try again in a moment.", "error");
+        disconnectNetwork(false);
+      });
+    }
+
+    function joinRoom() {
+      const roomCode = roomCodeInput.value.trim();
+      if (!supportsOnlinePlay() || !roomCode || peer) {
+        return;
+      }
+
+      networkRole = "guest";
+      setNetworkStatus("Joining room...", "muted");
+      peer = new window.Peer();
+      updateNetworkButtons();
+
+      peer.on("open", () => {
+        roomCodeDisplay.textContent = roomCode;
+        attachConnection(peer.connect(roomCode, { reliable: true }));
+      });
+
+      peer.on("error", () => {
+        setNetworkStatus("Could not join that room. Check the code and try again.", "error");
+        disconnectNetwork(false);
+      });
+    }
 
     function readBestWpm() {
       return Number(window.localStorage.getItem(BEST_WPM_KEY) || "0");
@@ -485,11 +844,14 @@
       completed = true;
       typingInput.disabled = true;
       stopTimer();
-      showResults(renderLiveStats(textValue));
+      const stats = renderLiveStats(textValue);
+      showResults(stats);
+      sendProgress(stats, true);
     }
 
-    function beginTest(nextPassage) {
+    function beginTest(nextPassage, mode = "local") {
       currentPassage = nextPassage;
+      currentMode = mode;
       startTime = null;
       completed = false;
       stopTimer();
@@ -498,8 +860,10 @@
       resultsModal.hidden = true;
       startScreen.hidden = true;
       testScreen.hidden = false;
+      resetOpponentState();
       renderPassage("");
       renderLiveStats("");
+      updateNetworkButtons();
       typingInput.focus();
     }
 
@@ -511,31 +875,101 @@
       startTime = Date.now();
       timerId = window.setInterval(() => {
         if (!completed) {
-          renderLiveStats(typingInput.value);
+          const stats = renderLiveStats(typingInput.value);
+          if (currentMode === "online") {
+            sendProgress(stats, false);
+          }
         }
       }, 100);
     }
 
+    function sendProgress(stats, finished) {
+      if (currentMode !== "online" || !isConnectionOpen()) {
+        return;
+      }
+
+      const progress = currentPassage.length === 0
+        ? 0
+        : Math.min(100, Math.round((typingInput.value.length / currentPassage.length) * 100));
+
+      sendNetworkMessage({
+        type: "progress",
+        progress,
+        wpm: stats.wpm,
+        accuracy: stats.accuracy,
+        errors: stats.errors,
+        finished
+      });
+    }
+
+    function startOnlineRace(nextPassage) {
+      if (networkRole !== "host" || !isConnectionOpen()) {
+        return;
+      }
+
+      sendNetworkMessage({
+        type: "start",
+        passage: nextPassage
+      });
+      beginTest(nextPassage, "online");
+    }
+
     document.getElementById("start-button").addEventListener("click", () => {
-      beginTest(pickRandomPassage());
+      beginTest(pickRandomPassage(), "local");
     });
 
-    document.getElementById("retry-button").addEventListener("click", () => {
-      beginTest(currentPassage);
+    retryButton.addEventListener("click", () => {
+      if (currentMode === "online") {
+        if (networkRole === "host") {
+          startOnlineRace(currentPassage);
+        }
+        return;
+      }
+
+      beginTest(currentPassage, "local");
     });
 
-    document.getElementById("new-button").addEventListener("click", () => {
-      beginTest(pickRandomPassage(currentPassage));
+    newButton.addEventListener("click", () => {
+      if (currentMode === "online") {
+        if (networkRole === "host") {
+          startOnlineRace(pickRandomPassage(currentPassage));
+        }
+        return;
+      }
+
+      beginTest(pickRandomPassage(currentPassage), "local");
     });
 
     typingInput.addEventListener("input", () => {
       startTimerIfNeeded();
       renderPassage(typingInput.value);
-      renderLiveStats(typingInput.value);
+      const stats = renderLiveStats(typingInput.value);
+      sendProgress(stats, false);
       finishTest();
     });
 
+    createRoomButton.addEventListener("click", createRoom);
+    joinRoomButton.addEventListener("click", joinRoom);
+    disconnectButton.addEventListener("click", () => {
+      disconnectNetwork();
+      startScreen.hidden = false;
+      testScreen.hidden = true;
+      resultsModal.hidden = true;
+    });
+    startOnlineButton.addEventListener("click", () => {
+      startOnlineRace(pickRandomPassage(currentPassage));
+    });
+
+    if (!supportsOnlinePlay()) {
+      createRoomButton.disabled = true;
+      joinRoomButton.disabled = true;
+      startOnlineButton.disabled = true;
+      setNetworkStatus("PeerJS failed to load, so online play is unavailable.", "error");
+    }
+
     renderBestWpm();
+    updateNetworkButtons();
+    renderOpponentState();
   </script>
 </body>
 </html>
