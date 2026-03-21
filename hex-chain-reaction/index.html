@@ -39,6 +39,7 @@
     }
 
     button,
+    input,
     select {
       font: inherit;
     }
@@ -291,6 +292,20 @@
       color: var(--ink);
     }
 
+    .room-input {
+      min-width: 0;
+      flex: 1 1 150px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(74, 58, 40, 0.16);
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--ink);
+    }
+
+    .room-status {
+      min-height: 2.25rem;
+    }
+
     .overlay {
       position: fixed;
       inset: 0;
@@ -357,7 +372,14 @@
     <aside class="panel">
       <div class="card">
         <h2>Match Controls</h2>
-        <p class="muted">Two-player hot-seat. Place on empty cells or cells you already control, then pass the device once the board finishes cascading.</p>
+        <p class="muted">Two-player hot-seat or same-origin room multiplayer. Place on empty cells or cells you already control, then wait for the cascade to settle before the next move.</p>
+        <div class="control-row">
+          <label for="multiplayerMode">Mode</label>
+          <select id="multiplayerMode" class="size-select" aria-label="Match mode">
+            <option value="local" selected>Local hot-seat</option>
+            <option value="online">Online room</option>
+          </select>
+        </div>
         <div class="control-row">
           <label for="sizeSelect">Board radius</label>
           <select id="sizeSelect" class="size-select" aria-label="Board radius">
@@ -366,6 +388,19 @@
             <option value="9">Radius 9</option>
           </select>
         </div>
+        <div class="control-row">
+          <label for="seatSelect">Seat</label>
+          <select id="seatSelect" class="size-select" aria-label="Seat selection">
+            <option value="1" selected>Blue</option>
+            <option value="2">Red</option>
+          </select>
+        </div>
+        <div class="control-row">
+          <label for="roomCodeInput">Room code</label>
+          <input id="roomCodeInput" class="room-input" type="text" maxlength="24" placeholder="e.g. hex-duel" autocomplete="off">
+        </div>
+        <button class="action" id="connectButton" type="button">Join Room</button>
+        <p class="muted room-status" id="roomStatus">Local hot-seat mode active.</p>
         <button class="action" id="restartButton" type="button">New Game</button>
       </div>
 
@@ -384,7 +419,7 @@
       <div class="card">
         <h2>Rules</h2>
         <div class="legend">
-          <div class="legend-line"><span class="swatch p1"></span><span>Blue and red alternate turns in hot-seat mode. You may only place on an empty hex or one you already control.</span></div>
+          <div class="legend-line"><span class="swatch p1"></span><span>Blue and red alternate turns in hot-seat mode or an online room. You may only place on an empty hex or one you already control.</span></div>
           <div class="legend-line"><span class="swatch p2"></span><span>Every added token can strengthen your frontier or set up a forced conversion sequence on the next burst.</span></div>
           <div class="legend-line"><span class="swatch burst"></span><span>When tokens exceed a cell's neighbor count, it explodes outward, converts adjacent cells, and keeps chaining until the board stabilizes.</span></div>
         </div>
@@ -424,6 +459,9 @@
       [PLAYER_ONE]: "p1",
       [PLAYER_TWO]: "p2"
     };
+    const ROOM_STORAGE_PREFIX = "hex-chain-reaction-room";
+    const ROOM_CHANNEL_PREFIX = "hex-chain-reaction-room";
+    const DEFAULT_DETAIL_TEXT = "Blue begins. Corners hold fewer tokens than the center because each hex uses its real neighbor count as capacity.";
 
     const boardSvg = document.getElementById("board");
     const turnChip = document.getElementById("turnChip");
@@ -440,6 +478,11 @@
     const restartButton = document.getElementById("restartButton");
     const playAgainButton = document.getElementById("playAgainButton");
     const sizeSelect = document.getElementById("sizeSelect");
+    const multiplayerMode = document.getElementById("multiplayerMode");
+    const seatSelect = document.getElementById("seatSelect");
+    const roomCodeInput = document.getElementById("roomCodeInput");
+    const connectButton = document.getElementById("connectButton");
+    const roomStatus = document.getElementById("roomStatus");
     const winnerOverlay = document.getElementById("winnerOverlay");
     const winnerTitle = document.getElementById("winnerTitle");
     const winnerText = document.getElementById("winnerText");
@@ -454,6 +497,15 @@
       totalMoves: 0,
       highlightedKeys: new Set(),
       cascadeStep: 0
+    };
+    const onlineState = {
+      clientId: window.crypto && typeof window.crypto.randomUUID === "function"
+        ? window.crypto.randomUUID()
+        : `client-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      connected: false,
+      roomId: "",
+      player: PLAYER_ONE,
+      channel: null
     };
 
     function sleep(ms) {
@@ -507,6 +559,171 @@
 
     function getCell(q, r) {
       return getCellFromBoard(state.board, q, r);
+    }
+
+    function isOnlineMode() {
+      return multiplayerMode.value === "online";
+    }
+
+    function sanitizeRoomCode(value) {
+      return value.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 24);
+    }
+
+    function getRoomStorageKey(roomId) {
+      return `${ROOM_STORAGE_PREFIX}:${roomId}`;
+    }
+
+    function getSelectedSeat() {
+      return Number(seatSelect.value) === PLAYER_TWO ? PLAYER_TWO : PLAYER_ONE;
+    }
+
+    function syncRoomControls() {
+      const connectedOnline = onlineState.connected && isOnlineMode();
+      seatSelect.disabled = connectedOnline;
+      roomCodeInput.disabled = connectedOnline;
+      connectButton.textContent = connectedOnline ? "Leave Room" : "Join Room";
+    }
+
+    function setRoomStatus(message) {
+      roomStatus.textContent = message;
+    }
+
+    function closeRoomChannel() {
+      if (onlineState.channel) {
+        onlineState.channel.close();
+        onlineState.channel = null;
+      }
+    }
+
+    function createSnapshot() {
+      return {
+        gridRadius: state.gridRadius,
+        currentPlayer: state.currentPlayer,
+        winner: state.winner,
+        totalMoves: state.totalMoves,
+        cascadeStep: state.cascadeStep,
+        detailText: detailText.textContent,
+        board: Array.from(state.board.values(), (cell) => ({
+          q: cell.q,
+          r: cell.r,
+          owner: cell.owner,
+          count: cell.count
+        }))
+      };
+    }
+
+    function applySnapshot(snapshot) {
+      if (!snapshot || !Array.isArray(snapshot.board)) {
+        return false;
+      }
+
+      const nextRadius = Number(snapshot.gridRadius) || DEFAULT_RADIUS;
+      const { board, cells } = createBoardMap(nextRadius);
+      for (const patch of snapshot.board) {
+        const cell = getCellFromBoard(board, patch.q, patch.r);
+        if (!cell) {
+          continue;
+        }
+        cell.owner = patch.owner === PLAYER_TWO ? PLAYER_TWO : patch.owner === PLAYER_ONE ? PLAYER_ONE : 0;
+        cell.count = Math.max(0, Number(patch.count) || 0);
+      }
+
+      state.gridRadius = nextRadius;
+      state.currentPlayer = snapshot.currentPlayer === PLAYER_TWO ? PLAYER_TWO : PLAYER_ONE;
+      state.board = board;
+      state.cells = cells;
+      state.resolving = false;
+      state.winner = snapshot.winner === PLAYER_TWO ? PLAYER_TWO : snapshot.winner === PLAYER_ONE ? PLAYER_ONE : 0;
+      state.totalMoves = Math.max(0, Number(snapshot.totalMoves) || 0);
+      state.highlightedKeys = new Set();
+      state.cascadeStep = Math.max(0, Number(snapshot.cascadeStep) || 0);
+      sizeSelect.value = String(nextRadius);
+      detailText.textContent = snapshot.detailText || DEFAULT_DETAIL_TEXT;
+      closeWinnerOverlay();
+      if (state.winner) {
+        openWinnerOverlay(state.winner);
+      }
+      render();
+      return true;
+    }
+
+    function publishSnapshot(reason) {
+      if (!onlineState.connected || !onlineState.roomId) {
+        return;
+      }
+      const payload = {
+        type: "snapshot",
+        reason,
+        roomId: onlineState.roomId,
+        sourceId: onlineState.clientId,
+        snapshot: createSnapshot()
+      };
+      window.localStorage.setItem(getRoomStorageKey(onlineState.roomId), JSON.stringify(payload));
+      if (onlineState.channel) {
+        onlineState.channel.postMessage(payload);
+      }
+    }
+
+    function handleRoomPayload(payload) {
+      if (
+        !onlineState.connected ||
+        !payload ||
+        payload.type !== "snapshot" ||
+        payload.roomId !== onlineState.roomId ||
+        payload.sourceId === onlineState.clientId
+      ) {
+        return;
+      }
+      if (applySnapshot(payload.snapshot)) {
+        setRoomStatus(`Synced room ${onlineState.roomId}. ${PLAYER_NAMES[state.currentPlayer]} to move.`);
+      }
+    }
+
+    function disconnectRoom(message = "Local hot-seat mode active.") {
+      closeRoomChannel();
+      onlineState.connected = false;
+      onlineState.roomId = "";
+      onlineState.player = getSelectedSeat();
+      syncRoomControls();
+      setRoomStatus(message);
+    }
+
+    function connectRoom() {
+      if (!isOnlineMode()) {
+        setRoomStatus("Switch to Online room mode before joining.");
+        return;
+      }
+
+      const roomId = sanitizeRoomCode(roomCodeInput.value);
+      if (!roomId) {
+        setRoomStatus("Enter a room code to start an online match.");
+        return;
+      }
+
+      closeRoomChannel();
+      onlineState.connected = true;
+      onlineState.roomId = roomId;
+      onlineState.player = getSelectedSeat();
+      roomCodeInput.value = roomId;
+      onlineState.channel = new BroadcastChannel(`${ROOM_CHANNEL_PREFIX}:${roomId}`);
+      onlineState.channel.addEventListener("message", (event) => handleRoomPayload(event.data));
+      syncRoomControls();
+
+      const savedPayload = window.localStorage.getItem(getRoomStorageKey(roomId));
+      if (savedPayload) {
+        try {
+          const parsedPayload = JSON.parse(savedPayload);
+          if (applySnapshot(parsedPayload.snapshot)) {
+            setRoomStatus(`Joined room ${roomId} as ${PLAYER_NAMES[onlineState.player]}. Synced latest room state.`);
+          }
+        } catch (error) {
+          setRoomStatus(`Joined room ${roomId} as ${PLAYER_NAMES[onlineState.player]}.`);
+        }
+      } else {
+        publishSnapshot("room-init");
+      }
+
+      setRoomStatus(`Joined room ${roomId} as ${PLAYER_NAMES[onlineState.player]}. Share the same code with the other player.`);
     }
 
     function getNeighborsFromBoard(board, q, r) {
@@ -785,11 +1002,23 @@
       detailText.textContent = `${PLAYER_NAMES[player]} played at axial ${q},${r}.`;
       render();
       await resolveChainReaction(player);
+      publishSnapshot("move");
     }
 
     async function handleCellClick(q, r) {
       if (state.resolving || state.winner) {
         return;
+      }
+      if (isOnlineMode()) {
+        if (!onlineState.connected) {
+          detailText.textContent = "Join an online room before making a network move.";
+          setRoomStatus("Join an online room to sync turns across windows.");
+          return;
+        }
+        if (state.currentPlayer !== onlineState.player) {
+          detailText.textContent = `Waiting for ${PLAYER_NAMES[state.currentPlayer]} in room ${onlineState.roomId}.`;
+          return;
+        }
       }
       const cell = getCell(q, r);
       if (!isLegalMove(cell, state.currentPlayer)) {
@@ -812,14 +1041,41 @@
       state.highlightedKeys = new Set();
       state.cascadeStep = 0;
       closeWinnerOverlay();
-      detailText.textContent = "Blue begins. Corners hold fewer tokens than the center because each hex uses its real neighbor count as capacity.";
+      detailText.textContent = DEFAULT_DETAIL_TEXT;
       render();
+      publishSnapshot("reset");
     }
 
     restartButton.addEventListener("click", resetGame);
     playAgainButton.addEventListener("click", resetGame);
     sizeSelect.addEventListener("change", resetGame);
+    multiplayerMode.addEventListener("change", () => {
+      if (isOnlineMode()) {
+        setRoomStatus("Pick Blue or Red, enter a room code, then join the same room on another window.");
+      } else {
+        disconnectRoom();
+      }
+      syncRoomControls();
+    });
+    connectButton.addEventListener("click", () => {
+      if (onlineState.connected && isOnlineMode()) {
+        disconnectRoom("Left the online room. Local hot-seat mode active.");
+        return;
+      }
+      connectRoom();
+    });
+    window.addEventListener("storage", (event) => {
+      if (!onlineState.connected || !onlineState.roomId || event.key !== getRoomStorageKey(onlineState.roomId) || !event.newValue) {
+        return;
+      }
+      try {
+        handleRoomPayload(JSON.parse(event.newValue));
+      } catch (error) {
+        setRoomStatus("Could not read the latest room state.");
+      }
+    });
 
+    syncRoomControls();
     resetGame();
   </script>
 </body>
