@@ -22,5 +22,9 @@ grep -q 'window.setTimeout(takeAiTurn, AI_DELAY_MS)' "$app_file" || fail "AI del
 grep -q 'id="board"' "$app_file" || fail "svg board missing"
 grep -q 'id="play-again-button"' "$app_file" || fail "play again button missing"
 grep -q 'game ends when all hexes are claimed' "$app_file" || fail "rules text missing"
+grep -q 'Hex Color Conquest Online' "$app_file" || fail "online multiplayer panel missing"
+grep -q '../shared/peer-multiplayer.js' "$app_file" || fail "shared multiplayer helper missing"
+grep -q 'peerjs@1.5.5' "$app_file" || fail "PeerJS dependency missing"
+grep -q 'serializeState' "$app_file" || fail "host snapshot sync missing"
 
 printf 'hex color conquest smoke test passed\n'

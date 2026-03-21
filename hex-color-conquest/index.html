@@ -334,6 +334,8 @@
     </aside>
   </div>
 
+  <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+  <script src="../shared/peer-multiplayer.js"></script>
   <script>
     const BOARD_ROWS = 7;
     const BOARD_COLS = 7;
@@ -366,6 +368,120 @@
     const overlayTitleEl = document.getElementById("game-over-title");
     const overlayTextEl = document.getElementById("game-over-text");
     const playAgainButton = document.getElementById("play-again-button");
+    const network = window.createPeerMultiplayer({
+      title: "Hex Color Conquest Online",
+      subtitle: "Host controls the mint empire. Guest controls the coral empire. Offline mode keeps the AI.",
+      onConnect(connectionState, api) {
+        if (connectionState.role === "host") {
+          api.send({
+            type: "sync",
+            snapshot: serializeState(),
+            message: "Guest connected. Board synchronized from host."
+          });
+        }
+        updateHud();
+      },
+      onDisconnect() {
+        if (!state.over && state.turn === OWNER_AI) {
+          updateStatus("Guest left. Local AI will finish the coral side from here.");
+          window.setTimeout(takeAiTurn, AI_DELAY_MS);
+          return;
+        }
+        updateHud();
+      },
+      onMessage(payload) {
+        if (!payload || typeof payload !== "object") {
+          return;
+        }
+        if (payload.type === "sync" && payload.snapshot) {
+          applySnapshot(payload.snapshot, payload.message || "Board synchronized from host.");
+          return;
+        }
+        if (payload.type === "move" && Number.isInteger(payload.colorIndex)) {
+          applyRemoteMove(payload.colorIndex);
+        }
+      }
+    });
+
+    function getLocalOwner() {
+      return network.isGuest() ? OWNER_AI : OWNER_PLAYER;
+    }
+
+    function getRemoteOwner() {
+      return network.isGuest() ? OWNER_PLAYER : OWNER_AI;
+    }
+
+    function ownerLabel(owner) {
+      if (owner === OWNER_PLAYER) {
+        return network.isMultiplayer() ? "Host" : "Player";
+      }
+      return network.isMultiplayer() ? "Guest" : "AI";
+    }
+
+    function canActLocally(owner) {
+      return network.isMultiplayer() ? owner === getLocalOwner() : owner === OWNER_PLAYER;
+    }
+
+    function serializeState() {
+      return {
+        cells: state.cells.map((cell) => ({
+          row: cell.row,
+          col: cell.col,
+          colorIndex: cell.colorIndex,
+          owner: cell.owner
+        })),
+        turn: state.turn,
+        locked: state.locked,
+        over: state.over
+      };
+    }
+
+    function applySnapshot(snapshot, message) {
+      const visuals = new Map(
+        state.cells.map((cell) => [
+          cellKey(cell.row, cell.col),
+          { polygon: cell.polygon, marker: cell.marker }
+        ])
+      );
+
+      state.cells = snapshot.cells.map((cell) => {
+        const visual = visuals.get(cellKey(cell.row, cell.col)) || {};
+        return {
+          row: cell.row,
+          col: cell.col,
+          colorIndex: cell.colorIndex,
+          owner: cell.owner,
+          polygon: visual.polygon || null,
+          marker: visual.marker || null
+        };
+      });
+      state.turn = snapshot.turn;
+      state.locked = snapshot.locked;
+      state.over = snapshot.over;
+      syncBoard(true);
+      if (state.over) {
+        const playerScore = countOwned(OWNER_PLAYER);
+        const aiScore = countOwned(OWNER_AI);
+        overlayTitleEl.textContent = playerScore === aiScore ? "Draw" : playerScore > aiScore ? ownerLabel(OWNER_PLAYER) + " Wins" : ownerLabel(OWNER_AI) + " Wins";
+        overlayTextEl.textContent = `Final score: ${playerScore} to ${aiScore}. Every hex is claimed, so the larger empire takes the board.`;
+        overlayEl.classList.add("show");
+      } else {
+        overlayEl.classList.remove("show");
+      }
+      updateStatus(message);
+      updateHud();
+    }
+
+    function syncHostState(message) {
+      if (!network.isHost()) {
+        return;
+      }
+      network.send({
+        type: "sync",
+        snapshot: serializeState(),
+        message
+      });
+    }
 
     function cellKey(row, col) {
       return `${row},${col}`;
@@ -500,7 +616,7 @@
 
       renderBoard();
       renderPalette();
-      updateStatus("Your turn. Pick a color to flood adjacent neutral hexes.");
+      updateStatus(network.isMultiplayer() ? "Host opens the online round. Pick a color to expand first." : "Your turn. Pick a color to flood adjacent neutral hexes.");
       updateHud();
     }
 
@@ -587,7 +703,7 @@
       const playerColor = getCellAt(playerRoot).colorIndex;
       const aiColor = getCellAt(aiRoot).colorIndex;
       Array.from(palette.children).forEach((button, index) => {
-        const disabled = state.locked || state.over || state.turn !== OWNER_PLAYER || index === playerColor || index === aiColor;
+        const disabled = state.locked || state.over || !canActLocally(state.turn) || index === playerColor || index === aiColor;
         button.disabled = disabled;
         button.classList.toggle("selected", index === playerColor);
       });
@@ -600,7 +716,7 @@
     function updateHud() {
       playerScoreEl.textContent = String(countOwned(OWNER_PLAYER));
       aiScoreEl.textContent = String(countOwned(OWNER_AI));
-      turnLabelEl.textContent = state.over ? "Finished" : state.turn === OWNER_PLAYER ? "Player" : "AI";
+      turnLabelEl.textContent = state.over ? "Finished" : ownerLabel(state.turn);
       refreshPaletteState();
     }
 
@@ -634,9 +750,9 @@
       const aiScore = countOwned(OWNER_AI);
       let title = "Draw";
       if (playerScore > aiScore) {
-        title = "You Win";
+        title = network.isMultiplayer() ? "Host Wins" : "You Win";
       } else if (aiScore > playerScore) {
-        title = "AI Wins";
+        title = network.isMultiplayer() ? "Guest Wins" : "AI Wins";
       }
       overlayTitleEl.textContent = title;
       overlayTextEl.textContent = `Final score: ${playerScore} to ${aiScore}. Every hex is claimed, so the larger empire takes the board.`;
@@ -655,7 +771,7 @@
     }
 
     function handlePlayerTurn(colorIndex) {
-      if (state.locked || state.over || state.turn !== OWNER_PLAYER) {
+      if (state.locked || state.over || !canActLocally(state.turn)) {
         return;
       }
       const playerColor = getCellAt(playerRoot).colorIndex;
@@ -665,16 +781,53 @@
       }
 
       state.locked = true;
-      const captured = commitMove(OWNER_PLAYER, colorIndex);
-      updateStatus(captured > 0 ? `You captured ${captured} neutral ${captured === 1 ? "hex" : "hexes"}. The AI is thinking.` : "No immediate capture. The AI is thinking.");
+      const actingOwner = state.turn;
+      const captured = commitMove(actingOwner, colorIndex);
+      updateStatus(
+        network.isMultiplayer()
+          ? `${ownerLabel(actingOwner)} picked a new color and captured ${captured} hex${captured === 1 ? "" : "es"}.`
+          : captured > 0
+            ? `You captured ${captured} neutral ${captured === 1 ? "hex" : "hexes"}. The AI is thinking.`
+            : "No immediate capture. The AI is thinking."
+      );
       if (allClaimed()) {
+        syncHostState("Board filled after the latest color change.");
         finishGame();
+        return;
+      }
+
+      if (network.isMultiplayer()) {
+        state.turn = getRemoteOwner();
+        state.locked = false;
+        updateHud();
+        network.send({ type: "move", colorIndex });
         return;
       }
 
       state.turn = OWNER_AI;
       updateHud();
       window.setTimeout(takeAiTurn, AI_DELAY_MS);
+    }
+
+    function applyRemoteMove(colorIndex) {
+      if (state.locked || state.over || state.turn !== getRemoteOwner()) {
+        return;
+      }
+
+      const captured = commitMove(getRemoteOwner(), colorIndex);
+      if (allClaimed()) {
+        finishGame();
+        return;
+      }
+
+      state.turn = getLocalOwner();
+      state.locked = false;
+      updateStatus(
+        captured > 0
+          ? `${ownerLabel(getRemoteOwner())} claimed ${captured} hex${captured === 1 ? "" : "es"}. Your move.`
+          : `${ownerLabel(getRemoteOwner())} changed color without gaining ground. Your move.`
+      );
+      updateHud();
     }
 
     function takeAiTurn() {
@@ -698,11 +851,16 @@
     }
 
     function resetGame() {
+      if (network.isGuest()) {
+        updateStatus("Only the host can start a fresh online round.");
+        return;
+      }
       state.turn = OWNER_PLAYER;
       state.locked = false;
       state.over = false;
       overlayEl.classList.remove("show");
       buildBoard();
+      syncHostState("Host started a new online round.");
     }
 
     playAgainButton.addEventListener("click", resetGame);

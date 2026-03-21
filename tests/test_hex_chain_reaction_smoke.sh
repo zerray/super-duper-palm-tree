@@ -28,5 +28,9 @@ grep -q 'New Game' "$app_file" || fail "restart control missing"
 grep -q 'Move:' "$app_file" || fail "move counter missing"
 grep -q 'Take turns placing tokens on a hex grid' "$app_file" || fail "rules copy missing"
 grep -q 'last player with tokens on the board' "$app_file" || fail "win condition text missing"
+grep -q 'Hex Chain Reaction Online' "$app_file" || fail "online multiplayer panel missing"
+grep -q '../shared/peer-multiplayer.js' "$app_file" || fail "shared multiplayer helper missing"
+grep -q 'peerjs@1.5.5' "$app_file" || fail "PeerJS dependency missing"
+grep -q 'type: "sync"' "$app_file" || fail "host sync message missing"
 
 printf 'hex chain reaction smoke test passed\n'

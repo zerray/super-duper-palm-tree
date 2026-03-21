@@ -21,5 +21,9 @@ grep -q 'captures === bestMove.captures && adjacency > bestMove.adjacency' "$app
 grep -q 'window.setTimeout(takeAiTurn, AI_DELAY_MS)' "$app_file" || fail "AI delay missing"
 grep -q 'Hex Territory Strategy' "$app_file" || fail "game title missing"
 grep -q 'captured and changes color' "$app_file" || fail "capture rules text missing"
+grep -q 'Hex Territory Online' "$app_file" || fail "online multiplayer panel missing"
+grep -q '../shared/peer-multiplayer.js' "$app_file" || fail "shared multiplayer helper missing"
+grep -q 'peerjs@1.5.5' "$app_file" || fail "PeerJS dependency missing"
+grep -q 'applyRemoteMove' "$app_file" || fail "remote move handler missing"
 
 printf 'hex territory smoke test passed\n'

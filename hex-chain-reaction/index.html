@@ -400,6 +400,8 @@
     </div>
   </div>
 
+  <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+  <script src="../shared/peer-multiplayer.js"></script>
   <script>
     const DEFAULT_RADIUS = 7;
     const ANIMATION_STEP_MS = 160;
@@ -443,6 +445,40 @@
     const winnerOverlay = document.getElementById("winnerOverlay");
     const winnerTitle = document.getElementById("winnerTitle");
     const winnerText = document.getElementById("winnerText");
+    const network = window.createPeerMultiplayer({
+      title: "Hex Chain Reaction Online",
+      subtitle: "Blue hosts, red joins. Offline mode keeps the original hot-seat setup.",
+      onConnect(connectionState, api) {
+        if (connectionState.role === "host") {
+          api.send({
+            type: "sync",
+            snapshot: serializeState(),
+            message: "Guest connected. Board synchronized from host."
+          });
+        }
+        syncMultiplayerControls();
+        render();
+      },
+      onDisconnect() {
+        syncMultiplayerControls();
+        detailText.textContent = "Peer disconnected. Local hot-seat mode is available again.";
+        render();
+      },
+      onMessage(payload) {
+        if (!payload || typeof payload !== "object") {
+          return;
+        }
+        if (payload.type === "sync" && payload.snapshot) {
+          applySnapshot(payload.snapshot, payload.message || "Board synchronized from host.");
+          return;
+        }
+        if (payload.type === "move" && Number.isInteger(payload.q) && Number.isInteger(payload.r)) {
+          runSerialized(async function () {
+            await applyRemoteMove(payload.q, payload.r);
+          });
+        }
+      }
+    });
 
     const state = {
       gridRadius: DEFAULT_RADIUS,
@@ -455,6 +491,90 @@
       highlightedKeys: new Set(),
       cascadeStep: 0
     };
+    let actionQueue = Promise.resolve();
+
+    function getLocalPlayer() {
+      return network.isGuest() ? PLAYER_TWO : PLAYER_ONE;
+    }
+
+    function getRemotePlayer() {
+      return network.isGuest() ? PLAYER_ONE : PLAYER_TWO;
+    }
+
+    function canActLocally(player) {
+      return network.isMultiplayer() ? player === getLocalPlayer() : true;
+    }
+
+    function serializeState() {
+      return {
+        gridRadius: state.gridRadius,
+        currentPlayer: state.currentPlayer,
+        cells: Array.from(state.board.values()).map((cell) => ({
+          q: cell.q,
+          r: cell.r,
+          owner: cell.owner,
+          count: cell.count
+        })),
+        winner: state.winner,
+        totalMoves: state.totalMoves,
+        cascadeStep: state.cascadeStep
+      };
+    }
+
+    function applySnapshot(snapshot, message) {
+      const nextRadius = snapshot.gridRadius || DEFAULT_RADIUS;
+      const { board, cells } = createBoardMap(nextRadius);
+      state.gridRadius = nextRadius;
+      state.board = board;
+      state.cells = cells;
+      state.currentPlayer = snapshot.currentPlayer;
+      state.winner = snapshot.winner || 0;
+      state.totalMoves = snapshot.totalMoves || 0;
+      state.cascadeStep = snapshot.cascadeStep || 0;
+      state.resolving = false;
+      state.highlightedKeys = new Set();
+      for (const cellData of snapshot.cells || []) {
+        const target = getCellFromBoard(state.board, cellData.q, cellData.r);
+        if (!target) {
+          continue;
+        }
+        target.owner = cellData.owner;
+        target.count = cellData.count;
+      }
+      sizeSelect.value = String(nextRadius);
+      closeWinnerOverlay();
+      if (state.winner) {
+        openWinnerOverlay(state.winner);
+      }
+      detailText.textContent = message;
+      syncMultiplayerControls();
+      render();
+    }
+
+    function syncHostState(message) {
+      if (!network.isHost()) {
+        return;
+      }
+      network.send({
+        type: "sync",
+        snapshot: serializeState(),
+        message
+      });
+    }
+
+    function syncMultiplayerControls() {
+      const guestLocked = network.isGuest();
+      sizeSelect.disabled = guestLocked;
+      restartButton.disabled = guestLocked;
+      playAgainButton.disabled = guestLocked;
+    }
+
+    function runSerialized(task) {
+      actionQueue = actionQueue.then(task).catch(function () {
+        detailText.textContent = "A networked move could not be applied cleanly.";
+      });
+      return actionQueue;
+    }
 
     function sleep(ms) {
       return new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -634,7 +754,7 @@
         if (cell.owner) {
           classes.push(PLAYER_CLASS[cell.owner]);
         }
-        if (!state.resolving && !state.winner && isLegalMove(cell, state.currentPlayer)) {
+        if (!state.resolving && !state.winner && isLegalMove(cell, state.currentPlayer) && canActLocally(state.currentPlayer)) {
           classes.push("clickable");
         } else {
           classes.push("blocked");
@@ -791,15 +911,40 @@
       if (state.resolving || state.winner) {
         return;
       }
+      if (!canActLocally(state.currentPlayer)) {
+        detailText.textContent = "Wait for the remote player to finish their move.";
+        return;
+      }
       const cell = getCell(q, r);
       if (!isLegalMove(cell, state.currentPlayer)) {
         detailText.textContent = `Choose an empty hex or one controlled by ${PLAYER_NAMES[state.currentPlayer]}.`;
         return;
       }
-      await commitMove(q, r, state.currentPlayer);
+      await runSerialized(async function () {
+        const actingPlayer = state.currentPlayer;
+        await commitMove(q, r, actingPlayer);
+        if (network.isMultiplayer()) {
+          network.send({ type: "move", q, r });
+        }
+      });
+    }
+
+    async function applyRemoteMove(q, r) {
+      if (state.resolving || state.winner || state.currentPlayer !== getRemotePlayer()) {
+        return;
+      }
+      const cell = getCell(q, r);
+      if (!isLegalMove(cell, getRemotePlayer())) {
+        return;
+      }
+      await commitMove(q, r, getRemotePlayer());
     }
 
     function resetGame() {
+      if (network.isGuest()) {
+        detailText.textContent = "Only the host can start a fresh online round.";
+        return;
+      }
       const nextRadius = Number(sizeSelect.value) || DEFAULT_RADIUS;
       const { board, cells } = createBoardMap(nextRadius);
       state.gridRadius = nextRadius;
@@ -813,7 +958,9 @@
       state.cascadeStep = 0;
       closeWinnerOverlay();
       detailText.textContent = "Blue begins. Corners hold fewer tokens than the center because each hex uses its real neighbor count as capacity.";
+      syncMultiplayerControls();
       render();
+      syncHostState("Host started a new online round.");
     }
 
     restartButton.addEventListener("click", resetGame);

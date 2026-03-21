@@ -302,6 +302,8 @@
     </aside>
   </div>
 
+  <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+  <script src="../shared/peer-multiplayer.js"></script>
   <script>
     const BOARD_RADIUS = 6;
     const HEX_SIZE = 34;
@@ -324,6 +326,47 @@
     const emptyCountEl = document.getElementById("empty-count");
     const statusTextEl = document.getElementById("status-text");
     const newGameButton = document.getElementById("new-game");
+    const network = window.createPeerMultiplayer({
+      title: "Hex Territory Online",
+      subtitle: "Host plays blue. Guest plays coral. Local mode keeps the AI opponent.",
+      onConnect(connectionState, api) {
+        if (connectionState.role === "host") {
+          api.send({
+            type: "sync",
+            snapshot: serializeState(),
+            message: "Guest connected. Board synchronized from host."
+          });
+        }
+        updateHud();
+        renderBoard();
+      },
+      onDisconnect() {
+        if (aiTimer !== null) {
+          window.clearTimeout(aiTimer);
+          aiTimer = null;
+        }
+        if (!gameOver && currentTurn === "ai") {
+          setStatus("Guest left. Local AI will continue from the current board.");
+          renderBoard();
+          aiTimer = window.setTimeout(takeAiTurn, AI_DELAY_MS);
+          return;
+        }
+        updateHud();
+        renderBoard();
+      },
+      onMessage(payload) {
+        if (!payload || typeof payload !== "object") {
+          return;
+        }
+        if (payload.type === "sync" && payload.snapshot) {
+          applySnapshot(payload.snapshot, payload.message || "Board synchronized from host.");
+          return;
+        }
+        if (payload.type === "move" && payload.key) {
+          applyRemoteMove(payload.key);
+        }
+      }
+    });
 
     const cells = [];
     const cellMap = new Map();
@@ -332,12 +375,59 @@
     let aiTimer = null;
     let gameOver = false;
 
+    function getLocalOwner() {
+      return network.isGuest() ? "ai" : "player";
+    }
+
+    function getRemoteOwner() {
+      return otherOwner(getLocalOwner());
+    }
+
+    function canActLocally(owner) {
+      return network.isMultiplayer() ? owner === getLocalOwner() : owner === "player";
+    }
+
+    function serializeState() {
+      return {
+        entries: Array.from(state.entries()),
+        currentTurn,
+        gameOver
+      };
+    }
+
+    function applySnapshot(snapshot, message) {
+      if (aiTimer !== null) {
+        window.clearTimeout(aiTimer);
+        aiTimer = null;
+      }
+      state = new Map(snapshot.entries);
+      currentTurn = snapshot.currentTurn;
+      gameOver = snapshot.gameOver;
+      updateHud();
+      setStatus(message);
+      renderBoard();
+    }
+
+    function syncHostState(message) {
+      if (!network.isHost()) {
+        return;
+      }
+      network.send({
+        type: "sync",
+        snapshot: serializeState(),
+        message
+      });
+    }
+
     function keyFor(q, r) {
       return `${q},${r}`;
     }
 
     function ownerName(owner) {
-      return owner === "player" ? "Player" : "AI";
+      if (owner === "player") {
+        return network.isMultiplayer() ? "Host" : "Player";
+      }
+      return network.isMultiplayer() ? "Guest" : "AI";
     }
 
     function otherOwner(owner) {
@@ -514,11 +604,11 @@
         hex.dataset.key = cell.key;
         hex.dataset.hexagon = "true";
 
-        if (highlightKey && highlightKey === cell.key && owner === null && currentTurn === "player" && !gameOver) {
+        if (highlightKey && highlightKey === cell.key && owner === null && canActLocally(currentTurn) && !gameOver) {
           hex.classList.add("hover");
         }
 
-        if (owner !== null || currentTurn !== "player" || gameOver) {
+        if (owner !== null || !canActLocally(currentTurn) || gameOver) {
           hex.classList.add("disabled");
         } else {
           hex.addEventListener("mouseenter", () => renderBoard(cell.key));
@@ -584,12 +674,24 @@
     }
 
     function handlePlayerMove(cell) {
-      if (currentTurn !== "player" || gameOver || state.get(cell.key) !== null) {
+      if (!canActLocally(currentTurn) || gameOver || state.get(cell.key) !== null) {
         return;
       }
 
-      commitMove(cell, "player");
+      const actingOwner = currentTurn;
+      commitMove(cell, actingOwner);
       if (evaluateGameState()) {
+        if (network.isHost()) {
+          syncHostState(`${ownerName(actingOwner)} ended the round.`);
+        }
+        return;
+      }
+
+      if (network.isMultiplayer()) {
+        currentTurn = otherOwner(actingOwner);
+        updateHud();
+        renderBoard();
+        network.send({ type: "move", key: cell.key });
         return;
       }
 
@@ -598,6 +700,23 @@
       setStatus("AI is evaluating the board...");
       renderBoard();
       aiTimer = window.setTimeout(takeAiTurn, AI_DELAY_MS);
+    }
+
+    function applyRemoteMove(cellKeyValue) {
+      const cell = cellMap.get(cellKeyValue);
+      if (!cell || gameOver || currentTurn !== getRemoteOwner() || state.get(cell.key) !== null) {
+        return;
+      }
+
+      commitMove(cell, getRemoteOwner());
+      if (evaluateGameState()) {
+        return;
+      }
+
+      currentTurn = getLocalOwner();
+      updateHud();
+      setStatus(`${ownerName(getRemoteOwner())} moved. Your turn.`);
+      renderBoard();
     }
 
     function takeAiTurn() {
@@ -623,6 +742,10 @@
     }
 
     function resetGame() {
+      if (network.isGuest()) {
+        setStatus("Only the host can start a fresh online round.");
+        return;
+      }
       if (aiTimer !== null) {
         window.clearTimeout(aiTimer);
       }
@@ -630,8 +753,9 @@
       currentTurn = "player";
       gameOver = false;
       updateHud();
-      setStatus("Your turn. Pick any empty hex to start expanding.");
+      setStatus(network.isMultiplayer() ? "Host begins. Pick any empty hex to start expanding." : "Your turn. Pick any empty hex to start expanding.");
       renderBoard();
+      syncHostState("Host started a new online round.");
     }
 
     newGameButton.addEventListener("click", resetGame);
