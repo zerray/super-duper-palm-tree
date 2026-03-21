@@ -142,7 +142,7 @@ This repository contains a simple agent-factory workflow for planning and comple
 新增 `hex-chain-reaction/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的六边形连锁反应策略游戏，包含：
 
 - 默认 radius 7、可切换到 radius 5 或 9 的 SVG 六边形棋盘，使用轴坐标与 `Map` 保存格子状态
-- 双人 hot-seat 轮流落子，只能下在空格或己方控制的格子上
+- 支持双人 hot-seat，以及基于 WebRTC 手动信令的远程联网对战
 - 当 token 数量超过该格实际邻居数时触发爆裂，并以短延迟逐步播放连锁反应
 - 当前玩家提示、回合统计、重新开始按钮，以及一方在连锁结算后失去全部 token 时的胜利结算
 

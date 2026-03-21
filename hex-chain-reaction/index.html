@@ -291,6 +291,34 @@
       color: var(--ink);
     }
 
+    .stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .text-input {
+      width: 100%;
+      min-height: 110px;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(74, 58, 40, 0.16);
+      background: rgba(255, 255, 255, 0.94);
+      color: var(--ink);
+      font: inherit;
+      resize: vertical;
+    }
+
+    .remote-panel[hidden] {
+      display: none;
+    }
+
+    .remote-status {
+      min-height: 2.8em;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.4;
+    }
+
     .overlay {
       position: fixed;
       inset: 0;
@@ -357,7 +385,14 @@
     <aside class="panel">
       <div class="card">
         <h2>Match Controls</h2>
-        <p class="muted">Two-player hot-seat. Place on empty cells or cells you already control, then pass the device once the board finishes cascading.</p>
+        <p class="muted">Play locally in hot-seat mode or pair two browsers for remote turns. In remote mode, the host plays Blue and controls match resets.</p>
+        <div class="control-row">
+          <label for="modeSelect">Mode</label>
+          <select id="modeSelect" class="size-select" aria-label="Match mode">
+            <option value="hotseat" selected>Hot-seat</option>
+            <option value="remote">Remote</option>
+          </select>
+        </div>
         <div class="control-row">
           <label for="sizeSelect">Board radius</label>
           <select id="sizeSelect" class="size-select" aria-label="Board radius">
@@ -367,6 +402,22 @@
           </select>
         </div>
         <button class="action" id="restartButton" type="button">New Game</button>
+      </div>
+
+      <div class="card remote-panel" id="remotePanel" hidden>
+        <h2>Remote Link</h2>
+        <p class="muted">Manual signaling keeps the build static. Host creates an offer, guest pastes it and creates an answer, then the host pastes the answer back.</p>
+        <div class="stack">
+          <div class="control-row">
+            <button class="action" id="hostButton" type="button">Create Offer</button>
+            <button class="action" id="joinButton" type="button">Join / Accept</button>
+          </div>
+          <label for="signalInput" class="muted">Inbound signal</label>
+          <textarea id="signalInput" class="text-input" placeholder="Paste the other player's offer or answer JSON here."></textarea>
+          <label for="signalOutput" class="muted">Outbound signal</label>
+          <textarea id="signalOutput" class="text-input" readonly placeholder="Your generated offer or answer appears here."></textarea>
+          <div class="remote-status" id="remoteStatus">Remote mode is idle.</div>
+        </div>
       </div>
 
       <div class="card">
@@ -440,9 +491,20 @@
     const restartButton = document.getElementById("restartButton");
     const playAgainButton = document.getElementById("playAgainButton");
     const sizeSelect = document.getElementById("sizeSelect");
+    const modeSelect = document.getElementById("modeSelect");
     const winnerOverlay = document.getElementById("winnerOverlay");
     const winnerTitle = document.getElementById("winnerTitle");
     const winnerText = document.getElementById("winnerText");
+    const remotePanel = document.getElementById("remotePanel");
+    const hostButton = document.getElementById("hostButton");
+    const joinButton = document.getElementById("joinButton");
+    const signalInput = document.getElementById("signalInput");
+    const signalOutput = document.getElementById("signalOutput");
+    const remoteStatus = document.getElementById("remoteStatus");
+
+    const RTC_CONFIG = {
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+    };
 
     const state = {
       gridRadius: DEFAULT_RADIUS,
@@ -453,7 +515,16 @@
       winner: 0,
       totalMoves: 0,
       highlightedKeys: new Set(),
-      cascadeStep: 0
+      cascadeStep: 0,
+      mode: "hotseat",
+      localPlayer: PLAYER_ONE
+    };
+
+    const remoteState = {
+      peerConnection: null,
+      dataChannel: null,
+      role: null,
+      connected: false
     };
 
     function sleep(ms) {
@@ -634,7 +705,7 @@
         if (cell.owner) {
           classes.push(PLAYER_CLASS[cell.owner]);
         }
-        if (!state.resolving && !state.winner && isLegalMove(cell, state.currentPlayer)) {
+        if (!state.resolving && !state.winner && isLegalMove(cell, state.currentPlayer) && isLocalTurn()) {
           classes.push("clickable");
         } else {
           classes.push("blocked");
@@ -684,7 +755,9 @@
         ? `${PLAYER_NAMES[state.winner]} wins.`
         : state.resolving
           ? "Resolving chain reaction..."
-          : `${PLAYER_NAMES[state.currentPlayer]} to move.`;
+          : isRemoteMode() && !isLocalTurn()
+            ? `Waiting for ${PLAYER_NAMES[state.currentPlayer]}.`
+            : `${PLAYER_NAMES[state.currentPlayer]} to move.`;
       boardLabel.textContent = `Radius ${state.gridRadius}`;
       moveLabel.textContent = `${state.totalMoves}`;
       blueCount.textContent = `${summary.blueOwned}`;
@@ -709,6 +782,256 @@
     function closeWinnerOverlay() {
       winnerOverlay.classList.remove("open");
       winnerOverlay.setAttribute("aria-hidden", "true");
+    }
+
+    function setRemoteStatus(message) {
+      remoteStatus.textContent = message;
+    }
+
+    function clearSignalFields() {
+      signalInput.value = "";
+      signalOutput.value = "";
+    }
+
+    function isRemoteMode() {
+      return state.mode === "remote";
+    }
+
+    function isLocalTurn(player = state.currentPlayer) {
+      return !isRemoteMode() || player === state.localPlayer;
+    }
+
+    function syncRemoteUi() {
+      const remoteMode = isRemoteMode();
+      remotePanel.hidden = !remoteMode;
+      const guestLocked = remoteMode && remoteState.connected && remoteState.role === "guest";
+      restartButton.disabled = guestLocked;
+      sizeSelect.disabled = guestLocked;
+
+      if (!remoteMode) {
+        setRemoteStatus("Remote mode is idle.");
+        return;
+      }
+
+      if (remoteState.connected) {
+        setRemoteStatus(`Connected as ${remoteState.role === "host" ? "host / Blue" : "guest / Red"}.`);
+        return;
+      }
+
+      if (remoteState.role === "host") {
+        setRemoteStatus("Offer ready. Share it with the guest, then paste the answer into Inbound signal.");
+        return;
+      }
+
+      if (remoteState.role === "guest") {
+        setRemoteStatus("Answer ready. Send it back to the host and wait for the data channel to open.");
+        return;
+      }
+
+      setRemoteStatus("Choose host or guest to start manual WebRTC signaling.");
+    }
+
+    function getSerializedSnapshot() {
+      return {
+        radius: state.gridRadius,
+        currentPlayer: state.currentPlayer,
+        totalMoves: state.totalMoves,
+        winner: state.winner,
+        cascadeStep: state.cascadeStep,
+        cells: Array.from(state.board.values()).map((cell) => ({
+          q: cell.q,
+          r: cell.r,
+          owner: cell.owner,
+          count: cell.count
+        }))
+      };
+    }
+
+    function applySnapshot(snapshot) {
+      const radius = Number(snapshot.radius) || DEFAULT_RADIUS;
+      const { board, cells } = createBoardMap(radius);
+      for (const cellData of snapshot.cells || []) {
+        const cell = board.get(keyFor(cellData.q, cellData.r));
+        if (!cell) {
+          continue;
+        }
+        cell.owner = cellData.owner || 0;
+        cell.count = cellData.count || 0;
+      }
+
+      sizeSelect.value = String(radius);
+      state.gridRadius = radius;
+      state.currentPlayer = snapshot.currentPlayer || PLAYER_ONE;
+      state.board = board;
+      state.cells = cells;
+      state.resolving = false;
+      state.winner = snapshot.winner || 0;
+      state.totalMoves = snapshot.totalMoves || 0;
+      state.highlightedKeys = new Set();
+      state.cascadeStep = snapshot.cascadeStep || 0;
+      closeWinnerOverlay();
+      if (state.winner) {
+        openWinnerOverlay(state.winner);
+      }
+      detailText.textContent = state.winner
+        ? `${PLAYER_NAMES[state.winner]} wins.`
+        : isLocalTurn()
+          ? "Connected match. Your move."
+          : `Connected match. Waiting for ${PLAYER_NAMES[state.currentPlayer]}.`;
+      render();
+    }
+
+    function sendRemoteMessage(message) {
+      if (!remoteState.connected || !remoteState.dataChannel || remoteState.dataChannel.readyState !== "open") {
+        return false;
+      }
+      remoteState.dataChannel.send(JSON.stringify(message));
+      return true;
+    }
+
+    async function waitForIceGatheringComplete(peerConnection) {
+      if (peerConnection.iceGatheringState === "complete") {
+        return;
+      }
+      await new Promise((resolve) => {
+        function handleStateChange() {
+          if (peerConnection.iceGatheringState === "complete") {
+            peerConnection.removeEventListener("icegatheringstatechange", handleStateChange);
+            resolve();
+          }
+        }
+        peerConnection.addEventListener("icegatheringstatechange", handleStateChange);
+      });
+    }
+
+    function closeRemoteConnection() {
+      if (remoteState.dataChannel) {
+        remoteState.dataChannel.onopen = null;
+        remoteState.dataChannel.onclose = null;
+        remoteState.dataChannel.onmessage = null;
+        remoteState.dataChannel.close();
+      }
+      if (remoteState.peerConnection) {
+        remoteState.peerConnection.ondatachannel = null;
+        remoteState.peerConnection.onconnectionstatechange = null;
+        remoteState.peerConnection.close();
+      }
+      remoteState.peerConnection = null;
+      remoteState.dataChannel = null;
+      remoteState.role = null;
+      remoteState.connected = false;
+    }
+
+    function bindDataChannel(channel) {
+      remoteState.dataChannel = channel;
+      channel.onopen = () => {
+        remoteState.connected = true;
+        if (remoteState.role === "host") {
+          sendRemoteMessage({ type: "sync", snapshot: getSerializedSnapshot() });
+        }
+        detailText.textContent = isLocalTurn()
+          ? "Connected match. Your move."
+          : `Connected match. Waiting for ${PLAYER_NAMES[state.currentPlayer]}.`;
+        render();
+        syncRemoteUi();
+      };
+      channel.onclose = () => {
+        remoteState.connected = false;
+        setRemoteStatus("Connection closed. Create a new offer or join again.");
+        syncRemoteUi();
+      };
+      channel.onmessage = async (event) => {
+        let message;
+        try {
+          message = JSON.parse(event.data);
+        } catch (error) {
+          setRemoteStatus("Received an invalid message payload.");
+          return;
+        }
+
+        if (message.type === "move") {
+          await commitMove(message.q, message.r, message.player);
+          detailText.textContent = isLocalTurn()
+            ? "Connected match. Your move."
+            : `Connected match. Waiting for ${PLAYER_NAMES[state.currentPlayer]}.`;
+          render();
+          return;
+        }
+
+        if (message.type === "reset" || message.type === "sync") {
+          applySnapshot(message.snapshot);
+        }
+      };
+    }
+
+    function createPeerConnection() {
+      const peerConnection = new RTCPeerConnection(RTC_CONFIG);
+      peerConnection.onconnectionstatechange = () => {
+        if (peerConnection.connectionState === "failed" || peerConnection.connectionState === "disconnected") {
+          remoteState.connected = false;
+          setRemoteStatus(`Connection state: ${peerConnection.connectionState}.`);
+          syncRemoteUi();
+        }
+      };
+      peerConnection.ondatachannel = (event) => {
+        bindDataChannel(event.channel);
+      };
+      remoteState.peerConnection = peerConnection;
+      return peerConnection;
+    }
+
+    async function createOffer() {
+      closeRemoteConnection();
+      clearSignalFields();
+      state.localPlayer = PLAYER_ONE;
+      remoteState.role = "host";
+      const peerConnection = createPeerConnection();
+      bindDataChannel(peerConnection.createDataChannel("hex-chain"));
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+      await waitForIceGatheringComplete(peerConnection);
+      signalOutput.value = JSON.stringify(peerConnection.localDescription);
+      syncRemoteUi();
+    }
+
+    async function joinFromOffer() {
+      let offer;
+      try {
+        offer = JSON.parse(signalInput.value);
+      } catch (error) {
+        setRemoteStatus("Paste a valid host offer JSON first.");
+        return;
+      }
+
+      closeRemoteConnection();
+      signalOutput.value = "";
+      state.localPlayer = PLAYER_TWO;
+      remoteState.role = "guest";
+      const peerConnection = createPeerConnection();
+      await peerConnection.setRemoteDescription(offer);
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+      await waitForIceGatheringComplete(peerConnection);
+      signalOutput.value = JSON.stringify(peerConnection.localDescription);
+      syncRemoteUi();
+    }
+
+    async function acceptAnswer() {
+      if (!remoteState.peerConnection || remoteState.role !== "host") {
+        setRemoteStatus("Create an offer first.");
+        return;
+      }
+
+      let answer;
+      try {
+        answer = JSON.parse(signalInput.value);
+      } catch (error) {
+        setRemoteStatus("Paste a valid guest answer JSON first.");
+        return;
+      }
+
+      await remoteState.peerConnection.setRemoteDescription(answer);
+      setRemoteStatus("Answer accepted. Waiting for the peer connection to open.");
     }
 
     async function resolveChainReaction(activePlayer) {
@@ -767,7 +1090,9 @@
         openWinnerOverlay(state.winner);
       } else {
         state.currentPlayer = activePlayer === PLAYER_ONE ? PLAYER_TWO : PLAYER_ONE;
-        detailText.textContent = `${PLAYER_NAMES[state.currentPlayer]} to move.`;
+        detailText.textContent = isRemoteMode() && !isLocalTurn()
+          ? `Connected match. Waiting for ${PLAYER_NAMES[state.currentPlayer]}.`
+          : `${PLAYER_NAMES[state.currentPlayer]} to move.`;
       }
       render();
     }
@@ -791,12 +1116,23 @@
       if (state.resolving || state.winner) {
         return;
       }
+      if (isRemoteMode() && !remoteState.connected) {
+        detailText.textContent = "Complete the remote connection before taking turns.";
+        return;
+      }
+      if (!isLocalTurn()) {
+        detailText.textContent = `Wait for ${PLAYER_NAMES[state.currentPlayer]} on the other browser.`;
+        return;
+      }
       const cell = getCell(q, r);
       if (!isLegalMove(cell, state.currentPlayer)) {
         detailText.textContent = `Choose an empty hex or one controlled by ${PLAYER_NAMES[state.currentPlayer]}.`;
         return;
       }
       await commitMove(q, r, state.currentPlayer);
+      if (isRemoteMode()) {
+        sendRemoteMessage({ type: "move", q, r, player: state.localPlayer });
+      }
     }
 
     function resetGame() {
@@ -812,14 +1148,52 @@
       state.highlightedKeys = new Set();
       state.cascadeStep = 0;
       closeWinnerOverlay();
-      detailText.textContent = "Blue begins. Corners hold fewer tokens than the center because each hex uses its real neighbor count as capacity.";
+      detailText.textContent = isRemoteMode()
+        ? state.localPlayer === PLAYER_ONE
+          ? "Connected match reset. Share the new board with the guest if already connected."
+          : "Connected match reset by the host."
+        : "Blue begins. Corners hold fewer tokens than the center because each hex uses its real neighbor count as capacity.";
       render();
+      if (isRemoteMode() && remoteState.connected && remoteState.role === "host") {
+        sendRemoteMessage({ type: "reset", snapshot: getSerializedSnapshot() });
+      }
     }
 
-    restartButton.addEventListener("click", resetGame);
-    playAgainButton.addEventListener("click", resetGame);
+    restartButton.addEventListener("click", () => {
+      if (isRemoteMode() && remoteState.role === "guest") {
+        setRemoteStatus("Only the host can reset a connected remote match.");
+        return;
+      }
+      resetGame();
+    });
+    playAgainButton.addEventListener("click", () => {
+      if (isRemoteMode() && remoteState.role === "guest") {
+        setRemoteStatus("Only the host can reset a connected remote match.");
+        return;
+      }
+      resetGame();
+    });
     sizeSelect.addEventListener("change", resetGame);
+    modeSelect.addEventListener("change", () => {
+      state.mode = modeSelect.value;
+      if (!isRemoteMode()) {
+        closeRemoteConnection();
+        state.localPlayer = PLAYER_ONE;
+        clearSignalFields();
+      }
+      syncRemoteUi();
+      resetGame();
+    });
+    hostButton.addEventListener("click", createOffer);
+    joinButton.addEventListener("click", async () => {
+      if (remoteState.role === "host" && signalInput.value.trim()) {
+        await acceptAnswer();
+        return;
+      }
+      await joinFromOffer();
+    });
 
+    syncRemoteUi();
     resetGame();
   </script>
 </body>
