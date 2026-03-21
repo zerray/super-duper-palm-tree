@@ -39,7 +39,8 @@
     }
 
     button,
-    select {
+    select,
+    input {
       font: inherit;
     }
 
@@ -291,6 +292,20 @@
       color: var(--ink);
     }
 
+    .network-stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .room-field {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(74, 58, 40, 0.16);
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--ink);
+    }
+
     .overlay {
       position: fixed;
       inset: 0;
@@ -357,7 +372,7 @@
     <aside class="panel">
       <div class="card">
         <h2>Match Controls</h2>
-        <p class="muted">Two-player hot-seat. Place on empty cells or cells you already control, then pass the device once the board finishes cascading.</p>
+        <p class="muted">Two-player hot-seat by default. You can also create a network room and play the same match remotely.</p>
         <div class="control-row">
           <label for="sizeSelect">Board radius</label>
           <select id="sizeSelect" class="size-select" aria-label="Board radius">
@@ -367,6 +382,23 @@
           </select>
         </div>
         <button class="action" id="restartButton" type="button">New Game</button>
+      </div>
+
+      <div class="card">
+        <h2>Online Match</h2>
+        <div class="network-stack">
+          <div class="badge-row">
+            <div class="badge">Role: <span id="networkRole">Local</span></div>
+            <div class="badge">Room: <span id="roomCode">Not connected</span></div>
+          </div>
+          <input id="roomInput" class="room-field" type="text" placeholder="Enter room code">
+          <div class="control-row">
+            <button class="action" id="createRoomButton" type="button">Create Room</button>
+            <button class="action" id="joinRoomButton" type="button">Join Room</button>
+            <button class="action" id="disconnectRoomButton" type="button">Disconnect</button>
+          </div>
+          <p class="muted" id="networkStatus">Local mode. Create a room or join one.</p>
+        </div>
       </div>
 
       <div class="card">
@@ -400,6 +432,8 @@
     </div>
   </div>
 
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="../shared/peer-multiplayer.js"></script>
   <script>
     const DEFAULT_RADIUS = 7;
     const ANIMATION_STEP_MS = 160;
@@ -443,6 +477,13 @@
     const winnerOverlay = document.getElementById("winnerOverlay");
     const winnerTitle = document.getElementById("winnerTitle");
     const winnerText = document.getElementById("winnerText");
+    const roomInput = document.getElementById("roomInput");
+    const roomCode = document.getElementById("roomCode");
+    const networkRole = document.getElementById("networkRole");
+    const networkStatus = document.getElementById("networkStatus");
+    const createRoomButton = document.getElementById("createRoomButton");
+    const joinRoomButton = document.getElementById("joinRoomButton");
+    const disconnectRoomButton = document.getElementById("disconnectRoomButton");
 
     const state = {
       gridRadius: DEFAULT_RADIUS,
@@ -455,6 +496,66 @@
       highlightedKeys: new Set(),
       cascadeStep: 0
     };
+
+    function getLocalPlayer() {
+      if (!multiplayer.isConnected()) {
+        return state.currentPlayer;
+      }
+      return multiplayer.isHost() ? PLAYER_ONE : PLAYER_TWO;
+    }
+
+    function canLocalPlayerAct() {
+      return !state.resolving && !state.winner && getLocalPlayer() === state.currentPlayer;
+    }
+
+    function serializeState() {
+      return {
+        gridRadius: state.gridRadius,
+        currentPlayer: state.currentPlayer,
+        totalMoves: state.totalMoves,
+        winner: state.winner,
+        cascadeStep: state.cascadeStep,
+        detail: detailText.textContent,
+        board: Array.from(state.board.values()).map((cell) => ({
+          q: cell.q,
+          r: cell.r,
+          owner: cell.owner,
+          count: cell.count
+        }))
+      };
+    }
+
+    function applySerializedState(snapshot) {
+      if (!snapshot || !Array.isArray(snapshot.board)) {
+        return;
+      }
+      const { board, cells } = createBoardMap(snapshot.gridRadius || DEFAULT_RADIUS);
+      for (const nextCell of snapshot.board) {
+        const cell = board.get(keyFor(nextCell.q, nextCell.r));
+        if (!cell) {
+          continue;
+        }
+        cell.owner = nextCell.owner;
+        cell.count = nextCell.count;
+      }
+      state.gridRadius = snapshot.gridRadius || DEFAULT_RADIUS;
+      state.currentPlayer = snapshot.currentPlayer || PLAYER_ONE;
+      state.totalMoves = snapshot.totalMoves || 0;
+      state.winner = snapshot.winner || 0;
+      state.cascadeStep = snapshot.cascadeStep || 0;
+      state.board = board;
+      state.cells = cells;
+      state.resolving = false;
+      state.highlightedKeys = new Set();
+      sizeSelect.value = String(state.gridRadius);
+      detailText.textContent = snapshot.detail || detailText.textContent;
+      if (state.winner) {
+        openWinnerOverlay(state.winner);
+      } else {
+        closeWinnerOverlay();
+      }
+      render();
+    }
 
     function sleep(ms) {
       return new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -634,7 +735,7 @@
         if (cell.owner) {
           classes.push(PLAYER_CLASS[cell.owner]);
         }
-        if (!state.resolving && !state.winner && isLegalMove(cell, state.currentPlayer)) {
+        if (canLocalPlayerAct() && isLegalMove(cell, state.currentPlayer)) {
           classes.push("clickable");
         } else {
           classes.push("blocked");
@@ -684,7 +785,9 @@
         ? `${PLAYER_NAMES[state.winner]} wins.`
         : state.resolving
           ? "Resolving chain reaction..."
-          : `${PLAYER_NAMES[state.currentPlayer]} to move.`;
+          : canLocalPlayerAct()
+            ? `${PLAYER_NAMES[state.currentPlayer]} to move.`
+            : `${PLAYER_NAMES[state.currentPlayer]} to move remotely.`;
       boardLabel.textContent = `Radius ${state.gridRadius}`;
       moveLabel.textContent = `${state.totalMoves}`;
       blueCount.textContent = `${summary.blueOwned}`;
@@ -772,12 +875,15 @@
       render();
     }
 
-    async function commitMove(q, r, player) {
+    async function commitMove(q, r, player, shouldBroadcast = false) {
       const cell = getCell(q, r);
       if (!isLegalMove(cell, player)) {
         return;
       }
 
+      if (shouldBroadcast && multiplayer.isConnected()) {
+        multiplayer.send({ type: "move", q, r, player });
+      }
       closeWinnerOverlay();
       cell.owner = player;
       cell.count += 1;
@@ -785,6 +891,9 @@
       detailText.textContent = `${PLAYER_NAMES[player]} played at axial ${q},${r}.`;
       render();
       await resolveChainReaction(player);
+      if (multiplayer.isHost() && multiplayer.isConnected()) {
+        multiplayer.send({ type: "snapshot", snapshot: serializeState() });
+      }
     }
 
     async function handleCellClick(q, r) {
@@ -796,13 +905,19 @@
         detailText.textContent = `Choose an empty hex or one controlled by ${PLAYER_NAMES[state.currentPlayer]}.`;
         return;
       }
-      await commitMove(q, r, state.currentPlayer);
+      await commitMove(q, r, state.currentPlayer, multiplayer.isConnected());
     }
 
-    function resetGame() {
+    function resetGame(broadcast = true, forcedRadius = null) {
+      if (multiplayer.isConnected() && multiplayer.isGuest() && broadcast) {
+        detailText.textContent = "Only the host can reset an online board.";
+        render();
+        return;
+      }
       const nextRadius = Number(sizeSelect.value) || DEFAULT_RADIUS;
-      const { board, cells } = createBoardMap(nextRadius);
-      state.gridRadius = nextRadius;
+      const radius = forcedRadius || nextRadius;
+      const { board, cells } = createBoardMap(radius);
+      state.gridRadius = radius;
       state.currentPlayer = PLAYER_ONE;
       state.board = board;
       state.cells = cells;
@@ -812,9 +927,55 @@
       state.highlightedKeys = new Set();
       state.cascadeStep = 0;
       closeWinnerOverlay();
+      sizeSelect.value = String(radius);
       detailText.textContent = "Blue begins. Corners hold fewer tokens than the center because each hex uses its real neighbor count as capacity.";
       render();
+      if (broadcast && multiplayer.isHost() && multiplayer.isConnected()) {
+        multiplayer.send({ type: "reset", radius });
+        multiplayer.send({ type: "snapshot", snapshot: serializeState() });
+      }
     }
+
+    const multiplayer = createPeerMultiplayer({
+      elements: {
+        roomInput,
+        roomCode,
+        role: networkRole,
+        status: networkStatus,
+        createButton: createRoomButton,
+        joinButton: joinRoomButton,
+        disconnectButton: disconnectRoomButton
+      },
+      getSnapshot: serializeState,
+      applySnapshot: applySerializedState,
+      onRoleChange(role) {
+        const isGuest = role === "guest";
+        sizeSelect.disabled = isGuest;
+        restartButton.disabled = isGuest;
+        if (role === "host") {
+          detailText.textContent = "Room ready. Share the code and wait for a guest.";
+        } else if (role === "guest") {
+          detailText.textContent = "Joined as red. Waiting for host state.";
+        } else {
+          detailText.textContent = "Blue begins. Corners hold fewer tokens than the center because each hex uses its real neighbor count as capacity.";
+        }
+        render();
+      },
+      onResetLocal() {
+        sizeSelect.disabled = false;
+        restartButton.disabled = false;
+        render();
+      },
+      onMessage(message) {
+        if (message.type === "move") {
+          commitMove(message.q, message.r, message.player, false);
+          return;
+        }
+        if (message.type === "reset") {
+          resetGame(false, message.radius);
+        }
+      }
+    });
 
     restartButton.addEventListener("click", resetGame);
     playAgainButton.addEventListener("click", resetGame);
