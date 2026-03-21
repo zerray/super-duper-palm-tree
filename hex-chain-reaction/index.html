@@ -291,6 +291,22 @@
       color: var(--ink);
     }
 
+    .signal-box {
+      width: 100%;
+      min-height: 90px;
+      resize: vertical;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(74, 58, 40, 0.16);
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--ink);
+      font: inherit;
+    }
+
+    .signal-box[readonly] {
+      background: rgba(246, 241, 231, 0.96);
+    }
+
     .overlay {
       position: fixed;
       inset: 0;
@@ -357,7 +373,7 @@
     <aside class="panel">
       <div class="card">
         <h2>Match Controls</h2>
-        <p class="muted">Two-player hot-seat. Place on empty cells or cells you already control, then pass the device once the board finishes cascading.</p>
+        <p class="muted">Two-player hot-seat by default. You can also switch to peer-to-peer online mode and pass turn control between host and guest over a direct browser connection.</p>
         <div class="control-row">
           <label for="sizeSelect">Board radius</label>
           <select id="sizeSelect" class="size-select" aria-label="Board radius">
@@ -367,6 +383,27 @@
           </select>
         </div>
         <button class="action" id="restartButton" type="button">New Game</button>
+      </div>
+
+      <div class="card">
+        <h2>Online Multiplayer</h2>
+        <p class="muted">Manual WebRTC signaling for remote play. Host controls blue, guest controls red, and the host stays authoritative for board state.</p>
+        <div class="badge-row">
+          <div class="badge">Mode: <span id="networkMode">Local hot-seat</span></div>
+          <div class="badge">Connection: <span id="connectionStatus">Offline</span></div>
+        </div>
+        <div class="control-row">
+          <button class="action" id="hostButton" type="button">Create Host Offer</button>
+          <button class="action" id="joinButton" type="button">Join from Offer</button>
+          <button class="action" id="disconnectButton" type="button">Disconnect</button>
+        </div>
+        <label for="localSignal">Local code</label>
+        <textarea id="localSignal" class="signal-box" readonly placeholder="Your offer or answer appears here. Share it with the other player."></textarea>
+        <label for="remoteSignal">Remote code</label>
+        <textarea id="remoteSignal" class="signal-box" placeholder="Paste the other player's offer or answer here."></textarea>
+        <div class="control-row">
+          <button class="action" id="applySignalButton" type="button">Apply Remote Code</button>
+        </div>
       </div>
 
       <div class="card">
@@ -443,6 +480,18 @@
     const winnerOverlay = document.getElementById("winnerOverlay");
     const winnerTitle = document.getElementById("winnerTitle");
     const winnerText = document.getElementById("winnerText");
+    const networkMode = document.getElementById("networkMode");
+    const connectionStatus = document.getElementById("connectionStatus");
+    const hostButton = document.getElementById("hostButton");
+    const joinButton = document.getElementById("joinButton");
+    const disconnectButton = document.getElementById("disconnectButton");
+    const localSignal = document.getElementById("localSignal");
+    const remoteSignal = document.getElementById("remoteSignal");
+    const applySignalButton = document.getElementById("applySignalButton");
+
+    const RTC_CONFIG = {
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+    };
 
     const state = {
       gridRadius: DEFAULT_RADIUS,
@@ -453,11 +502,34 @@
       winner: 0,
       totalMoves: 0,
       highlightedKeys: new Set(),
-      cascadeStep: 0
+      cascadeStep: 0,
+      networkRole: "local",
+      onlineConnected: false
+    };
+
+    const networkState = {
+      peerConnection: null,
+      dataChannel: null,
+      pendingRole: "local"
     };
 
     function sleep(ms) {
       return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+
+    function waitForIceGatheringComplete(peerConnection) {
+      if (peerConnection.iceGatheringState === "complete") {
+        return Promise.resolve();
+      }
+      return new Promise((resolve) => {
+        function handleStateChange() {
+          if (peerConnection.iceGatheringState === "complete") {
+            peerConnection.removeEventListener("icegatheringstatechange", handleStateChange);
+            resolve();
+          }
+        }
+        peerConnection.addEventListener("icegatheringstatechange", handleStateChange);
+      });
     }
 
     function keyFor(q, r) {
@@ -692,6 +764,15 @@
       blueTokens.textContent = `${summary.blueTokenCount}`;
       redTokens.textContent = `${summary.redTokenCount}`;
       cascadeCount.textContent = `${state.cascadeStep}`;
+      networkMode.textContent = state.networkRole === "local"
+        ? "Local hot-seat"
+        : state.networkRole === "host"
+          ? "Online host (Blue)"
+          : "Online guest (Red)";
+      connectionStatus.textContent = state.onlineConnected ? "Connected" : "Offline";
+      const guestLocked = state.networkRole === "guest" || (state.onlineConnected && state.networkRole !== "host");
+      sizeSelect.disabled = guestLocked;
+      restartButton.disabled = guestLocked;
     }
 
     function render() {
@@ -709,6 +790,210 @@
     function closeWinnerOverlay() {
       winnerOverlay.classList.remove("open");
       winnerOverlay.setAttribute("aria-hidden", "true");
+    }
+
+    function exportSnapshot() {
+      return {
+        gridRadius: state.gridRadius,
+        currentPlayer: state.currentPlayer,
+        totalMoves: state.totalMoves,
+        cascadeStep: state.cascadeStep,
+        winner: state.winner,
+        detailText: detailText.textContent,
+        cells: Array.from(state.board.values()).map((cell) => ({
+          q: cell.q,
+          r: cell.r,
+          owner: cell.owner,
+          count: cell.count
+        }))
+      };
+    }
+
+    function applySnapshot(snapshot) {
+      if (!snapshot || !Array.isArray(snapshot.cells)) {
+        return;
+      }
+      const { board, cells } = createBoardMap(snapshot.gridRadius || DEFAULT_RADIUS);
+      for (const entry of snapshot.cells) {
+        const cell = board.get(keyFor(entry.q, entry.r));
+        if (!cell) {
+          continue;
+        }
+        cell.owner = entry.owner || 0;
+        cell.count = entry.count || 0;
+      }
+      state.gridRadius = snapshot.gridRadius || DEFAULT_RADIUS;
+      state.currentPlayer = snapshot.currentPlayer || PLAYER_ONE;
+      state.totalMoves = snapshot.totalMoves || 0;
+      state.cascadeStep = snapshot.cascadeStep || 0;
+      state.winner = snapshot.winner || 0;
+      state.board = board;
+      state.cells = cells;
+      state.resolving = false;
+      state.highlightedKeys = new Set();
+      sizeSelect.value = String(state.gridRadius);
+      detailText.textContent = snapshot.detailText || "Remote board updated.";
+      if (state.winner) {
+        openWinnerOverlay(state.winner);
+      } else {
+        closeWinnerOverlay();
+      }
+      render();
+    }
+
+    function sendNetworkMessage(payload) {
+      if (!networkState.dataChannel || networkState.dataChannel.readyState !== "open") {
+        return false;
+      }
+      networkState.dataChannel.send(JSON.stringify(payload));
+      return true;
+    }
+
+    function syncSnapshotToGuest() {
+      if (state.networkRole !== "host" || !state.onlineConnected) {
+        return;
+      }
+      sendNetworkMessage({ type: "snapshot", snapshot: exportSnapshot() });
+    }
+
+    async function disconnectPeer() {
+      if (networkState.dataChannel) {
+        networkState.dataChannel.onopen = null;
+        networkState.dataChannel.onclose = null;
+        networkState.dataChannel.onmessage = null;
+        networkState.dataChannel.onerror = null;
+        try {
+          networkState.dataChannel.close();
+        } catch (error) {
+          console.error(error);
+        }
+      }
+      if (networkState.peerConnection) {
+        networkState.peerConnection.ondatachannel = null;
+        try {
+          networkState.peerConnection.close();
+        } catch (error) {
+          console.error(error);
+        }
+      }
+      networkState.peerConnection = null;
+      networkState.dataChannel = null;
+      networkState.pendingRole = "local";
+      state.onlineConnected = false;
+      state.networkRole = "local";
+      connectionStatus.textContent = "Offline";
+      localSignal.value = "";
+      remoteSignal.value = "";
+      detailText.textContent = "Disconnected. Local hot-seat mode restored.";
+      render();
+    }
+
+    async function handleNetworkMessage(event) {
+      let payload;
+      try {
+        payload = JSON.parse(event.data);
+      } catch (error) {
+        console.error(error);
+        return;
+      }
+
+      if (payload.type === "snapshot") {
+        applySnapshot(payload.snapshot);
+        return;
+      }
+
+      if (payload.type === "move" && state.networkRole === "host") {
+        await commitMove(payload.q, payload.r, PLAYER_TWO, true);
+      }
+    }
+
+    function attachDataChannel(channel) {
+      networkState.dataChannel = channel;
+      channel.onopen = () => {
+        state.onlineConnected = true;
+        connectionStatus.textContent = "Connected";
+        detailText.textContent = state.networkRole === "host"
+          ? "Guest connected. Blue moves locally and red sends remote moves."
+          : "Connected to host. Wait for the latest board snapshot before playing.";
+        render();
+        if (state.networkRole === "host") {
+          syncSnapshotToGuest();
+        }
+      };
+      channel.onclose = () => {
+        state.onlineConnected = false;
+        connectionStatus.textContent = "Offline";
+        detailText.textContent = "Remote player disconnected. Finish locally or reconnect.";
+        render();
+      };
+      channel.onerror = (error) => {
+        console.error(error);
+      };
+      channel.onmessage = (event) => {
+        void handleNetworkMessage(event);
+      };
+    }
+
+    function createPeerConnection(role) {
+      const peerConnection = new RTCPeerConnection(RTC_CONFIG);
+      networkState.peerConnection = peerConnection;
+      networkState.pendingRole = role;
+      state.networkRole = role;
+      state.onlineConnected = false;
+      connectionStatus.textContent = "Signaling";
+      peerConnection.onconnectionstatechange = () => {
+        if (peerConnection.connectionState === "failed" || peerConnection.connectionState === "disconnected" || peerConnection.connectionState === "closed") {
+          state.onlineConnected = false;
+          connectionStatus.textContent = "Offline";
+          render();
+        }
+      };
+      peerConnection.ondatachannel = (event) => {
+        attachDataChannel(event.channel);
+      };
+      return peerConnection;
+    }
+
+    async function createHostOffer() {
+      await disconnectPeer();
+      const peerConnection = createPeerConnection("host");
+      attachDataChannel(peerConnection.createDataChannel("hex-chain-reaction"));
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+      await waitForIceGatheringComplete(peerConnection);
+      localSignal.value = JSON.stringify(peerConnection.localDescription);
+      detailText.textContent = "Host offer created. Share the local code with the remote guest.";
+      render();
+    }
+
+    async function joinFromOffer() {
+      const raw = remoteSignal.value.trim();
+      if (!raw) {
+        detailText.textContent = "Paste a host offer before joining.";
+        return;
+      }
+      await disconnectPeer();
+      const peerConnection = createPeerConnection("guest");
+      const offer = JSON.parse(raw);
+      await peerConnection.setRemoteDescription(offer);
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+      await waitForIceGatheringComplete(peerConnection);
+      localSignal.value = JSON.stringify(peerConnection.localDescription);
+      detailText.textContent = "Answer created. Send this local code back to the host.";
+      render();
+    }
+
+    async function applyRemoteSignal() {
+      const raw = remoteSignal.value.trim();
+      if (!raw || !networkState.peerConnection) {
+        detailText.textContent = "Create an offer or join from one before applying remote code.";
+        return;
+      }
+      const description = JSON.parse(raw);
+      await networkState.peerConnection.setRemoteDescription(description);
+      detailText.textContent = "Remote signaling code applied.";
+      render();
     }
 
     async function resolveChainReaction(activePlayer) {
@@ -772,9 +1057,12 @@
       render();
     }
 
-    async function commitMove(q, r, player) {
+    async function commitMove(q, r, player, fromNetwork = false) {
       const cell = getCell(q, r);
-      if (!isLegalMove(cell, player)) {
+      if (!isLegalMove(cell, player) || player !== state.currentPlayer) {
+        return;
+      }
+      if (!fromNetwork && state.networkRole === "guest") {
         return;
       }
 
@@ -785,10 +1073,30 @@
       detailText.textContent = `${PLAYER_NAMES[player]} played at axial ${q},${r}.`;
       render();
       await resolveChainReaction(player);
+      syncSnapshotToGuest();
     }
 
     async function handleCellClick(q, r) {
       if (state.resolving || state.winner) {
+        return;
+      }
+      if (state.onlineConnected && state.networkRole === "host" && state.currentPlayer !== PLAYER_ONE) {
+        detailText.textContent = "Waiting for the guest to send the red move.";
+        return;
+      }
+      if (state.onlineConnected && state.networkRole === "guest") {
+        if (state.currentPlayer !== PLAYER_TWO) {
+          detailText.textContent = "Wait for the host turn to finish.";
+          return;
+        }
+        const cell = getCell(q, r);
+        if (!isLegalMove(cell, PLAYER_TWO)) {
+          detailText.textContent = "Choose an empty hex or one you already control.";
+          return;
+        }
+        if (sendNetworkMessage({ type: "move", q, r })) {
+          detailText.textContent = `Sent move request for axial ${q},${r}. Waiting for host sync.`;
+        }
         return;
       }
       const cell = getCell(q, r);
@@ -814,11 +1122,24 @@
       closeWinnerOverlay();
       detailText.textContent = "Blue begins. Corners hold fewer tokens than the center because each hex uses its real neighbor count as capacity.";
       render();
+      syncSnapshotToGuest();
     }
 
     restartButton.addEventListener("click", resetGame);
     playAgainButton.addEventListener("click", resetGame);
     sizeSelect.addEventListener("change", resetGame);
+    hostButton.addEventListener("click", () => {
+      void createHostOffer();
+    });
+    joinButton.addEventListener("click", () => {
+      void joinFromOffer();
+    });
+    applySignalButton.addEventListener("click", () => {
+      void applyRemoteSignal();
+    });
+    disconnectButton.addEventListener("click", () => {
+      void disconnectPeer();
+    });
 
     resetGame();
   </script>
