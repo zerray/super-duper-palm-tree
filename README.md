@@ -36,6 +36,7 @@ This repository contains a simple agent-factory workflow for planning and comple
 - 逐字符高亮显示：正确为绿色、错误为红色、未输入为灰色
 - 完成后结果弹层，以及重试当前段落或切换新段落
 - 使用 `localStorage` 保存并展示个人最佳 WPM
+- 基于 PeerJS 房间码的双人联网竞速，主机统一发题并实时显示对手进度
 
 直接用浏览器打开 `typing-speed-test/index.html` 即可开始测试。
 
@@ -78,6 +79,7 @@ This repository contains a simple agent-factory workflow for planning and comple
 - 点击空白六边形落子，被完全包围的敌方连通块会被翻转占领
 - 使用“优先最大化吃子，其次最大化己方邻接数”的贪心 AI 对手
 - 棋盘填满后自动结算胜负，并支持 `New Game` 立即重开
+- 支持 Host / Guest 房间码联网对战，联网时自动关闭 AI 并由主机同步棋盘
 
 直接用浏览器打开 `hex-territory/index.html` 即可游玩。
 
@@ -145,6 +147,7 @@ This repository contains a simple agent-factory workflow for planning and comple
 - 双人 hot-seat 轮流落子，只能下在空格或己方控制的格子上
 - 当 token 数量超过该格实际邻居数时触发爆裂，并以短延迟逐步播放连锁反应
 - 当前玩家提示、回合统计、重新开始按钮，以及一方在连锁结算后失去全部 token 时的胜利结算
+- 支持 PeerJS 联网房间，主机为蓝方、访客为红方，主机在每次连锁结算后同步完整棋盘
 
 直接用浏览器打开 `hex-chain-reaction/index.html` 即可游玩。
 

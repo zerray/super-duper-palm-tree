@@ -20,5 +20,8 @@ grep -q 'calculateStats' "$app_file" || fail "live stats calculation missing"
 grep -q 'class="char' "$app_file" || fail "character highlighting markup missing"
 grep -q 'Retry Passage' "$app_file" || fail "retry action missing"
 grep -q 'New Passage' "$app_file" || fail "new passage action missing"
+grep -q 'shared/network-room.js' "$app_file" || fail "shared room helper missing"
+grep -q 'Create Room' "$app_file" || fail "online create room action missing"
+grep -q 'id="remote-card"' "$app_file" || fail "opponent progress card missing"
 
 printf 'typing speed smoke test passed\n'

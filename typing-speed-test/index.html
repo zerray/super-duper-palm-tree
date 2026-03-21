@@ -215,6 +215,44 @@
       flex-wrap: wrap;
     }
 
+    .network-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      align-items: end;
+    }
+
+    .network-stack {
+      display: grid;
+      gap: 8px;
+    }
+
+    .network-status {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+
+    .room-code {
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: #e6ddd0;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), #2d8ab7);
+      transition: width 100ms linear;
+    }
+
     @media (max-width: 700px) {
       .app {
         padding: 20px;
@@ -244,6 +282,25 @@
         <p>Fifteen built-in passages are included, from short warmups to denser technical text.</p>
         <p class="hint">Press start, begin typing, and the timer will begin on your first keystroke.</p>
       </div>
+      <div class="card">
+        <div class="network-grid">
+          <div class="network-stack">
+            <span class="stat-label">Mode</span>
+            <strong id="network-mode">Local</strong>
+            <span id="network-status" class="network-status">Local mode. Create or join a room to race online.</span>
+          </div>
+          <div class="network-stack">
+            <span class="stat-label">Room Code</span>
+            <strong id="room-code" class="room-code">Offline</strong>
+            <input id="room-input" type="text" placeholder="Enter host room code">
+          </div>
+        </div>
+        <div class="button-row">
+          <button id="create-room" class="secondary" type="button">Create Room</button>
+          <button id="join-room" class="secondary" type="button">Join Room</button>
+          <button id="leave-room" class="secondary" type="button">Leave Room</button>
+        </div>
+      </div>
       <div>
         <button id="start-button" class="primary" type="button">Start Test</button>
       </div>
@@ -266,6 +323,18 @@
         <div class="card">
           <span class="stat-label">Errors</span>
           <strong id="errors" class="stat-value">0</strong>
+        </div>
+      </div>
+      <div id="remote-card" class="card" hidden>
+        <div class="header">
+          <div>
+            <div class="stat-label">Opponent</div>
+            <strong id="remote-summary">Waiting to start</strong>
+          </div>
+          <div class="best" id="remote-finish">Not finished</div>
+        </div>
+        <div class="progress-track">
+          <div id="remote-progress-fill" class="progress-fill"></div>
         </div>
       </div>
 
@@ -316,6 +385,8 @@
     </section>
   </div>
 
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="../shared/network-room.js"></script>
   <script>
     const BEST_WPM_KEY = "typing-speed-test-best-wpm";
     const passages = [
@@ -351,6 +422,18 @@
     const finalAccuracyDisplay = document.getElementById("final-accuracy");
     const finalTimeDisplay = document.getElementById("final-time");
     const finalErrorsDisplay = document.getElementById("final-errors");
+    const remoteCard = document.getElementById("remote-card");
+    const remoteSummary = document.getElementById("remote-summary");
+    const remoteFinish = document.getElementById("remote-finish");
+    const remoteProgressFill = document.getElementById("remote-progress-fill");
+
+    const networkState = {
+      connected: false,
+      isHost: false,
+      remoteProgress: 0,
+      remoteWpm: 0,
+      remoteFinished: false
+    };
 
     let currentPassage = "";
     let startTime = null;
@@ -403,6 +486,20 @@
 
     function formatSeconds(ms) {
       return `${(ms / 1000).toFixed(1)}s`;
+    }
+
+    function renderRemoteStatus() {
+      remoteCard.hidden = !networkState.connected;
+      remoteProgressFill.style.width = `${Math.round(networkState.remoteProgress * 100)}%`;
+      remoteSummary.textContent = `Progress ${Math.round(networkState.remoteProgress * 100)}% • ${networkState.remoteWpm} WPM`;
+      remoteFinish.textContent = networkState.remoteFinished ? "Finished" : "Typing";
+    }
+
+    function resetRemoteProgress() {
+      networkState.remoteProgress = 0;
+      networkState.remoteWpm = 0;
+      networkState.remoteFinished = false;
+      renderRemoteStatus();
     }
 
     function calculateStats(textValue) {
@@ -476,6 +573,21 @@
       writeBestWpm(stats.wpm);
     }
 
+    function sendRaceProgress(textValue, forceFinished = false) {
+      if (!networkState.connected) {
+        return;
+      }
+      const stats = calculateStats(textValue);
+      const progress = currentPassage.length === 0 ? 0 : Math.min(1, textValue.length / currentPassage.length);
+      room.send({
+        type: "progress-update",
+        progress,
+        wpm: stats.wpm,
+        accuracy: stats.accuracy,
+        finished: forceFinished || (textValue === currentPassage && textValue.length === currentPassage.length)
+      });
+    }
+
     function finishTest() {
       const textValue = typingInput.value;
       if (textValue.length !== currentPassage.length || textValue !== currentPassage || completed) {
@@ -486,6 +598,7 @@
       typingInput.disabled = true;
       stopTimer();
       showResults(renderLiveStats(textValue));
+      sendRaceProgress(textValue, true);
     }
 
     function beginTest(nextPassage) {
@@ -498,6 +611,7 @@
       resultsModal.hidden = true;
       startScreen.hidden = true;
       testScreen.hidden = false;
+      resetRemoteProgress();
       renderPassage("");
       renderLiveStats("");
       typingInput.focus();
@@ -517,24 +631,84 @@
     }
 
     document.getElementById("start-button").addEventListener("click", () => {
-      beginTest(pickRandomPassage());
+      const nextPassage = pickRandomPassage();
+      if (networkState.connected && !networkState.isHost) {
+        room.setStatus("Only the host can start an online race.");
+        return;
+      }
+      if (networkState.connected) {
+        room.send({ type: "start-test", passage: nextPassage });
+      }
+      beginTest(nextPassage);
     });
 
     document.getElementById("retry-button").addEventListener("click", () => {
+      if (networkState.connected && !networkState.isHost) {
+        room.setStatus("Only the host can restart an online race.");
+        return;
+      }
+      if (networkState.connected) {
+        room.send({ type: "start-test", passage: currentPassage });
+      }
       beginTest(currentPassage);
     });
 
     document.getElementById("new-button").addEventListener("click", () => {
-      beginTest(pickRandomPassage(currentPassage));
+      const nextPassage = pickRandomPassage(currentPassage);
+      if (networkState.connected && !networkState.isHost) {
+        room.setStatus("Only the host can send a new passage.");
+        return;
+      }
+      if (networkState.connected) {
+        room.send({ type: "start-test", passage: nextPassage });
+      }
+      beginTest(nextPassage);
     });
 
     typingInput.addEventListener("input", () => {
       startTimerIfNeeded();
       renderPassage(typingInput.value);
       renderLiveStats(typingInput.value);
+      sendRaceProgress(typingInput.value);
       finishTest();
     });
 
+    const room = new window.PeerRoomController({
+      createButton: document.getElementById("create-room"),
+      joinButton: document.getElementById("join-room"),
+      leaveButton: document.getElementById("leave-room"),
+      roomInput: document.getElementById("room-input"),
+      roomCode: document.getElementById("room-code"),
+      statusLabel: document.getElementById("network-status"),
+      modeLabel: document.getElementById("network-mode"),
+      onOpen(info) {
+        networkState.connected = true;
+        networkState.isHost = info.isHost;
+        resetRemoteProgress();
+      },
+      onClose() {
+        networkState.connected = false;
+        networkState.isHost = false;
+        resetRemoteProgress();
+      },
+      onMessage(message) {
+        if (!message || typeof message !== "object") {
+          return;
+        }
+        if (message.type === "start-test" && typeof message.passage === "string") {
+          beginTest(message.passage);
+          return;
+        }
+        if (message.type === "progress-update") {
+          networkState.remoteProgress = Number(message.progress) || 0;
+          networkState.remoteWpm = Number(message.wpm) || 0;
+          networkState.remoteFinished = Boolean(message.finished);
+          renderRemoteStatus();
+        }
+      }
+    });
+
+    renderRemoteStatus();
     renderBestWpm();
   </script>
 </body>

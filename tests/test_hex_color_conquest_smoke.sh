@@ -22,5 +22,8 @@ grep -q 'window.setTimeout(takeAiTurn, AI_DELAY_MS)' "$app_file" || fail "AI del
 grep -q 'id="board"' "$app_file" || fail "svg board missing"
 grep -q 'id="play-again-button"' "$app_file" || fail "play again button missing"
 grep -q 'game ends when all hexes are claimed' "$app_file" || fail "rules text missing"
+grep -q 'shared/network-room.js' "$app_file" || fail "shared room helper missing"
+grep -q 'replace the AI with an online rival' "$app_file" || fail "online multiplayer copy missing"
+grep -q 'id="create-room"' "$app_file" || fail "create room button missing"
 
 printf 'hex color conquest smoke test passed\n'

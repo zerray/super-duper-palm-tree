@@ -28,5 +28,8 @@ grep -q 'New Game' "$app_file" || fail "restart control missing"
 grep -q 'Move:' "$app_file" || fail "move counter missing"
 grep -q 'Take turns placing tokens on a hex grid' "$app_file" || fail "rules copy missing"
 grep -q 'last player with tokens on the board' "$app_file" || fail "win condition text missing"
+grep -q 'shared/network-room.js' "$app_file" || fail "shared room helper missing"
+grep -q 'Host plays blue, guest plays red' "$app_file" || fail "online role copy missing"
+grep -q 'id="createRoomButton"' "$app_file" || fail "create room button missing"
 
 printf 'hex chain reaction smoke test passed\n'

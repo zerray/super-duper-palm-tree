@@ -21,5 +21,8 @@ grep -q 'captures === bestMove.captures && adjacency > bestMove.adjacency' "$app
 grep -q 'window.setTimeout(takeAiTurn, AI_DELAY_MS)' "$app_file" || fail "AI delay missing"
 grep -q 'Hex Territory Strategy' "$app_file" || fail "game title missing"
 grep -q 'captured and changes color' "$app_file" || fail "capture rules text missing"
+grep -q 'shared/network-room.js' "$app_file" || fail "shared room helper missing"
+grep -q 'switch from AI to online PvP' "$app_file" || fail "online multiplayer copy missing"
+grep -q 'id="create-room"' "$app_file" || fail "create room button missing"
 
 printf 'hex territory smoke test passed\n'
