@@ -178,6 +178,24 @@
       background: #ead8b6;
     }
 
+    .link-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-size: 1rem;
+      font-weight: 700;
+      text-decoration: none;
+      color: var(--text);
+      background: #ead8b6;
+      transition: transform 120ms ease, opacity 120ms ease;
+    }
+
+    .link-button:hover {
+      transform: translateY(-1px);
+    }
+
     .controls ul,
     .leaderboard ol {
       margin: 0;
@@ -308,6 +326,14 @@
         <button id="start-button" class="primary" type="button">开始 / 重新开始</button>
         <button id="pause-button" class="secondary" type="button">暂停</button>
       </div>
+
+      <section>
+        <h2>扩展版本</h2>
+        <p class="note">新增一个基于 WebRTC 的双人联网版本，适合两位玩家远程对战。</p>
+        <div class="button-row">
+          <a class="link-button" href="./multiplayer.html">打开多人联网版</a>
+        </div>
+      </section>
 
       <section>
         <h2>操作说明</h2>
