@@ -193,6 +193,17 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `particle-life/index.html` 即可运行。
 
+## 像素调色进化器
+
+新增 `pixel-color-evolver/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的 idle 色彩繁殖小游戏，包含：
+
+- 至少 8x8 的彩色网格，邻格会每隔数秒自动以 HSL 加权平均进行混色繁殖
+- 玩家可选择红 / 黄 / 蓝三原色，并点击任意格子进行颜色注入
+- 页面顶部持续显示当前目标色、最接近格子的色距，以及达成目标后的下一轮切换
+- 使用 `localStorage` 保存世界状态，并在刷新后根据离线时长快进演化步数
+
+直接用浏览器打开 `pixel-color-evolver/index.html` 即可游玩。
+
 ## Gravity Golf
 
 新增 `gravity-golf/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的重力高尔夫物理游戏，包含：
