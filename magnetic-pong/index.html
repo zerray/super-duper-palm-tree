@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>磁力乒乓</title>
+  <style>
+    :root {
+      --bg: #07131f;
+      --panel: rgba(8, 20, 34, 0.88);
+      --line: rgba(141, 214, 255, 0.18);
+      --text: #ebf7ff;
+      --muted: #8fb2c8;
+      --left: #74d3ff;
+      --right: #ff8ea1;
+      --field: #91ffbe;
+      --accent: #fff07f;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(116, 211, 255, 0.18), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(255, 142, 161, 0.15), transparent 30%),
+        linear-gradient(180deg, #0b1828 0%, #050b12 100%);
+    }
+
+    .shell {
+      width: min(1160px, calc(100vw - 24px));
+      margin: 0 auto;
+      padding: 20px 0 28px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(290px, 0.8fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: 0 18px 56px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(10px);
+    }
+
+    .copy {
+      padding: 24px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(2.4rem, 5vw, 4.2rem);
+      line-height: 0.92;
+      letter-spacing: -0.04em;
+    }
+
+    .lede,
+    .meta,
+    .controls-copy {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .badge {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 0.95rem;
+    }
+
+    .hud {
+      display: grid;
+      gap: 12px;
+      padding: 20px;
+    }
+
+    .scoreboard {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .score {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      text-align: center;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .score strong {
+      display: block;
+      font-size: 2rem;
+      margin-top: 4px;
+    }
+
+    .mode-bar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .toggle-group,
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font: inherit;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+      cursor: pointer;
+      transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255, 240, 127, 0.55);
+      background: rgba(255, 240, 127, 0.08);
+    }
+
+    button.active {
+      background: rgba(255, 240, 127, 0.18);
+      border-color: rgba(255, 240, 127, 0.55);
+    }
+
+    .legend {
+      display: grid;
+      gap: 10px;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    .energy-shell {
+      position: relative;
+      flex: 1;
+      height: 12px;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .energy-fill {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 50%;
+      border-radius: inherit;
+    }
+
+    .energy-fill.left {
+      background: linear-gradient(90deg, rgba(116, 211, 255, 0.32), var(--left));
+    }
+
+    .energy-fill.right {
+      background: linear-gradient(90deg, rgba(255, 142, 161, 0.32), var(--right));
+    }
+
+    .stage {
+      position: relative;
+      margin-top: 16px;
+      padding: 14px;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 22px;
+      border: 1px solid rgba(141, 214, 255, 0.16);
+      background:
+        radial-gradient(circle at center, rgba(145, 255, 190, 0.06), transparent 20%),
+        linear-gradient(180deg, #10243a 0%, #07131f 100%);
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 28px;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+    }
+
+    .overlay-card {
+      max-width: 440px;
+      padding: 18px 22px;
+      border: 1px solid rgba(255, 240, 127, 0.35);
+      border-radius: 22px;
+      background: rgba(4, 10, 18, 0.86);
+      text-align: center;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 160ms ease, transform 160ms ease;
+    }
+
+    .overlay-card.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .overlay-card h2 {
+      margin: 0 0 8px;
+      font-size: 1.55rem;
+    }
+
+    .overlay-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    @media (max-width: 920px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="panel copy">
+        <p class="meta">Arcade / Local Versus</p>
+        <h1>磁力乒乓</h1>
+        <p class="lede">
+          同屏双人乒乓加上一枚会旋转的中央磁场。球穿过磁场会自动偏转，玩家还能短暂激活吸引或排斥极性，把常规回合打成弧线博弈。
+        </p>
+        <div class="badge-row">
+          <div class="badge">左侧: W / S 移动, Q 吸引, E 排斥</div>
+          <div class="badge">右侧: ↑ / ↓ 移动, [ 吸引, ] 排斥</div>
+          <div class="badge">先到 7 分获胜</div>
+        </div>
+      </div>
+
+      <aside class="panel hud">
+        <div class="scoreboard">
+          <div class="score">
+            左侧
+            <strong id="left-score">0</strong>
+          </div>
+          <div class="meta">VS</div>
+          <div class="score">
+            右侧
+            <strong id="right-score">0</strong>
+          </div>
+        </div>
+
+        <div class="mode-bar">
+          <div class="toggle-group" aria-label="mode toggle">
+            <button id="mode-1p" class="active" type="button">1P 练习</button>
+            <button id="mode-2p" type="button">2P 对战</button>
+          </div>
+          <div class="button-row">
+            <button id="restart-button" type="button">重新开球</button>
+          </div>
+        </div>
+
+        <div class="legend">
+          <div class="legend-row">
+            <span>左侧能量</span>
+            <div class="energy-shell"><div id="left-energy" class="energy-fill left"></div></div>
+          </div>
+          <div class="legend-row">
+            <span>右侧能量</span>
+            <div class="energy-shell"><div id="right-energy" class="energy-fill right"></div></div>
+          </div>
+        </div>
+
+        <p class="controls-copy">
+          中央磁场会持续旋转并改变球路。按住磁极键会消耗能量，放开后缓慢恢复。1P 模式下右侧由简单 AI 控制。
+        </p>
+      </aside>
+    </section>
+
+    <section class="panel stage">
+      <canvas id="magnetic-pong-canvas" width="960" height="540" aria-label="磁力乒乓游戏画布"></canvas>
+      <div class="overlay">
+        <div id="overlay-card" class="overlay-card">
+          <h2 id="overlay-title">磁力开球</h2>
+          <p id="overlay-copy">利用中央磁场和个人磁极把球拉出弧线。点击“重新开球”或等待下一回合开始。</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const magneticPong = (() => {
+      const canvas = document.querySelector("#magnetic-pong-canvas");
+      const ctx = canvas.getContext("2d");
+
+      const leftScoreNode = document.querySelector("#left-score");
+      const rightScoreNode = document.querySelector("#right-score");
+      const leftEnergyNode = document.querySelector("#left-energy");
+      const rightEnergyNode = document.querySelector("#right-energy");
+      const overlayCard = document.querySelector("#overlay-card");
+      const overlayTitle = document.querySelector("#overlay-title");
+      const overlayCopy = document.querySelector("#overlay-copy");
+      const mode1pButton = document.querySelector("#mode-1p");
+      const mode2pButton = document.querySelector("#mode-2p");
+      const restartButton = document.querySelector("#restart-button");
+
+      const WIDTH = canvas.width;
+      const HEIGHT = canvas.height;
+      const PADDLE_W = 18;
+      const PADDLE_H = 112;
+      const PADDLE_MARGIN = 30;
+      const BALL_RADIUS = 9;
+      const PADDLE_SPEED = 410;
+      const BALL_SPEED = 340;
+      const WIN_SCORE = 7;
+      const TRAIL_MAX = 22;
+      const ENERGY_DRAIN = 0.34;
+      const ENERGY_REGEN = 0.2;
+      const PLAYER_MAGNET_FORCE = 92000;
+      const CENTER_FIELD_FORCE = 155000;
+      const CENTER_FIELD_RADIUS = 120;
+      const CENTER_FIELD_SWIRL = 0.95;
+      const AI_SPEED = 315;
+      const AI_REACTION = 0.09;
+
+      const state = {
+        mode: "1p",
+        scores: { left: 0, right: 0 },
+        leftEnergy: 1,
+        rightEnergy: 1,
+        paused: false,
+        winner: "",
+        fieldAngle: 0,
+        fieldPulse: 0,
+        serveTimer: 0,
+        magneticFlash: 0,
+        aiTargetY: HEIGHT / 2,
+        aiCooldown: 0,
+        particles: [],
+        keys: new Set(),
+        paddles: {
+          left: { x: PADDLE_MARGIN, y: HEIGHT / 2 - PADDLE_H / 2, vy: 0, color: "#74d3ff" },
+          right: { x: WIDTH - PADDLE_MARGIN - PADDLE_W, y: HEIGHT / 2 - PADDLE_H / 2, vy: 0, color: "#ff8ea1" }
+        },
+        ball: {
+          x: WIDTH / 2,
+          y: HEIGHT / 2,
+          vx: BALL_SPEED,
+          vy: 50
+        }
+      };
+
+      function updateModeButtons() {
+        mode1pButton.classList.toggle("active", state.mode === "1p");
+        mode2pButton.classList.toggle("active", state.mode === "2p");
+      }
+
+      function setOverlay(title, copy, visible) {
+        overlayTitle.textContent = title;
+        overlayCopy.textContent = copy;
+        overlayCard.classList.toggle("visible", visible);
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function resetBall(direction = Math.random() > 0.5 ? 1 : -1) {
+        state.ball.x = WIDTH / 2 + (Math.random() * 30 - 15);
+        state.ball.y = HEIGHT / 2 + (Math.random() * 80 - 40);
+        state.ball.vx = BALL_SPEED * direction;
+        state.ball.vy = (Math.random() * 2 - 1) * 170;
+        state.serveTimer = 1.0;
+        state.particles.length = 0;
+        state.magneticFlash = 0;
+      }
+
+      function restartGame() {
+        state.scores.left = 0;
+        state.scores.right = 0;
+        state.leftEnergy = 1;
+        state.rightEnergy = 1;
+        state.winner = "";
+        state.paused = false;
+        state.paddles.left.y = HEIGHT / 2 - PADDLE_H / 2;
+        state.paddles.right.y = HEIGHT / 2 - PADDLE_H / 2;
+        updateHud();
+        setOverlay("磁力开球", "中央磁场会弯球，个人磁极会进一步改变线路。", true);
+        resetBall(Math.random() > 0.5 ? 1 : -1);
+      }
+
+      function updateHud() {
+        leftScoreNode.textContent = String(state.scores.left);
+        rightScoreNode.textContent = String(state.scores.right);
+        leftEnergyNode.style.width = `${state.leftEnergy * 100}%`;
+        rightEnergyNode.style.width = `${state.rightEnergy * 100}%`;
+      }
+
+      function awardPoint(side) {
+        state.scores[side] += 1;
+        updateHud();
+
+        if (state.scores[side] >= WIN_SCORE) {
+          state.winner = side === "left" ? "左侧玩家" : state.mode === "1p" ? "练习模式 AI" : "右侧玩家";
+          state.paused = true;
+          setOverlay(`${state.winner} 获胜`, "点击“重新开球”立刻开始新一局。", true);
+          return;
+        }
+
+        setOverlay(side === "left" ? "左侧得分" : "右侧得分", "下一球已就位。中央磁场会继续旋转。", true);
+        resetBall(side === "left" ? -1 : 1);
+      }
+
+      function updatePaddleInput(dt) {
+        const left = state.paddles.left;
+        const right = state.paddles.right;
+
+        left.vy = 0;
+        if (state.keys.has("KeyW")) {
+          left.vy -= PADDLE_SPEED;
+        }
+        if (state.keys.has("KeyS")) {
+          left.vy += PADDLE_SPEED;
+        }
+        left.y = clamp(left.y + left.vy * dt, 0, HEIGHT - PADDLE_H);
+
+        if (state.mode === "2p") {
+          right.vy = 0;
+          if (state.keys.has("ArrowUp")) {
+            right.vy -= PADDLE_SPEED;
+          }
+          if (state.keys.has("ArrowDown")) {
+            right.vy += PADDLE_SPEED;
+          }
+        } else {
+          state.aiCooldown -= dt;
+          if (state.aiCooldown <= 0) {
+            state.aiCooldown = AI_REACTION + Math.random() * 0.05;
+            state.aiTargetY = clamp(state.ball.y + (Math.random() * 70 - 35), 40, HEIGHT - 40);
+          }
+
+          const paddleCenter = right.y + PADDLE_H / 2;
+          const delta = state.aiTargetY - paddleCenter;
+          right.vy = clamp(delta * 5.5, -AI_SPEED, AI_SPEED);
+        }
+
+        right.y = clamp(right.y + right.vy * dt, 0, HEIGHT - PADDLE_H);
+      }
+
+      function consumeMagnetEnergy(current, active, dt) {
+        if (active && current > 0) {
+          return clamp(current - ENERGY_DRAIN * dt, 0, 1);
+        }
+        return clamp(current + ENERGY_REGEN * dt, 0, 1);
+      }
+
+      function getPlayerMagnetState(side) {
+        if (side === "left") {
+          if (state.keys.has("KeyQ") && state.leftEnergy > 0) {
+            return "attract";
+          }
+          if (state.keys.has("KeyE") && state.leftEnergy > 0) {
+            return "repel";
+          }
+          return "";
+        }
+
+        if (state.mode === "2p") {
+          if (state.keys.has("BracketLeft") && state.rightEnergy > 0) {
+            return "attract";
+          }
+          if (state.keys.has("BracketRight") && state.rightEnergy > 0) {
+            return "repel";
+          }
+        }
+
+        return "";
+      }
+
+      function applyPlayerMagnet(dt, side, mode) {
+        if (!mode) {
+          return;
+        }
+
+        const paddle = state.paddles[side];
+        const sourceX = paddle.x + PADDLE_W / 2;
+        const sourceY = paddle.y + PADDLE_H / 2;
+        const dx = sourceX - state.ball.x;
+        const dy = sourceY - state.ball.y;
+        const distanceSq = Math.max(dx * dx + dy * dy, 1800);
+        const direction = mode === "attract" ? 1 : -1;
+        const force = direction * PLAYER_MAGNET_FORCE * dt / distanceSq;
+
+        state.ball.vx += dx * force;
+        state.ball.vy += dy * force;
+        state.magneticFlash = Math.min(1, state.magneticFlash + 0.16);
+      }
+
+      function applyCenterField(dt) {
+        const dx = state.ball.x - WIDTH / 2;
+        const dy = state.ball.y - HEIGHT / 2;
+        const distance = Math.hypot(dx, dy);
+
+        if (distance > CENTER_FIELD_RADIUS) {
+          return;
+        }
+
+        const ratio = 1 - distance / CENTER_FIELD_RADIUS;
+        const spin = CENTER_FIELD_SWIRL + Math.sin(state.fieldAngle * 1.4) * 0.25;
+        const tangentX = -dy / Math.max(distance, 1);
+        const tangentY = dx / Math.max(distance, 1);
+        const radialScale = CENTER_FIELD_FORCE * ratio * dt / Math.max(distance * distance, 2200);
+
+        state.ball.vx += tangentX * spin * radialScale * 1800;
+        state.ball.vy += tangentY * spin * radialScale * 1800;
+        state.ball.vx += (-dx / Math.max(distance, 1)) * radialScale * 140;
+        state.ball.vy += (-dy / Math.max(distance, 1)) * radialScale * 140;
+        state.magneticFlash = Math.min(1, state.magneticFlash + ratio * 0.08);
+      }
+
+      function collidePaddle(paddle, side) {
+        const withinY = state.ball.y + BALL_RADIUS >= paddle.y && state.ball.y - BALL_RADIUS <= paddle.y + PADDLE_H;
+        const withinX = side === "left"
+          ? state.ball.x - BALL_RADIUS <= paddle.x + PADDLE_W && state.ball.x > paddle.x
+          : state.ball.x + BALL_RADIUS >= paddle.x && state.ball.x < paddle.x + PADDLE_W;
+
+        if (!withinX || !withinY) {
+          return;
+        }
+
+        const paddleCenter = paddle.y + PADDLE_H / 2;
+        const impact = clamp((state.ball.y - paddleCenter) / (PADDLE_H / 2), -1, 1);
+        const direction = side === "left" ? 1 : -1;
+
+        state.ball.x = side === "left" ? paddle.x + PADDLE_W + BALL_RADIUS : paddle.x - BALL_RADIUS;
+        state.ball.vx = direction * Math.max(Math.abs(state.ball.vx) * 1.04, BALL_SPEED);
+        state.ball.vy += impact * 220 + paddle.vy * 0.2;
+      }
+
+      function updateBall(dt) {
+        if (state.serveTimer > 0) {
+          state.serveTimer = Math.max(0, state.serveTimer - dt);
+          return;
+        }
+
+        state.ball.x += state.ball.vx * dt;
+        state.ball.y += state.ball.vy * dt;
+
+        if (state.ball.y <= BALL_RADIUS) {
+          state.ball.y = BALL_RADIUS;
+          state.ball.vy = Math.abs(state.ball.vy);
+        } else if (state.ball.y >= HEIGHT - BALL_RADIUS) {
+          state.ball.y = HEIGHT - BALL_RADIUS;
+          state.ball.vy = -Math.abs(state.ball.vy);
+        }
+
+        collidePaddle(state.paddles.left, "left");
+        collidePaddle(state.paddles.right, "right");
+
+        if (state.ball.x < -40) {
+          awardPoint("right");
+        } else if (state.ball.x > WIDTH + 40) {
+          awardPoint("left");
+        }
+      }
+
+      function updateTrail() {
+        state.particles.unshift({
+          x: state.ball.x,
+          y: state.ball.y,
+          heat: state.magneticFlash
+        });
+
+        if (state.particles.length > TRAIL_MAX) {
+          state.particles.length = TRAIL_MAX;
+        }
+      }
+
+      function update(dt) {
+        state.fieldAngle += dt * 1.4;
+        state.fieldPulse += dt * 2.2;
+        state.magneticFlash = Math.max(0, state.magneticFlash - dt * 1.7);
+
+        if (state.paused) {
+          return;
+        }
+
+        updatePaddleInput(dt);
+
+        const leftMagnet = getPlayerMagnetState("left");
+        const rightMagnet = getPlayerMagnetState("right");
+
+        state.leftEnergy = consumeMagnetEnergy(state.leftEnergy, Boolean(leftMagnet), dt);
+        state.rightEnergy = consumeMagnetEnergy(state.rightEnergy, Boolean(rightMagnet), dt);
+
+        applyCenterField(dt);
+        applyPlayerMagnet(dt, "left", leftMagnet);
+        applyPlayerMagnet(dt, "right", rightMagnet);
+        updateBall(dt);
+        updateTrail();
+        updateHud();
+      }
+
+      function drawField() {
+        const cx = WIDTH / 2;
+        const cy = HEIGHT / 2;
+        const pulse = 0.92 + Math.sin(state.fieldPulse) * 0.06;
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(state.fieldAngle);
+
+        const gradient = ctx.createRadialGradient(0, 0, 10, 0, 0, CENTER_FIELD_RADIUS * 1.2);
+        gradient.addColorStop(0, "rgba(145, 255, 190, 0.28)");
+        gradient.addColorStop(0.5, "rgba(145, 255, 190, 0.08)");
+        gradient.addColorStop(1, "rgba(145, 255, 190, 0)");
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(0, 0, CENTER_FIELD_RADIUS * 1.2 * pulse, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = `rgba(145, 255, 190, ${0.18 + state.magneticFlash * 0.26})`;
+        ctx.lineWidth = 1.5;
+        for (let i = 0; i < 10; i += 1) {
+          const angle = (Math.PI * 2 * i) / 10;
+          ctx.beginPath();
+          ctx.arc(0, 0, 28 + i * 9, angle * 0.6, angle * 0.6 + Math.PI * 0.7);
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+
+      function drawCourt() {
+        ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([10, 10]);
+        ctx.beginPath();
+        ctx.moveTo(WIDTH / 2, 0);
+        ctx.lineTo(WIDTH / 2, HEIGHT);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        drawField();
+
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+        ctx.strokeRect(14, 14, WIDTH - 28, HEIGHT - 28);
+      }
+
+      function drawTrail() {
+        for (let i = state.particles.length - 1; i >= 0; i -= 1) {
+          const particle = state.particles[i];
+          const alpha = 1 - i / state.particles.length;
+          const radius = 3 + alpha * 6 + particle.heat * 4;
+          const color = particle.heat > 0.15
+            ? `rgba(255, 240, 127, ${alpha * 0.55})`
+            : `rgba(160, 225, 255, ${alpha * 0.32})`;
+
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(particle.x, particle.y, radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      function drawPaddles() {
+        for (const paddle of Object.values(state.paddles)) {
+          const gradient = ctx.createLinearGradient(paddle.x, paddle.y, paddle.x + PADDLE_W, paddle.y + PADDLE_H);
+          gradient.addColorStop(0, paddle.color);
+          gradient.addColorStop(1, "rgba(255, 255, 255, 0.32)");
+          ctx.fillStyle = gradient;
+          ctx.fillRect(paddle.x, paddle.y, PADDLE_W, PADDLE_H);
+
+          ctx.fillStyle = "rgba(255, 255, 255, 0.18)";
+          ctx.fillRect(paddle.x + 3, paddle.y + 8, PADDLE_W - 6, PADDLE_H - 16);
+        }
+      }
+
+      function drawBall() {
+        const glow = ctx.createRadialGradient(state.ball.x, state.ball.y, 2, state.ball.x, state.ball.y, 20);
+        glow.addColorStop(0, "#ffffff");
+        glow.addColorStop(0.45, state.magneticFlash > 0.12 ? "#fff07f" : "#b6f0ff");
+        glow.addColorStop(1, "rgba(255, 255, 255, 0)");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(state.ball.x, state.ball.y, 20, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(state.ball.x, state.ball.y, BALL_RADIUS, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function render() {
+        drawCourt();
+        drawTrail();
+        drawPaddles();
+        drawBall();
+      }
+
+      let lastTime = performance.now();
+      function tick(timestamp) {
+        const dt = Math.min(0.02, (timestamp - lastTime) / 1000);
+        lastTime = timestamp;
+        update(dt);
+        render();
+        requestAnimationFrame(tick);
+      }
+
+      window.addEventListener("keydown", (event) => {
+        if (["ArrowUp", "ArrowDown", "Space"].includes(event.code)) {
+          event.preventDefault();
+        }
+        state.keys.add(event.code);
+      });
+
+      window.addEventListener("keyup", (event) => {
+        state.keys.delete(event.code);
+      });
+
+      mode1pButton.addEventListener("click", () => {
+        state.mode = "1p";
+        updateModeButtons();
+        restartGame();
+      });
+
+      mode2pButton.addEventListener("click", () => {
+        state.mode = "2p";
+        updateModeButtons();
+        restartGame();
+      });
+
+      restartButton.addEventListener("click", () => {
+        restartGame();
+      });
+
+      updateModeButtons();
+      restartGame();
+      requestAnimationFrame(tick);
+    })();
+  </script>
+</body>
+</html>
