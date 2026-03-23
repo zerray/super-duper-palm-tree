@@ -126,6 +126,17 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `rhythm-tap/index.html` 即可游玩。
 
+## 节奏色块记忆挑战
+
+新增 `rhythm-memory-grid/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的节奏记忆小游戏，包含：
+
+- 单人追高分与热座双人两种模式
+- 3 个递进难度关卡，逐步提升网格尺寸、图案长度与节拍速度
+- 色块播放、正确点击、错误惩罚均带有明显视觉反馈与 Web Audio API 合成音效
+- 使用 `localStorage` 保存最高分
+
+直接用浏览器打开 `rhythm-memory-grid/index.html` 即可游玩。
+
 ## 节奏切水果
 
 新增 `rhythm-slice/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的音乐驱动切割小游戏，包含：
