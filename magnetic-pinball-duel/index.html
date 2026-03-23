@@ -3,19 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>双人磁力弹珠竞技场</title>
+  <title>磁力弹珠台 - 同屏双人对战</title>
   <style>
     :root {
-      --bg: #08111b;
-      --panel: rgba(7, 17, 28, 0.84);
-      --line: rgba(151, 205, 255, 0.16);
-      --text: #eff7ff;
-      --muted: #9cb3cf;
-      --p1: #69d5ff;
-      --p2: #ff7ba8;
-      --goal: #ffd45f;
-      --good: #97ffc8;
-      --warn: #ffb379;
+      --bg0: #040712;
+      --bg1: #081425;
+      --panel: rgba(8, 18, 32, 0.86);
+      --line: rgba(116, 222, 255, 0.2);
+      --text: #eff6ff;
+      --muted: #8ea4c2;
+      --cyan: #62dcff;
+      --cyan-glow: rgba(98, 220, 255, 0.4);
+      --pink: #ff6eb7;
+      --pink-glow: rgba(255, 110, 183, 0.42);
+      --gold: #ffd15d;
+      --green: #97ffcb;
     }
 
     * {
@@ -28,46 +30,49 @@
       color: var(--text);
       font-family: "Segoe UI", sans-serif;
       background:
-        radial-gradient(circle at top left, rgba(105, 213, 255, 0.14), transparent 24%),
-        radial-gradient(circle at bottom right, rgba(255, 123, 168, 0.14), transparent 28%),
-        linear-gradient(180deg, #0b1624 0%, #04070d 100%);
+        radial-gradient(circle at top, rgba(98, 220, 255, 0.16), transparent 22%),
+        radial-gradient(circle at bottom, rgba(255, 110, 183, 0.14), transparent 24%),
+        linear-gradient(180deg, var(--bg1), var(--bg0));
     }
 
     .app {
-      width: min(1180px, calc(100vw - 24px));
+      width: min(1160px, calc(100vw - 24px));
       margin: 0 auto;
       padding: 16px 0 28px;
     }
 
-    .hero,
-    .hud,
+    .panel,
     .stage {
       border: 1px solid var(--line);
       border-radius: 24px;
       background: var(--panel);
-      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.34);
+      box-shadow: 0 22px 48px rgba(0, 0, 0, 0.34);
       backdrop-filter: blur(10px);
+    }
+
+    .panel {
+      padding: 18px 20px;
+      margin-bottom: 12px;
     }
 
     .hero {
       display: grid;
       grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
       gap: 14px;
-      padding: 18px 20px;
-      margin-bottom: 12px;
+      align-items: start;
     }
 
     .eyebrow,
     .meta {
       font-size: 0.8rem;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
-      letter-spacing: 0.16em;
       color: var(--muted);
     }
 
     h1 {
       margin: 8px 0 10px;
-      font-size: clamp(2rem, 4.8vw, 3.4rem);
+      font-size: clamp(2rem, 4.8vw, 3.3rem);
       line-height: 0.95;
     }
 
@@ -77,52 +82,70 @@
       color: var(--muted);
     }
 
-    .hud {
-      padding: 18px;
-      display: grid;
-      gap: 12px;
-    }
-
-    .score-grid,
-    .control-grid {
+    .hud,
+    .controls {
       display: grid;
       gap: 10px;
     }
 
-    .score-grid {
+    .hud {
       grid-template-columns: repeat(6, minmax(0, 1fr));
+      margin-top: 14px;
     }
 
-    .control-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    .controls {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .card {
+      min-height: 92px;
+      padding: 12px 14px;
       border-radius: 18px;
       border: 1px solid rgba(255, 255, 255, 0.08);
       background: rgba(255, 255, 255, 0.04);
-      padding: 12px 14px;
     }
 
     .card strong {
       display: block;
-      margin-top: 4px;
-      font-size: 1.3rem;
+      margin-top: 6px;
+      font-size: 1.25rem;
       color: var(--text);
     }
 
-    .control-title {
-      display: block;
-      margin-bottom: 6px;
-      font-weight: 700;
+    .controls .card {
+      min-height: 112px;
     }
 
     .p1 {
-      color: var(--p1);
+      color: var(--cyan);
     }
 
     .p2 {
-      color: var(--p2);
+      color: var(--pink);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    button {
+      padding: 11px 18px;
+      border: 0;
+      border-radius: 999px;
+      font: inherit;
+      font-weight: 700;
+      color: #07101c;
+      background: linear-gradient(135deg, var(--green), var(--gold));
+      cursor: pointer;
+    }
+
+    button.secondary {
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.06);
     }
 
     .stage {
@@ -136,9 +159,8 @@
       height: auto;
       border-radius: 18px;
       background:
-        radial-gradient(circle at center, rgba(255, 255, 255, 0.04), transparent 36%),
-        linear-gradient(180deg, #12253c 0%, #07111c 100%);
-      touch-action: none;
+        radial-gradient(circle at center, rgba(255, 255, 255, 0.05), transparent 34%),
+        linear-gradient(180deg, #10203a, #060b12);
     }
 
     .overlay {
@@ -150,14 +172,14 @@
     }
 
     .overlay-card {
-      width: min(470px, calc(100% - 20px));
+      width: min(460px, calc(100% - 20px));
       padding: 24px;
       border-radius: 24px;
-      border: 1px solid rgba(151, 255, 200, 0.24);
-      background: rgba(2, 7, 12, 0.92);
+      border: 1px solid rgba(255, 209, 93, 0.22);
+      background: rgba(2, 7, 14, 0.9);
       text-align: center;
       opacity: 0;
-      transform: translateY(8px);
+      transform: translateY(10px);
       transition: opacity 180ms ease, transform 180ms ease;
       pointer-events: none;
     }
@@ -173,16 +195,8 @@
       font-size: 1.9rem;
     }
 
-    button {
-      margin-top: 18px;
-      padding: 12px 18px;
-      border: 0;
-      border-radius: 999px;
-      font: inherit;
-      font-weight: 700;
-      color: #07111d;
-      background: linear-gradient(135deg, var(--good), var(--goal));
-      cursor: pointer;
+    .overlay-card p {
+      margin-bottom: 16px;
     }
 
     @media (max-width: 920px) {
@@ -190,74 +204,92 @@
         grid-template-columns: 1fr;
       }
 
-      .score-grid {
+      .hud {
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
     }
 
-    @media (max-width: 680px) {
-      .score-grid,
-      .control-grid {
+    @media (max-width: 720px) {
+      .hud,
+      .controls {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .actions {
+        justify-content: flex-start;
       }
     }
   </style>
 </head>
 <body>
   <main class="app">
-    <section class="hero">
-      <div>
-        <div class="eyebrow">Physics Toy</div>
-        <h1>双人磁力弹珠竞技场</h1>
-        <p>同屏双人磁力弹珠对战。两位玩家在圆形竞技场两侧操控发射器，把中央金色目标球推入对手半场的得分区。所有弹珠都会按极性吸引或排斥，轨迹会持续弯曲；每 8 秒刷新一次磁极反转道具，拾取后立即翻转全场极性。</p>
-      </div>
-      <div class="hud">
-        <div class="score-grid">
-          <div class="card">
-            <div class="meta">玩家 1</div>
-            <strong class="p1" id="score-p1">0</strong>
-          </div>
-          <div class="card">
-            <div class="meta">玩家 2</div>
-            <strong class="p2" id="score-p2">0</strong>
-          </div>
-          <div class="card">
-            <div class="meta">目标分数</div>
-            <strong id="target-score">5</strong>
-          </div>
-          <div class="card">
-            <div class="meta">当前状态</div>
-            <strong id="status-label">等待开局</strong>
-          </div>
-          <div class="card">
-            <div class="meta">极性翻转</div>
-            <strong id="powerup-label">8.0s</strong>
-          </div>
-          <div class="card">
-            <div class="meta">回合提示</div>
-            <strong id="round-label">发射金球进对手半场</strong>
-          </div>
+    <section class="panel">
+      <div class="hero">
+        <div>
+          <div class="eyebrow">Physics Toy</div>
+          <h1>磁力弹珠台</h1>
+          <p>同屏双人对战。玩家 1 守下方磁力发射器，玩家 2 守上方磁力发射器；每回合双方各锁定一颗弹珠并同步发射，利用同极相斥、异极相吸把自己的弹珠留在中央高分区，同时把对手弹珠挤出界外。10 回合结束后统一计分，支持单人练习模式。</p>
         </div>
-        <div class="control-grid">
-          <div class="card">
-            <span class="control-title p1">玩家 1</span>
-            <p>A / D 调整角度，W / S 调整力度，空格发射。蓝色弹珠默认从左侧入场，弹珠边缘符号代表当前极性。</p>
-          </div>
-          <div class="card">
-            <span class="control-title p2">玩家 2</span>
-            <p>方向键左右调整角度，方向键上下调整力度，Enter 发射。粉色弹珠从右侧入场，目标是把金球送进左侧得分区。</p>
-          </div>
+        <div class="actions">
+          <button id="start-duel" type="button">开始双人对战</button>
+          <button class="secondary" id="start-practice" type="button">单人练习</button>
+          <button class="secondary" id="restart" type="button">重新开始</button>
+        </div>
+      </div>
+
+      <div class="hud">
+        <div class="card">
+          <div class="meta">模式</div>
+          <strong id="mode-label">未开始</strong>
+        </div>
+        <div class="card">
+          <div class="meta">回合</div>
+          <strong id="round-label">0 / 10</strong>
+        </div>
+        <div class="card">
+          <div class="meta">状态</div>
+          <strong id="status-label">等待开始</strong>
+        </div>
+        <div class="card">
+          <div class="meta">玩家 1</div>
+          <strong class="p1" id="p1-state">待机</strong>
+        </div>
+        <div class="card">
+          <div class="meta">玩家 2</div>
+          <strong class="p2" id="p2-state">待机</strong>
+        </div>
+        <div class="card">
+          <div class="meta">磁力提示</div>
+          <strong id="magnet-label">青色与青色排斥</strong>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="card">
+          <div class="meta p1">玩家 1</div>
+          <strong class="p1">A / D 调整角度，W 锁定发射</strong>
+          <p>下方发射器。青色弹珠为正极，会排斥青色并吸引洋红色。</p>
+        </div>
+        <div class="card">
+          <div class="meta p2">玩家 2</div>
+          <strong class="p2">← / → 调整角度，↑ 锁定发射</strong>
+          <p>上方发射器。洋红色弹珠为负极，会排斥洋红色并吸引青色。</p>
+        </div>
+        <div class="card">
+          <div class="meta">得分区</div>
+          <strong>中心 5 分，中圈 3 分，外圈 1 分</strong>
+          <p>10 回合结束时仅统计仍停留在场内的弹珠，界外弹珠记 0 分。</p>
         </div>
       </div>
     </section>
 
     <section class="stage">
-      <canvas id="game" width="960" height="720" aria-label="双人磁力弹珠竞技场画布"></canvas>
+      <canvas id="game" width="960" height="720" aria-label="磁力弹珠台同屏双人对战画布"></canvas>
       <div class="overlay">
         <div class="overlay-card visible" id="overlay-card">
-          <h2 id="overlay-title">双人磁力弹珠竞技场</h2>
-          <p id="overlay-text">玩家 1 使用 WASD + 空格，玩家 2 使用方向键 + Enter。每次命中金球都可能因为磁力牵引而偏转轨迹，率先拿到 5 分的一方获胜。</p>
-          <button id="restart-button" type="button">开始对局</button>
+          <h2 id="overlay-title">磁力弹珠台 - 同屏双人对战</h2>
+          <p id="overlay-text">每回合双方各发射一颗弹珠。玩家 1 用 A / D + W，玩家 2 用 ← / → + ↑。在单人练习模式下，上方发射器会随机发射。</p>
+          <button id="overlay-button" type="button">开始双人对战</button>
         </div>
       </div>
     </section>
@@ -267,87 +299,81 @@
     const magneticPinballDuel = (() => {
       const canvas = document.querySelector("#game");
       const ctx = canvas.getContext("2d");
+      const startDuelButton = document.querySelector("#start-duel");
+      const startPracticeButton = document.querySelector("#start-practice");
+      const restartButton = document.querySelector("#restart");
       const overlayCard = document.querySelector("#overlay-card");
       const overlayTitle = document.querySelector("#overlay-title");
       const overlayText = document.querySelector("#overlay-text");
-      const restartButton = document.querySelector("#restart-button");
-      const scoreP1Label = document.querySelector("#score-p1");
-      const scoreP2Label = document.querySelector("#score-p2");
-      const statusLabel = document.querySelector("#status-label");
-      const powerupLabel = document.querySelector("#powerup-label");
+      const overlayButton = document.querySelector("#overlay-button");
+      const modeLabel = document.querySelector("#mode-label");
       const roundLabel = document.querySelector("#round-label");
+      const statusLabel = document.querySelector("#status-label");
+      const p1StateLabel = document.querySelector("#p1-state");
+      const p2StateLabel = document.querySelector("#p2-state");
+      const magnetLabel = document.querySelector("#magnet-label");
 
       const WIDTH = canvas.width;
       const HEIGHT = canvas.height;
       const CENTER_X = WIDTH / 2;
       const CENTER_Y = HEIGHT / 2;
-      const ARENA_RADIUS = 272;
-      const MARBLE_RADIUS = 13;
-      const TARGET_RADIUS = 17;
-      const POWERUP_RADIUS = 12;
+      const ARENA_MARGIN = 26;
+      const TOTAL_ROUNDS = 10;
+      const MARBLE_RADIUS = 12;
+      const SHOT_SPEED = 410;
+      const ANGLE_SPEED = 1.85;
+      const LINEAR_DAMPING = 0.992;
       const MAX_DT = 1 / 30;
-      const FRICTION = 0.993;
-      const WALL_BOUNCE = 0.95;
-      const SHOT_COOLDOWN = 0.55;
-      const MAGNET_STRENGTH = 235000;
-      const MAX_MAGNET_FORCE = 760;
-      const GOAL_DEPTH = 66;
-      const GOAL_HALF_HEIGHT = 120;
-      const WIN_SCORE = 5;
-      const POWERUP_INTERVAL = 8000;
-      const RESET_DELAY = 1.5;
-      const TRAIL_LENGTH = 14;
+      const MAGNET_STRENGTH = 175000;
+      const MIN_MAGNET_DISTANCE = 34;
+      const MAX_MAGNET_ACCEL = 420;
+      const SETTLE_SPEED = 18;
+      const SETTLE_TIME = 0.85;
+      const RESOLVE_TIMEOUT = 7.5;
+      const TRAIL_LENGTH = 18;
+      const SCORE_RADII = [74, 140, 220];
+
       const players = {
         p1: {
           id: "p1",
           name: "玩家 1",
-          color: "#69d5ff",
-          plusColor: "#9ce7ff",
-          minusColor: "#157ea8",
-          launcherX: CENTER_X - ARENA_RADIUS + 26,
-          launcherY: CENTER_Y,
-          angle: 0,
-          minAngle: -1.18,
-          maxAngle: 1.18,
-          power: 410,
-          minPower: 260,
-          maxPower: 560
+          color: "#62dcff",
+          glow: "rgba(98, 220, 255, 0.42)",
+          polarity: 1,
+          launcherX: CENTER_X,
+          launcherY: HEIGHT - 78,
+          defaultAngle: -Math.PI / 2,
+          minAngle: -Math.PI / 2 - 0.9,
+          maxAngle: -Math.PI / 2 + 0.9
         },
         p2: {
           id: "p2",
           name: "玩家 2",
-          color: "#ff7ba8",
-          plusColor: "#ffc1d5",
-          minusColor: "#aa2d64",
-          launcherX: CENTER_X + ARENA_RADIUS - 26,
-          launcherY: CENTER_Y,
-          angle: Math.PI,
-          minAngle: Math.PI - 1.18,
-          maxAngle: Math.PI + 1.18,
-          power: 410,
-          minPower: 260,
-          maxPower: 560
+          color: "#ff6eb7",
+          glow: "rgba(255, 110, 183, 0.42)",
+          polarity: -1,
+          launcherX: CENTER_X,
+          launcherY: 78,
+          defaultAngle: Math.PI / 2,
+          minAngle: Math.PI / 2 - 0.9,
+          maxAngle: Math.PI / 2 + 0.9
         }
       };
 
       const state = {
-        running: false,
-        gameOver: false,
-        lastTime: 0,
+        mode: "duel",
+        phase: "idle",
+        round: 0,
         marbles: [],
-        goalBall: null,
-        particles: [],
+        ready: { p1: false, p2: false },
+        queuedShots: { p1: null, p2: null },
+        aimAngles: { p1: players.p1.defaultAngle, p2: players.p2.defaultAngle },
         keys: new Set(),
-        score: { p1: 0, p2: 0 },
-        cooldowns: { p1: 0, p2: 0 },
-        nextShotPolarity: { p1: 1, p2: -1 },
-        powerup: null,
-        powerupTimer: POWERUP_INTERVAL,
-        resetTimer: 0,
-        resetMessage: "",
-        flashTimer: 0,
-        flashColor: "#ffffff",
-        winner: ""
+        lastTime: 0,
+        settleClock: 0,
+        resolveClock: 0,
+        finishedScores: null,
+        aiLockAt: 0
       };
 
       function clamp(value, min, max) {
@@ -358,154 +384,201 @@
         overlayCard.classList.toggle("visible", visible);
         overlayTitle.textContent = title;
         overlayText.textContent = text;
-        restartButton.textContent = buttonText;
+        overlayButton.textContent = buttonText;
       }
 
-      function makeGoalBall() {
+      function makeMarble(playerId, angle) {
+        const player = players[playerId];
         return {
-          kind: "goal",
-          x: CENTER_X,
-          y: CENTER_Y,
-          vx: 0,
-          vy: 0,
-          radius: TARGET_RADIUS,
-          mass: 1.6,
-          color: "#ffd45f",
-          polarity: 1,
-          trail: []
+          owner: playerId,
+          x: player.launcherX + Math.cos(angle) * 34,
+          y: player.launcherY + Math.sin(angle) * 34,
+          vx: Math.cos(angle) * SHOT_SPEED,
+          vy: Math.sin(angle) * SHOT_SPEED,
+          radius: MARBLE_RADIUS,
+          polarity: player.polarity,
+          color: player.color,
+          glow: player.glow,
+          trail: [],
+          out: false
         };
       }
 
-      function resetRound(scoredBy = "") {
-        state.marbles = [];
-        state.goalBall = makeGoalBall();
-        state.particles = [];
-        state.powerup = null;
-        state.powerupTimer = POWERUP_INTERVAL;
-        state.cooldowns.p1 = 0;
-        state.cooldowns.p2 = 0;
-        state.nextShotPolarity.p1 = 1;
-        state.nextShotPolarity.p2 = -1;
-        players.p1.angle = 0;
-        players.p2.angle = Math.PI;
-        players.p1.power = 410;
-        players.p2.power = 410;
-        state.resetTimer = 0;
-        state.resetMessage = scoredBy ? `${players[scoredBy].name} 得分` : "";
-        state.flashTimer = scoredBy ? 0.45 : 0;
-        state.flashColor = scoredBy === "p1" ? players.p1.color : players.p2.color;
-      }
-
-      function resetGame() {
-        state.running = true;
-        state.gameOver = false;
-        state.lastTime = 0;
-        state.score.p1 = 0;
-        state.score.p2 = 0;
-        state.winner = "";
-        state.keys.clear();
-        resetRound("");
-        updateHud();
-        setOverlay(false, "", "", "");
-      }
-
-      function spawnParticles(x, y, color, count) {
-        for (let i = 0; i < count; i += 1) {
-          const angle = (Math.PI * 2 * i) / count + Math.random() * 0.35;
-          const speed = 60 + Math.random() * 120;
-          state.particles.push({
-            x,
-            y,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            life: 0.5 + Math.random() * 0.4,
-            maxLife: 0.9,
-            color
-          });
+      function resetAimForRound() {
+        state.ready.p1 = false;
+        state.ready.p2 = false;
+        state.queuedShots.p1 = null;
+        state.queuedShots.p2 = null;
+        state.aimAngles.p1 = players.p1.defaultAngle;
+        state.aimAngles.p2 = players.p2.defaultAngle;
+        state.settleClock = 0;
+        state.resolveClock = 0;
+        if (state.mode === "practice") {
+          state.aiLockAt = performance.now() + 700 + Math.random() * 500;
         }
+      }
+
+      function startGame(mode) {
+        state.mode = mode;
+        state.phase = "aim";
+        state.round = 1;
+        state.marbles = [];
+        state.finishedScores = null;
+        state.lastTime = 0;
+        resetAimForRound();
+        setOverlay(false, "", "", "");
+        updateHud();
+      }
+
+      function queueShot(playerId) {
+        if (state.phase !== "aim" || state.ready[playerId]) {
+          return;
+        }
+        state.ready[playerId] = true;
+        state.queuedShots[playerId] = { angle: state.aimAngles[playerId] };
+        if (state.ready.p1 && state.ready.p2) {
+          fireQueuedShots();
+        }
+        updateHud();
+      }
+
+      function fireQueuedShots() {
+        state.phase = "resolving";
+        state.settleClock = 0;
+        state.resolveClock = 0;
+        state.marbles.push(makeMarble("p1", state.queuedShots.p1.angle));
+        state.marbles.push(makeMarble("p2", state.queuedShots.p2.angle));
+        updateHud();
+      }
+
+      function scoreMarble(marble) {
+        if (marble.out) {
+          return 0;
+        }
+        const distance = Math.hypot(marble.x - CENTER_X, marble.y - CENTER_Y);
+        if (distance <= SCORE_RADII[0]) {
+          return 5;
+        }
+        if (distance <= SCORE_RADII[1]) {
+          return 3;
+        }
+        if (distance <= SCORE_RADII[2]) {
+          return 1;
+        }
+        return 0;
+      }
+
+      function finishGame() {
+        const scores = { p1: 0, p2: 0 };
+        for (const marble of state.marbles) {
+          scores[marble.owner] += scoreMarble(marble);
+        }
+        state.phase = "finished";
+        state.finishedScores = scores;
+        updateHud();
+        const winnerText = scores.p1 === scores.p2
+          ? "平局"
+          : scores.p1 > scores.p2
+            ? "玩家 1 获胜"
+            : "玩家 2 获胜";
+        setOverlay(
+          true,
+          "10 回合结束",
+          `玩家 1：${scores.p1} 分，玩家 2：${scores.p2} 分。${winnerText}。点击下方重新开始双人对战，或用上方按钮切换到单人练习。`,
+          "再来一局"
+        );
+      }
+
+      function advanceRound() {
+        if (state.round >= TOTAL_ROUNDS) {
+          finishGame();
+          return;
+        }
+        state.round += 1;
+        state.phase = "aim";
+        resetAimForRound();
+        updateHud();
       }
 
       function updateHud() {
-        scoreP1Label.textContent = String(state.score.p1);
-        scoreP2Label.textContent = String(state.score.p2);
-        if (state.gameOver) {
-          statusLabel.textContent = `${state.winner} 获胜`;
-        } else if (state.resetTimer > 0) {
-          statusLabel.textContent = "回合重置中";
-        } else if (state.powerup) {
-          statusLabel.textContent = "磁极反转道具已刷新";
+        modeLabel.textContent = state.mode === "practice" ? "单人练习" : "双人对战";
+        roundLabel.textContent = `${state.phase === "idle" ? 0 : state.round} / ${TOTAL_ROUNDS}`;
+        if (state.phase === "idle") {
+          statusLabel.textContent = "等待开始";
+        } else if (state.phase === "aim") {
+          statusLabel.textContent = "双方锁定后同步发射";
+        } else if (state.phase === "resolving") {
+          statusLabel.textContent = "磁力结算中";
         } else {
-          statusLabel.textContent = "对抗中";
+          statusLabel.textContent = "对局结束";
         }
-        powerupLabel.textContent = state.powerup ? "已刷新" : `${(state.powerupTimer / 1000).toFixed(1)}s`;
-        roundLabel.textContent = state.resetMessage || "把金球送进对手半场";
+        p1StateLabel.textContent = state.phase === "finished" && state.finishedScores
+          ? `${state.finishedScores.p1} 分`
+          : state.ready.p1 ? "已锁定" : "瞄准中";
+        p2StateLabel.textContent = state.phase === "finished" && state.finishedScores
+          ? `${state.finishedScores.p2} 分`
+          : state.mode === "practice" && state.phase !== "finished"
+            ? (state.ready.p2 ? "AI 已锁定" : "AI 瞄准中")
+            : state.ready.p2 ? "已锁定" : "瞄准中";
+        magnetLabel.textContent = "同极相斥，异极相吸";
       }
 
-      function createMarble(playerId) {
-        if (!state.running || state.gameOver || state.resetTimer > 0 || state.cooldowns[playerId] > 0) {
+      function handleAimInput(dt) {
+        if (state.phase !== "aim") {
           return;
         }
-        const player = players[playerId];
-        const polarity = state.nextShotPolarity[playerId];
-        const dx = Math.cos(player.angle);
-        const dy = Math.sin(player.angle);
-        const startX = player.launcherX + dx * 26;
-        const startY = player.launcherY + dy * 26;
-        state.marbles.push({
-          kind: "marble",
-          owner: playerId,
-          x: startX,
-          y: startY,
-          vx: dx * player.power,
-          vy: dy * player.power,
-          radius: MARBLE_RADIUS,
-          mass: 1,
-          color: player.color,
-          polarity,
-          trail: []
-        });
-        state.cooldowns[playerId] = SHOT_COOLDOWN;
-        state.nextShotPolarity[playerId] *= -1;
-        spawnParticles(startX, startY, player.color, 12);
-      }
-
-      function keepTrail(body) {
-        body.trail.push({ x: body.x, y: body.y });
-        if (body.trail.length > TRAIL_LENGTH) {
-          body.trail.shift();
+        const p1Delta = (state.keys.has("KeyD") ? 1 : 0) - (state.keys.has("KeyA") ? 1 : 0);
+        if (!state.ready.p1) {
+          state.aimAngles.p1 = clamp(
+            state.aimAngles.p1 + p1Delta * ANGLE_SPEED * dt,
+            players.p1.minAngle,
+            players.p1.maxAngle
+          );
+        }
+        if (state.mode === "duel") {
+          const p2Delta = (state.keys.has("ArrowRight") ? 1 : 0) - (state.keys.has("ArrowLeft") ? 1 : 0);
+          if (!state.ready.p2) {
+            state.aimAngles.p2 = clamp(
+              state.aimAngles.p2 + p2Delta * ANGLE_SPEED * dt,
+              players.p2.minAngle,
+              players.p2.maxAngle
+            );
+          }
+        } else if (!state.ready.p2 && performance.now() >= state.aiLockAt) {
+          state.aimAngles.p2 = players.p2.defaultAngle + (Math.random() - 0.5) * 1.3;
+          queueShot("p2");
         }
       }
 
-      function applyMagneticForce(a, b, dt) {
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
-        const distanceSq = Math.max(dx * dx + dy * dy, 36 * 36);
-        const distance = Math.sqrt(distanceSq);
-        const nx = dx / distance;
-        const ny = dy / distance;
-        const polarityFactor = a.polarity * b.polarity;
-        const force = clamp(MAGNET_STRENGTH / distanceSq, 0, MAX_MAGNET_FORCE);
-        const signedForce = polarityFactor > 0 ? -force : force;
-        const ax = (signedForce * nx) / a.mass;
-        const ay = (signedForce * ny) / a.mass;
-        const bx = (-signedForce * nx) / b.mass;
-        const by = (-signedForce * ny) / b.mass;
-        a.vx += ax * dt;
-        a.vy += ay * dt;
-        b.vx += bx * dt;
-        b.vy += by * dt;
-      }
-
-      function applyMagnetism(dt) {
-        const bodies = [...state.marbles, state.goalBall];
-        for (let i = 0; i < bodies.length; i += 1) {
-          for (let j = i + 1; j < bodies.length; j += 1) {
-            applyMagneticForce(bodies[i], bodies[j], dt);
+      function applyMagneticForces(dt) {
+        for (let i = 0; i < state.marbles.length; i += 1) {
+          const a = state.marbles[i];
+          if (a.out) {
+            continue;
+          }
+          for (let j = i + 1; j < state.marbles.length; j += 1) {
+            const b = state.marbles[j];
+            if (b.out) {
+              continue;
+            }
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const distanceSq = Math.max(dx * dx + dy * dy, MIN_MAGNET_DISTANCE * MIN_MAGNET_DISTANCE);
+            const distance = Math.sqrt(distanceSq);
+            const nx = dx / distance;
+            const ny = dy / distance;
+            const polarityFactor = a.polarity * b.polarity;
+            const signedForce = (-polarityFactor * MAGNET_STRENGTH) / distanceSq;
+            const accel = clamp(signedForce, -MAX_MAGNET_ACCEL, MAX_MAGNET_ACCEL);
+            a.vx -= nx * accel * dt;
+            a.vy -= ny * accel * dt;
+            b.vx += nx * accel * dt;
+            b.vy += ny * accel * dt;
           }
         }
       }
 
-      function resolveCollision(a, b) {
+      function resolveMarbleCollision(a, b) {
         const dx = b.x - a.x;
         const dy = b.y - a.y;
         const distance = Math.hypot(dx, dy) || 0.0001;
@@ -516,468 +589,267 @@
         const nx = dx / distance;
         const ny = dy / distance;
         const overlap = minDistance - distance;
-        const totalMass = a.mass + b.mass;
-        a.x -= nx * overlap * (b.mass / totalMass);
-        a.y -= ny * overlap * (b.mass / totalMass);
-        b.x += nx * overlap * (a.mass / totalMass);
-        b.y += ny * overlap * (a.mass / totalMass);
-
+        a.x -= nx * overlap * 0.5;
+        a.y -= ny * overlap * 0.5;
+        b.x += nx * overlap * 0.5;
+        b.y += ny * overlap * 0.5;
         const rvx = b.vx - a.vx;
         const rvy = b.vy - a.vy;
-        const velocityAlongNormal = rvx * nx + rvy * ny;
-        if (velocityAlongNormal > 0) {
+        const impact = rvx * nx + rvy * ny;
+        if (impact > 0) {
           return;
         }
-        const impulse = -(1 + WALL_BOUNCE) * velocityAlongNormal / ((1 / a.mass) + (1 / b.mass));
-        const ix = impulse * nx;
-        const iy = impulse * ny;
-        a.vx -= ix / a.mass;
-        a.vy -= iy / a.mass;
-        b.vx += ix / b.mass;
-        b.vy += iy / b.mass;
+        const impulse = -(1 + 0.9) * impact * 0.5;
+        a.vx -= impulse * nx;
+        a.vy -= impulse * ny;
+        b.vx += impulse * nx;
+        b.vy += impulse * ny;
       }
 
-      function resolveBodyCollisions() {
-        const bodies = [...state.marbles, state.goalBall];
-        for (let i = 0; i < bodies.length; i += 1) {
-          for (let j = i + 1; j < bodies.length; j += 1) {
-            resolveCollision(bodies[i], bodies[j]);
+      function integrate(dt) {
+        for (const marble of state.marbles) {
+          if (marble.out) {
+            continue;
+          }
+          marble.vx *= LINEAR_DAMPING;
+          marble.vy *= LINEAR_DAMPING;
+          marble.x += marble.vx * dt;
+          marble.y += marble.vy * dt;
+
+          if (marble.x < ARENA_MARGIN || marble.x > WIDTH - ARENA_MARGIN || marble.y < ARENA_MARGIN || marble.y > HEIGHT - ARENA_MARGIN) {
+            marble.out = true;
+            continue;
+          }
+
+          marble.trail.push({ x: marble.x, y: marble.y });
+          if (marble.trail.length > TRAIL_LENGTH) {
+            marble.trail.shift();
+          }
+        }
+
+        for (let i = 0; i < state.marbles.length; i += 1) {
+          for (let j = i + 1; j < state.marbles.length; j += 1) {
+            const a = state.marbles[i];
+            const b = state.marbles[j];
+            if (!a.out && !b.out) {
+              resolveMarbleCollision(a, b);
+            }
           }
         }
       }
 
-      function keepInsideArena(body) {
-        const dx = body.x - CENTER_X;
-        const dy = body.y - CENTER_Y;
-        const distance = Math.hypot(dx, dy) || 0.0001;
-        const maxDistance = ARENA_RADIUS - body.radius;
-        if (distance <= maxDistance) {
+      function updateResolvePhase(dt) {
+        if (state.phase !== "resolving") {
           return;
         }
-        const nx = dx / distance;
-        const ny = dy / distance;
-        body.x = CENTER_X + nx * maxDistance;
-        body.y = CENTER_Y + ny * maxDistance;
-        const velocityDot = body.vx * nx + body.vy * ny;
-        if (velocityDot > 0) {
-          body.vx -= (1 + WALL_BOUNCE) * velocityDot * nx;
-          body.vy -= (1 + WALL_BOUNCE) * velocityDot * ny;
-        }
-      }
+        state.resolveClock += dt;
+        applyMagneticForces(dt);
+        integrate(dt);
 
-      function goalZoneForPlayer(playerId) {
-        if (playerId === "p1") {
-          return {
-            xMin: CENTER_X + ARENA_RADIUS - GOAL_DEPTH,
-            xMax: CENTER_X + ARENA_RADIUS,
-            yMin: CENTER_Y - GOAL_HALF_HEIGHT,
-            yMax: CENTER_Y + GOAL_HALF_HEIGHT
-          };
-        }
-        return {
-          xMin: CENTER_X - ARENA_RADIUS,
-          xMax: CENTER_X - ARENA_RADIUS + GOAL_DEPTH,
-          yMin: CENTER_Y - GOAL_HALF_HEIGHT,
-          yMax: CENTER_Y + GOAL_HALF_HEIGHT
-        };
-      }
-
-      function ballInZone(ball, zone) {
-        return ball.x > zone.xMin && ball.x < zone.xMax && ball.y > zone.yMin && ball.y < zone.yMax;
-      }
-
-      function startRoundReset(scoredBy) {
-        state.score[scoredBy] += 1;
-        state.resetTimer = RESET_DELAY;
-        state.resetMessage = `${players[scoredBy].name} 得分`;
-        state.flashTimer = 0.8;
-        state.flashColor = players[scoredBy].color;
-        spawnParticles(state.goalBall.x, state.goalBall.y, "#ffd45f", 26);
-        updateHud();
-        if (state.score[scoredBy] >= WIN_SCORE) {
-          state.gameOver = true;
-          state.running = false;
-          state.winner = players[scoredBy].name;
-          setOverlay(true, `${state.winner} 获胜`, `最终比分 ${state.score.p1} : ${state.score.p2}。按下开始按钮可重新开局。`, "重新开始");
-        }
-      }
-
-      function checkGoal() {
-        if (state.resetTimer > 0 || state.gameOver) {
-          return;
-        }
-        const p1Zone = goalZoneForPlayer("p1");
-        const p2Zone = goalZoneForPlayer("p2");
-        if (ballInZone(state.goalBall, p1Zone)) {
-          startRoundReset("p1");
-        } else if (ballInZone(state.goalBall, p2Zone)) {
-          startRoundReset("p2");
-        }
-      }
-
-      function spawnPowerup() {
-        let x = CENTER_X;
-        let y = CENTER_Y;
-        for (let attempt = 0; attempt < 24; attempt += 1) {
-          const angle = Math.random() * Math.PI * 2;
-          const radius = Math.random() * (ARENA_RADIUS - 86);
-          x = CENTER_X + Math.cos(angle) * radius;
-          y = CENTER_Y + Math.sin(angle) * radius;
-          if (Math.hypot(x - CENTER_X, y - CENTER_Y) < ARENA_RADIUS - 90) {
+        let moving = false;
+        for (const marble of state.marbles) {
+          if (!marble.out && Math.hypot(marble.vx, marble.vy) > SETTLE_SPEED) {
+            moving = true;
             break;
           }
         }
-        state.powerup = { x, y, radius: POWERUP_RADIUS };
-      }
-
-      function reverseAllPolarities() {
-        for (const marble of state.marbles) {
-          marble.polarity *= -1;
+        if (moving) {
+          state.settleClock = 0;
+        } else {
+          state.settleClock += dt;
         }
-        state.goalBall.polarity *= -1;
-        state.powerup = null;
-        state.powerupTimer = POWERUP_INTERVAL;
-        state.flashTimer = 0.55;
-        state.flashColor = "#97ffc8";
-        state.resetMessage = "全场磁极反转";
-        spawnParticles(state.goalBall.x, state.goalBall.y, "#97ffc8", 18);
-      }
-
-      function collectPowerup() {
-        if (!state.powerup) {
-          return;
-        }
-        const bodies = [...state.marbles, state.goalBall];
-        for (const body of bodies) {
-          const distance = Math.hypot(body.x - state.powerup.x, body.y - state.powerup.y);
-          if (distance < body.radius + state.powerup.radius) {
-            reverseAllPolarities();
-            return;
-          }
+        if (state.settleClock >= SETTLE_TIME || state.resolveClock >= RESOLVE_TIMEOUT) {
+          advanceRound();
         }
       }
 
-      function updatePlayers(dt) {
-        const aimStep = 1.9 * dt;
-        const powerStep = 180 * dt;
-        if (state.keys.has("KeyA")) {
-          players.p1.angle -= aimStep;
-        }
-        if (state.keys.has("KeyD")) {
-          players.p1.angle += aimStep;
-        }
-        if (state.keys.has("KeyW")) {
-          players.p1.power += powerStep;
-        }
-        if (state.keys.has("KeyS")) {
-          players.p1.power -= powerStep;
-        }
-        if (state.keys.has("ArrowLeft")) {
-          players.p2.angle -= aimStep;
-        }
-        if (state.keys.has("ArrowRight")) {
-          players.p2.angle += aimStep;
-        }
-        if (state.keys.has("ArrowUp")) {
-          players.p2.power += powerStep;
-        }
-        if (state.keys.has("ArrowDown")) {
-          players.p2.power -= powerStep;
-        }
-        players.p1.angle = clamp(players.p1.angle, players.p1.minAngle, players.p1.maxAngle);
-        players.p2.angle = clamp(players.p2.angle, players.p2.minAngle, players.p2.maxAngle);
-        players.p1.power = clamp(players.p1.power, players.p1.minPower, players.p1.maxPower);
-        players.p2.power = clamp(players.p2.power, players.p2.minPower, players.p2.maxPower);
-      }
-
-      function updateBodies(dt) {
-        applyMagnetism(dt);
-        const bodies = [...state.marbles, state.goalBall];
-        for (const body of bodies) {
-          body.vx *= FRICTION;
-          body.vy *= FRICTION;
-          body.x += body.vx * dt;
-          body.y += body.vy * dt;
-          keepInsideArena(body);
-          keepTrail(body);
-        }
-        resolveBodyCollisions();
-      }
-
-      function updateParticles(dt) {
-        for (let i = state.particles.length - 1; i >= 0; i -= 1) {
-          const particle = state.particles[i];
-          particle.life -= dt;
-          if (particle.life <= 0) {
-            state.particles.splice(i, 1);
-            continue;
-          }
-          particle.x += particle.vx * dt;
-          particle.y += particle.vy * dt;
-          particle.vx *= 0.96;
-          particle.vy *= 0.96;
-        }
-      }
-
-      function update(dt) {
-        if (!state.running && !state.gameOver) {
-          updateHud();
-          return;
-        }
-
-        updatePlayers(dt);
-        state.cooldowns.p1 = Math.max(0, state.cooldowns.p1 - dt);
-        state.cooldowns.p2 = Math.max(0, state.cooldowns.p2 - dt);
-
-        if (!state.gameOver) {
-          if (state.resetTimer > 0) {
-            state.resetTimer = Math.max(0, state.resetTimer - dt);
-            if (state.resetTimer === 0 && state.running) {
-              resetRound("");
-            }
-          } else {
-            state.powerupTimer -= dt * 1000;
-            if (state.powerupTimer <= 0 && !state.powerup) {
-              spawnPowerup();
-            }
-            updateBodies(dt);
-            collectPowerup();
-            checkGoal();
-          }
-        }
-
-        if (state.flashTimer > 0) {
-          state.flashTimer = Math.max(0, state.flashTimer - dt);
-        }
-        updateParticles(dt);
-        updateHud();
-      }
-
-      function drawTrail(body) {
-        if (body.trail.length < 2) {
-          return;
-        }
-        ctx.save();
-        for (let i = 1; i < body.trail.length; i += 1) {
-          const alpha = i / body.trail.length;
-          ctx.strokeStyle = `${body.kind === "goal" ? "rgba(255, 212, 95," : "rgba(164, 215, 255,"}${(alpha * 0.16).toFixed(3)})`;
-          if (body.owner === "p2") {
-            ctx.strokeStyle = `rgba(255, 140, 184, ${(alpha * 0.16).toFixed(3)})`;
-          }
-          ctx.lineWidth = Math.max(1, body.radius * alpha * 0.55);
+      function drawScoringRings() {
+        const rings = [
+          { radius: SCORE_RADII[2], color: "rgba(255, 209, 93, 0.1)", label: "1" },
+          { radius: SCORE_RADII[1], color: "rgba(255, 209, 93, 0.16)", label: "3" },
+          { radius: SCORE_RADII[0], color: "rgba(255, 209, 93, 0.22)", label: "5" }
+        ];
+        for (const ring of rings) {
           ctx.beginPath();
-          ctx.moveTo(body.trail[i - 1].x, body.trail[i - 1].y);
-          ctx.lineTo(body.trail[i].x, body.trail[i].y);
+          ctx.arc(CENTER_X, CENTER_Y, ring.radius, 0, Math.PI * 2);
+          ctx.fillStyle = ring.color;
+          ctx.fill();
+          ctx.strokeStyle = "rgba(255, 209, 93, 0.26)";
+          ctx.lineWidth = 1.2;
           ctx.stroke();
         }
-        ctx.restore();
+        ctx.fillStyle = "rgba(255,255,255,0.7)";
+        ctx.font = "bold 20px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.fillText("5", CENTER_X, CENTER_Y + 7);
+        ctx.fillText("3", CENTER_X, CENTER_Y - SCORE_RADII[0] - 8);
+        ctx.fillText("1", CENTER_X, CENTER_Y - SCORE_RADII[1] - 8);
       }
 
-      function drawArena() {
-        ctx.clearRect(0, 0, WIDTH, HEIGHT);
+      function drawLauncher(playerId) {
+        const player = players[playerId];
+        const angle = state.aimAngles[playerId];
+        const ready = state.ready[playerId];
+        const length = 54;
+        const tipX = player.launcherX + Math.cos(angle) * length;
+        const tipY = player.launcherY + Math.sin(angle) * length;
+
         ctx.save();
-        ctx.translate(CENTER_X, CENTER_Y);
-
-        const outerGlow = ctx.createRadialGradient(0, 0, ARENA_RADIUS * 0.18, 0, 0, ARENA_RADIUS * 1.08);
-        outerGlow.addColorStop(0, "rgba(38, 93, 149, 0.26)");
-        outerGlow.addColorStop(1, "rgba(8, 17, 28, 0)");
-        ctx.fillStyle = outerGlow;
-        ctx.beginPath();
-        ctx.arc(0, 0, ARENA_RADIUS * 1.08, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.strokeStyle = "rgba(194, 225, 255, 0.18)";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(0, 0, ARENA_RADIUS, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
-        ctx.setLineDash([10, 12]);
-        ctx.beginPath();
-        ctx.moveTo(0, -ARENA_RADIUS + 32);
-        ctx.lineTo(0, ARENA_RADIUS - 32);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        ctx.fillStyle = "rgba(255, 212, 95, 0.12)";
-        ctx.fillRect(ARENA_RADIUS - GOAL_DEPTH, -GOAL_HALF_HEIGHT, GOAL_DEPTH, GOAL_HALF_HEIGHT * 2);
-        ctx.fillRect(-ARENA_RADIUS, -GOAL_HALF_HEIGHT, GOAL_DEPTH, GOAL_HALF_HEIGHT * 2);
-        ctx.restore();
-      }
-
-      function drawLauncher(player) {
-        const tipX = player.launcherX + Math.cos(player.angle) * 36;
-        const tipY = player.launcherY + Math.sin(player.angle) * 36;
-        ctx.save();
-        ctx.strokeStyle = player.color;
-        ctx.lineWidth = 6;
+        ctx.lineWidth = 8;
         ctx.lineCap = "round";
+        ctx.strokeStyle = player.color;
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = player.color;
         ctx.beginPath();
         ctx.moveTo(player.launcherX, player.launcherY);
         ctx.lineTo(tipX, tipY);
         ctx.stroke();
-
-        ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = ready ? "#ffffff" : player.color;
         ctx.beginPath();
-        ctx.arc(player.launcherX, player.launcherY, 18, 0, Math.PI * 2);
+        ctx.arc(player.launcherX, player.launcherY, 12, 0, Math.PI * 2);
         ctx.fill();
-
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(player.launcherX, player.launcherY, 22, player.minAngle, player.maxAngle);
-        ctx.stroke();
-
-        const meterWidth = 70;
-        const fill = (player.power - player.minPower) / (player.maxPower - player.minPower);
-        const meterX = player.id === "p1" ? player.launcherX - 34 : player.launcherX - 36;
-        const meterY = player.launcherY + 34;
-        ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
-        ctx.fillRect(meterX, meterY, meterWidth, 8);
-        ctx.fillStyle = player.color;
-        ctx.fillRect(meterX, meterY, meterWidth * fill, 8);
         ctx.restore();
       }
 
-      function drawPolarity(body) {
-        ctx.save();
-        ctx.fillStyle = "rgba(2, 7, 12, 0.74)";
-        ctx.font = `${Math.floor(body.radius * 1.15)}px Segoe UI`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(body.polarity > 0 ? "+" : "-", body.x, body.y + 1);
-        ctx.restore();
-      }
-
-      function drawBody(body) {
-        drawTrail(body);
-        ctx.save();
-        const gradient = ctx.createRadialGradient(body.x - body.radius * 0.35, body.y - body.radius * 0.35, body.radius * 0.2, body.x, body.y, body.radius);
-        if (body.kind === "goal") {
-          gradient.addColorStop(0, "#fff0a8");
-          gradient.addColorStop(1, "#d79d18");
-        } else if (body.owner === "p1") {
-          gradient.addColorStop(0, body.polarity > 0 ? players.p1.plusColor : players.p1.color);
-          gradient.addColorStop(1, body.polarity > 0 ? players.p1.color : players.p1.minusColor);
-        } else {
-          gradient.addColorStop(0, body.polarity > 0 ? players.p2.plusColor : players.p2.color);
-          gradient.addColorStop(1, body.polarity > 0 ? players.p2.color : players.p2.minusColor);
+      function drawFieldLines() {
+        for (let i = 0; i < state.marbles.length; i += 1) {
+          const a = state.marbles[i];
+          if (a.out) {
+            continue;
+          }
+          for (let j = i + 1; j < state.marbles.length; j += 1) {
+            const b = state.marbles[j];
+            if (b.out) {
+              continue;
+            }
+            const distance = Math.hypot(b.x - a.x, b.y - a.y);
+            if (distance > 220) {
+              continue;
+            }
+            const alpha = (1 - distance / 220) * 0.35;
+            ctx.save();
+            ctx.globalCompositeOperation = "lighter";
+            ctx.strokeStyle = a.polarity === b.polarity ? "rgba(255,255,255,0.14)" : "rgba(255,209,93,0.2)";
+            ctx.lineWidth = 1 + alpha * 3;
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.quadraticCurveTo((a.x + b.x) * 0.5, (a.y + b.y) * 0.5 + Math.sin(distance * 0.05) * 12, b.x, b.y);
+            ctx.stroke();
+            ctx.restore();
+          }
         }
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(body.x, body.y, body.radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.22)";
-        ctx.lineWidth = 1.2;
-        ctx.stroke();
-        drawPolarity(body);
-        ctx.restore();
       }
 
-      function drawPowerup() {
-        if (!state.powerup) {
+      function drawMarble(marble) {
+        if (marble.out) {
           return;
         }
-        const pulse = 1 + Math.sin(performance.now() / 180) * 0.12;
         ctx.save();
-        ctx.translate(state.powerup.x, state.powerup.y);
-        ctx.rotate(performance.now() / 900);
-        ctx.strokeStyle = "rgba(151, 255, 200, 0.88)";
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(0, 0, state.powerup.radius * pulse, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(-8, 0);
-        ctx.lineTo(8, 0);
-        ctx.moveTo(0, -8);
-        ctx.lineTo(0, 8);
-        ctx.stroke();
-        ctx.restore();
-      }
-
-      function drawParticles() {
-        for (const particle of state.particles) {
-          ctx.save();
-          ctx.globalAlpha = particle.life / particle.maxLife;
-          ctx.fillStyle = particle.color;
+        ctx.globalCompositeOperation = "lighter";
+        for (let i = 0; i < marble.trail.length; i += 1) {
+          const point = marble.trail[i];
+          const alpha = (i + 1) / marble.trail.length;
+          ctx.fillStyle = marble.owner === "p1"
+            ? `rgba(98, 220, 255, ${alpha * 0.12})`
+            : `rgba(255, 110, 183, ${alpha * 0.12})`;
           ctx.beginPath();
-          ctx.arc(particle.x, particle.y, 2.4, 0, Math.PI * 2);
+          ctx.arc(point.x, point.y, marble.radius * alpha * 0.85, 0, Math.PI * 2);
           ctx.fill();
-          ctx.restore();
         }
-      }
-
-      function drawResetBanner() {
-        if (!state.resetMessage && state.flashTimer <= 0) {
-          return;
-        }
-        const alpha = Math.max(state.flashTimer * 1.2, state.resetTimer > 0 ? 0.82 : 0);
-        if (alpha <= 0) {
-          return;
-        }
-        ctx.save();
-        ctx.globalAlpha = clamp(alpha, 0, 0.82);
-        ctx.fillStyle = "rgba(2, 7, 12, 0.64)";
-        ctx.fillRect(0, HEIGHT / 2 - 38, WIDTH, 76);
-        ctx.fillStyle = state.flashColor;
-        ctx.font = "700 30px Segoe UI";
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = marble.color;
+        ctx.fillStyle = marble.color;
+        ctx.beginPath();
+        ctx.arc(marble.x, marble.y, marble.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "rgba(255,255,255,0.65)";
+        ctx.stroke();
+        ctx.fillStyle = "rgba(3,8,18,0.9)";
+        ctx.font = "bold 14px Segoe UI";
         ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(state.resetMessage || "回合重置", WIDTH / 2, HEIGHT / 2);
+        ctx.fillText(marble.polarity > 0 ? "+" : "-", marble.x, marble.y + 5);
         ctx.restore();
       }
 
       function render() {
-        drawArena();
-        drawLauncher(players.p1);
-        drawLauncher(players.p2);
-        drawPowerup();
-        drawBody(state.goalBall);
+        ctx.fillStyle = "rgba(4, 8, 18, 0.22)";
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+        ctx.save();
+        ctx.strokeStyle = "rgba(116, 222, 255, 0.12)";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(ARENA_MARGIN, ARENA_MARGIN, WIDTH - ARENA_MARGIN * 2, HEIGHT - ARENA_MARGIN * 2);
+        ctx.beginPath();
+        ctx.moveTo(ARENA_MARGIN, CENTER_Y);
+        ctx.lineTo(WIDTH - ARENA_MARGIN, CENTER_Y);
+        ctx.stroke();
+        ctx.restore();
+
+        drawScoringRings();
+        drawFieldLines();
+
         for (const marble of state.marbles) {
-          drawBody(marble);
+          drawMarble(marble);
         }
-        drawParticles();
-        drawResetBanner();
+
+        if (state.phase === "aim") {
+          drawLauncher("p1");
+          drawLauncher("p2");
+        }
+
+        ctx.save();
+        ctx.fillStyle = "rgba(255,255,255,0.76)";
+        ctx.font = "14px Segoe UI";
+        ctx.textAlign = "left";
+        ctx.fillText("玩家 2 发射器", 28, 36);
+        ctx.fillText("玩家 1 发射器", 28, HEIGHT - 22);
+        ctx.restore();
       }
 
-      function tick(timestamp) {
-        if (!state.lastTime) {
-          state.lastTime = timestamp;
-        }
-        const dt = Math.min(MAX_DT, (timestamp - state.lastTime) / 1000);
+      function frame(timestamp) {
+        const dt = Math.min((timestamp - state.lastTime) / 1000 || 0, MAX_DT);
         state.lastTime = timestamp;
-        update(dt);
+        handleAimInput(dt);
+        updateResolvePhase(dt);
         render();
-        requestAnimationFrame(tick);
+        requestAnimationFrame(frame);
       }
 
-      function onKeyDown(event) {
-        if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.code) || ["KeyW", "KeyA", "KeyS", "KeyD", "Enter"].includes(event.code)) {
+      window.addEventListener("keydown", (event) => {
+        if (["Space", "ArrowUp", "ArrowLeft", "ArrowRight"].includes(event.code)) {
           event.preventDefault();
         }
         state.keys.add(event.code);
-        if (event.code === "Space") {
-          createMarble("p1");
+        if (event.repeat) {
+          return;
         }
-        if (event.code === "Enter") {
-          createMarble("p2");
+        if (event.code === "KeyW") {
+          queueShot("p1");
         }
-      }
+        if (state.mode === "duel" && event.code === "ArrowUp") {
+          queueShot("p2");
+        }
+      });
 
-      function onKeyUp(event) {
+      window.addEventListener("keyup", (event) => {
         state.keys.delete(event.code);
-      }
+      });
 
-      restartButton.addEventListener("click", resetGame);
-      window.addEventListener("keydown", onKeyDown);
-      window.addEventListener("keyup", onKeyUp);
+      startDuelButton.addEventListener("click", () => startGame("duel"));
+      startPracticeButton.addEventListener("click", () => startGame("practice"));
+      restartButton.addEventListener("click", () => startGame(state.mode));
+      overlayButton.addEventListener("click", () => startGame("duel"));
 
-      resetRound("");
-      updateHud();
+      ctx.fillStyle = "#040812";
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
       render();
-      requestAnimationFrame(tick);
+      requestAnimationFrame(frame);
+
+      return {
+        startGame
+      };
     })();
   </script>
 </body>
