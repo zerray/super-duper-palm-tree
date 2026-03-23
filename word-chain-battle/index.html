@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>词语接龙擂台</title>
+  <style>
+    :root {
+      --bg: #fff7ef;
+      --panel: rgba(255, 251, 246, 0.88);
+      --panel-strong: #fffdf9;
+      --ink: #241718;
+      --muted: #725d5e;
+      --line: rgba(97, 60, 50, 0.14);
+      --p1: #e06742;
+      --p2: #2c6cbf;
+      --accent: #f2a53b;
+      --good: #2c9c6a;
+      --danger: #c04e4e;
+      --shadow: 0 24px 60px rgba(88, 54, 45, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.82), transparent 28%),
+        radial-gradient(circle at 85% 12%, rgba(242, 165, 59, 0.22), transparent 20%),
+        linear-gradient(180deg, #f7e8d8 0%, #fff7ef 45%, #f5eee9 100%);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(1180px, calc(100vw - 28px));
+      margin: 0 auto;
+      padding: 22px 0 30px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 26px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -40px;
+      top: -36px;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(224, 103, 66, 0.18), transparent 68%);
+      pointer-events: none;
+    }
+
+    .eyebrow,
+    .rule-list,
+    .small-label {
+      color: var(--muted);
+    }
+
+    .eyebrow {
+      margin: 0;
+      font-size: 0.82rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      max-width: 10ch;
+      font-size: clamp(2.9rem, 6vw, 5.2rem);
+      line-height: 0.9;
+      letter-spacing: -0.07em;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .lede,
+    .mode-note,
+    .status-message,
+    .summary-copy,
+    .chain-meta {
+      line-height: 1.6;
+      color: var(--muted);
+    }
+
+    .menu-card,
+    .scoreboard,
+    .input-card,
+    .chain-card,
+    .result-card {
+      padding: 18px;
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      background: var(--panel-strong);
+    }
+
+    .menu-card {
+      display: grid;
+      gap: 14px;
+    }
+
+    .mode-grid,
+    .lang-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .choice {
+      min-height: 64px;
+      padding: 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(97, 60, 50, 0.18);
+      background: #fff7ef;
+      text-align: left;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    .choice strong {
+      display: block;
+      font-size: 1rem;
+      margin-bottom: 5px;
+    }
+
+    .choice.active {
+      transform: translateY(-1px);
+      border-color: rgba(224, 103, 66, 0.5);
+      background: linear-gradient(180deg, rgba(255, 239, 222, 0.95), rgba(255, 249, 241, 0.98));
+    }
+
+    .primary {
+      min-height: 50px;
+      border: 0;
+      border-radius: 999px;
+      color: #fff9f5;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--p1), var(--accent));
+    }
+
+    .secondary {
+      min-height: 44px;
+      border-radius: 999px;
+      border: 1px solid rgba(97, 60, 50, 0.16);
+      background: #fff7ef;
+      color: var(--ink);
+    }
+
+    .rule-list {
+      display: grid;
+      gap: 8px;
+      padding-left: 18px;
+      margin: 0;
+    }
+
+    .play-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) minmax(340px, 1.05fr);
+      gap: 16px;
+    }
+
+    .scoreboard {
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stat {
+      padding: 14px;
+      border-radius: 20px;
+      background: rgba(246, 237, 230, 0.9);
+      border: 1px solid rgba(97, 60, 50, 0.1);
+    }
+
+    .stat .small-label {
+      display: block;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+    }
+
+    .stat strong {
+      font-size: 1.5rem;
+    }
+
+    .player-banner {
+      padding: 16px;
+      border-radius: 22px;
+      color: #fffdf9;
+      background: linear-gradient(135deg, var(--banner-start), var(--banner-end));
+    }
+
+    .player-banner.player-1 {
+      --banner-start: #d65a35;
+      --banner-end: #f1a33a;
+    }
+
+    .player-banner.player-2 {
+      --banner-start: #2557a4;
+      --banner-end: #4aa7d4;
+    }
+
+    .timer-bar {
+      height: 12px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(36, 23, 24, 0.08);
+    }
+
+    .timer-fill {
+      width: 100%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--good), var(--accent), var(--danger));
+      transform-origin: left center;
+      transition: transform 120ms linear;
+    }
+
+    .current-word {
+      min-height: 116px;
+      display: grid;
+      align-items: center;
+      padding: 18px;
+      border-radius: 24px;
+      background:
+        radial-gradient(circle at 20% 18%, rgba(224, 103, 66, 0.14), transparent 28%),
+        radial-gradient(circle at 85% 22%, rgba(44, 108, 191, 0.14), transparent 26%),
+        #fffaf4;
+      border: 1px solid rgba(97, 60, 50, 0.12);
+    }
+
+    #current-word {
+      font-size: clamp(2.4rem, 6vw, 4.8rem);
+      line-height: 0.92;
+      letter-spacing: -0.06em;
+      word-break: break-word;
+    }
+
+    .input-card {
+      display: grid;
+      gap: 12px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .input-row input {
+      flex: 1;
+      min-width: 0;
+      min-height: 50px;
+      padding: 0 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(97, 60, 50, 0.18);
+      background: #fff;
+    }
+
+    .status-message {
+      min-height: 24px;
+      font-size: 0.95rem;
+    }
+
+    .status-message.error {
+      color: var(--danger);
+    }
+
+    .status-message.success {
+      color: var(--good);
+    }
+
+    .chain-card {
+      display: grid;
+      gap: 12px;
+    }
+
+    .chain-stage {
+      position: relative;
+      min-height: 420px;
+      overflow: auto;
+      border-radius: 24px;
+      border: 1px solid rgba(97, 60, 50, 0.12);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(250, 241, 234, 0.94)),
+        repeating-linear-gradient(90deg, transparent 0 72px, rgba(97, 60, 50, 0.03) 72px 73px);
+    }
+
+    .chain-inner {
+      position: relative;
+      min-height: 100%;
+      padding: 40px 24px 56px;
+    }
+
+    .chain-token {
+      position: absolute;
+      left: calc(50% + var(--x));
+      top: var(--y);
+      transform: translate(-50%, -50%) rotate(var(--r)) scale(var(--s));
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: clamp(1.1rem, 2.5vw, 1.9rem);
+      font-weight: 700;
+      white-space: nowrap;
+      box-shadow: 0 12px 24px rgba(66, 39, 34, 0.1);
+      border: 1px solid rgba(97, 60, 50, 0.12);
+      animation: pop-in 320ms ease;
+    }
+
+    .chain-token.player-1 {
+      color: #7f2f19;
+      background: rgba(245, 164, 106, 0.94);
+    }
+
+    .chain-token.player-2 {
+      color: #153660;
+      background: rgba(134, 188, 255, 0.94);
+    }
+
+    .result-card {
+      display: none;
+      gap: 12px;
+    }
+
+    .result-card.visible {
+      display: grid;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .summary-grid .stat strong {
+      font-size: 1.25rem;
+    }
+
+    .chain-review {
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: #fff7ef;
+      border: 1px solid rgba(97, 60, 50, 0.12);
+      line-height: 1.7;
+      word-break: break-word;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @keyframes pop-in {
+      from {
+        opacity: 0;
+        transform: translate(-50%, -50%) rotate(var(--r)) scale(0.65);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, -50%) rotate(var(--r)) scale(var(--s));
+      }
+    }
+
+    @media (max-width: 860px) {
+      .hero-grid,
+      .play-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .summary-grid,
+      .stats {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .app {
+        width: min(100vw - 16px, 1180px);
+        padding-top: 10px;
+      }
+
+      .hero {
+        padding: 20px;
+      }
+
+      .mode-grid,
+      .lang-grid,
+      .summary-grid,
+      .stats,
+      .input-row {
+        grid-template-columns: 1fr;
+        display: grid;
+      }
+
+      .input-row {
+        gap: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel hero">
+      <p class="eyebrow">Party Toy</p>
+      <div class="hero-grid">
+        <div>
+          <h1>词语接龙擂台</h1>
+          <p class="lede">两名玩家在同一台设备上轮流出词，首尾相接，时间一轮比一轮更短。切到单人模式后，本地 AI 会从内置中英文词库里迅速找出合法回应。</p>
+        </div>
+        <div class="menu-card">
+          <div>
+            <h2>开局设置</h2>
+            <p class="mode-note">英文按首尾字母匹配，中文按尾字接首字。重复词、非法词或超时都会直接判负。</p>
+          </div>
+          <div>
+            <p class="small-label">模式</p>
+            <div class="mode-grid">
+              <button class="choice active" id="mode-hotseat" type="button">
+                <strong>热座双人</strong>
+                同屏轮流输入
+              </button>
+              <button class="choice" id="mode-ai" type="button">
+                <strong>单人 vs AI</strong>
+                本地词库应战
+              </button>
+            </div>
+          </div>
+          <div>
+            <p class="small-label">语言</p>
+            <div class="lang-grid">
+              <button class="choice active" id="lang-zh" type="button">
+                <strong>中文</strong>
+                尾字接首字
+              </button>
+              <button class="choice" id="lang-en" type="button">
+                <strong>English</strong>
+                Last letter to first
+              </button>
+            </div>
+          </div>
+          <button class="primary" id="start-button" type="button">开始新对局</button>
+          <ul class="rule-list">
+            <li>基础时间 10 秒，每轮减少 0.5 秒，最低 3 秒。</li>
+            <li>首回合可输入任意内置词，后续必须接上前一词结尾。</li>
+            <li>AI 无合法词时会认输，你立即获胜。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="play-grid">
+      <div class="panel scoreboard">
+        <div class="player-banner player-1" id="player-banner">
+          <p class="small-label">当前行动方</p>
+          <h2 id="turn-title">等待开局</h2>
+          <p id="turn-copy">选择模式与语言后开始。</p>
+        </div>
+        <div class="stats">
+          <div class="stat">
+            <span class="small-label">倒计时</span>
+            <strong id="timer-text">10.0s</strong>
+          </div>
+          <div class="stat">
+            <span class="small-label">回合</span>
+            <strong id="round-text">0</strong>
+          </div>
+          <div class="stat">
+            <span class="small-label">词链长度</span>
+            <strong id="chain-length">0</strong>
+          </div>
+          <div class="stat">
+            <span class="small-label">模式</span>
+            <strong id="mode-text">热座双人</strong>
+          </div>
+        </div>
+        <div>
+          <div class="timer-bar" aria-label="round timer">
+            <div class="timer-fill" id="timer-fill"></div>
+          </div>
+        </div>
+        <div class="current-word">
+          <div>
+            <p class="small-label">当前接龙词</p>
+            <h3 id="current-word">未开始</h3>
+          </div>
+        </div>
+        <div class="input-card">
+          <p class="small-label">输入区</p>
+          <div class="input-row">
+            <input id="word-input" type="text" autocomplete="off" spellcheck="false" placeholder="先开始一局再输入词语">
+            <button class="primary" id="submit-button" type="button">提交</button>
+          </div>
+          <p class="status-message" id="status-message">支持回车提交。中文模式示例：天空 -> 空气；英文模式示例：apple -> echo。</p>
+          <button class="secondary" id="restart-button" type="button">重新开始当前设置</button>
+        </div>
+        <div class="result-card" id="result-card">
+          <div>
+            <p class="small-label">对局结束</p>
+            <h2 id="result-title">胜负已定</h2>
+            <p class="summary-copy" id="result-copy"></p>
+          </div>
+          <div class="summary-grid">
+            <div class="stat">
+              <span class="small-label">获胜方</span>
+              <strong id="winner-text">-</strong>
+            </div>
+            <div class="stat">
+              <span class="small-label">总长度</span>
+              <strong id="final-length">0</strong>
+            </div>
+            <div class="stat">
+              <span class="small-label">终局原因</span>
+              <strong id="reason-text">-</strong>
+            </div>
+          </div>
+          <div class="chain-review" id="chain-review">词链会显示在这里。</div>
+        </div>
+      </div>
+
+      <div class="panel chain-card">
+        <div>
+          <h2>词语链</h2>
+          <p class="chain-meta">每个词会弹入屏幕，沿着一条蛇形轨迹排列。橙色为玩家 1，蓝色为玩家 2 或 AI。</p>
+        </div>
+        <div class="chain-stage" id="chain-stage">
+          <div class="chain-inner" id="chain-inner"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const englishWords = `
+apple,anchor,angle,artist,atom,amber,animal,arrow,avenue
+echo,ember,engine,elm,earth,energy,eagle,evening,estate
+oasis,orbit,otter,opera,ocean,olive,origin,orange,oval
+nectar,night,novel,nature,needle,native,neon,nickel,napkin
+river,radar,rocket,rain,reason,ribbon,robot,rhythm,radish
+sun,signal,silver,stone,salad,system,summit,school,spark
+kite,kingdom,kernel,kitten,kelp,keeper,knight,kettle,kiwi
+lemon,lantern,legend,lilac,level,letter,lotus,locker,linen
+garden,galaxy,goblin,guitar,golden,glacier,ginger,grove,gentle
+tiger,temple,thunder,travel,tulip,target,topaz,tunnel,tablet
+trail,laser,ladder,raven,nectarine,elmwood,drift,thread,delta
+avalanche,emberglow,whisper,rocketry,yonder,relay,yellow,willow
+window,waterfall,lighthouse,emberstone,emerald,dragon,nebula
+autumn,nomad,dancer,radish,harbor,riddle,engineer,robin,network
+wander,rainbow,walnut,teacup,pillow,windmill,lavender,rose,energy
+yak,koala,ant,tulip,piano,owl,lake,earring,grape,pear
+`.trim().split(/\s*,\s*|\s+/).filter(Boolean);
+
+    const chineseWords = `
+天空 空气 汽车 车站 站台 台灯 灯塔 塔楼 楼梯 梯田 田野 野花 花园 园丁 丁香 香气 气球 球拍 拍手 手套 套路
+路灯 灯光 光年 年轮 轮船 船票 票房 房间 间隔 隔壁 壁画 画家 家园 园林 林海 海风 风景 景色 色彩 彩虹 红豆 豆浆
+浆果 果园 园艺 艺术 术语 语言 言语 语气 气温 温泉 泉水 水滴 滴答 答案 案例 例题 题目 目标 标记 记录 录音 音乐
+乐园 园区 区间 间奏 奏鸣 鸣叫 叫声 声浪 浪花 花束 束带 带路 路标 标语 语法 法则 则天 天真 真心 心跳 跳板 板栗
+栗子 子夜 夜空 空港 港湾 湾区 区域 域名 名片 片段 段落 落叶 叶片 片场 场景 景观 观众 众人 人群 群山 山谷 谷雨
+雨衣 衣袖 袖口 口袋 袋鼠 鼠标 标本 本色 色温 温室 室友 友情 情书 书桌 桌面 面包 包子 子弹 弹幕 幕布 布景 景深
+深海 海浪 浪潮 潮声 声卡 卡片 片语 语录 录影 影子 子集 集市 市集 集合 合作 作曲 曲线 线索 索道 道路 路口 口琴
+琴键 键盘 盘旋 旋律 律动 动画 画笔 笔记 记忆 忆苦 苦茶 茶杯 杯子 子集 集训 训练 练习 习惯 惯例 例外 外套 套装
+装饰 饰品 品茶 茶馆 馆藏 藏书 书页 页面 面孔 孔雀 雀跃 跃动 动力 力量 量表 表达 达人 人海 海岛 岛屿 屿岸 岸边
+边界 界面 面霜 霜雪 雪花 花瓣 瓣膜 膜拜 拜访 访问 问候 候车 车票 票价 价格 格局 局面 面向 向导 导演 演出 出发
+`.trim().split(/\s+/).filter(Boolean);
+
+    const englishSet = new Set(englishWords.map((word) => word.toLowerCase()));
+    const chineseSet = new Set(chineseWords);
+
+    const englishBuckets = buildBuckets(englishWords, "en");
+    const chineseBuckets = buildBuckets(chineseWords, "zh");
+
+    const state = {
+      mode: "hotseat",
+      language: "zh",
+      active: false,
+      chain: [],
+      usedWords: new Set(),
+      currentPlayer: 1,
+      round: 0,
+      roundDuration: 10,
+      timeRemaining: 10,
+      roundStartedAt: 0,
+      aiTimeoutId: 0,
+      rafId: 0
+    };
+
+    const modeLabels = {
+      hotseat: "热座双人",
+      ai: "单人 vs AI"
+    };
+
+    const playerLabels = {
+      1: "玩家 1",
+      2: "玩家 2"
+    };
+
+    const modeButtons = {
+      hotseat: document.querySelector("#mode-hotseat"),
+      ai: document.querySelector("#mode-ai")
+    };
+    const langButtons = {
+      zh: document.querySelector("#lang-zh"),
+      en: document.querySelector("#lang-en")
+    };
+
+    const startButton = document.querySelector("#start-button");
+    const restartButton = document.querySelector("#restart-button");
+    const submitButton = document.querySelector("#submit-button");
+    const input = document.querySelector("#word-input");
+    const playerBanner = document.querySelector("#player-banner");
+    const turnTitle = document.querySelector("#turn-title");
+    const turnCopy = document.querySelector("#turn-copy");
+    const timerText = document.querySelector("#timer-text");
+    const roundText = document.querySelector("#round-text");
+    const chainLengthText = document.querySelector("#chain-length");
+    const modeText = document.querySelector("#mode-text");
+    const currentWordText = document.querySelector("#current-word");
+    const timerFill = document.querySelector("#timer-fill");
+    const statusMessage = document.querySelector("#status-message");
+    const chainInner = document.querySelector("#chain-inner");
+    const chainStage = document.querySelector("#chain-stage");
+    const resultCard = document.querySelector("#result-card");
+    const resultTitle = document.querySelector("#result-title");
+    const resultCopy = document.querySelector("#result-copy");
+    const winnerText = document.querySelector("#winner-text");
+    const finalLength = document.querySelector("#final-length");
+    const reasonText = document.querySelector("#reason-text");
+    const chainReview = document.querySelector("#chain-review");
+
+    function buildBuckets(words, language) {
+      const buckets = new Map();
+      words.forEach((word) => {
+        const key = language === "en" ? word[0].toLowerCase() : word[0];
+        if (!buckets.has(key)) {
+          buckets.set(key, []);
+        }
+        buckets.get(key).push(word);
+      });
+      return buckets;
+    }
+
+    function getChainKey(word, language, position) {
+      if (!word) {
+        return "";
+      }
+      const normalized = language === "en" ? word.toLowerCase().replace(/[^a-z]/g, "") : word.trim();
+      if (!normalized) {
+        return "";
+      }
+      return position === "start" ? normalized[0] : normalized[normalized.length - 1];
+    }
+
+    function normalizeWord(raw) {
+      const trimmed = raw.trim();
+      return state.language === "en" ? trimmed.toLowerCase() : trimmed.replace(/\s+/g, "");
+    }
+
+    function isInDictionary(word) {
+      return state.language === "en" ? englishSet.has(word) : chineseSet.has(word);
+    }
+
+    function chooseAiWord() {
+      const previous = state.chain[state.chain.length - 1];
+      const bucketKey = previous ? getChainKey(previous.word, state.language, "end") : null;
+      const source = state.language === "en" ? englishBuckets : chineseBuckets;
+      const pool = bucketKey ? (source.get(bucketKey) || []) : (state.language === "en" ? englishWords : chineseWords);
+      const candidates = pool.filter((word) => !state.usedWords.has(state.language === "en" ? word.toLowerCase() : word));
+      if (candidates.length === 0) {
+        return null;
+      }
+      const sorted = candidates
+        .map((word) => ({
+          word,
+          score: word.length + Math.random() * 0.5
+        }))
+        .sort((a, b) => b.score - a.score);
+      return sorted[0].word;
+    }
+
+    function getPlayerName(player) {
+      if (player === 2 && state.mode === "ai") {
+        return "AI";
+      }
+      return playerLabels[player];
+    }
+
+    function setActiveChoice(group, value) {
+      Object.entries(group).forEach(([key, button]) => {
+        button.classList.toggle("active", key === value);
+      });
+    }
+
+    function setStatus(message, type = "") {
+      statusMessage.textContent = message;
+      statusMessage.className = `status-message${type ? ` ${type}` : ""}`;
+    }
+
+    function handleSettingChange() {
+      updateUi();
+      if (state.active) {
+        setStatus("设置已变更，点击“重新开始当前设置”以应用到新对局。");
+      }
+    }
+
+    function updateUi() {
+      const currentPlayerName = getPlayerName(state.currentPlayer);
+      modeText.textContent = modeLabels[state.mode];
+      roundText.textContent = String(state.round);
+      chainLengthText.textContent = String(state.chain.length);
+      timerText.textContent = `${state.timeRemaining.toFixed(1)}s`;
+      currentWordText.textContent = state.chain.length ? state.chain[state.chain.length - 1].word : "等待首词";
+      turnTitle.textContent = state.active ? `${currentPlayerName} 回合` : "等待开局";
+      turnCopy.textContent = state.active
+        ? `请在 ${state.timeRemaining.toFixed(1)} 秒内输入一个${state.language === "en" ? "英文" : "中文"}词。`
+        : "选择模式与语言后开始。";
+      playerBanner.classList.toggle("player-1", state.currentPlayer === 1);
+      playerBanner.classList.toggle("player-2", state.currentPlayer === 2);
+      const ratio = Math.max(0, Math.min(1, state.timeRemaining / state.roundDuration));
+      timerFill.style.transform = `scaleX(${ratio})`;
+      input.placeholder = state.language === "en" ? "Type a valid English word" : "输入内置中文词语";
+      const disabled = !state.active || (state.mode === "ai" && state.currentPlayer === 2);
+      input.disabled = disabled;
+      submitButton.disabled = disabled;
+    }
+
+    function renderChain() {
+      chainInner.replaceChildren();
+      const height = Math.max(420, 120 + state.chain.length * 74);
+      chainInner.style.height = `${height}px`;
+
+      state.chain.forEach((entry, index) => {
+        const token = document.createElement("span");
+        const lane = index % 2 === 0 ? 1 : -1;
+        const arc = Math.sin(index * 0.68) * 34;
+        const spiral = (index % 6) * 18;
+        token.className = `chain-token player-${entry.player}`;
+        token.textContent = entry.word;
+        token.style.setProperty("--x", `${lane * (80 + (index % 4) * 38)}px`);
+        token.style.setProperty("--y", `${68 + index * 68 + arc + spiral}px`);
+        token.style.setProperty("--r", `${lane * (6 + (index % 5) * 3)}deg`);
+        token.style.setProperty("--s", `${1 + Math.min(index, 6) * 0.03}`);
+        chainInner.append(token);
+      });
+
+      chainStage.scrollTop = chainStage.scrollHeight;
+    }
+
+    function getRoundDuration(roundIndex) {
+      return Math.max(3, 10 - (roundIndex - 1) * 0.5);
+    }
+
+    function startRound(player) {
+      clearTimeout(state.aiTimeoutId);
+      state.currentPlayer = player;
+      state.round += 1;
+      state.roundDuration = getRoundDuration(state.round);
+      state.timeRemaining = state.roundDuration;
+      state.roundStartedAt = performance.now();
+      updateUi();
+
+      if (state.mode === "ai" && player === 2) {
+        scheduleAiTurn();
+      } else {
+        input.focus();
+        input.select();
+      }
+    }
+
+    function updateTimerFrame(now) {
+      if (!state.active) {
+        return;
+      }
+      const elapsed = (now - state.roundStartedAt) / 1000;
+      state.timeRemaining = Math.max(0, state.roundDuration - elapsed);
+      updateUi();
+      if (state.timeRemaining <= 0) {
+        const loser = state.currentPlayer;
+        finishGame(loser === 1 ? 2 : 1, "超时", `${getPlayerName(loser)} 未在时限内提交词语。`);
+        return;
+      }
+      state.rafId = requestAnimationFrame(updateTimerFrame);
+    }
+
+    function resetTimerLoop() {
+      cancelAnimationFrame(state.rafId);
+      state.rafId = requestAnimationFrame(updateTimerFrame);
+    }
+
+    function startGame() {
+      clearTimeout(state.aiTimeoutId);
+      cancelAnimationFrame(state.rafId);
+      state.active = true;
+      state.chain = [];
+      state.usedWords = new Set();
+      state.currentPlayer = 1;
+      state.round = 0;
+      state.roundDuration = 10;
+      state.timeRemaining = 10;
+      input.value = "";
+      resultCard.classList.remove("visible");
+      chainReview.textContent = "词链会显示在这里。";
+      setStatus(state.language === "en" ? "Player 1 starts. Use a built-in dictionary word." : "玩家 1 先手，可以先输入任意内置词。");
+      renderChain();
+      startRound(1);
+      resetTimerLoop();
+    }
+
+    function finishGame(winner, reason, detail) {
+      state.active = false;
+      clearTimeout(state.aiTimeoutId);
+      cancelAnimationFrame(state.rafId);
+      updateUi();
+      setStatus(detail, "error");
+      resultCard.classList.add("visible");
+      resultTitle.textContent = `${getPlayerName(winner)} 获胜`;
+      resultCopy.textContent = detail;
+      winnerText.textContent = getPlayerName(winner);
+      finalLength.textContent = String(state.chain.length);
+      reasonText.textContent = reason;
+      chainReview.textContent = state.chain.length
+        ? state.chain.map((entry) => `${getPlayerName(entry.player)}:${entry.word}`).join(" -> ")
+        : "本局还没有形成有效词链。";
+      input.blur();
+    }
+
+    function validateWord(word) {
+      if (!word) {
+        return "请输入词语。";
+      }
+      if (!isInDictionary(word)) {
+        return state.language === "en" ? "这个词不在内置英文词库里。" : "这个词不在内置中文词库里。";
+      }
+      if (state.usedWords.has(word)) {
+        return "这个词已经用过了。";
+      }
+      const previous = state.chain[state.chain.length - 1];
+      if (!previous) {
+        return "";
+      }
+      const expected = getChainKey(previous.word, state.language, "end");
+      const actual = getChainKey(word, state.language, "start");
+      if (expected !== actual) {
+        return state.language === "en"
+          ? `接龙失败：需要以 "${expected}" 开头。`
+          : `接龙失败：需要以“${expected}”开头。`;
+      }
+      return "";
+    }
+
+    function acceptWord(word, player) {
+      state.usedWords.add(word);
+      state.chain.push({ word, player });
+      input.value = "";
+      renderChain();
+      chainLengthText.textContent = String(state.chain.length);
+      currentWordText.textContent = word;
+      setStatus(`${getPlayerName(player)} 提交了 “${word}”。`, "success");
+
+      const nextPlayer = player === 1 ? 2 : 1;
+      startRound(nextPlayer);
+      resetTimerLoop();
+    }
+
+    function submitCurrentWord(rawWord, player = state.currentPlayer) {
+      if (!state.active) {
+        return;
+      }
+      const word = normalizeWord(rawWord);
+      const error = validateWord(word);
+      if (error) {
+        finishGame(player === 1 ? 2 : 1, "违规", `${getPlayerName(player)} 出词无效：${error}`);
+        return;
+      }
+      acceptWord(word, player);
+    }
+
+    function scheduleAiTurn() {
+      const plannedWord = chooseAiWord();
+      const delay = 650 + Math.random() * 850;
+      state.aiTimeoutId = window.setTimeout(() => {
+        if (!state.active || state.currentPlayer !== 2) {
+          return;
+        }
+        if (!plannedWord) {
+          finishGame(1, "AI 无词可接", "AI 没有找到未使用且合法的接龙词。");
+          return;
+        }
+        submitCurrentWord(plannedWord, 2);
+      }, delay);
+    }
+
+    modeButtons.hotseat.addEventListener("click", () => {
+      state.mode = "hotseat";
+      setActiveChoice(modeButtons, "hotseat");
+      handleSettingChange();
+    });
+
+    modeButtons.ai.addEventListener("click", () => {
+      state.mode = "ai";
+      setActiveChoice(modeButtons, "ai");
+      handleSettingChange();
+    });
+
+    langButtons.zh.addEventListener("click", () => {
+      state.language = "zh";
+      setActiveChoice(langButtons, "zh");
+      handleSettingChange();
+    });
+
+    langButtons.en.addEventListener("click", () => {
+      state.language = "en";
+      setActiveChoice(langButtons, "en");
+      handleSettingChange();
+    });
+
+    startButton.addEventListener("click", startGame);
+    restartButton.addEventListener("click", startGame);
+    submitButton.addEventListener("click", () => submitCurrentWord(input.value));
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        submitCurrentWord(input.value);
+      }
+    });
+
+    updateUi();
+    renderChain();
+  </script>
+</body>
+</html>
