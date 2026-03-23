@@ -276,7 +276,7 @@
         A single launchpad for the browser mini-games already shipped in this repository. Browse by vibe, pick a card, and jump straight into the playable build for each project.
       </p>
       <div class="hero-meta">
-        <div class="stat" id="game-count">37 playable games</div>
+        <div class="stat" id="game-count">41 playable games</div>
         <div class="stat" id="category-count">9 categories</div>
         <div class="stat">Open directly from the repo root</div>
       </div>
@@ -295,7 +295,7 @@
       <div class="empty" id="empty-state" hidden>No games match this filter.</div>
     </section>
 
-    <p class="footer">Add another card by extending the `games` array in this file and pointing it at a sibling game directory.</p>
+    <p class="footer">Add another card by extending the `games` array in this file and pointing it at a sibling game directory or HTML entry file.</p>
   </main>
 
   <script>
@@ -334,6 +334,7 @@
       { slug: "rhythm-tap", title: "Rhythm Tap Reflex", description: "A four-lane rhythm reaction game built around fast key presses and rising pressure.", category: "Music", featured: false },
       { slug: "slingshot-game", title: "Orbital Slingshot", description: "Thread a ship through multi-body gravity puzzles and hit the goal with a single launch.", category: "Puzzle", featured: false },
       { slug: "snake-game", title: "Snake Game", description: "A clean browser take on the classic arcade snake loop, with a linked two-player online variant.", category: "Arcade", featured: false, multiplayer: true },
+      { slug: "snake-game", path: "snake-game/multiplayer.html", title: "Snake Game Multiplayer", description: "An online two-player snake variant with a dedicated multiplayer entry page.", category: "Arcade", featured: false, multiplayer: true },
       { slug: "sokoban-game", title: "Sokoban Warehouse", description: "Push crates through hand-built warehouse levels with undo and persistent progress.", category: "Puzzle", featured: false },
       { slug: "sound-palette", title: "Sound Palette", description: "A colorful step sequencer toy that turns clicks on an 8x8 grid into looping melodies.", category: "Music", featured: false },
       { slug: "soundscape-garden", title: "Soundscape Garden", description: "An ambient sound toy that lets you layer audio elements into a reactive garden scene.", category: "Music", featured: false },
@@ -381,11 +382,12 @@
 
       const note = document.createElement("span");
       note.className = "meta-note";
-      note.textContent = `${game.slug}/index.html`;
+      const gamePath = game.path ?? `${game.slug}/index.html`;
+      note.textContent = gamePath;
 
       const link = document.createElement("a");
       link.className = "play-link";
-      link.href = `./${game.slug}/index.html`;
+      link.href = `./${gamePath}`;
       link.textContent = "Play";
       link.setAttribute("aria-label", `Play ${game.title}`);
 
