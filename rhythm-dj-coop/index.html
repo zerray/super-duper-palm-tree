@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>节奏色块：合作打碟机</title>
+  <style>
+    :root {
+      --bg-1: #12071f;
+      --bg-2: #050711;
+      --panel: rgba(17, 23, 40, 0.78);
+      --panel-border: rgba(169, 198, 255, 0.16);
+      --text: #edf4ff;
+      --muted: #8fa3cf;
+      --accent: #7cf7c5;
+      --danger: #ff6b81;
+      --left: #7dd3fc;
+      --right: #f9a8d4;
+      --red: #ff5d73;
+      --yellow: #ffd166;
+      --green: #6ee7b7;
+      --blue: #60a5fa;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 24px;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(118, 92, 255, 0.22), transparent 28%),
+        radial-gradient(circle at bottom, rgba(18, 204, 255, 0.16), transparent 24%),
+        linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    }
+
+    .app {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .surface,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 26px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+      backdrop-filter: blur(14px);
+    }
+
+    .surface {
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .surface::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+      background-size: 28px 28px;
+      opacity: 0.22;
+      pointer-events: none;
+    }
+
+    .panel {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    h1,
+    p {
+      margin: 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      font-size: clamp(2.7rem, 6vw, 4.9rem);
+      line-height: 0.92;
+      letter-spacing: -0.06em;
+    }
+
+    .lede {
+      margin-top: 10px;
+      max-width: 60ch;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .status-bar {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .pill {
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .pill-label {
+      font-size: 0.76rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .pill-value {
+      margin-top: 6px;
+      font-size: 1.55rem;
+      font-weight: 700;
+    }
+
+    .stage {
+      margin-top: 20px;
+      position: relative;
+      z-index: 1;
+      border-radius: 24px;
+      padding: 16px;
+      background: linear-gradient(180deg, rgba(5, 9, 18, 0.92), rgba(11, 16, 29, 0.92));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .mode-buttons,
+    .key-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    button,
+    select {
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.07);
+      color: var(--text);
+      padding: 10px 14px;
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+    }
+
+    button:hover,
+    button.active {
+      transform: translateY(-1px);
+      background: rgba(124, 247, 197, 0.16);
+      border-color: rgba(124, 247, 197, 0.42);
+    }
+
+    .key-badge {
+      min-width: 38px;
+      text-align: center;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.06);
+      font-weight: 700;
+    }
+
+    .key-badge.left {
+      box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.18);
+    }
+
+    .key-badge.right {
+      box-shadow: inset 0 0 0 1px rgba(249, 168, 212, 0.18);
+    }
+
+    canvas {
+      width: 100%;
+      display: block;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 72px 20px 20px;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      border-radius: 20px;
+      text-align: center;
+      background: rgba(4, 8, 16, 0.74);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      z-index: 3;
+    }
+
+    .overlay[hidden] {
+      display: none;
+    }
+
+    .overlay-card {
+      width: min(520px, 100%);
+      display: grid;
+      gap: 12px;
+      padding: 26px;
+      border-radius: 22px;
+      background: rgba(17, 23, 40, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .overlay-card h2 {
+      margin: 0;
+      font-size: 2rem;
+      line-height: 1;
+    }
+
+    .overlay-card p {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .summary-grid strong {
+      display: block;
+      font-size: 1.4rem;
+      color: var(--accent);
+    }
+
+    .panel h2 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+
+    .panel p,
+    .panel li {
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .legend {
+      display: grid;
+      gap: 10px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text);
+    }
+
+    .swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+    }
+
+    @media (max-width: 960px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .status-bar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 700px) {
+      body {
+        padding: 16px;
+      }
+
+      .surface {
+        padding: 18px;
+      }
+
+      .status-bar,
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .overlay {
+        inset: 86px 12px 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="surface">
+      <h1>节奏色块<br>合作打碟机</h1>
+      <p class="lede">中央传送带会按 BPM 推出四色节奏块，左右玩家在各自判定线按下对应颜色按键。命中越稳定，共享 combo 越高，舞台灯效也会从基础脉冲升级到拖尾与全屏光晕。</p>
+
+      <div class="status-bar">
+        <div class="pill">
+          <div class="pill-label">Combo</div>
+          <div class="pill-value" id="combo-count">0</div>
+        </div>
+        <div class="pill">
+          <div class="pill-label">Visual</div>
+          <div class="pill-value" id="visual-level">Lv.0</div>
+        </div>
+        <div class="pill">
+          <div class="pill-label">Left</div>
+          <div class="pill-value" id="left-score">0</div>
+        </div>
+        <div class="pill">
+          <div class="pill-label">Right</div>
+          <div class="pill-value" id="right-score">0</div>
+        </div>
+        <div class="pill">
+          <div class="pill-label">Timer</div>
+          <div class="pill-value" id="timer-readout">45.0s</div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="controls">
+          <div class="mode-buttons">
+            <button type="button" class="mode-button active" data-mode="coop">双人合作</button>
+            <button type="button" class="mode-button" data-mode="solo-left">单人左侧</button>
+            <button type="button" class="mode-button" data-mode="solo-right">单人右侧</button>
+          </div>
+          <div>
+            <label for="bpm-select">BPM</label>
+            <select id="bpm-select">
+              <option value="90">90</option>
+              <option value="108" selected>108</option>
+              <option value="126">126</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="controls">
+          <div class="key-row">
+            <span class="key-badge left">A</span>
+            <span class="key-badge left">S</span>
+            <span class="key-badge left">D</span>
+            <span class="key-badge left">F</span>
+          </div>
+          <button type="button" id="start-button">开始演出</button>
+          <div class="key-row">
+            <span class="key-badge right">J</span>
+            <span class="key-badge right">K</span>
+            <span class="key-badge right">L</span>
+            <span class="key-badge right">;</span>
+          </div>
+        </div>
+
+        <canvas id="game-canvas" width="880" height="500" aria-label="Rhythm DJ stage"></canvas>
+
+        <div class="overlay" id="start-overlay">
+          <div class="overlay-card">
+            <h2>按节拍接力</h2>
+            <p>左侧玩家使用 A/S/D/F，右侧玩家使用 J/K/L/;。在色块抵达左右判定线时按下对应颜色。Perfect 与 Good 会叠加共享 combo，任一侧 Miss 就会断连。</p>
+            <p>选择模式后点击开始。单人模式只生成一侧色块，方便单机试玩。</p>
+          </div>
+        </div>
+
+        <div class="overlay" id="game-over" hidden>
+          <div class="overlay-card">
+            <h2>演出结束</h2>
+            <p id="summary-line">45 秒到，看看这次双人默契有多高。</p>
+            <div class="summary-grid">
+              <div><strong id="final-combo">0</strong>最高连击</div>
+              <div><strong id="final-left">0</strong>左侧得分</div>
+              <div><strong id="final-right">0</strong>右侧得分</div>
+            </div>
+            <button type="button" id="restart-button">再来一局</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <section>
+        <h2>判定规则</h2>
+        <ul>
+          <li>Perfect: 命中误差在 50ms 内</li>
+          <li>Good: 命中误差在 120ms 内</li>
+          <li>Miss: 过线未按或按错颜色</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>视觉升级</h2>
+        <p>共享 combo 驱动背景层级。Level 1 开始增强脉冲，Level 2 解锁色块拖尾，Level 3 加入全屏径向光晕与 Perfect 冲击。</p>
+      </section>
+
+      <section class="legend">
+        <h2>颜色通道</h2>
+        <div class="legend-item"><span class="swatch" style="background: var(--red);"></span>红</div>
+        <div class="legend-item"><span class="swatch" style="background: var(--yellow);"></span>黄</div>
+        <div class="legend-item"><span class="swatch" style="background: var(--green);"></span>绿</div>
+        <div class="legend-item"><span class="swatch" style="background: var(--blue);"></span>蓝</div>
+      </section>
+
+      <section>
+        <h2>音效实现</h2>
+        <p>所有音效都由 Web Audio API 的振荡器和增益包络实时合成。每拍有底鼓，命中会按颜色切换音高，Miss 则触发一段短促失真噪声。</p>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    const canvas = document.querySelector("#game-canvas");
+    const ctx = canvas.getContext("2d");
+    const comboCount = document.querySelector("#combo-count");
+    const visualLevelLabel = document.querySelector("#visual-level");
+    const leftScoreLabel = document.querySelector("#left-score");
+    const rightScoreLabel = document.querySelector("#right-score");
+    const timerReadout = document.querySelector("#timer-readout");
+    const startOverlay = document.querySelector("#start-overlay");
+    const gameOverOverlay = document.querySelector("#game-over");
+    const summaryLine = document.querySelector("#summary-line");
+    const finalCombo = document.querySelector("#final-combo");
+    const finalLeft = document.querySelector("#final-left");
+    const finalRight = document.querySelector("#final-right");
+    const bpmSelect = document.querySelector("#bpm-select");
+    const startButton = document.querySelector("#start-button");
+    const restartButton = document.querySelector("#restart-button");
+    const modeButtons = Array.from(document.querySelectorAll(".mode-button"));
+
+    const leftKeys = ["KeyA", "KeyS", "KeyD", "KeyF"];
+    const rightKeys = ["KeyJ", "KeyK", "KeyL", "Semicolon"];
+    const colors = ["#ff5d73", "#ffd166", "#6ee7b7", "#60a5fa"];
+    const colorNames = ["RED", "YELLOW", "GREEN", "BLUE"];
+    const judgmentWindows = { perfect: 50, good: 120 };
+    const visualThresholds = [0, 8, 20, 36];
+    const travelMs = 2000;
+    const gameDurationMs = 45000;
+    const laneSpacing = 74;
+    const perfectShakeMs = 180;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+    const state = {
+      running: false,
+      mode: "coop",
+      bpm: 108,
+      beatInterval: 60000 / 108,
+      startTime: 0,
+      nextBeatTime: 0,
+      elapsed: 0,
+      combo: 0,
+      maxCombo: 0,
+      visualLevel: 0,
+      notes: [],
+      feedbacks: [],
+      particles: [],
+      scores: { left: 0, right: 0 },
+      noteId: 0,
+      lastFrameTime: 0,
+      beatPulse: 0,
+      shakeUntil: 0
+    };
+
+    let audioContext = null;
+    let masterGain = null;
+
+    function getLaneY(laneIndex) {
+      const centerY = (canvas.clientHeight || 500) / 2;
+      const top = centerY - laneSpacing * 1.5;
+      return top + laneIndex * laneSpacing;
+    }
+
+    function getSideLaneOffset(side) {
+      return side === "left" ? -1 : 1;
+    }
+
+    function getLeftLineX() {
+      return 128;
+    }
+
+    function getRightLineX() {
+      return (canvas.clientWidth || 880) - 128;
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      modeButtons.forEach((button) => {
+        button.classList.toggle("active", button.dataset.mode === mode);
+      });
+    }
+
+    function resetState() {
+      state.running = false;
+      state.startTime = 0;
+      state.nextBeatTime = 0;
+      state.elapsed = 0;
+      state.combo = 0;
+      state.maxCombo = 0;
+      state.visualLevel = 0;
+      state.notes = [];
+      state.feedbacks = [];
+      state.particles = [];
+      state.scores = { left: 0, right: 0 };
+      state.noteId = 0;
+      state.lastFrameTime = 0;
+      state.beatPulse = 0;
+      state.shakeUntil = 0;
+      syncHud();
+    }
+
+    function syncHud() {
+      comboCount.textContent = String(state.combo);
+      visualLevelLabel.textContent = `Lv.${state.visualLevel}`;
+      leftScoreLabel.textContent = String(state.scores.left);
+      rightScoreLabel.textContent = String(state.scores.right);
+      const remaining = Math.max(0, (gameDurationMs - state.elapsed) / 1000);
+      timerReadout.textContent = `${remaining.toFixed(1)}s`;
+    }
+
+    function getAudioNodes() {
+      if (!AudioContextClass) {
+        return null;
+      }
+
+      if (!audioContext) {
+        audioContext = new AudioContextClass();
+        masterGain = audioContext.createGain();
+        masterGain.gain.value = 0.18;
+        masterGain.connect(audioContext.destination);
+      }
+
+      return { audioContext, masterGain };
+    }
+
+    function triggerTone(type, frequency, duration, volume, when, sweep = 0) {
+      const nodes = getAudioNodes();
+      if (!nodes) {
+        return;
+      }
+
+      const oscillator = nodes.audioContext.createOscillator();
+      const gainNode = nodes.audioContext.createGain();
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, when);
+      if (sweep !== 0) {
+        oscillator.frequency.exponentialRampToValueAtTime(Math.max(50, frequency + sweep), when + duration);
+      }
+      gainNode.gain.setValueAtTime(0.0001, when);
+      gainNode.gain.exponentialRampToValueAtTime(volume, when + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, when + duration);
+      oscillator.connect(gainNode);
+      gainNode.connect(nodes.masterGain);
+      oscillator.start(when);
+      oscillator.stop(when + duration + 0.02);
+    }
+
+    function playKick() {
+      if (!audioContext) {
+        return;
+      }
+      const when = audioContext.currentTime;
+      triggerTone("sine", 140, 0.16, 0.65, when, -80);
+      triggerTone("triangle", 60, 0.12, 0.22, when, -20);
+    }
+
+    function playHit(laneIndex, quality) {
+      if (!audioContext) {
+        return;
+      }
+      const frequencies = [220, 277, 330, 392];
+      const when = audioContext.currentTime;
+      const volume = quality === "Perfect" ? 0.4 : 0.24;
+      const type = quality === "Perfect" ? "triangle" : "sine";
+      triggerTone(type, frequencies[laneIndex], 0.16, volume, when, 18);
+    }
+
+    function playMiss() {
+      if (!audioContext) {
+        return;
+      }
+      const when = audioContext.currentTime;
+      triggerTone("sawtooth", 180, 0.22, 0.16, when, -110);
+    }
+
+    function updateVisualLevel() {
+      let level = 0;
+      for (let index = visualThresholds.length - 1; index >= 0; index -= 1) {
+        if (state.combo >= visualThresholds[index]) {
+          level = index;
+          break;
+        }
+      }
+      state.visualLevel = level;
+    }
+
+    function addFeedback(text, x, y, color) {
+      state.feedbacks.push({
+        text,
+        x,
+        y,
+        color,
+        createdAt: performance.now()
+      });
+    }
+
+    function spawnParticles(x, y, color, amount) {
+      for (let i = 0; i < amount; i += 1) {
+        state.particles.push({
+          x,
+          y,
+          vx: (Math.random() - 0.5) * 2.8,
+          vy: (Math.random() - 0.5) * 2.8,
+          life: 420 + Math.random() * 260,
+          color
+        });
+      }
+      if (state.particles.length > 200) {
+        state.particles.splice(0, state.particles.length - 200);
+      }
+    }
+
+    function markMiss(note, reason = "Miss") {
+      if (note.resolved) {
+        return;
+      }
+      note.resolved = true;
+      state.combo = 0;
+      updateVisualLevel();
+      addFeedback(reason, note.targetX, note.y - 16, "#ff6b81");
+      playMiss();
+      syncHud();
+    }
+
+    function getSideSpawnPattern() {
+      if (state.mode === "solo-left") {
+        return ["left"];
+      }
+      if (state.mode === "solo-right") {
+        return ["right"];
+      }
+      return ["left", "right"];
+    }
+
+    function spawnBeatBatch(beatTime) {
+      const sides = getSideSpawnPattern();
+      sides.forEach((side) => {
+        const laneIndex = Math.floor(Math.random() * 4);
+      const note = {
+          id: state.noteId += 1,
+          side,
+          laneIndex,
+          spawnTime: beatTime,
+          hitTime: beatTime + travelMs,
+          y: getLaneY(laneIndex),
+          color: colors[laneIndex],
+          targetX: side === "left" ? getLeftLineX() : getRightLineX(),
+          resolved: false,
+          trailSeed: Math.random() * Math.PI * 2
+        };
+        state.notes.push(note);
+      });
+      state.beatPulse = 1;
+      playKick();
+    }
+
+    function evaluateHit(side, laneIndex, eventTime) {
+      if (!state.running) {
+        return;
+      }
+
+      const candidate = state.notes.find((note) => (
+        note.side === side &&
+        note.laneIndex === laneIndex &&
+        !note.resolved &&
+        Math.abs(eventTime - note.hitTime) <= judgmentWindows.good
+      ));
+
+      if (!candidate) {
+        const targetX = side === "left" ? getLeftLineX() : getRightLineX();
+        addFeedback("Miss", targetX, getLaneY(laneIndex) - 18, "#ff6b81");
+        state.combo = 0;
+        updateVisualLevel();
+        playMiss();
+        syncHud();
+        return;
+      }
+
+      candidate.resolved = true;
+      const delta = Math.abs(eventTime - candidate.hitTime);
+      const quality = delta <= judgmentWindows.perfect ? "Perfect" : "Good";
+      const score = quality === "Perfect" ? 120 : 70;
+
+      state.combo += 1;
+      state.maxCombo = Math.max(state.maxCombo, state.combo);
+      state.scores[side] += score;
+      updateVisualLevel();
+      addFeedback(quality, candidate.targetX, candidate.y - 16, quality === "Perfect" ? "#7cf7c5" : "#ffd166");
+      playHit(laneIndex, quality);
+      if (quality === "Perfect") {
+        state.shakeUntil = performance.now() + perfectShakeMs;
+      }
+      spawnParticles(candidate.targetX, candidate.y, candidate.color, quality === "Perfect" ? 14 : 8);
+      syncHud();
+    }
+
+    function endGame() {
+      state.running = false;
+      finalCombo.textContent = String(state.maxCombo);
+      finalLeft.textContent = String(state.scores.left);
+      finalRight.textContent = String(state.scores.right);
+      summaryLine.textContent = state.mode === "coop"
+        ? "45 秒演出完成，下一轮可以继续冲击更高共享 combo。"
+        : "单人模式结束，可以切换另一侧练习不同判定线。";
+      gameOverOverlay.hidden = false;
+    }
+
+    function startGame() {
+      const nodes = getAudioNodes();
+      if (nodes && nodes.audioContext.state === "suspended") {
+        nodes.audioContext.resume();
+      }
+
+      resetState();
+      state.running = true;
+      state.bpm = Number(bpmSelect.value);
+      state.beatInterval = 60000 / state.bpm;
+      state.startTime = performance.now();
+      state.nextBeatTime = state.startTime;
+      state.lastFrameTime = state.startTime;
+      startOverlay.hidden = true;
+      gameOverOverlay.hidden = true;
+      syncHud();
+    }
+
+    function resizeCanvas() {
+      const ratio = window.devicePixelRatio || 1;
+      const displayWidth = canvas.clientWidth || canvas.width;
+      const displayHeight = Math.round(displayWidth * 0.56);
+      canvas.width = Math.round(displayWidth * ratio);
+      canvas.height = Math.round(displayHeight * ratio);
+      canvas.style.height = `${displayHeight}px`;
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    }
+
+    function drawBackground(now) {
+      const pulse = state.beatPulse;
+      const intensity = 0.18 + state.visualLevel * 0.08 + pulse * 0.18;
+      ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.clientHeight);
+      gradient.addColorStop(0, `rgba(26, 16, 54, ${0.92 + pulse * 0.03})`);
+      gradient.addColorStop(1, "rgba(5, 9, 18, 0.98)");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+
+      const radial = ctx.createRadialGradient(
+        canvas.clientWidth / 2,
+        canvas.clientHeight / 2,
+        40,
+        canvas.clientWidth / 2,
+        canvas.clientHeight / 2,
+        canvas.clientWidth * 0.44
+      );
+      radial.addColorStop(0, `rgba(124, 247, 197, ${intensity})`);
+      radial.addColorStop(1, "rgba(124, 247, 197, 0)");
+      ctx.fillStyle = radial;
+      ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+
+      if (state.visualLevel >= 3) {
+        const halo = ctx.createRadialGradient(
+          canvas.clientWidth / 2,
+          canvas.clientHeight / 2,
+          10,
+          canvas.clientWidth / 2,
+          canvas.clientHeight / 2,
+          canvas.clientWidth * 0.65
+        );
+        halo.addColorStop(0, `rgba(255, 255, 255, ${0.08 + pulse * 0.1})`);
+        halo.addColorStop(1, "rgba(255, 255, 255, 0)");
+        ctx.fillStyle = halo;
+        ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+      }
+
+      ctx.fillStyle = "rgba(255,255,255,0.07)";
+      ctx.fillRect(canvas.clientWidth / 2 - 44, 0, 88, canvas.clientHeight);
+
+      ctx.strokeStyle = "rgba(255,255,255,0.1)";
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 4; i += 1) {
+        const y = getLaneY(i);
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.clientWidth, y);
+        ctx.stroke();
+      }
+
+      ctx.setLineDash([10, 12]);
+      ctx.lineWidth = 4;
+      const leftLineX = getLeftLineX();
+      const rightLineX = getRightLineX();
+
+      ctx.strokeStyle = "rgba(125, 211, 252, 0.7)";
+      ctx.beginPath();
+      ctx.moveTo(leftLineX, 28);
+      ctx.lineTo(leftLineX, canvas.clientHeight - 28);
+      ctx.stroke();
+
+      ctx.strokeStyle = "rgba(249, 168, 212, 0.7)";
+      ctx.beginPath();
+      ctx.moveTo(rightLineX, 28);
+      ctx.lineTo(rightLineX, canvas.clientHeight - 28);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.font = "700 14px Trebuchet MS";
+      ctx.fillText("LEFT", leftLineX - 18, 24);
+      ctx.fillText("RIGHT", rightLineX - 24, 24);
+
+      ctx.fillStyle = "rgba(255,255,255,0.16)";
+      ctx.fillRect(canvas.clientWidth / 2 - 2, 0, 4, canvas.clientHeight);
+      ctx.fillStyle = "rgba(255,255,255,0.8)";
+      ctx.fillText(`BPM ${state.bpm}`, canvas.clientWidth / 2 - 28, 24);
+      ctx.fillText(`VISUAL ${state.visualLevel}`, canvas.clientWidth / 2 - 38, canvas.clientHeight - 18);
+      ctx.fillText(colorNames[0], 20, 54);
+      ctx.fillText(colorNames[3], canvas.clientWidth - 74, canvas.clientHeight - 24);
+    }
+
+    function drawNotes(now) {
+      const shake = now < state.shakeUntil ? (Math.random() - 0.5) * 8 : 0;
+      ctx.save();
+      ctx.translate(shake, 0);
+
+      state.notes.forEach((note) => {
+        if (note.resolved && now - note.hitTime > 500) {
+          return;
+        }
+
+        const progress = Math.min(1.18, Math.max(0, (now - note.spawnTime) / travelMs));
+        const sideDirection = getSideLaneOffset(note.side);
+        const startX = canvas.clientWidth / 2;
+        const x = startX + (note.targetX - startX) * progress;
+        const alpha = note.resolved ? Math.max(0, 1 - (now - note.hitTime) / 360) : 1;
+
+        if (state.visualLevel >= 2) {
+          for (let step = 1; step <= 3; step += 1) {
+            const trailProgress = Math.max(0, progress - step * 0.07);
+            const trailX = startX + (note.targetX - startX) * trailProgress;
+            ctx.fillStyle = `${note.color}${step === 1 ? "66" : "33"}`;
+            ctx.fillRect(trailX - 16, note.y - 10 + Math.sin(note.trailSeed + step) * 2, 32, 20);
+          }
+        }
+
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = note.color;
+        ctx.strokeStyle = "rgba(255,255,255,0.8)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(x - 18, note.y - 18, 36, 36, 10);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(255,255,255,0.82)";
+        ctx.beginPath();
+        ctx.roundRect(x - 10 * sideDirection, note.y - 6, 12, 12, 4);
+        ctx.fill();
+      });
+
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+
+    function drawParticles(deltaMs) {
+      state.particles = state.particles.filter((particle) => {
+        particle.x += particle.vx * deltaMs * 0.05;
+        particle.y += particle.vy * deltaMs * 0.05;
+        particle.life -= deltaMs;
+        particle.vx *= 0.992;
+        particle.vy *= 0.992;
+        if (particle.life <= 0) {
+          return false;
+        }
+        ctx.globalAlpha = Math.max(0, particle.life / 680);
+        ctx.fillStyle = particle.color;
+        ctx.fillRect(particle.x - 2, particle.y - 2, 4, 4);
+        return true;
+      });
+      ctx.globalAlpha = 1;
+    }
+
+    function drawFeedbacks(now) {
+      state.feedbacks = state.feedbacks.filter((feedback) => {
+        const age = now - feedback.createdAt;
+        if (age > 720) {
+          return false;
+        }
+        ctx.globalAlpha = 1 - age / 720;
+        ctx.fillStyle = feedback.color;
+        ctx.font = "700 20px Trebuchet MS";
+        ctx.fillText(feedback.text, feedback.x - 26, feedback.y - age * 0.05);
+        return true;
+      });
+      ctx.globalAlpha = 1;
+    }
+
+    function updateMisses(now) {
+      state.notes.forEach((note) => {
+        if (!note.resolved && now - note.hitTime > judgmentWindows.good) {
+          markMiss(note);
+        }
+      });
+      state.notes = state.notes.filter((note) => !note.resolved || now - note.hitTime < 900);
+    }
+
+    function frame(now) {
+      if (!state.lastFrameTime) {
+        state.lastFrameTime = now;
+      }
+      const deltaMs = now - state.lastFrameTime;
+      state.lastFrameTime = now;
+      state.beatPulse *= 0.92;
+
+      if (state.running) {
+        state.elapsed = now - state.startTime;
+        while (now >= state.nextBeatTime) {
+          spawnBeatBatch(state.nextBeatTime);
+          state.nextBeatTime += state.beatInterval;
+        }
+        updateMisses(now);
+        if (state.elapsed >= gameDurationMs) {
+          endGame();
+        }
+        syncHud();
+      }
+
+      drawBackground(now);
+      drawNotes(now);
+      drawParticles(deltaMs);
+      drawFeedbacks(now);
+
+      requestAnimationFrame(frame);
+    }
+
+    document.addEventListener("keydown", (event) => {
+      if (event.repeat) {
+        return;
+      }
+
+      const leftIndex = leftKeys.indexOf(event.code);
+      if (leftIndex >= 0) {
+        evaluateHit("left", leftIndex, performance.now());
+        return;
+      }
+
+      const rightIndex = rightKeys.indexOf(event.code);
+      if (rightIndex >= 0) {
+        evaluateHit("right", rightIndex, performance.now());
+      }
+    });
+
+    modeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        setMode(button.dataset.mode);
+      });
+    });
+
+    startButton.addEventListener("click", startGame);
+    restartButton.addEventListener("click", startGame);
+
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+    resetState();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
