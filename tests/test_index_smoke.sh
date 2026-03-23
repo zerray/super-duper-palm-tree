@@ -14,7 +14,7 @@ fail() {
 
 grep -q '<title>Agent Factory Arcade</title>' "$index_file" || fail "page title missing"
 grep -q 'const games = \[' "$index_file" || fail "games metadata array missing"
-grep -q '32 playable games' "$index_file" || fail "game count summary missing"
+grep -q '33 playable games' "$index_file" || fail "game count summary missing"
 grep -q 'slug: "game-of-life"' "$index_file" || fail "game-of-life metadata missing"
 grep -q 'slug: "nie-xiaoqian-rpg"' "$index_file" || fail "nie-xiaoqian-rpg metadata missing"
 grep -q 'slug: "waveform-dj"' "$index_file" || fail "waveform-dj metadata missing"

@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>重力沙盒：粒子星系模拟器</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #030712;
+      --panel: rgba(7, 14, 28, 0.82);
+      --panel-line: rgba(148, 163, 184, 0.2);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #7dd3fc;
+      --accent-strong: #f59e0b;
+      --danger: #fb7185;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      min-height: 100vh;
+      font-family: "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 20%, rgba(34, 211, 238, 0.15), transparent 28%),
+        radial-gradient(circle at 80% 10%, rgba(245, 158, 11, 0.12), transparent 24%),
+        linear-gradient(180deg, #071120 0%, #02040a 62%, #010206 100%);
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .panel {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      width: min(360px, calc(100vw - 32px));
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid var(--panel-line);
+      background: var(--panel);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+    }
+
+    h1,
+    p,
+    label {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      line-height: 1.1;
+      margin-bottom: 8px;
+    }
+
+    .lede,
+    .tip {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .controls {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .row {
+      display: grid;
+      gap: 6px;
+    }
+
+    .row-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 0.95rem;
+    }
+
+    .value {
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      margin: 0;
+      accent-color: var(--accent);
+    }
+
+    .buttons,
+    .stats {
+      display: grid;
+      gap: 10px;
+    }
+
+    .buttons {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    button,
+    .stat {
+      border-radius: 14px;
+      border: 1px solid var(--panel-line);
+    }
+
+    button {
+      padding: 10px 12px;
+      background: rgba(15, 23, 42, 0.92);
+      color: var(--text);
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.92), rgba(59, 130, 246, 0.92));
+    }
+
+    button.danger {
+      background: linear-gradient(135deg, rgba(225, 29, 72, 0.92), rgba(251, 113, 133, 0.92));
+    }
+
+    .stat {
+      padding: 10px 12px;
+      background: rgba(2, 6, 23, 0.5);
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .stat-value {
+      margin-top: 6px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .tip {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      max-width: min(420px, calc(100vw - 32px));
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--panel-line);
+      background: rgba(2, 6, 23, 0.72);
+    }
+
+    @media (max-width: 720px) {
+      .panel {
+        width: min(100vw - 20px, 360px);
+        top: 10px;
+        left: 10px;
+        padding: 14px;
+      }
+
+      .tip {
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="sim"></canvas>
+  <section class="panel">
+    <h1>重力沙盒</h1>
+    <p class="lede">按下并拖拽设置初速度，松手释放质点。尝试不同引力常数、质量和轨迹长度，观察绕行、并合与星系盘形成。</p>
+    <div class="controls">
+      <label class="row" for="gravity-slider">
+        <span class="row-head">
+          <span>引力常数</span>
+          <span class="value" id="gravity-value">0.18</span>
+        </span>
+        <input id="gravity-slider" type="range" min="0.02" max="0.6" step="0.01" value="0.18">
+      </label>
+      <label class="row" for="mass-slider">
+        <span class="row-head">
+          <span>默认质量</span>
+          <span class="value" id="mass-value">36</span>
+        </span>
+        <input id="mass-slider" type="range" min="8" max="120" step="1" value="36">
+      </label>
+      <label class="row" for="trail-slider">
+        <span class="row-head">
+          <span>轨迹长度</span>
+          <span class="value" id="trail-value">44</span>
+        </span>
+        <input id="trail-slider" type="range" min="8" max="120" step="1" value="44">
+      </label>
+      <div class="buttons">
+        <button id="pause-button" class="primary" type="button">暂停</button>
+        <button id="clear-button" class="danger" type="button">清空</button>
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label">粒子数</div>
+          <div class="stat-value" id="particle-count">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">状态</div>
+          <div class="stat-value" id="status-label">运行中</div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <div class="tip">单击可释放静止质点；拖得越远，初速度越大。粒子接触后按动量守恒合并，并触发短暂冲击环。</div>
+
+  <script>
+    const canvas = document.getElementById("sim");
+    const ctx = canvas.getContext("2d");
+
+    const gravitySlider = document.getElementById("gravity-slider");
+    const massSlider = document.getElementById("mass-slider");
+    const trailSlider = document.getElementById("trail-slider");
+    const gravityValue = document.getElementById("gravity-value");
+    const massValue = document.getElementById("mass-value");
+    const trailValue = document.getElementById("trail-value");
+    const pauseButton = document.getElementById("pause-button");
+    const clearButton = document.getElementById("clear-button");
+    const particleCountLabel = document.getElementById("particle-count");
+    const statusLabel = document.getElementById("status-label");
+
+    const SOFTENING = 36;
+    const MAX_PARTICLES = 160;
+    const VELOCITY_SCALE = 0.045;
+    const MAX_SPEED = 16;
+    const flashes = [];
+    const particles = [];
+
+    let gravityConstant = Number(gravitySlider.value);
+    let defaultMass = Number(massSlider.value);
+    let maxTrailLength = Number(trailSlider.value);
+    let paused = false;
+    let dragState = null;
+    let animationFrameId = 0;
+
+    function resizeCanvas() {
+      const ratio = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(window.innerWidth * ratio);
+      canvas.height = Math.floor(window.innerHeight * ratio);
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    }
+
+    class Particle {
+      constructor(x, y, vx, vy, mass) {
+        this.x = x;
+        this.y = y;
+        this.vx = vx;
+        this.vy = vy;
+        this.mass = mass;
+        this.radius = Math.max(2.5, Math.sqrt(mass) * 0.9);
+        this.hue = Math.min(60, 210 - mass * 1.2);
+        this.trail = [];
+        this.flash = 0;
+      }
+    }
+
+    function formatControlValues() {
+      gravityValue.textContent = gravityConstant.toFixed(2);
+      massValue.textContent = String(Math.round(defaultMass));
+      trailValue.textContent = String(maxTrailLength);
+      particleCountLabel.textContent = String(particles.length);
+      statusLabel.textContent = paused ? "已暂停" : "运行中";
+      pauseButton.textContent = paused ? "继续" : "暂停";
+    }
+
+    function trimParticles() {
+      if (particles.length > MAX_PARTICLES) {
+        particles.splice(0, particles.length - MAX_PARTICLES);
+      }
+    }
+
+    function addParticle(x, y, vx, vy, mass = defaultMass) {
+      const particle = new Particle(x, y, vx, vy, mass);
+      particles.push(particle);
+      trimParticles();
+      formatControlValues();
+    }
+
+    function spawnFlash(x, y, radius, hue) {
+      flashes.push({
+        x,
+        y,
+        radius,
+        life: 16,
+        maxLife: 16,
+        hue
+      });
+    }
+
+    function mergeParticles(a, b) {
+      const mass = a.mass + b.mass;
+      const x = (a.x * a.mass + b.x * b.mass) / mass;
+      const y = (a.y * a.mass + b.y * b.mass) / mass;
+      const vx = (a.vx * a.mass + b.vx * b.mass) / mass;
+      const vy = (a.vy * a.mass + b.vy * b.mass) / mass;
+      const merged = new Particle(x, y, vx, vy, mass);
+      merged.flash = 1;
+      merged.trail = [...a.trail.slice(-Math.floor(maxTrailLength / 2)), ...b.trail.slice(-Math.floor(maxTrailLength / 2))].slice(-maxTrailLength);
+      spawnFlash(x, y, merged.radius * 1.6, merged.hue);
+      return merged;
+    }
+
+    function updatePhysics() {
+      const nextParticles = [];
+
+      for (let i = 0; i < particles.length; i += 1) {
+        const a = particles[i];
+        if (!a) {
+          continue;
+        }
+
+        for (let j = i + 1; j < particles.length; j += 1) {
+          const b = particles[j];
+          if (!b) {
+            continue;
+          }
+
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const distanceSq = dx * dx + dy * dy + SOFTENING;
+          const distance = Math.sqrt(distanceSq);
+
+          if (distance < a.radius + b.radius) {
+            particles[j] = null;
+            a.mass = -1;
+            nextParticles.push(mergeParticles(a, b));
+            break;
+          }
+
+          const force = gravityConstant / distanceSq;
+          const ax = dx * force * b.mass / distance;
+          const ay = dy * force * b.mass / distance;
+          const bx = -dx * force * a.mass / distance;
+          const by = -dy * force * a.mass / distance;
+
+          a.vx += ax;
+          a.vy += ay;
+          b.vx += bx;
+          b.vy += by;
+        }
+      }
+
+      const width = canvas.width / (window.devicePixelRatio || 1);
+      const height = canvas.height / (window.devicePixelRatio || 1);
+
+      for (const particle of particles) {
+        if (!particle || particle.mass <= 0) {
+          continue;
+        }
+
+        const speed = Math.hypot(particle.vx, particle.vy);
+        if (speed > MAX_SPEED) {
+          const clamp = MAX_SPEED / speed;
+          particle.vx *= clamp;
+          particle.vy *= clamp;
+        }
+
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+        particle.trail.push({ x: particle.x, y: particle.y });
+        if (particle.trail.length > maxTrailLength) {
+          particle.trail.splice(0, particle.trail.length - maxTrailLength);
+        }
+
+        if (
+          particle.x > -120 &&
+          particle.x < width + 120 &&
+          particle.y > -120 &&
+          particle.y < height + 120
+        ) {
+          particle.flash *= 0.88;
+          nextParticles.push(particle);
+        }
+      }
+
+      particles.length = 0;
+      particles.push(...nextParticles.slice(-MAX_PARTICLES));
+      formatControlValues();
+    }
+
+    function drawTrails() {
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      for (const particle of particles) {
+        if (particle.trail.length < 2) {
+          continue;
+        }
+
+        for (let i = 1; i < particle.trail.length; i += 1) {
+          const from = particle.trail[i - 1];
+          const to = particle.trail[i];
+          const alpha = i / particle.trail.length;
+          ctx.strokeStyle = `hsla(${particle.hue}, 90%, 75%, ${alpha * 0.35})`;
+          ctx.lineWidth = Math.max(0.8, particle.radius * 0.3 * alpha);
+          ctx.beginPath();
+          ctx.moveTo(from.x, from.y);
+          ctx.lineTo(to.x, to.y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    function drawParticles() {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+
+      for (const particle of particles) {
+        const glowRadius = particle.radius * 4.2;
+        const gradient = ctx.createRadialGradient(
+          particle.x,
+          particle.y,
+          particle.radius * 0.2,
+          particle.x,
+          particle.y,
+          glowRadius
+        );
+        gradient.addColorStop(0, `hsla(${particle.hue}, 100%, 88%, ${0.95 + particle.flash * 0.2})`);
+        gradient.addColorStop(0.35, `hsla(${particle.hue}, 100%, 72%, ${0.34 + particle.mass / 260})`);
+        gradient.addColorStop(1, `hsla(${particle.hue}, 100%, 55%, 0)`);
+
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, glowRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = `hsla(${particle.hue}, 100%, 92%, 0.95)`;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    function drawFlashes() {
+      for (let i = flashes.length - 1; i >= 0; i -= 1) {
+        const flash = flashes[i];
+        const progress = 1 - flash.life / flash.maxLife;
+        ctx.strokeStyle = `hsla(${flash.hue}, 100%, 75%, ${flash.life / flash.maxLife})`;
+        ctx.lineWidth = 2 + progress * 4;
+        ctx.beginPath();
+        ctx.arc(flash.x, flash.y, flash.radius + progress * 18, 0, Math.PI * 2);
+        ctx.stroke();
+        flash.life -= 1;
+        if (flash.life <= 0) {
+          flashes.splice(i, 1);
+        }
+      }
+    }
+
+    function drawLaunchArrow() {
+      if (!dragState) {
+        return;
+      }
+
+      const dx = dragState.currentX - dragState.startX;
+      const dy = dragState.currentY - dragState.startY;
+      const tipX = dragState.startX + dx;
+      const tipY = dragState.startY + dy;
+      const angle = Math.atan2(dy, dx);
+      const headSize = 10;
+
+      ctx.strokeStyle = "rgba(125, 211, 252, 0.95)";
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(dragState.startX, dragState.startY);
+      ctx.lineTo(tipX, tipY);
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(245, 158, 11, 0.95)";
+      ctx.beginPath();
+      ctx.moveTo(tipX, tipY);
+      ctx.lineTo(
+        tipX - Math.cos(angle - Math.PI / 6) * headSize,
+        tipY - Math.sin(angle - Math.PI / 6) * headSize
+      );
+      ctx.lineTo(
+        tipX - Math.cos(angle + Math.PI / 6) * headSize,
+        tipY - Math.sin(angle + Math.PI / 6) * headSize
+      );
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(125, 211, 252, 0.28)";
+      ctx.beginPath();
+      ctx.arc(dragState.startX, dragState.startY, Math.max(5, Math.sqrt(defaultMass)), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function render() {
+      const width = canvas.width / (window.devicePixelRatio || 1);
+      const height = canvas.height / (window.devicePixelRatio || 1);
+
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = "rgba(1, 5, 14, 0.24)";
+      ctx.fillRect(0, 0, width, height);
+
+      drawTrails();
+      drawParticles();
+      drawFlashes();
+      drawLaunchArrow();
+    }
+
+    function tick() {
+      if (!paused) {
+        updatePhysics();
+      }
+      render();
+      animationFrameId = requestAnimationFrame(tick);
+    }
+
+    function getPoint(event) {
+      const rect = canvas.getBoundingClientRect();
+      if (event.touches && event.touches[0]) {
+        return {
+          x: event.touches[0].clientX - rect.left,
+          y: event.touches[0].clientY - rect.top
+        };
+      }
+      if (event.changedTouches && event.changedTouches[0]) {
+        return {
+          x: event.changedTouches[0].clientX - rect.left,
+          y: event.changedTouches[0].clientY - rect.top
+        };
+      }
+      return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      };
+    }
+
+    function beginDrag(event) {
+      event.preventDefault();
+      const point = getPoint(event);
+      dragState = {
+        startX: point.x,
+        startY: point.y,
+        currentX: point.x,
+        currentY: point.y
+      };
+    }
+
+    function updateDrag(event) {
+      if (!dragState) {
+        return;
+      }
+      event.preventDefault();
+      const point = getPoint(event);
+      dragState.currentX = point.x;
+      dragState.currentY = point.y;
+    }
+
+    function endDrag(event) {
+      if (!dragState) {
+        return;
+      }
+      event.preventDefault();
+      const point = getPoint(event);
+      const dx = point.x - dragState.startX;
+      const dy = point.y - dragState.startY;
+      addParticle(dragState.startX, dragState.startY, dx * VELOCITY_SCALE, dy * VELOCITY_SCALE, defaultMass);
+      dragState = null;
+    }
+
+    function clearParticles() {
+      particles.length = 0;
+      flashes.length = 0;
+      formatControlValues();
+      render();
+    }
+
+    gravitySlider.addEventListener("input", () => {
+      gravityConstant = Number(gravitySlider.value);
+      formatControlValues();
+    });
+
+    massSlider.addEventListener("input", () => {
+      defaultMass = Number(massSlider.value);
+      formatControlValues();
+    });
+
+    trailSlider.addEventListener("input", () => {
+      maxTrailLength = Number(trailSlider.value);
+      for (const particle of particles) {
+        if (particle.trail.length > maxTrailLength) {
+          particle.trail.splice(0, particle.trail.length - maxTrailLength);
+        }
+      }
+      formatControlValues();
+    });
+
+    pauseButton.addEventListener("click", () => {
+      paused = !paused;
+      formatControlValues();
+    });
+
+    clearButton.addEventListener("click", clearParticles);
+
+    canvas.addEventListener("mousedown", beginDrag);
+    canvas.addEventListener("mousemove", updateDrag);
+    window.addEventListener("mouseup", endDrag);
+    canvas.addEventListener("touchstart", beginDrag, { passive: false });
+    canvas.addEventListener("touchmove", updateDrag, { passive: false });
+    window.addEventListener("touchend", endDrag, { passive: false });
+
+    window.addEventListener("resize", () => {
+      resizeCanvas();
+      render();
+    });
+
+    resizeCanvas();
+    formatControlValues();
+
+    addParticle(window.innerWidth * 0.45, window.innerHeight * 0.5, 0, -1.8, 60);
+    addParticle(window.innerWidth * 0.55, window.innerHeight * 0.5, 0, 1.8, 60);
+    addParticle(window.innerWidth * 0.5, window.innerHeight * 0.42, 2.2, 0, 22);
+
+    cancelAnimationFrame(animationFrameId);
+    tick();
+  </script>
+</body>
+</html>
