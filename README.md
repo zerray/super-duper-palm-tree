@@ -104,6 +104,17 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `sound-palette/index.html` 即可运行。
 
+## 节奏工厂：音乐驱动的 Idle 生产线
+
+新增 `rhythm-factory/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的节奏放置工厂原型，包含：
+
+- 一条基础生产线在固定 BPM 下自动产出资源
+- 玩家在节拍窗口内按 `1` / `2` / `3` 可获得 1.5x 或 2x 产出加成
+- 至少 3 级可解锁生产线，逐步加入低音、打击、旋律音轨
+- 使用 `localStorage` 记录状态并按时间差结算离线收益
+
+直接用浏览器打开 `rhythm-factory/index.html` 即可游玩。
+
 ## Sokoban Warehouse
 
 新增 `sokoban-game/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的 Sokoban 推箱子游戏，包含：
