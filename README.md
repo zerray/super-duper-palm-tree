@@ -49,6 +49,17 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `pixel-landscape/index.html` 即可运行。
 
+## 合作像素拼图
+
+新增 `pixel-coop-puzzle/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的双人协作像素拼图，包含：
+
+- 热座双人协作，玩家 1 负责红色通道，玩家 2 负责青色通道（绿+蓝）
+- 通过 pointer events 拖放打散的像素块，正确放置会吸附并触发视觉与音效反馈
+- 简单 / 普通 / 困难三档难度，对应 8x8 / 12x12 / 16x16 网格
+- 倒计时、完成度百分比、随机图案种子与完成后完整像素画统计
+
+直接用浏览器打开 `pixel-coop-puzzle/index.html` 即可游玩。
+
 ## 像素花园
 
 新增 `pixel-garden/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的放置生长模拟，包含：

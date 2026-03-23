@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>合作像素拼图：双人协作还原像素画</title>
+  <style>
+    :root {
+      --bg: #0e111c;
+      --panel: rgba(17, 22, 37, 0.92);
+      --panel-soft: rgba(28, 35, 58, 0.9);
+      --line: rgba(255, 255, 255, 0.12);
+      --text: #eef2ff;
+      --muted: #a7b0d1;
+      --accent: #ffd166;
+      --player-red: #ff5d73;
+      --player-cyan: #44d9e6;
+      --success: #7ef29a;
+      --danger: #ff8b7e;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 209, 102, 0.08), transparent 24%),
+        radial-gradient(circle at top right, rgba(68, 217, 230, 0.12), transparent 22%),
+        linear-gradient(180deg, #18203a 0%, #111628 45%, #0d111b 100%);
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      border: 1px solid transparent;
+      border-radius: 14px;
+      padding: 10px 14px;
+      cursor: pointer;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.08);
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+
+    button:hover:not(:disabled),
+    button:focus-visible {
+      transform: translateY(-1px);
+      border-color: rgba(255, 209, 102, 0.55);
+      background: rgba(255, 255, 255, 0.14);
+      outline: none;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .page {
+      width: min(1240px, calc(100vw - 24px));
+      margin: 0 auto;
+      padding: 24px 0 40px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .setup,
+    .game {
+      padding: 24px;
+    }
+
+    .setup {
+      display: grid;
+      grid-template-columns: minmax(300px, 440px) 1fr;
+      gap: 22px;
+    }
+
+    .hero-copy h1,
+    .sidebar h2,
+    .board-shell h2,
+    .result-card h2 {
+      margin: 0;
+    }
+
+    .eyebrow,
+    .muted,
+    .helper {
+      color: var(--muted);
+    }
+
+    .hero-copy {
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+
+    .hero-copy h1 {
+      font-size: clamp(2.4rem, 6vw, 4.8rem);
+      line-height: 0.94;
+      letter-spacing: -0.04em;
+    }
+
+    .hero-copy p,
+    .helper,
+    .rules li {
+      line-height: 1.6;
+    }
+
+    .rules,
+    .card,
+    .section-box,
+    .result-card {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--panel-soft);
+    }
+
+    .rules,
+    .card,
+    .section-box {
+      padding: 18px;
+    }
+
+    .rules ul {
+      margin: 12px 0 0;
+      padding-left: 18px;
+    }
+
+    .difficulty-grid,
+    .topbar,
+    .players,
+    .layout,
+    .result-stats {
+      display: grid;
+      gap: 14px;
+    }
+
+    .difficulty-grid {
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
+
+    .difficulty-card {
+      text-align: left;
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .difficulty-card.active {
+      border-color: rgba(255, 209, 102, 0.72);
+      background: rgba(255, 209, 102, 0.15);
+    }
+
+    .difficulty-card strong,
+    .stat strong,
+    .player-card strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .primary {
+      background: linear-gradient(135deg, #ffd166, #ff9b54);
+      color: #23190d;
+      font-weight: 700;
+    }
+
+    .secondary {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .topbar {
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      margin-bottom: 16px;
+    }
+
+    .stat {
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .layout {
+      grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+      align-items: start;
+    }
+
+    .sidebar {
+      display: grid;
+      gap: 16px;
+    }
+
+    .players {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .player-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .player-card.active {
+      transform: translateY(-1px);
+    }
+
+    .player-card.red.active {
+      border-color: rgba(255, 93, 115, 0.8);
+      box-shadow: inset 0 0 0 1px rgba(255, 93, 115, 0.35);
+    }
+
+    .player-card.cyan.active {
+      border-color: rgba(68, 217, 230, 0.8);
+      box-shadow: inset 0 0 0 1px rgba(68, 217, 230, 0.35);
+    }
+
+    .player-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
+    .player-badge.red {
+      background: rgba(255, 93, 115, 0.15);
+      color: var(--player-red);
+    }
+
+    .player-badge.cyan {
+      background: rgba(68, 217, 230, 0.15);
+      color: var(--player-cyan);
+    }
+
+    .board-shell {
+      display: grid;
+      gap: 16px;
+      padding: 18px;
+    }
+
+    .canvas-wrap {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(8, 11, 18, 0.82);
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      touch-action: none;
+      image-rendering: pixelated;
+    }
+
+    .trays {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .tray-card {
+      display: grid;
+      gap: 10px;
+    }
+
+    .tray-card header {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+    }
+
+    .feedback {
+      min-height: 24px;
+      font-weight: 700;
+    }
+
+    .feedback.success {
+      color: var(--success);
+    }
+
+    .feedback.error {
+      color: var(--danger);
+    }
+
+    .result-overlay {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(4, 7, 14, 0.8);
+      padding: 20px;
+      z-index: 20;
+    }
+
+    .result-card {
+      width: min(680px, calc(100vw - 24px));
+      padding: 22px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .result-stats {
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    }
+
+    #drag-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 15;
+    }
+
+    @media (max-width: 920px) {
+      .setup,
+      .layout,
+      .trays,
+      .players {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="drag-layer"></canvas>
+
+  <main class="page">
+    <section class="panel setup" id="setup-screen">
+      <div class="hero-copy">
+        <p class="eyebrow">Co-op Puzzle</p>
+        <h1>合作像素拼图</h1>
+        <p>两位玩家轮流处理不同颜色通道，把打散的像素块拖回正确格子。玩家 1 负责红色通道，玩家 2 负责青色通道（绿+蓝），只有叠加后才能还原完整像素画。</p>
+        <div class="rules">
+          <strong>玩法要点</strong>
+          <ul>
+            <li>支持热座双人模式，点击上方玩家卡片即可切换当前操作方。</li>
+            <li>只有把像素块拖到自己的正确坐标，才会自动吸附并播放反馈音。</li>
+            <li>图案会按种子随机生成，提供简单、普通、困难三档难度。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>开始新局</h2>
+        <p class="helper">难度越高，网格越大，限时越长，像素块数量也越多。</p>
+        <div class="difficulty-grid" id="difficulty-grid"></div>
+        <div style="display:grid; gap:12px; margin-top:16px;">
+          <button class="primary" id="start-button" type="button">开始协作</button>
+          <button class="secondary" id="reroll-button" type="button">换一个随机图案</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel game hidden" id="game-screen">
+      <div class="topbar">
+        <div class="stat"><strong>难度</strong><span id="difficulty-label">简单</span></div>
+        <div class="stat"><strong>剩余时间</strong><span id="timer-label">180s</span></div>
+        <div class="stat"><strong>完成度</strong><span id="progress-label">0%</span></div>
+        <div class="stat"><strong>图案种子</strong><span id="seed-label">0000</span></div>
+      </div>
+
+      <div class="layout">
+        <aside class="sidebar">
+          <div class="section-box">
+            <h2>双人分工</h2>
+            <div class="players">
+              <button class="player-card red active" id="player-red-button" type="button">
+                <span class="player-badge red">玩家 1</span>
+                <strong>红色通道</strong>
+                <span class="helper">只能拖动带红色信息的像素块。</span>
+              </button>
+              <button class="player-card cyan" id="player-cyan-button" type="button">
+                <span class="player-badge cyan">玩家 2</span>
+                <strong>青色通道</strong>
+                <span class="helper">负责绿色和蓝色信息的拼接。</span>
+              </button>
+            </div>
+            <div class="helper">按 <kbd>Tab</kbd> 也可以切换当前玩家。</div>
+          </div>
+
+          <div class="section-box">
+            <h2>目标预览</h2>
+            <div class="canvas-wrap"><canvas id="preview-canvas" width="192" height="192"></canvas></div>
+          </div>
+
+          <div class="section-box">
+            <h2>操作</h2>
+            <div style="display:grid; gap:10px;">
+              <button class="secondary" id="restart-button" type="button">重开当前难度</button>
+              <button class="secondary" id="new-pattern-button" type="button">生成新图案</button>
+            </div>
+            <div class="feedback" id="feedback-text"></div>
+          </div>
+        </aside>
+
+        <div class="board-shell">
+          <div>
+            <h2>协作画布</h2>
+            <p class="helper">拖放到正确格子会自动吸附。错误位置会回到托盘。</p>
+          </div>
+          <div class="canvas-wrap"><canvas id="board-canvas" width="720" height="720"></canvas></div>
+          <div class="trays">
+            <section class="tray-card">
+              <header>
+                <strong style="color: var(--player-red);">玩家 1 托盘</strong>
+                <span class="helper" id="red-count">0 / 0</span>
+              </header>
+              <div class="canvas-wrap"><canvas id="tray-red-canvas" width="520" height="320"></canvas></div>
+            </section>
+            <section class="tray-card">
+              <header>
+                <strong style="color: var(--player-cyan);">玩家 2 托盘</strong>
+                <span class="helper" id="cyan-count">0 / 0</span>
+              </header>
+              <div class="canvas-wrap"><canvas id="tray-cyan-canvas" width="520" height="320"></canvas></div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <section class="result-overlay hidden" id="result-overlay">
+    <div class="result-card">
+      <div>
+        <h2 id="result-title">协作成功</h2>
+        <p class="helper" id="result-copy"></p>
+      </div>
+      <div class="result-stats">
+        <div class="stat"><strong>总用时</strong><span id="result-time">0s</span></div>
+        <div class="stat"><strong>完成度</strong><span id="result-progress">100%</span></div>
+        <div class="stat"><strong>像素块</strong><span id="result-pieces">0</span></div>
+      </div>
+      <div class="canvas-wrap"><canvas id="result-canvas" width="256" height="256"></canvas></div>
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <button class="primary" id="play-again-button" type="button">再来一局</button>
+        <button class="secondary" id="close-result-button" type="button">关闭结果</button>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const DIFFICULTIES = {
+      easy: { label: "简单", size: 8, seconds: 180 },
+      medium: { label: "普通", size: 12, seconds: 240 },
+      hard: { label: "困难", size: 16, seconds: 300 }
+    };
+
+    const PLAYER_INFO = {
+      red: { label: "玩家 1", color: "#ff5d73", channels: "R" },
+      cyan: { label: "玩家 2", color: "#44d9e6", channels: "G+B" }
+    };
+
+    const PALETTE = [
+      [0, 0, 0],
+      [255, 98, 98],
+      [46, 196, 182],
+      [255, 209, 102],
+      [108, 92, 231],
+      [0, 187, 249],
+      [241, 91, 181],
+      [255, 255, 255]
+    ];
+
+    const setupScreen = document.querySelector("#setup-screen");
+    const gameScreen = document.querySelector("#game-screen");
+    const difficultyGrid = document.querySelector("#difficulty-grid");
+    const startButton = document.querySelector("#start-button");
+    const rerollButton = document.querySelector("#reroll-button");
+    const difficultyLabel = document.querySelector("#difficulty-label");
+    const timerLabel = document.querySelector("#timer-label");
+    const progressLabel = document.querySelector("#progress-label");
+    const seedLabel = document.querySelector("#seed-label");
+    const feedbackText = document.querySelector("#feedback-text");
+    const redCount = document.querySelector("#red-count");
+    const cyanCount = document.querySelector("#cyan-count");
+    const playerRedButton = document.querySelector("#player-red-button");
+    const playerCyanButton = document.querySelector("#player-cyan-button");
+    const restartButton = document.querySelector("#restart-button");
+    const newPatternButton = document.querySelector("#new-pattern-button");
+    const resultOverlay = document.querySelector("#result-overlay");
+    const resultTitle = document.querySelector("#result-title");
+    const resultCopy = document.querySelector("#result-copy");
+    const resultTime = document.querySelector("#result-time");
+    const resultProgress = document.querySelector("#result-progress");
+    const resultPieces = document.querySelector("#result-pieces");
+    const playAgainButton = document.querySelector("#play-again-button");
+    const closeResultButton = document.querySelector("#close-result-button");
+
+    const boardCanvas = document.querySelector("#board-canvas");
+    const previewCanvas = document.querySelector("#preview-canvas");
+    const trayCanvases = {
+      red: document.querySelector("#tray-red-canvas"),
+      cyan: document.querySelector("#tray-cyan-canvas")
+    };
+    const resultCanvas = document.querySelector("#result-canvas");
+    const dragLayer = document.querySelector("#drag-layer");
+
+    const boardCtx = boardCanvas.getContext("2d");
+    const previewCtx = previewCanvas.getContext("2d");
+    const resultCtx = resultCanvas.getContext("2d");
+    const trayCtx = {
+      red: trayCanvases.red.getContext("2d"),
+      cyan: trayCanvases.cyan.getContext("2d")
+    };
+    const dragCtx = dragLayer.getContext("2d");
+
+    const state = {
+      difficulty: "easy",
+      seed: makeSeed(),
+      target: [],
+      pieces: { red: [], cyan: [] },
+      totals: { red: 0, cyan: 0 },
+      activePlayer: "red",
+      placedCount: 0,
+      totalPieces: 0,
+      startedAt: 0,
+      secondsLeft: 0,
+      timerId: null,
+      drag: null,
+      flashes: []
+    };
+
+    let audioContext = null;
+
+    function makeSeed() {
+      return Math.floor(Math.random() * 900000 + 100000);
+    }
+
+    function mulberry32(seed) {
+      let t = seed >>> 0;
+      return function () {
+        t += 0x6D2B79F5;
+        let r = Math.imul(t ^ (t >>> 15), t | 1);
+        r ^= r + Math.imul(r ^ (r >>> 7), r | 61);
+        return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function shuffle(list, rng) {
+      for (let i = list.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(rng() * (i + 1));
+        [list[i], list[j]] = [list[j], list[i]];
+      }
+      return list;
+    }
+
+    function colorToCss(rgb) {
+      return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+    }
+
+    function generateTarget(size, seed) {
+      for (let attempt = 0; attempt < 24; attempt += 1) {
+        const rng = mulberry32(seed + attempt * 97);
+        const grid = Array.from({ length: size }, () => Array.from({ length: size }, () => [0, 0, 0]));
+        const colorPool = shuffle(PALETTE.slice(1), rng).slice(0, Math.min(5, 2 + Math.floor(size / 3)));
+        const blobs = size + Math.floor(rng() * size);
+
+        for (let i = 0; i < blobs; i += 1) {
+          const centerX = Math.floor(rng() * Math.ceil(size / 2));
+          const centerY = Math.floor(rng() * size);
+          const radius = 1 + Math.floor(rng() * Math.max(2, size / 5));
+          const color = colorPool[Math.floor(rng() * colorPool.length)];
+
+          for (let y = 0; y < size; y += 1) {
+            for (let x = 0; x < Math.ceil(size / 2); x += 1) {
+              const dx = Math.abs(x - centerX);
+              const dy = Math.abs(y - centerY);
+              const metric = dx + dy + rng() * 0.75;
+
+              if (metric <= radius + (rng() > 0.72 ? 1 : 0)) {
+                grid[y][x] = color.slice();
+                grid[y][size - 1 - x] = color.slice();
+              }
+            }
+          }
+        }
+
+        const eyeY = Math.max(1, Math.floor(size * 0.32));
+        const eyeX = Math.max(1, Math.floor(size * 0.22));
+        const eyeColor = colorPool[0];
+        grid[eyeY][eyeX] = eyeColor.slice();
+        grid[eyeY][size - 1 - eyeX] = eyeColor.slice();
+
+        for (let x = 0; x < size; x += 1) {
+          if (rng() > 0.84) {
+            grid[size - 2][x] = colorPool[(x + attempt) % colorPool.length].slice();
+          }
+        }
+
+        const pieces = splitChannels(grid, size);
+        if (pieces.red.length >= size * 2 && pieces.cyan.length >= size * 2) {
+          return { grid, pieces };
+        }
+      }
+
+      const fallback = Array.from({ length: size }, (_, y) => (
+        Array.from({ length: size }, (_, x) => ((x + y) % 2 === 0 ? [255, 209, 102] : [46, 196, 182]))
+      ));
+      return { grid: fallback, pieces: splitChannels(fallback, size) };
+    }
+
+    function splitChannels(grid, size) {
+      const red = [];
+      const cyan = [];
+
+      for (let y = 0; y < size; y += 1) {
+        for (let x = 0; x < size; x += 1) {
+          const [r, g, b] = grid[y][x];
+          if (r > 0) {
+            red.push({
+              id: `r-${x}-${y}`,
+              player: "red",
+              tx: x,
+              ty: y,
+              color: [r, 0, 0],
+              placed: false,
+              trayRect: null
+            });
+          }
+          if (g > 0 || b > 0) {
+            cyan.push({
+              id: `c-${x}-${y}`,
+              player: "cyan",
+              tx: x,
+              ty: y,
+              color: [0, g, b],
+              placed: false,
+              trayRect: null
+            });
+          }
+        }
+      }
+
+      return { red, cyan };
+    }
+
+    function chooseDifficulty(key) {
+      state.difficulty = key;
+      for (const button of difficultyGrid.querySelectorAll("button")) {
+        button.classList.toggle("active", button.dataset.key === key);
+      }
+    }
+
+    function buildDifficultyButtons() {
+      const cards = Object.entries(DIFFICULTIES).map(([key, value]) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.dataset.key = key;
+        button.className = `difficulty-card${key === state.difficulty ? " active" : ""}`;
+        button.innerHTML = `<strong>${value.label}</strong><span class="helper">${value.size} x ${value.size} 网格</span><br><span class="helper">${value.seconds} 秒倒计时</span>`;
+        button.addEventListener("click", () => chooseDifficulty(key));
+        return button;
+      });
+      difficultyGrid.replaceChildren(...cards);
+    }
+
+    function startGame(newSeed = state.seed) {
+      const config = DIFFICULTIES[state.difficulty];
+      const generated = generateTarget(config.size, newSeed);
+      const rng = mulberry32(newSeed * 13 + config.size);
+
+      state.seed = newSeed;
+      state.target = generated.grid;
+      state.pieces = {
+        red: shuffle(generated.pieces.red, rng),
+        cyan: shuffle(generated.pieces.cyan, rng)
+      };
+      state.totals = {
+        red: state.pieces.red.length,
+        cyan: state.pieces.cyan.length
+      };
+      state.totalPieces = state.totals.red + state.totals.cyan;
+      state.placedCount = 0;
+      state.activePlayer = "red";
+      state.secondsLeft = config.seconds;
+      state.startedAt = performance.now();
+      state.flashes = [];
+      hideResult();
+      clearTimer();
+      updateLabels();
+      setFeedback("拖动自己的像素块到正确格子。", "");
+      setupScreen.classList.add("hidden");
+      gameScreen.classList.remove("hidden");
+      layoutTrayPieces("red");
+      layoutTrayPieces("cyan");
+      syncPlayerButtons();
+      resizeCanvases();
+      renderAll();
+      state.timerId = window.setInterval(tickTimer, 1000);
+    }
+
+    function restartCurrentGame() {
+      startGame(state.seed);
+    }
+
+    function tickTimer() {
+      state.secondsLeft = Math.max(0, state.secondsLeft - 1);
+      updateLabels();
+      if (state.secondsLeft === 0) {
+        endGame(false);
+      }
+    }
+
+    function clearTimer() {
+      if (state.timerId) {
+        window.clearInterval(state.timerId);
+        state.timerId = null;
+      }
+    }
+
+    function updateLabels() {
+      difficultyLabel.textContent = DIFFICULTIES[state.difficulty].label;
+      timerLabel.textContent = `${state.secondsLeft}s`;
+      seedLabel.textContent = String(state.seed);
+      progressLabel.textContent = `${Math.round((state.placedCount / Math.max(1, state.totalPieces)) * 100)}%`;
+      redCount.textContent = `${countPlaced("red")} / ${state.totals.red}`;
+      cyanCount.textContent = `${countPlaced("cyan")} / ${state.totals.cyan}`;
+    }
+
+    function countPlaced(player) {
+      return state.pieces[player].filter((piece) => piece.placed).length;
+    }
+
+    function setFeedback(message, tone) {
+      feedbackText.textContent = message;
+      feedbackText.className = `feedback${tone ? ` ${tone}` : ""}`;
+    }
+
+    function syncPlayerButtons() {
+      const redActive = state.activePlayer === "red";
+      playerRedButton.classList.toggle("active", redActive);
+      playerCyanButton.classList.toggle("active", !redActive);
+    }
+
+    function setActivePlayer(player) {
+      state.activePlayer = player;
+      syncPlayerButtons();
+      renderTrays();
+    }
+
+    function layoutTrayPieces(player) {
+      const canvas = trayCanvases[player];
+      const unplaced = state.pieces[player].filter((piece) => !piece.placed);
+      const columns = Math.max(4, Math.floor(canvas.width / 42));
+      const cell = Math.max(22, Math.floor(canvas.width / Math.max(columns + 1, 8)));
+
+      unplaced.forEach((piece, index) => {
+        const col = index % columns;
+        const row = Math.floor(index / columns);
+        piece.trayRect = {
+          x: 12 + col * cell,
+          y: 12 + row * cell,
+          size: Math.max(18, cell - 8)
+        };
+      });
+    }
+
+    function resizeCanvases() {
+      const size = DIFFICULTIES[state.difficulty].size;
+      const boardSide = Math.min(720, Math.max(360, Math.floor(boardCanvas.parentElement.clientWidth - 2)));
+      boardCanvas.width = boardSide;
+      boardCanvas.height = boardSide;
+      previewCanvas.width = 192;
+      previewCanvas.height = 192;
+      resultCanvas.width = 256;
+      resultCanvas.height = 256;
+
+      for (const player of ["red", "cyan"]) {
+        const canvas = trayCanvases[player];
+        canvas.width = Math.max(360, Math.floor(canvas.parentElement.clientWidth - 2));
+        const pieceCount = state.pieces[player].filter((piece) => !piece.placed).length;
+        const columns = Math.max(4, Math.floor(canvas.width / 42));
+        const rows = Math.max(2, Math.ceil(pieceCount / columns));
+        canvas.height = Math.max(148, 24 + rows * 36);
+        layoutTrayPieces(player);
+      }
+
+      const ratio = window.devicePixelRatio || 1;
+      dragLayer.width = Math.floor(window.innerWidth * ratio);
+      dragLayer.height = Math.floor(window.innerHeight * ratio);
+      dragLayer.style.width = `${window.innerWidth}px`;
+      dragLayer.style.height = `${window.innerHeight}px`;
+      dragCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+      renderPreview(size);
+      renderAll();
+    }
+
+    function getBoardMetrics() {
+      const size = DIFFICULTIES[state.difficulty].size;
+      const padding = 24;
+      const cell = Math.floor((boardCanvas.width - padding * 2) / size);
+      const offset = Math.floor((boardCanvas.width - cell * size) / 2);
+      return { size, padding: offset, cell };
+    }
+
+    function drawPixelCell(ctx, x, y, size, color) {
+      ctx.fillStyle = colorToCss(color);
+      ctx.fillRect(x, y, size, size);
+      ctx.strokeStyle = "rgba(255,255,255,0.08)";
+      ctx.strokeRect(x + 0.5, y + 0.5, size - 1, size - 1);
+    }
+
+    function renderBoard() {
+      const { size, padding, cell } = getBoardMetrics();
+      boardCtx.clearRect(0, 0, boardCanvas.width, boardCanvas.height);
+      boardCtx.fillStyle = "#0a0d14";
+      boardCtx.fillRect(0, 0, boardCanvas.width, boardCanvas.height);
+
+      for (let y = 0; y < size; y += 1) {
+        for (let x = 0; x < size; x += 1) {
+          const px = padding + x * cell;
+          const py = padding + y * cell;
+          boardCtx.fillStyle = (x + y) % 2 === 0 ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.02)";
+          boardCtx.fillRect(px, py, cell, cell);
+        }
+      }
+
+      for (const player of ["red", "cyan"]) {
+        for (const piece of state.pieces[player]) {
+          if (!piece.placed) {
+            continue;
+          }
+          const px = padding + piece.tx * cell;
+          const py = padding + piece.ty * cell;
+          drawPixelCell(boardCtx, px, py, cell, piece.color);
+        }
+      }
+
+      const now = performance.now();
+      state.flashes = state.flashes.filter((flash) => now - flash.time < 260);
+      for (const flash of state.flashes) {
+        const alpha = 1 - (now - flash.time) / 260;
+        boardCtx.fillStyle = flash.color.replace("ALPHA", alpha.toFixed(3));
+        boardCtx.fillRect(padding + flash.x * cell, padding + flash.y * cell, cell, cell);
+      }
+
+      boardCtx.strokeStyle = "rgba(255,255,255,0.18)";
+      for (let index = 0; index <= size; index += 1) {
+        const line = padding + index * cell;
+        boardCtx.beginPath();
+        boardCtx.moveTo(padding, line + 0.5);
+        boardCtx.lineTo(padding + size * cell, line + 0.5);
+        boardCtx.stroke();
+        boardCtx.beginPath();
+        boardCtx.moveTo(line + 0.5, padding);
+        boardCtx.lineTo(line + 0.5, padding + size * cell);
+        boardCtx.stroke();
+      }
+    }
+
+    function renderPreview(size) {
+      const cell = Math.floor(previewCanvas.width / size);
+      previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+      previewCtx.fillStyle = "#080b12";
+      previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+      const offset = Math.floor((previewCanvas.width - cell * size) / 2);
+
+      for (let y = 0; y < size; y += 1) {
+        for (let x = 0; x < size; x += 1) {
+          drawPixelCell(previewCtx, offset + x * cell, offset + y * cell, cell, state.target[y][x]);
+        }
+      }
+    }
+
+    function renderResultCanvas() {
+      const size = DIFFICULTIES[state.difficulty].size;
+      const cell = Math.floor(resultCanvas.width / size);
+      const offset = Math.floor((resultCanvas.width - size * cell) / 2);
+      resultCtx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+      resultCtx.fillStyle = "#080b12";
+      resultCtx.fillRect(0, 0, resultCanvas.width, resultCanvas.height);
+
+      for (let y = 0; y < size; y += 1) {
+        for (let x = 0; x < size; x += 1) {
+          drawPixelCell(resultCtx, offset + x * cell, offset + y * cell, cell, state.target[y][x]);
+        }
+      }
+    }
+
+    function renderTray(player) {
+      const canvas = trayCanvases[player];
+      const ctx = trayCtx[player];
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = player === "red" ? "rgba(255, 93, 115, 0.06)" : "rgba(68, 217, 230, 0.06)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const active = state.activePlayer === player;
+      ctx.strokeStyle = active ? "rgba(255, 209, 102, 0.55)" : "rgba(255,255,255,0.08)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
+
+      for (const piece of state.pieces[player]) {
+        if (piece.placed || !piece.trayRect || state.drag?.piece.id === piece.id) {
+          continue;
+        }
+        const { x, y, size } = piece.trayRect;
+        ctx.fillStyle = "rgba(255,255,255,0.08)";
+        ctx.fillRect(x - 3, y - 3, size + 6, size + 6);
+        drawPixelCell(ctx, x, y, size, piece.color);
+      }
+    }
+
+    function renderTrays() {
+      renderTray("red");
+      renderTray("cyan");
+    }
+
+    function renderDragLayer() {
+      dragCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      if (!state.drag) {
+        return;
+      }
+      const size = state.drag.size;
+      dragCtx.fillStyle = "rgba(255,255,255,0.12)";
+      dragCtx.fillRect(state.drag.x - size / 2 - 3, state.drag.y - size / 2 - 3, size + 6, size + 6);
+      dragCtx.fillStyle = colorToCss(state.drag.piece.color);
+      dragCtx.fillRect(state.drag.x - size / 2, state.drag.y - size / 2, size, size);
+      dragCtx.strokeStyle = "rgba(255,255,255,0.25)";
+      dragCtx.strokeRect(state.drag.x - size / 2 + 0.5, state.drag.y - size / 2 + 0.5, size - 1, size - 1);
+    }
+
+    function renderAll() {
+      renderBoard();
+      renderTrays();
+      renderDragLayer();
+    }
+
+    function playTone(kind) {
+      try {
+        audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
+        const duration = kind === "success" ? 0.12 : 0.09;
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.type = kind === "success" ? "triangle" : "sawtooth";
+        osc.frequency.value = kind === "success" ? 680 : 180;
+        gain.gain.value = 0.0001;
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        const now = audioContext.currentTime;
+        gain.gain.exponentialRampToValueAtTime(0.06, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+        osc.start(now);
+        osc.stop(now + duration);
+      } catch (error) {
+        return;
+      }
+    }
+
+    function findPieceInTray(player, event) {
+      if (state.activePlayer !== player) {
+        return null;
+      }
+      const canvas = trayCanvases[player];
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = (event.clientX - rect.left) * scaleX;
+      const y = (event.clientY - rect.top) * scaleY;
+
+      return state.pieces[player].find((piece) => (
+        !piece.placed &&
+        piece.trayRect &&
+        x >= piece.trayRect.x &&
+        x <= piece.trayRect.x + piece.trayRect.size &&
+        y >= piece.trayRect.y &&
+        y <= piece.trayRect.y + piece.trayRect.size
+      )) || null;
+    }
+
+    function handleTrayPointerDown(player, event) {
+      const piece = findPieceInTray(player, event);
+      if (!piece) {
+        return;
+      }
+      const canvas = trayCanvases[player];
+      const rect = canvas.getBoundingClientRect();
+      const visualSize = piece.trayRect.size * (rect.width / canvas.width);
+      state.drag = {
+        piece,
+        player,
+        x: event.clientX,
+        y: event.clientY,
+        size: visualSize
+      };
+      setFeedback(`${PLAYER_INFO[player].label} 正在放置 ${PLAYER_INFO[player].channels} 通道像素。`, "");
+      renderAll();
+    }
+
+    function handlePointerMove(event) {
+      if (!state.drag) {
+        return;
+      }
+      state.drag.x = event.clientX;
+      state.drag.y = event.clientY;
+      renderDragLayer();
+    }
+
+    function occupiedByPlayer(player, x, y) {
+      return state.pieces[player].some((piece) => piece.placed && piece.tx === x && piece.ty === y);
+    }
+
+    function flashCell(x, y, good) {
+      state.flashes.push({
+        x,
+        y,
+        time: performance.now(),
+        color: good ? "rgba(126, 242, 154, ALPHA)" : "rgba(255, 139, 126, ALPHA)"
+      });
+    }
+
+    function handlePointerUp(event) {
+      if (!state.drag) {
+        return;
+      }
+
+      const { piece, player } = state.drag;
+      const boardRect = boardCanvas.getBoundingClientRect();
+      const metrics = getBoardMetrics();
+      const insideBoard = (
+        event.clientX >= boardRect.left &&
+        event.clientX <= boardRect.right &&
+        event.clientY >= boardRect.top &&
+        event.clientY <= boardRect.bottom
+      );
+
+      let placed = false;
+      if (insideBoard) {
+        const boardX = (event.clientX - boardRect.left) * (boardCanvas.width / boardRect.width);
+        const boardY = (event.clientY - boardRect.top) * (boardCanvas.height / boardRect.height);
+        const gridX = Math.floor((boardX - metrics.padding) / metrics.cell);
+        const gridY = Math.floor((boardY - metrics.padding) / metrics.cell);
+        const valid = gridX >= 0 && gridX < metrics.size && gridY >= 0 && gridY < metrics.size;
+
+        if (valid && gridX === piece.tx && gridY === piece.ty && !occupiedByPlayer(player, gridX, gridY)) {
+          piece.placed = true;
+          state.placedCount += 1;
+          layoutTrayPieces(player);
+          flashCell(gridX, gridY, true);
+          setFeedback("放置正确，像素已吸附。", "success");
+          playTone("success");
+          placed = true;
+          updateLabels();
+          if (state.placedCount === state.totalPieces) {
+            endGame(true);
+          }
+        } else {
+          flashCell(piece.tx, piece.ty, false);
+          setFeedback("位置不对，像素块已回到托盘。", "error");
+          playTone("error");
+        }
+      }
+
+      state.drag = null;
+      if (!placed) {
+        layoutTrayPieces(player);
+      }
+      renderAll();
+    }
+
+    function endGame(won) {
+      clearTimer();
+      renderResultCanvas();
+      resultOverlay.classList.remove("hidden");
+      const usedSeconds = DIFFICULTIES[state.difficulty].seconds - state.secondsLeft;
+      resultTitle.textContent = won ? "拼图完成" : "时间到";
+      resultCopy.textContent = won
+        ? "两位玩家成功叠加红色与青色通道，还原了完整像素画。"
+        : "本局未在时限内完成，完整目标图已展示，可直接再开一局。";
+      resultTime.textContent = `${usedSeconds}s`;
+      resultProgress.textContent = `${Math.round((state.placedCount / Math.max(1, state.totalPieces)) * 100)}%`;
+      resultPieces.textContent = `${state.totalPieces}`;
+    }
+
+    function hideResult() {
+      resultOverlay.classList.add("hidden");
+    }
+
+    playerRedButton.addEventListener("click", () => setActivePlayer("red"));
+    playerCyanButton.addEventListener("click", () => setActivePlayer("cyan"));
+    startButton.addEventListener("click", () => startGame(state.seed));
+    rerollButton.addEventListener("click", () => {
+      state.seed = makeSeed();
+      setFeedback(`新的图案种子已准备：${state.seed}`, "");
+      seedLabel.textContent = String(state.seed);
+    });
+    restartButton.addEventListener("click", restartCurrentGame);
+    newPatternButton.addEventListener("click", () => startGame(makeSeed()));
+    playAgainButton.addEventListener("click", () => startGame(makeSeed()));
+    closeResultButton.addEventListener("click", hideResult);
+
+    trayCanvases.red.addEventListener("pointerdown", (event) => handleTrayPointerDown("red", event));
+    trayCanvases.cyan.addEventListener("pointerdown", (event) => handleTrayPointerDown("cyan", event));
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("resize", resizeCanvases);
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "Tab") {
+        event.preventDefault();
+        setActivePlayer(state.activePlayer === "red" ? "cyan" : "red");
+      }
+    });
+
+    buildDifficultyButtons();
+    updateLabels();
+    seedLabel.textContent = String(state.seed);
+  </script>
+</body>
+</html>

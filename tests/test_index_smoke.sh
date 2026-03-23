@@ -20,6 +20,7 @@ grep -q 'slug: "magnetic-pong"' "$index_file" || fail "magnetic-pong metadata mi
 grep -q 'slug: "game-of-life"' "$index_file" || fail "game-of-life metadata missing"
 grep -q 'slug: "nie-xiaoqian-rpg"' "$index_file" || fail "nie-xiaoqian-rpg metadata missing"
 grep -q 'slug: "waveform-dj"' "$index_file" || fail "waveform-dj metadata missing"
+grep -q 'slug: "pixel-coop-puzzle"' "$index_file" || fail "pixel-coop-puzzle metadata missing"
 grep -q 'slug: "pixel-palette-puzzle"' "$index_file" || fail "pixel-palette-puzzle metadata missing"
 grep -q 'const gamePath = game.path ?? `${game.slug}/index.html`;' "$index_file" || fail "game path fallback missing"
 grep -q 'link.href = `./${gamePath}`;' "$index_file" || fail "dynamic play link template missing"
