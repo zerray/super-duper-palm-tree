@@ -6,6 +6,17 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 仓库根目录新增 `index.html` 作为统一入口页，用卡片方式汇总当前已完成的可玩 mini-games，并直接链接到各自的 `index.html`。直接在浏览器打开根目录 `index.html` 即可浏览和启动游戏。
 
+## 无尽工厂：放置传送带
+
+新增 `conveyor-factory/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的 idle 工厂自动化原型，包含：
+
+- 至少 12x12 的工厂网格，支持点击与拖拽连续放置四方向传送带
+- 矿机、加工机、收集器三类基础机器，以及两层科技解锁出的高阶矿机与高阶加工机
+- 基于 tick 的物品流动、传送带断线停运判定与金币自动累计
+- 使用 `localStorage` 自动保存当前金币、库存、科技和地图布局
+
+直接用浏览器打开 `conveyor-factory/index.html` 即可游玩。
+
 ## Conway's Game of Life
 
 新增 `game-of-life/index.html`，提供一个可直接在浏览器中打开的康威生命游戏模拟器，包含：
