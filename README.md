@@ -49,6 +49,17 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `pixel-landscape/index.html` 即可运行。
 
+## 像素花园
+
+新增 `pixel-garden/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的放置生长模拟，包含：
+
+- 点击网格放置 4 种植物种子
+- 植物自动经历种子、幼苗、成熟、开花 4 个可视阶段
+- 向日葵与玫瑰共生加速，藤蔓会蔓延，杂草会竞争并导致邻居枯萎
+- 使用 Canvas 像素风渲染，并支持将当前花园截图导出为 PNG
+
+直接用浏览器打开 `pixel-garden/index.html` 即可游玩。
+
 ## Sound Palette
 
 新增 `sound-palette/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的音乐步进音序器玩具，包含：
