@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>星际矿脉</title>
+  <style>
+    :root {
+      --bg: #07111f;
+      --panel: rgba(10, 19, 38, 0.88);
+      --panel-strong: rgba(17, 29, 55, 0.96);
+      --line: rgba(145, 176, 255, 0.18);
+      --text: #eef4ff;
+      --muted: #98a9cf;
+      --accent: #7fe1ff;
+      --common: #81f2a4;
+      --rare: #64abff;
+      --epic: #d18aff;
+      --dead: #5d657a;
+      --good: #ffe08f;
+      --danger: #ff8b8b;
+      --shadow: 0 20px 48px rgba(0, 0, 0, 0.36);
+      --font-display: "Avenir Next Condensed", "Trebuchet MS", sans-serif;
+      --font-body: "Avenir Next", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-body);
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(95, 152, 255, 0.25), transparent 24%),
+        radial-gradient(circle at top right, rgba(209, 138, 255, 0.17), transparent 20%),
+        radial-gradient(circle at bottom, rgba(28, 126, 111, 0.15), transparent 28%),
+        linear-gradient(180deg, #091223 0%, #040813 62%, #03050c 100%);
+    }
+
+    button {
+      font: inherit;
+      color: inherit;
+    }
+
+    h1, h2, h3, p {
+      margin: 0;
+    }
+
+    .app {
+      width: min(1380px, calc(100vw - 28px));
+      margin: 18px auto 28px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .topbar {
+      padding: 18px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .hero {
+      padding: 18px;
+      border-radius: 20px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(127, 225, 255, 0.04)),
+        rgba(255, 255, 255, 0.03);
+      display: grid;
+      gap: 10px;
+    }
+
+    .eyebrow,
+    .label {
+      font-size: 0.76rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2.6rem, 5vw, 4.8rem);
+      line-height: 0.9;
+      letter-spacing: -0.05em;
+    }
+
+    .subtitle,
+    .muted {
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .resource-card {
+      padding: 16px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.04);
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .value {
+      font-size: clamp(1.35rem, 2.6vw, 2.1rem);
+      font-weight: 700;
+    }
+
+    .main {
+      display: grid;
+      grid-template-columns: minmax(280px, 320px) minmax(0, 1fr) minmax(280px, 340px);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    .section {
+      padding: 18px;
+    }
+
+    .section h2 {
+      font-size: 1rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .list,
+    .tech-list {
+      margin-top: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .action,
+    .tech {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 18px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.07), rgba(100, 171, 255, 0.03)),
+        rgba(255, 255, 255, 0.02);
+      padding: 14px;
+      text-align: left;
+      cursor: pointer;
+      transition: transform 150ms ease, border-color 150ms ease, opacity 150ms ease;
+      display: grid;
+      gap: 6px;
+    }
+
+    .action:hover:not(:disabled),
+    .tech:hover:not(:disabled) {
+      transform: translateY(-2px);
+      border-color: rgba(127, 225, 255, 0.4);
+    }
+
+    .action:disabled,
+    .tech:disabled {
+      opacity: 0.48;
+      cursor: not-allowed;
+    }
+
+    .tech.unlocked {
+      border-color: rgba(129, 242, 164, 0.45);
+      background: rgba(129, 242, 164, 0.08);
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+    }
+
+    .map-panel {
+      padding: 14px;
+      position: relative;
+    }
+
+    .map-frame {
+      position: relative;
+      overflow: hidden;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background:
+        radial-gradient(circle at top, rgba(121, 161, 255, 0.1), transparent 40%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 20%),
+        #050a15;
+    }
+
+    #star-map {
+      width: 100%;
+      height: 720px;
+      display: block;
+      cursor: pointer;
+    }
+
+    .overlay {
+      position: absolute;
+      left: 16px;
+      top: 16px;
+      max-width: 300px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(4, 9, 20, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      pointer-events: none;
+    }
+
+    .legend {
+      position: absolute;
+      right: 16px;
+      top: 16px;
+      display: grid;
+      gap: 8px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(4, 9, 20, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .node-list {
+      margin-top: 14px;
+      display: grid;
+      gap: 10px;
+      max-height: 280px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .node-card {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      display: grid;
+      gap: 6px;
+    }
+
+    .status {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .offline-modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      background: rgba(3, 5, 10, 0.72);
+      padding: 20px;
+    }
+
+    .offline-modal.open {
+      display: grid;
+    }
+
+    .offline-card {
+      width: min(420px, 100%);
+      padding: 22px;
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      background: var(--panel-strong);
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 12px;
+    }
+
+    .offline-card button {
+      border: 0;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #73d5ff, #8dffb1);
+      color: #031019;
+      font-weight: 700;
+      padding: 12px 14px;
+      cursor: pointer;
+    }
+
+    @media (max-width: 1120px) {
+      .topbar,
+      .main {
+        grid-template-columns: 1fr;
+      }
+
+      #star-map {
+        height: 560px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel topbar">
+      <div class="hero">
+        <p class="eyebrow">Idle Strategy</p>
+        <h1>星际矿脉</h1>
+        <p class="subtitle">
+          在随机星图上部署自动采矿无人机，压榨有限槽位，研究科技并把枯竭矿脉变成长期收益。
+        </p>
+      </div>
+      <div class="resource-card">
+        <p class="label">矿晶储备</p>
+        <div class="value" id="ore-value">0</div>
+        <p class="muted" id="ore-rate">实时产出 0 / 秒</p>
+      </div>
+      <div class="resource-card">
+        <p class="label">能量点</p>
+        <div class="value" id="credits-value">0</div>
+        <p class="muted">用于升级无人机与科技研究</p>
+      </div>
+      <div class="resource-card">
+        <p class="label">部署状态</p>
+        <div class="value" id="drone-value">0 / 1</div>
+        <p class="muted" id="drone-note">1 个机库槽位</p>
+      </div>
+      <div class="resource-card">
+        <p class="label">星域范围</p>
+        <div class="value" id="zone-value">核心区</div>
+        <p class="muted" id="zone-note">可探索 12 个矿点</p>
+      </div>
+    </section>
+
+    <section class="main">
+      <div class="stack">
+        <section class="panel section">
+          <h2>无人机工坊</h2>
+          <p class="muted">点击星图矿点部署。无人机等级越高，开采越快，单跳产出越高。</p>
+          <div class="list">
+            <button class="action" id="buy-slot-btn" type="button"></button>
+            <button class="action" id="upgrade-drone-btn" type="button"></button>
+            <button class="action" id="recall-btn" type="button"></button>
+          </div>
+        </section>
+
+        <section class="panel section">
+          <h2>矿脉调度</h2>
+          <p class="muted">矿脉枯竭后会进入冷却，稍后在随机位置再生。高稀有度矿点更慢但更值钱。</p>
+          <div class="node-list" id="node-list"></div>
+        </section>
+      </div>
+
+      <section class="panel map-panel">
+        <div class="map-frame">
+          <canvas id="star-map" width="960" height="720"></canvas>
+          <div class="overlay">
+            <strong id="selection-title">点击矿脉部署无人机</strong>
+            <p class="muted" id="selection-copy">绿色普通、蓝色稀有、紫色史诗。灰色矿脉已枯竭。</p>
+          </div>
+          <div class="legend">
+            <div class="legend-item"><span class="dot" style="background: var(--common)"></span>普通矿脉</div>
+            <div class="legend-item"><span class="dot" style="background: var(--rare)"></span>稀有矿脉</div>
+            <div class="legend-item"><span class="dot" style="background: var(--epic)"></span>史诗矿脉</div>
+            <div class="legend-item"><span class="dot" style="background: var(--dead)"></span>枯竭中</div>
+          </div>
+        </div>
+      </section>
+
+      <div class="stack">
+        <section class="panel section">
+          <h2>科技树</h2>
+          <p class="muted">3 到 5 个轻量科技节点，围绕效率、槽位、扫描与再生速度展开。</p>
+          <div class="tech-list" id="tech-list"></div>
+        </section>
+
+        <section class="panel section">
+          <h2>指挥日志</h2>
+          <div class="list" id="event-log"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div class="offline-modal" id="offline-modal" aria-hidden="true">
+    <div class="offline-card">
+      <p class="eyebrow">Offline Yield</p>
+      <h2>离线采集完成</h2>
+      <p class="muted" id="offline-copy">舰队在你离开期间持续工作。</p>
+      <button id="offline-close" type="button">收取收益</button>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "stellar-mines-save-v1";
+    const SAVE_INTERVAL_MS = 8000;
+    const TICK_MS = 100;
+    const MAX_OFFLINE_SECONDS = 8 * 60 * 60;
+    const BASE_VISIBLE_NODES = 12;
+    const EXTRA_ZONE_NODES = 5;
+    const RARITIES = {
+      common: { label: "普通", color: "#81f2a4", orePerTick: 1, creditPerTick: 0.28, life: 90, radius: 14 },
+      rare: { label: "稀有", color: "#64abff", orePerTick: 2.4, creditPerTick: 0.68, life: 120, radius: 17 },
+      epic: { label: "史诗", color: "#d18aff", orePerTick: 4.6, creditPerTick: 1.2, life: 155, radius: 20 }
+    };
+    const techDefs = [
+      { id: "efficiency-1", name: "采集算法 I", description: "所有无人机产出 +20%", cost: 20, effect: "yield" },
+      { id: "slot-1", name: "扩容机库", description: "机库槽位 +1", cost: 40, requires: ["efficiency-1"], effect: "slot" },
+      { id: "scanner", name: "深空扫描", description: "解锁外环星域与更多矿点", cost: 75, requires: ["efficiency-1"], effect: "zone" },
+      { id: "efficiency-2", name: "采集算法 II", description: "所有无人机再 +35%", cost: 110, requires: ["slot-1"], effect: "yield2" },
+      { id: "regen", name: "自愈标记", description: "矿脉再生速度 +35%", cost: 130, requires: ["scanner"], effect: "regen" }
+    ];
+
+    const canvas = document.getElementById("star-map");
+    const ctx = canvas.getContext("2d");
+    const oreValue = document.getElementById("ore-value");
+    const oreRate = document.getElementById("ore-rate");
+    const creditsValue = document.getElementById("credits-value");
+    const droneValue = document.getElementById("drone-value");
+    const droneNote = document.getElementById("drone-note");
+    const zoneValue = document.getElementById("zone-value");
+    const zoneNote = document.getElementById("zone-note");
+    const selectionTitle = document.getElementById("selection-title");
+    const selectionCopy = document.getElementById("selection-copy");
+    const buySlotBtn = document.getElementById("buy-slot-btn");
+    const upgradeDroneBtn = document.getElementById("upgrade-drone-btn");
+    const recallBtn = document.getElementById("recall-btn");
+    const techList = document.getElementById("tech-list");
+    const nodeList = document.getElementById("node-list");
+    const eventLog = document.getElementById("event-log");
+    const offlineModal = document.getElementById("offline-modal");
+    const offlineCopy = document.getElementById("offline-copy");
+    const offlineClose = document.getElementById("offline-close");
+
+    let selectedNodeId = null;
+    let particles = [];
+    let lastTick = performance.now();
+    let saveTimer = 0;
+
+    function mulberry32(seed) {
+      return function rng() {
+        let t = seed += 0x6d2b79f5;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function formatNumber(value) {
+      return value >= 1000 ? value.toFixed(0) : value.toFixed(1);
+    }
+
+    function getDroneMultiplier(state) {
+      let multiplier = 1 + (state.droneLevel - 1) * 0.55;
+      if (state.techs.includes("efficiency-1")) multiplier *= 1.2;
+      if (state.techs.includes("efficiency-2")) multiplier *= 1.35;
+      return multiplier;
+    }
+
+    function getVisibleNodeCount(state) {
+      return BASE_VISIBLE_NODES + (state.techs.includes("scanner") ? EXTRA_ZONE_NODES : 0);
+    }
+
+    function createNode(id, rng, unlockedZone) {
+      const roll = rng();
+      const rarity = roll > 0.88 ? "epic" : roll > 0.56 ? "rare" : "common";
+      const def = RARITIES[rarity];
+      const ring = unlockedZone ? rng() : rng() * 0.72;
+      const angle = rng() * Math.PI * 2;
+      const centerX = canvas.width * 0.5;
+      const centerY = canvas.height * 0.5;
+      const x = centerX + Math.cos(angle) * (120 + ring * 250);
+      const y = centerY + Math.sin(angle) * (100 + ring * 230);
+      const richness = 0.85 + rng() * 0.4;
+      return {
+        id,
+        rarity,
+        x,
+        y,
+        richness,
+        remaining: def.life * richness,
+        maxRemaining: def.life * richness,
+        depletedUntil: 0,
+        droneAssigned: false,
+        pulse: rng() * Math.PI * 2
+      };
+    }
+
+    function createInitialState() {
+      const seed = Math.floor(Math.random() * 1e9);
+      const rng = mulberry32(seed);
+      const nodes = [];
+      for (let i = 0; i < BASE_VISIBLE_NODES + EXTRA_ZONE_NODES; i += 1) {
+        nodes.push(createNode(`node-${i + 1}`, rng, i >= BASE_VISIBLE_NODES));
+      }
+      return {
+        seed,
+        ore: 14,
+        credits: 10,
+        slots: 1,
+        droneLevel: 1,
+        techs: [],
+        nodes,
+        lastSavedAt: Date.now(),
+        log: ["舰队已进入核心采矿区。"]
+      };
+    }
+
+    function sanitizeState(data) {
+      const base = createInitialState();
+      if (!data || typeof data !== "object") return base;
+      return {
+        seed: Number.isFinite(data.seed) ? data.seed : base.seed,
+        ore: Number.isFinite(data.ore) ? data.ore : base.ore,
+        credits: Number.isFinite(data.credits) ? data.credits : base.credits,
+        slots: Number.isFinite(data.slots) ? data.slots : base.slots,
+        droneLevel: clamp(Number(data.droneLevel) || 1, 1, 3),
+        techs: Array.isArray(data.techs) ? data.techs.filter((id) => techDefs.some((def) => def.id === id)) : [],
+        nodes: Array.isArray(data.nodes) && data.nodes.length ? data.nodes.map((node, index) => ({
+          id: typeof node.id === "string" ? node.id : `node-${index + 1}`,
+          rarity: RARITIES[node.rarity] ? node.rarity : "common",
+          x: Number.isFinite(node.x) ? node.x : base.nodes[index % base.nodes.length].x,
+          y: Number.isFinite(node.y) ? node.y : base.nodes[index % base.nodes.length].y,
+          richness: Number.isFinite(node.richness) ? node.richness : 1,
+          remaining: Number.isFinite(node.remaining) ? node.remaining : 0,
+          maxRemaining: Number.isFinite(node.maxRemaining) ? node.maxRemaining : 1,
+          depletedUntil: Number.isFinite(node.depletedUntil) ? node.depletedUntil : 0,
+          droneAssigned: Boolean(node.droneAssigned),
+          pulse: Number.isFinite(node.pulse) ? node.pulse : 0
+        })) : base.nodes,
+        lastSavedAt: Number.isFinite(data.lastSavedAt) ? data.lastSavedAt : base.lastSavedAt,
+        log: Array.isArray(data.log) ? data.log.slice(0, 6) : base.log
+      };
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? sanitizeState(JSON.parse(raw)) : createInitialState();
+      } catch (error) {
+        return createInitialState();
+      }
+    }
+
+    let state = loadState();
+
+    function getVisibleNodes() {
+      return state.nodes.slice(0, getVisibleNodeCount(state));
+    }
+
+    function getAssignedCount() {
+      return getVisibleNodes().filter((node) => node.droneAssigned && node.remaining > 0 && Date.now() >= node.depletedUntil).length;
+    }
+
+    function logEvent(text) {
+      state.log = [text, ...state.log].slice(0, 5);
+      renderLog();
+    }
+
+    function saveState() {
+      state.lastSavedAt = Date.now();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function simulateSeconds(seconds) {
+      const safeSeconds = clamp(seconds, 0, MAX_OFFLINE_SECONDS);
+      if (!safeSeconds) return { ore: 0, credits: 0 };
+      let oreGain = 0;
+      let creditGain = 0;
+      const multiplier = getDroneMultiplier(state);
+      for (const node of getVisibleNodes()) {
+        if (!node.droneAssigned || node.remaining <= 0 || node.depletedUntil > state.lastSavedAt) continue;
+        const def = RARITIES[node.rarity];
+        const nodeOrePerSecond = def.orePerTick * multiplier;
+        const nodeCreditPerSecond = def.creditPerTick * multiplier;
+        const activeTime = Math.min(safeSeconds, node.remaining / nodeOrePerSecond);
+        oreGain += activeTime * nodeOrePerSecond;
+        creditGain += activeTime * nodeCreditPerSecond;
+        node.remaining = Math.max(0, node.remaining - activeTime * nodeOrePerSecond);
+        if (node.remaining <= 0) {
+          node.droneAssigned = false;
+          node.depletedUntil = Date.now() + getRespawnDelayMs();
+        }
+      }
+      state.ore += oreGain;
+      state.credits += creditGain;
+      return { ore: oreGain, credits: creditGain, seconds: safeSeconds };
+    }
+
+    function showOfflineModal(result) {
+      if (result.ore < 1 && result.credits < 1) return;
+      offlineCopy.textContent = `离线 ${Math.floor(result.seconds)} 秒，回收矿晶 ${formatNumber(result.ore)}，能量点 ${formatNumber(result.credits)}。`;
+      offlineModal.classList.add("open");
+      offlineModal.setAttribute("aria-hidden", "false");
+    }
+
+    function applyOfflineProgress() {
+      const elapsed = (Date.now() - state.lastSavedAt) / 1000;
+      const result = simulateSeconds(elapsed);
+      showOfflineModal(result);
+      saveState();
+    }
+
+    function getRespawnDelayMs() {
+      const base = 14000;
+      return state.techs.includes("regen") ? base * 0.65 : base;
+    }
+
+    function getSlotCost() {
+      return 26 + (state.slots - 1) * 24;
+    }
+
+    function getDroneUpgradeCost() {
+      return [0, 30, 75, Infinity][state.droneLevel];
+    }
+
+    function availableForDeploy(node) {
+      return !node.droneAssigned && node.remaining > 0 && Date.now() >= node.depletedUntil && getAssignedCount() < state.slots;
+    }
+
+    function deployDrone(node) {
+      if (!availableForDeploy(node)) return;
+      node.droneAssigned = true;
+      selectedNodeId = node.id;
+      logEvent(`无人机已部署到 ${RARITIES[node.rarity].label}矿脉。`);
+      render();
+      saveState();
+    }
+
+    function recallAllDrones() {
+      for (const node of getVisibleNodes()) {
+        node.droneAssigned = false;
+      }
+      logEvent("已召回全部采矿无人机。");
+      render();
+      saveState();
+    }
+
+    function buySlot() {
+      const cost = getSlotCost();
+      if (state.credits < cost) return;
+      state.credits -= cost;
+      state.slots += 1;
+      logEvent(`机库扩容完成，当前槽位 ${state.slots}。`);
+      render();
+      saveState();
+    }
+
+    function upgradeDrone() {
+      const cost = getDroneUpgradeCost();
+      if (state.droneLevel >= 3 || state.credits < cost) return;
+      state.credits -= cost;
+      state.droneLevel += 1;
+      logEvent(`无人机升级到 Mk.${state.droneLevel}。`);
+      render();
+      saveState();
+    }
+
+    function canUnlockTech(def) {
+      return !state.techs.includes(def.id)
+        && def.cost <= state.credits
+        && (!def.requires || def.requires.every((id) => state.techs.includes(id)));
+    }
+
+    function unlockTech(id) {
+      const def = techDefs.find((item) => item.id === id);
+      if (!def || !canUnlockTech(def)) return;
+      state.credits -= def.cost;
+      state.techs.push(id);
+      if (def.effect === "slot") state.slots += 1;
+      logEvent(`科技解锁: ${def.name}`);
+      render();
+      saveState();
+    }
+
+    function respawnNode(node) {
+      const rng = mulberry32((state.seed + Date.now() + Number(node.id.replace(/\D/g, ""))) >>> 0);
+      const replacement = createNode(node.id, rng, state.techs.includes("scanner"));
+      Object.assign(node, replacement);
+      logEvent(`${RARITIES[node.rarity].label}矿脉在新位置再生。`);
+    }
+
+    function mineNode(node, deltaSeconds) {
+      const def = RARITIES[node.rarity];
+      const multiplier = getDroneMultiplier(state);
+      const oreDelta = def.orePerTick * multiplier * deltaSeconds;
+      const creditDelta = def.creditPerTick * multiplier * deltaSeconds;
+      const actualOre = Math.min(oreDelta, node.remaining);
+      const ratio = actualOre / oreDelta || 0;
+      state.ore += actualOre;
+      state.credits += creditDelta * ratio;
+      node.remaining = Math.max(0, node.remaining - actualOre);
+      particles.push({
+        x: node.x,
+        y: node.y - 8,
+        text: `+${actualOre.toFixed(1)}`,
+        life: 1
+      });
+      if (node.remaining <= 0) {
+        node.droneAssigned = false;
+        node.depletedUntil = Date.now() + getRespawnDelayMs();
+        logEvent(`${def.label}矿脉枯竭，等待再生。`);
+      }
+    }
+
+    function tick(deltaSeconds) {
+      const now = Date.now();
+      for (const node of getVisibleNodes()) {
+        if (node.remaining <= 0 && now >= node.depletedUntil) {
+          respawnNode(node);
+        }
+        if (node.droneAssigned && node.remaining > 0 && now >= node.depletedUntil) {
+          mineNode(node, deltaSeconds);
+        }
+      }
+
+      particles = particles
+        .map((particle) => ({ ...particle, y: particle.y - 18 * deltaSeconds, life: particle.life - deltaSeconds * 0.9 }))
+        .filter((particle) => particle.life > 0);
+    }
+
+    function getCurrentProductionPerSecond() {
+      const multiplier = getDroneMultiplier(state);
+      return getVisibleNodes().reduce((sum, node) => {
+        if (!node.droneAssigned || node.remaining <= 0 || Date.now() < node.depletedUntil) return sum;
+        return sum + RARITIES[node.rarity].orePerTick * multiplier;
+      }, 0);
+    }
+
+    function renderResources() {
+      oreValue.textContent = formatNumber(state.ore);
+      creditsValue.textContent = formatNumber(state.credits);
+      const assigned = getAssignedCount();
+      oreRate.textContent = `实时产出 ${formatNumber(getCurrentProductionPerSecond())} / 秒`;
+      droneValue.textContent = `${assigned} / ${state.slots}`;
+      droneNote.textContent = `无人机等级 Mk.${state.droneLevel}`;
+      zoneValue.textContent = state.techs.includes("scanner") ? "外环星域" : "核心区";
+      zoneNote.textContent = `可探索 ${getVisibleNodeCount(state)} 个矿点`;
+
+      buySlotBtn.textContent = `购买机库槽位  花费 ${formatNumber(getSlotCost())} 能量点`;
+      buySlotBtn.disabled = state.credits < getSlotCost();
+
+      const droneUpgradeCost = getDroneUpgradeCost();
+      upgradeDroneBtn.textContent = state.droneLevel >= 3
+        ? "无人机已满级 Mk.3"
+        : `升级无人机至 Mk.${state.droneLevel + 1}  花费 ${formatNumber(droneUpgradeCost)} 能量点`;
+      upgradeDroneBtn.disabled = state.droneLevel >= 3 || state.credits < droneUpgradeCost;
+
+      recallBtn.textContent = "召回所有无人机";
+      recallBtn.disabled = getAssignedCount() === 0;
+    }
+
+    function renderSelection() {
+      const node = getVisibleNodes().find((item) => item.id === selectedNodeId);
+      if (!node) {
+        selectionTitle.textContent = "点击矿脉部署无人机";
+        selectionCopy.textContent = "绿色普通、蓝色稀有、紫色史诗。灰色矿脉已枯竭。";
+        return;
+      }
+      const def = RARITIES[node.rarity];
+      const status = node.remaining <= 0
+        ? "冷却中"
+        : node.droneAssigned ? "采集中" : "待部署";
+      selectionTitle.textContent = `${def.label}矿脉`;
+      selectionCopy.textContent = `${status} | 剩余 ${formatNumber(node.remaining)} / ${formatNumber(node.maxRemaining)} | 单位产出 ${formatNumber(def.orePerTick * getDroneMultiplier(state))} / 秒`;
+    }
+
+    function renderNodeList() {
+      const cards = getVisibleNodes()
+        .sort((a, b) => {
+          const order = { epic: 0, rare: 1, common: 2 };
+          return order[a.rarity] - order[b.rarity];
+        })
+        .map((node) => {
+          const def = RARITIES[node.rarity];
+          const card = document.createElement("div");
+          card.className = "node-card";
+          const actionLabel = node.droneAssigned ? "采集中" : availableForDeploy(node) ? "可部署" : node.remaining <= 0 ? "冷却中" : "已满槽";
+          card.innerHTML = `
+            <div class="row"><strong>${def.label}矿脉</strong><span style="color:${def.color}">${actionLabel}</span></div>
+            <div class="status">丰度 ${formatNumber(node.maxRemaining)} | 剩余 ${formatNumber(node.remaining)}</div>
+            <div class="status">坐标 ${Math.round(node.x)}, ${Math.round(node.y)}</div>
+          `;
+          return card;
+        });
+      nodeList.replaceChildren(...cards);
+    }
+
+    function renderTechTree() {
+      const items = techDefs.map((def) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `tech${state.techs.includes(def.id) ? " unlocked" : ""}`;
+        const lockedBy = def.requires && !def.requires.every((id) => state.techs.includes(id));
+        button.disabled = state.techs.includes(def.id) || lockedBy || state.credits < def.cost;
+        button.innerHTML = `
+          <div class="row"><strong>${def.name}</strong><span>${state.techs.includes(def.id) ? "已解锁" : `${formatNumber(def.cost)} 能量点`}</span></div>
+          <div class="status">${def.description}</div>
+        `;
+        button.addEventListener("click", () => unlockTech(def.id));
+        return button;
+      });
+      techList.replaceChildren(...items);
+    }
+
+    function renderLog() {
+      const entries = state.log.map((text) => {
+        const line = document.createElement("div");
+        line.className = "node-card";
+        line.textContent = text;
+        return line;
+      });
+      eventLog.replaceChildren(...entries);
+    }
+
+    function drawConnections(nodes) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(120, 150, 240, 0.18)";
+      ctx.lineWidth = 1;
+      for (let i = 1; i < nodes.length; i += 1) {
+        const from = nodes[i - 1];
+        const to = nodes[i];
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.lineTo(to.x, to.y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawStars() {
+      ctx.save();
+      for (let i = 0; i < 80; i += 1) {
+        const x = (i * 131) % canvas.width;
+        const y = (i * 79) % canvas.height;
+        const alpha = 0.18 + ((i * 17) % 10) / 20;
+        ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+        ctx.fillRect(x, y, 2, 2);
+      }
+      ctx.restore();
+    }
+
+    function drawNodes(nodes, time) {
+      for (const node of nodes) {
+        const def = RARITIES[node.rarity];
+        const depleted = node.remaining <= 0 || Date.now() < node.depletedUntil;
+        const color = depleted ? "#5d657a" : def.color;
+        const radius = def.radius + Math.sin(time * 0.002 + node.pulse) * 1.4;
+        ctx.save();
+        ctx.strokeStyle = node.id === selectedNodeId ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.15)";
+        ctx.lineWidth = node.id === selectedNodeId ? 3 : 1.2;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.globalAlpha = 0.12;
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, radius + 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        if (node.droneAssigned && !depleted) {
+          ctx.fillStyle = "#ffe08f";
+          ctx.beginPath();
+          ctx.arc(node.x + radius + 8, node.y - radius - 8, 5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(255, 224, 143, 0.5)";
+          ctx.beginPath();
+          ctx.moveTo(node.x, node.y);
+          ctx.lineTo(node.x + radius + 8, node.y - radius - 8);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+    }
+
+    function drawParticles() {
+      ctx.save();
+      ctx.font = "12px Avenir Next, sans-serif";
+      ctx.textAlign = "center";
+      for (const particle of particles) {
+        ctx.fillStyle = `rgba(255, 224, 143, ${particle.life})`;
+        ctx.fillText(particle.text, particle.x, particle.y);
+      }
+      ctx.restore();
+    }
+
+    function renderCanvas(time = performance.now()) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawStars();
+      const nodes = getVisibleNodes();
+      drawConnections(nodes);
+      drawNodes(nodes, time);
+      drawParticles();
+    }
+
+    function render() {
+      renderResources();
+      renderSelection();
+      renderNodeList();
+      renderTechTree();
+      renderLog();
+      renderCanvas();
+    }
+
+    function getNodeAt(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const x = (clientX - rect.left) * (canvas.width / rect.width);
+      const y = (clientY - rect.top) * (canvas.height / rect.height);
+      const nodes = getVisibleNodes();
+      for (let i = nodes.length - 1; i >= 0; i -= 1) {
+        const node = nodes[i];
+        const radius = RARITIES[node.rarity].radius + 8;
+        if (Math.hypot(node.x - x, node.y - y) <= radius) {
+          return node;
+        }
+      }
+      return null;
+    }
+
+    canvas.addEventListener("click", (event) => {
+      const node = getNodeAt(event.clientX, event.clientY);
+      if (!node) return;
+      selectedNodeId = node.id;
+      if (availableForDeploy(node)) {
+        deployDrone(node);
+      } else {
+        renderSelection();
+        renderCanvas();
+      }
+      render();
+    });
+
+    buySlotBtn.addEventListener("click", buySlot);
+    upgradeDroneBtn.addEventListener("click", upgradeDrone);
+    recallBtn.addEventListener("click", recallAllDrones);
+    offlineClose.addEventListener("click", () => {
+      offlineModal.classList.remove("open");
+      offlineModal.setAttribute("aria-hidden", "true");
+    });
+
+    window.addEventListener("beforeunload", saveState);
+
+    function frame(now) {
+      let delta = (now - lastTick) / 1000;
+      lastTick = now;
+      if (delta > 0.25) delta = 0.25;
+      saveTimer += delta * 1000;
+      if (delta * 1000 >= TICK_MS) {
+        tick(delta);
+      } else {
+        tick(delta);
+      }
+      if (saveTimer >= SAVE_INTERVAL_MS) {
+        saveTimer = 0;
+        saveState();
+      }
+      renderCanvas(now);
+      renderResources();
+      renderSelection();
+      renderNodeList();
+      requestAnimationFrame(frame);
+    }
+
+    applyOfflineProgress();
+    render();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
