@@ -6,17 +6,15 @@
   <title>像素调色板接力：合作拼图</title>
   <style>
     :root {
-      --bg: #f4ead7;
-      --panel: rgba(255, 250, 242, 0.92);
+      --bg: #f5ebdb;
+      --panel: rgba(255, 250, 242, 0.93);
       --panel-strong: #fffdf8;
-      --line: rgba(74, 52, 28, 0.16);
-      --text: #261c14;
-      --muted: #6b5847;
-      --accent: #cc5a2b;
-      --accent-soft: rgba(204, 90, 43, 0.14);
-      --shadow: 0 20px 48px rgba(71, 46, 17, 0.15);
-      --cell: 34px;
-      --gap: 4px;
+      --line: rgba(74, 52, 28, 0.14);
+      --text: #23170f;
+      --muted: #6e5a48;
+      --accent: #c95d2b;
+      --accent-soft: rgba(201, 93, 43, 0.12);
+      --shadow: 0 18px 44px rgba(68, 43, 17, 0.12);
     }
 
     * {
@@ -29,26 +27,25 @@
       font-family: "Avenir Next", "Segoe UI", sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at top left, rgba(255, 255, 255, 0.75), transparent 28%),
-        radial-gradient(circle at bottom right, rgba(204, 90, 43, 0.14), transparent 24%),
-        linear-gradient(180deg, #f8efdf 0%, var(--bg) 45%, #efe5d5 100%);
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.72), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(201, 93, 43, 0.15), transparent 24%),
+        linear-gradient(180deg, #f9f0e3 0%, var(--bg) 42%, #efe2ce 100%);
     }
 
     button,
     select {
       font: inherit;
+      color: inherit;
     }
 
     button,
     select {
       border: 1px solid var(--line);
       border-radius: 14px;
-      color: var(--text);
-      background: rgba(255, 255, 255, 0.78);
+      background: rgba(255, 255, 255, 0.8);
     }
 
     button {
-      padding: 10px 16px;
       cursor: pointer;
       transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
     }
@@ -58,17 +55,24 @@
     select:focus-visible {
       outline: none;
       transform: translateY(-1px);
-      border-color: rgba(204, 90, 43, 0.45);
+      border-color: rgba(201, 93, 43, 0.4);
       background: #fffdf8;
     }
 
     button:disabled {
+      opacity: 0.5;
       cursor: not-allowed;
-      opacity: 0.55;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
     }
 
     .page {
-      width: min(1180px, calc(100vw - 28px));
+      width: min(1200px, calc(100vw - 28px));
       margin: 0 auto;
       padding: 24px 0 36px;
     }
@@ -86,15 +90,15 @@
 
     .setup {
       display: grid;
-      grid-template-columns: minmax(280px, 410px) minmax(0, 1fr);
+      grid-template-columns: minmax(280px, 430px) minmax(0, 1fr);
       gap: 24px;
       padding: 28px;
     }
 
     .hero,
     .setup-controls,
-    .hud,
-    .board-panel,
+    .workspace,
+    .sidebar,
     .results {
       display: grid;
       gap: 16px;
@@ -103,28 +107,21 @@
 
     .eyebrow,
     .muted,
-    .hint {
+    .hint,
+    .status-line {
       color: var(--muted);
     }
 
     .eyebrow {
-      margin: 0;
       font-size: 0.82rem;
-      text-transform: uppercase;
       letter-spacing: 0.18em;
+      text-transform: uppercase;
       color: var(--accent);
-    }
-
-    h1,
-    h2,
-    h3,
-    p {
-      margin: 0;
     }
 
     h1 {
       font-family: Georgia, "Times New Roman", serif;
-      font-size: clamp(2.8rem, 6vw, 4.8rem);
+      font-size: clamp(2.9rem, 6vw, 4.9rem);
       line-height: 0.92;
       letter-spacing: -0.04em;
     }
@@ -132,17 +129,20 @@
     .hero p,
     .setup-controls label,
     .hint,
+    .status-line,
     .results p {
       line-height: 1.6;
     }
 
     .rule-box,
     .control-box,
-    .info-box {
+    .hud,
+    .card,
+    .results {
       padding: 18px;
       border: 1px solid var(--line);
-      border-radius: 20px;
-      background: rgba(255, 255, 255, 0.62);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.66);
     }
 
     .rule-box ul {
@@ -161,72 +161,77 @@
     }
 
     .option-row,
-    .stat-row,
-    .palette,
-    .game-actions {
+    .hud,
+    .meta-grid,
+    .toolbar,
+    .piece-picker,
+    .results-grid {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
     }
 
     .mode-button.active,
-    .axis-button.active,
-    .color-chip.active {
-      border-color: rgba(204, 90, 43, 0.5);
+    .piece-button.active {
+      border-color: rgba(201, 93, 43, 0.5);
       background: var(--accent-soft);
     }
 
     .primary {
-      background: linear-gradient(135deg, #dc6b39, #bf4b23);
-      border-color: #b64721;
-      color: #fff8f3;
+      padding: 12px 18px;
+      background: linear-gradient(135deg, #db7040, #bc4c22);
+      border-color: #b24721;
+      color: #fff7f2;
       font-weight: 700;
     }
 
     .workspace {
-      display: grid;
-      gap: 18px;
       margin-top: 20px;
+      gap: 18px;
     }
 
     .hud {
+      display: grid;
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 12px;
-      padding: 18px 20px;
     }
 
     .stat-card {
       padding: 14px 16px;
       border: 1px solid var(--line);
       border-radius: 18px;
-      background: rgba(255, 255, 255, 0.64);
+      background: rgba(255, 255, 255, 0.74);
     }
 
     .stat-card strong {
       display: block;
-      margin-bottom: 4px;
-      font-size: 1.1rem;
+      margin-top: 4px;
+      font-size: 1.08rem;
     }
 
     .layout {
       display: grid;
-      grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+      grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
       gap: 18px;
     }
 
+    .sidebar,
     .board-panel {
       padding: 20px;
     }
 
-    .palette {
-      margin-top: 8px;
+    .piece-picker {
+      max-height: 320px;
+      overflow: auto;
+      padding-right: 4px;
     }
 
-    .color-chip {
+    .piece-button {
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      min-width: 96px;
+      min-width: 94px;
+      padding: 10px 12px;
     }
 
     .swatch {
@@ -234,6 +239,7 @@
       height: 18px;
       border-radius: 6px;
       border: 1px solid rgba(0, 0, 0, 0.18);
+      flex: 0 0 auto;
     }
 
     .boards {
@@ -243,60 +249,51 @@
     }
 
     .board-card {
+      display: grid;
+      gap: 12px;
       padding: 18px;
       border: 1px solid var(--line);
-      border-radius: 20px;
+      border-radius: 22px;
       background: rgba(255, 255, 255, 0.72);
     }
 
-    .board-frame {
-      display: inline-grid;
-      grid-template-columns: 28px repeat(8, var(--cell));
-      grid-template-rows: 28px repeat(8, var(--cell));
-      gap: var(--gap);
-      margin-top: 12px;
+    canvas {
+      width: 100%;
+      height: auto;
+      border: 1px solid rgba(35, 23, 15, 0.1);
+      border-radius: 18px;
+      background: var(--panel-strong);
+      image-rendering: pixelated;
     }
 
-    .corner {
-      border-radius: 12px;
-      background: rgba(0, 0, 0, 0.04);
+    .toolbar {
+      align-items: center;
     }
 
-    .axis-button {
-      width: 28px;
-      height: 28px;
-      padding: 0;
-      border-radius: 10px;
-      font-size: 0.82rem;
+    .toolbar button {
+      padding: 10px 14px;
     }
 
-    .cell {
-      width: var(--cell);
-      height: var(--cell);
-      border-radius: 10px;
-      border: 1px solid rgba(0, 0, 0, 0.08);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    .selection-preview {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 28px;
     }
 
-    .cell.target {
-      cursor: default;
-    }
-
-    .cell.selected {
-      outline: 3px solid rgba(204, 90, 43, 0.78);
-      outline-offset: -3px;
+    .status-line {
+      min-height: 48px;
     }
 
     .results {
-      margin-top: 20px;
-      padding: 24px;
+      margin-top: 16px;
     }
 
     .results strong {
-      font-size: 1.15rem;
+      font-size: 1.12rem;
     }
 
-    @media (max-width: 960px) {
+    @media (max-width: 980px) {
       .setup,
       .layout,
       .boards {
@@ -305,31 +302,17 @@
     }
 
     @media (max-width: 720px) {
-      :root {
-        --cell: 28px;
-      }
-
       .page {
-        width: min(100vw - 16px, 1180px);
+        width: min(100vw - 16px, 1200px);
         padding-top: 16px;
       }
 
       .setup,
       .setup-controls,
+      .sidebar,
       .board-panel,
       .results {
         padding: 18px;
-      }
-
-      .board-frame {
-        grid-template-columns: 24px repeat(8, var(--cell));
-        grid-template-rows: 24px repeat(8, var(--cell));
-      }
-
-      .axis-button {
-        width: 24px;
-        height: 24px;
-        border-radius: 8px;
       }
     }
   </style>
@@ -338,38 +321,37 @@
   <main class="page">
     <section class="setup panel" id="setup-screen">
       <div class="hero">
-        <p class="eyebrow">Puzzle Relay</p>
+        <p class="eyebrow">Pixel Relay</p>
         <h1>像素调色板接力</h1>
-        <p>目标图案会先被打乱成随机颜色。每回合只能选一整行或一整列，再把它们一次性刷成同一种颜色。</p>
+        <p>一幅像素画被拆成色块碎片。单人模式下你独自补全整张图；热座双人模式下，两位玩家轮流放置自己的碎片，而且只能看到属于自己的目标提示。</p>
         <div class="rule-box">
           <h2>玩法</h2>
           <ul>
-            <li>提供 3 幅 8x8 像素目标图案可选，右侧会始终显示目标参考。</li>
-            <li>每回合先选一行或一列，再从固定调色板中选一个颜色应用。</li>
-            <li>双人热座模式会轮流切换玩家；单人模式则连续由同一玩家操作。</li>
-            <li>在总回合数耗尽前把当前棋盘恢复成目标图案即可获胜。</li>
+            <li>提供 3 幅预设模板，规模分别为 8x8、10x10、12x12。</li>
+            <li>先从右侧碎片托盘选择一种颜色，再点击画布中的格子进行放置。</li>
+            <li>双人热座模式下，只有当前玩家自己的目标位置会以半透明提示显示。</li>
+            <li>放对时会闪光锁定，放错时会停留在棋盘上，点击该碎片即可撤回。</li>
           </ul>
         </div>
       </div>
 
       <div class="setup-controls panel">
         <div class="control-box">
-          <label for="pattern-select">目标图案</label>
-          <select id="pattern-select"></select>
+          <label for="template-select">模板</label>
+          <select id="template-select"></select>
         </div>
 
         <div class="control-box">
           <div>模式</div>
           <div class="option-row">
             <button type="button" class="mode-button active" data-mode="single">单人模式</button>
-            <button type="button" class="mode-button" data-mode="coop">热座双人</button>
+            <button type="button" class="mode-button" data-mode="hotseat">双人热座</button>
           </div>
         </div>
 
         <div class="control-box">
-          <div>固定调色板</div>
-          <div class="palette" id="setup-palette"></div>
-          <p class="hint">每回合只能把整行或整列涂成一种颜色，因此图案设计成可在回合限制内还原。</p>
+          <div>说明</div>
+          <p class="hint">热座时每位玩家拿到一半碎片，轮流完成自己的位置。单人模式下所有提示线都会显示。</p>
         </div>
 
         <button type="button" class="primary" id="start-button">开始游戏</button>
@@ -387,41 +369,47 @@
           <strong id="turn-label">玩家 1</strong>
         </div>
         <div class="stat-card">
-          <span class="muted">剩余回合</span>
-          <strong id="moves-label">20</strong>
+          <span class="muted">完成时间</span>
+          <strong id="time-label">00:00</strong>
         </div>
         <div class="stat-card">
-          <span class="muted">完成进度</span>
-          <strong id="progress-label">0%</strong>
+          <span class="muted">总步数</span>
+          <strong id="steps-label">0</strong>
+        </div>
+        <div class="stat-card">
+          <span class="muted">已完成</span>
+          <strong id="progress-label">0 / 64</strong>
         </div>
       </div>
 
       <div class="layout">
-        <aside class="board-panel panel">
-          <div class="info-box">
-            <h2>操作面板</h2>
-            <p class="hint">先选一行或一列，再点击下面的颜色执行本回合操作。</p>
-          </div>
-
-          <div class="info-box">
-            <h3>行 / 列选择</h3>
-            <div class="game-actions">
-              <button type="button" id="clear-selection">清除选择</button>
+        <aside class="sidebar panel">
+          <div class="card">
+            <h2>当前玩家</h2>
+            <p class="hint" id="ownership-copy">当前玩家只看得到自己的目标提示。</p>
+            <div class="selection-preview">
+              <span class="muted">已选碎片</span>
+              <div class="swatch hidden" id="selected-swatch"></div>
+              <strong id="selected-label">未选择</strong>
             </div>
-            <p class="hint" id="selection-label">未选择任何行或列。</p>
           </div>
 
-          <div class="info-box">
-            <h3>调色板</h3>
-            <div class="palette" id="play-palette"></div>
+          <div class="card">
+            <h3>碎片托盘</h3>
+            <p class="hint">选择一个颜色碎片，再点击左侧画布落点。</p>
+            <div class="piece-picker" id="piece-picker"></div>
           </div>
 
-          <div class="info-box">
-            <h3>说明</h3>
-            <p class="hint">目标图案作为参考会一直显示。进度按当前颜色与目标颜色完全一致的像素占比计算。</p>
+          <div class="card">
+            <h3>操作</h3>
+            <div class="toolbar">
+              <button type="button" id="undo-button">撤回错放</button>
+              <button type="button" id="clear-selection-button">清除选择</button>
+            </div>
+            <p class="status-line" id="status-line">请先从托盘选择一个颜色碎片。</p>
           </div>
 
-          <div class="game-actions">
+          <div class="toolbar">
             <button type="button" id="restart-button">重开本局</button>
             <button type="button" id="back-button">返回设置</button>
           </div>
@@ -430,382 +418,626 @@
         <section class="board-panel panel">
           <div class="boards">
             <div class="board-card">
-              <h2>当前棋盘</h2>
-              <p class="hint">点击上方列标或左侧行标进行选择。</p>
-              <div id="current-board"></div>
+              <h2>拼图画布</h2>
+              <p class="hint">半透明提示只显示当前玩家负责的格子；点击错误碎片可撤回。</p>
+              <canvas id="play-canvas" width="520" height="520" aria-label="拼图画布"></canvas>
             </div>
 
             <div class="board-card">
               <h2>目标图案</h2>
-              <p class="hint" id="pattern-name"></p>
-              <div id="target-board"></div>
+              <p class="hint" id="template-name"></p>
+              <canvas id="target-canvas" width="520" height="520" aria-label="目标图案"></canvas>
             </div>
           </div>
+
+          <section class="results hidden" id="result-panel">
+            <strong id="result-title"></strong>
+            <p id="result-copy"></p>
+            <div class="results-grid">
+              <div class="stat-card">
+                <span class="muted">完成时间</span>
+                <strong id="final-time">00:00</strong>
+              </div>
+              <div class="stat-card">
+                <span class="muted">总步数</span>
+                <strong id="final-steps">0</strong>
+              </div>
+            </div>
+          </section>
         </section>
       </div>
-
-      <section class="results panel hidden" id="result-panel">
-        <strong id="result-title"></strong>
-        <p id="result-copy"></p>
-        <div class="stat-row">
-          <div class="stat-card">
-            <span class="muted">最终进度</span>
-            <strong id="final-progress">0%</strong>
-          </div>
-          <div class="stat-card">
-            <span class="muted">已用回合</span>
-            <strong id="used-moves">0</strong>
-          </div>
-        </div>
-      </section>
     </section>
   </main>
 
   <script>
-    const PALETTE = [
-      { name: "奶油白", value: "#fff4d6" },
-      { name: "金黄", value: "#ffcc4d" },
-      { name: "橙色", value: "#ff8a3d" },
-      { name: "珊瑚红", value: "#f25f5c" },
-      { name: "莓果紫", value: "#8c5aff" },
-      { name: "天蓝", value: "#49a6ff" },
-      { name: "薄荷绿", value: "#54d4a6" },
-      { name: "墨蓝", value: "#2f3d6b" }
-    ];
-
-    const TURN_LIMIT = 20;
-    const GRID_SIZE = 8;
-    const PATTERNS = [
+    const TEMPLATES = [
       {
-        id: "sunset-bands",
-        name: "晚霞条带",
+        id: "heart-8",
+        name: "莓果心跳",
+        size: 8,
         grid: [
-          [0, 0, 0, 0, 0, 0, 0, 0],
-          [1, 1, 1, 1, 1, 1, 1, 1],
-          [2, 2, 2, 2, 2, 2, 2, 2],
-          [3, 3, 3, 3, 3, 3, 3, 3],
-          [4, 4, 4, 4, 4, 4, 4, 4],
-          [5, 5, 5, 5, 5, 5, 5, 5],
-          [6, 6, 6, 6, 6, 6, 6, 6],
-          [7, 7, 7, 7, 7, 7, 7, 7]
+          ["#fff2df", "#d94b63", "#d94b63", "#fff2df", "#fff2df", "#d94b63", "#d94b63", "#fff2df"],
+          ["#d94b63", "#ff7d8f", "#ff7d8f", "#d94b63", "#d94b63", "#ff7d8f", "#ff7d8f", "#d94b63"],
+          ["#d94b63", "#ff7d8f", "#ff7d8f", "#ff7d8f", "#ff7d8f", "#ff7d8f", "#ff7d8f", "#d94b63"],
+          ["#fff2df", "#d94b63", "#ff7d8f", "#ff7d8f", "#ff7d8f", "#ff7d8f", "#d94b63", "#fff2df"],
+          ["#fff2df", "#fff2df", "#d94b63", "#ff7d8f", "#ff7d8f", "#d94b63", "#fff2df", "#fff2df"],
+          ["#fff2df", "#fff2df", "#fff2df", "#d94b63", "#d94b63", "#fff2df", "#fff2df", "#fff2df"],
+          ["#fff2df", "#fff2df", "#fff2df", "#d94b63", "#d94b63", "#fff2df", "#fff2df", "#fff2df"],
+          ["#fff2df", "#fff2df", "#fff2df", "#fff2df", "#fff2df", "#fff2df", "#fff2df", "#fff2df"]
         ]
       },
       {
-        id: "signal-columns",
-        name: "信号光柱",
+        id: "flower-10",
+        name: "午后花盆",
+        size: 10,
         grid: [
-          [7, 6, 5, 4, 3, 2, 1, 0],
-          [7, 6, 5, 4, 3, 2, 1, 0],
-          [7, 6, 5, 4, 3, 2, 1, 0],
-          [7, 6, 5, 4, 3, 2, 1, 0],
-          [7, 6, 5, 4, 3, 2, 1, 0],
-          [7, 6, 5, 4, 3, 2, 1, 0],
-          [7, 6, 5, 4, 3, 2, 1, 0],
-          [7, 6, 5, 4, 3, 2, 1, 0]
+          ["#b7e3ff", "#b7e3ff", "#b7e3ff", "#b7e3ff", "#b7e3ff", "#b7e3ff", "#b7e3ff", "#b7e3ff", "#b7e3ff", "#b7e3ff"],
+          ["#b7e3ff", "#b7e3ff", "#b7e3ff", "#ff8f70", "#ff8f70", "#ff8f70", "#ff8f70", "#b7e3ff", "#b7e3ff", "#b7e3ff"],
+          ["#b7e3ff", "#b7e3ff", "#ff8f70", "#ffd45a", "#ffd45a", "#ffd45a", "#ffd45a", "#ff8f70", "#b7e3ff", "#b7e3ff"],
+          ["#b7e3ff", "#ff8f70", "#ffd45a", "#ffd45a", "#7fd37c", "#7fd37c", "#ffd45a", "#ffd45a", "#ff8f70", "#b7e3ff"],
+          ["#b7e3ff", "#b7e3ff", "#ff8f70", "#7fd37c", "#7fd37c", "#7fd37c", "#7fd37c", "#ff8f70", "#b7e3ff", "#b7e3ff"],
+          ["#b7e3ff", "#b7e3ff", "#b7e3ff", "#b7e3ff", "#4f9956", "#4f9956", "#b7e3ff", "#b7e3ff", "#b7e3ff", "#b7e3ff"],
+          ["#b7e3ff", "#b7e3ff", "#b7e3ff", "#b7e3ff", "#4f9956", "#4f9956", "#b7e3ff", "#b7e3ff", "#b7e3ff", "#b7e3ff"],
+          ["#b7e3ff", "#b7e3ff", "#b7e3ff", "#8c5b34", "#8c5b34", "#8c5b34", "#8c5b34", "#b7e3ff", "#b7e3ff", "#b7e3ff"],
+          ["#b7e3ff", "#b7e3ff", "#8c5b34", "#8c5b34", "#8c5b34", "#8c5b34", "#8c5b34", "#8c5b34", "#b7e3ff", "#b7e3ff"],
+          ["#b7e3ff", "#c9f0a2", "#c9f0a2", "#c9f0a2", "#c9f0a2", "#c9f0a2", "#c9f0a2", "#c9f0a2", "#c9f0a2", "#c9f0a2"]
         ]
       },
       {
-        id: "harbor-lights",
-        name: "港口灯带",
+        id: "house-12",
+        name: "小屋黄昏",
+        size: 12,
         grid: [
-          [0, 0, 0, 0, 0, 0, 0, 0],
-          [0, 0, 0, 0, 0, 0, 0, 0],
-          [5, 5, 5, 5, 5, 5, 5, 5],
-          [5, 5, 5, 5, 5, 5, 5, 5],
-          [2, 2, 2, 2, 2, 2, 2, 2],
-          [2, 2, 2, 2, 2, 2, 2, 2],
-          [7, 7, 7, 7, 7, 7, 7, 7],
-          [7, 7, 7, 7, 7, 7, 7, 7]
+          ["#b7daf9", "#b7daf9", "#b7daf9", "#b7daf9", "#ffd08a", "#ffd08a", "#ffd08a", "#ffd08a", "#b7daf9", "#b7daf9", "#b7daf9", "#b7daf9"],
+          ["#b7daf9", "#b7daf9", "#b7daf9", "#c86d48", "#c86d48", "#c86d48", "#c86d48", "#c86d48", "#c86d48", "#b7daf9", "#b7daf9", "#b7daf9"],
+          ["#b7daf9", "#b7daf9", "#c86d48", "#c86d48", "#c86d48", "#c86d48", "#c86d48", "#c86d48", "#c86d48", "#c86d48", "#b7daf9", "#b7daf9"],
+          ["#b7daf9", "#c86d48", "#c86d48", "#c86d48", "#c86d48", "#c86d48", "#c86d48", "#c86d48", "#c86d48", "#c86d48", "#c86d48", "#b7daf9"],
+          ["#b7daf9", "#b7daf9", "#b7daf9", "#f4d9a7", "#f4d9a7", "#f4d9a7", "#f4d9a7", "#f4d9a7", "#f4d9a7", "#b7daf9", "#b7daf9", "#b7daf9"],
+          ["#b7daf9", "#b7daf9", "#b7daf9", "#f4d9a7", "#8d5d38", "#f4d9a7", "#f4d9a7", "#8d5d38", "#f4d9a7", "#b7daf9", "#b7daf9", "#b7daf9"],
+          ["#b7daf9", "#b7daf9", "#b7daf9", "#f4d9a7", "#8d5d38", "#f4d9a7", "#f4d9a7", "#8d5d38", "#f4d9a7", "#b7daf9", "#b7daf9", "#b7daf9"],
+          ["#b7daf9", "#b7daf9", "#b7daf9", "#f4d9a7", "#f4d9a7", "#8d5d38", "#8d5d38", "#f4d9a7", "#f4d9a7", "#b7daf9", "#b7daf9", "#b7daf9"],
+          ["#8bcf76", "#8bcf76", "#8bcf76", "#8bcf76", "#8bcf76", "#8bcf76", "#8bcf76", "#8bcf76", "#8bcf76", "#8bcf76", "#8bcf76", "#8bcf76"],
+          ["#63a85b", "#63a85b", "#63a85b", "#63a85b", "#63a85b", "#63a85b", "#63a85b", "#63a85b", "#63a85b", "#63a85b", "#63a85b", "#63a85b"],
+          ["#63a85b", "#63a85b", "#63a85b", "#63a85b", "#63a85b", "#63a85b", "#63a85b", "#63a85b", "#63a85b", "#63a85b", "#63a85b", "#63a85b"],
+          ["#4e8548", "#4e8548", "#4e8548", "#4e8548", "#4e8548", "#4e8548", "#4e8548", "#4e8548", "#4e8548", "#4e8548", "#4e8548", "#4e8548"]
         ]
       }
     ];
 
     const state = {
       mode: "single",
-      patternId: PATTERNS[0].id,
-      board: [],
-      target: [],
-      movesLeft: TURN_LIMIT,
-      selection: null,
-      playerIndex: 0,
-      gameOver: false
+      templateId: TEMPLATES[0].id,
+      size: TEMPLATES[0].size,
+      targetGrid: [],
+      ownershipGrid: [],
+      correctGrid: [],
+      wrongPlacements: [],
+      inventory: [{}, {}],
+      selectedColor: "",
+      currentPlayer: 0,
+      steps: 0,
+      startedAt: 0,
+      elapsedSeconds: 0,
+      completedCount: 0,
+      gameComplete: false,
+      animationFrame: 0,
+      timerId: 0,
+      flashes: [],
+      nextWrongId: 1,
+      message: "请先从托盘选择一个颜色碎片。"
     };
 
     const setupScreen = document.getElementById("setup-screen");
     const gameScreen = document.getElementById("game-screen");
-    const patternSelect = document.getElementById("pattern-select");
+    const templateSelect = document.getElementById("template-select");
     const startButton = document.getElementById("start-button");
-    const setupPalette = document.getElementById("setup-palette");
-    const playPalette = document.getElementById("play-palette");
-    const currentBoard = document.getElementById("current-board");
-    const targetBoard = document.getElementById("target-board");
+    const modeButtons = Array.from(document.querySelectorAll(".mode-button"));
+    const playCanvas = document.getElementById("play-canvas");
+    const targetCanvas = document.getElementById("target-canvas");
+    const playContext = playCanvas.getContext("2d");
+    const targetContext = targetCanvas.getContext("2d");
+    const piecePicker = document.getElementById("piece-picker");
     const modeLabel = document.getElementById("mode-label");
     const turnLabel = document.getElementById("turn-label");
-    const movesLabel = document.getElementById("moves-label");
+    const timeLabel = document.getElementById("time-label");
+    const stepsLabel = document.getElementById("steps-label");
     const progressLabel = document.getElementById("progress-label");
-    const patternName = document.getElementById("pattern-name");
-    const selectionLabel = document.getElementById("selection-label");
+    const ownershipCopy = document.getElementById("ownership-copy");
+    const selectedSwatch = document.getElementById("selected-swatch");
+    const selectedLabel = document.getElementById("selected-label");
+    const statusLine = document.getElementById("status-line");
+    const templateName = document.getElementById("template-name");
     const resultPanel = document.getElementById("result-panel");
     const resultTitle = document.getElementById("result-title");
     const resultCopy = document.getElementById("result-copy");
-    const finalProgress = document.getElementById("final-progress");
-    const usedMoves = document.getElementById("used-moves");
-    const clearSelectionButton = document.getElementById("clear-selection");
+    const finalTime = document.getElementById("final-time");
+    const finalSteps = document.getElementById("final-steps");
+    const undoButton = document.getElementById("undo-button");
+    const clearSelectionButton = document.getElementById("clear-selection-button");
     const restartButton = document.getElementById("restart-button");
     const backButton = document.getElementById("back-button");
-    const modeButtons = Array.from(document.querySelectorAll(".mode-button"));
+
+    function getTemplate() {
+      return TEMPLATES.find((template) => template.id === state.templateId) ?? TEMPLATES[0];
+    }
 
     function cloneGrid(grid) {
       return grid.map((row) => row.slice());
     }
 
-    function getPattern() {
-      return PATTERNS.find((pattern) => pattern.id === state.patternId) ?? PATTERNS[0];
+    function createEmptyGrid(size, fillValue) {
+      return Array.from({ length: size }, () => Array.from({ length: size }, () => fillValue));
     }
 
-    function randomColorIndex(exclude) {
-      let candidate = exclude;
-      while (candidate === exclude) {
-        candidate = Math.floor(Math.random() * PALETTE.length);
+    function createOwnerGrid(size) {
+      if (state.mode === "single") {
+        return createEmptyGrid(size, 0);
       }
-      return candidate;
-    }
-
-    function createScrambledBoard(targetGrid) {
-      return targetGrid.map((row) => row.map((colorIndex) => randomColorIndex(colorIndex)));
-    }
-
-    function getProgress() {
-      let matches = 0;
-      for (let row = 0; row < GRID_SIZE; row += 1) {
-        for (let col = 0; col < GRID_SIZE; col += 1) {
-          if (state.board[row][col] === state.target[row][col]) {
-            matches += 1;
-          }
+      const ownerGrid = createEmptyGrid(size, 0);
+      const cells = [];
+      for (let row = 0; row < size; row += 1) {
+        for (let col = 0; col < size; col += 1) {
+          cells.push({ row, col });
         }
       }
-      return Math.round((matches / (GRID_SIZE * GRID_SIZE)) * 100);
+      for (let index = cells.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        const current = cells[index];
+        cells[index] = cells[swapIndex];
+        cells[swapIndex] = current;
+      }
+      const halfway = cells.length / 2;
+      cells.forEach((cell, index) => {
+        ownerGrid[cell.row][cell.col] = index < halfway ? 0 : 1;
+      });
+      return ownerGrid;
+    }
+
+    function buildInventory(targetGrid, ownerGrid) {
+      const stock = [{}, {}];
+      for (let row = 0; row < targetGrid.length; row += 1) {
+        for (let col = 0; col < targetGrid.length; col += 1) {
+          const owner = ownerGrid[row][col];
+          const color = targetGrid[row][col];
+          stock[owner][color] = (stock[owner][color] ?? 0) + 1;
+        }
+      }
+      return stock;
+    }
+
+    function formatTime(totalSeconds) {
+      const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+      const seconds = String(totalSeconds % 60).padStart(2, "0");
+      return minutes + ":" + seconds;
+    }
+
+    function hexToRgba(hex, alpha) {
+      const normalized = hex.replace("#", "");
+      const value = normalized.length === 3
+        ? normalized.split("").map((part) => part + part).join("")
+        : normalized;
+      const red = Number.parseInt(value.slice(0, 2), 16);
+      const green = Number.parseInt(value.slice(2, 4), 16);
+      const blue = Number.parseInt(value.slice(4, 6), 16);
+      return "rgba(" + red + ", " + green + ", " + blue + ", " + alpha + ")";
+    }
+
+    function setMessage(text) {
+      state.message = text;
+      statusLine.textContent = text;
     }
 
     function getCurrentPlayerLabel() {
       if (state.mode === "single") {
         return "单人";
       }
-      return state.playerIndex === 0 ? "玩家 1" : "玩家 2";
+      return state.currentPlayer === 0 ? "玩家 1" : "玩家 2";
     }
 
-    function describeSelection() {
-      if (!state.selection) {
-        return "未选择任何行或列。";
+    function getPlayableColors(player) {
+      return Object.entries(state.inventory[player])
+        .filter(([, count]) => count > 0)
+        .sort(([left], [right]) => left.localeCompare(right));
+    }
+
+    function getWrongPlacementAt(row, col) {
+      return state.wrongPlacements.find((placement) => placement.row === row && placement.col === col) ?? null;
+    }
+
+    function isCellOccupied(row, col) {
+      return state.correctGrid[row][col] !== null || Boolean(getWrongPlacementAt(row, col));
+    }
+
+    function isOwnedByCurrentPlayer(row, col) {
+      return state.mode === "single" || state.ownershipGrid[row][col] === state.currentPlayer;
+    }
+
+    function getVisibleHintCells() {
+      const cells = [];
+      for (let row = 0; row < state.size; row += 1) {
+        for (let col = 0; col < state.size; col += 1) {
+          if (state.correctGrid[row][col] !== null) {
+            continue;
+          }
+          if (state.mode === "single" || state.ownershipGrid[row][col] === state.currentPlayer) {
+            cells.push({ row, col, color: state.targetGrid[row][col] });
+          }
+        }
       }
-      const axisLabel = state.selection.axis === "row" ? "第" + (state.selection.index + 1) + "行" : "第" + (state.selection.index + 1) + "列";
-      return "已选择 " + axisLabel + "，请从下方点击一个颜色。";
+      return cells;
+    }
+
+    function getBoardMetrics(canvas) {
+      const padding = 24;
+      const cellSize = Math.floor((canvas.width - padding * 2) / state.size);
+      const boardSize = cellSize * state.size;
+      const offsetX = Math.floor((canvas.width - boardSize) / 2);
+      const offsetY = Math.floor((canvas.height - boardSize) / 2);
+      return { cellSize, offsetX, offsetY };
+    }
+
+    function drawReferenceBoard() {
+      targetContext.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+      const { cellSize, offsetX, offsetY } = getBoardMetrics(targetCanvas);
+      for (let row = 0; row < state.size; row += 1) {
+        for (let col = 0; col < state.size; col += 1) {
+          const x = offsetX + col * cellSize;
+          const y = offsetY + row * cellSize;
+          targetContext.fillStyle = state.targetGrid[row][col];
+          targetContext.fillRect(x, y, cellSize, cellSize);
+          targetContext.strokeStyle = "rgba(35, 23, 15, 0.12)";
+          targetContext.strokeRect(x + 0.5, y + 0.5, cellSize - 1, cellSize - 1);
+        }
+      }
+    }
+
+    function drawPlayBoard(now) {
+      playContext.clearRect(0, 0, playCanvas.width, playCanvas.height);
+      const { cellSize, offsetX, offsetY } = getBoardMetrics(playCanvas);
+
+      playContext.fillStyle = "#fff9f1";
+      playContext.fillRect(offsetX, offsetY, cellSize * state.size, cellSize * state.size);
+
+      const hints = getVisibleHintCells();
+      hints.forEach((cell) => {
+        const x = offsetX + cell.col * cellSize;
+        const y = offsetY + cell.row * cellSize;
+        playContext.fillStyle = hexToRgba(cell.color, 0.24);
+        playContext.fillRect(x, y, cellSize, cellSize);
+        playContext.setLineDash([6, 4]);
+        playContext.strokeStyle = hexToRgba(cell.color, 0.65);
+        playContext.strokeRect(x + 2, y + 2, cellSize - 4, cellSize - 4);
+        playContext.setLineDash([]);
+      });
+
+      state.correctGrid.forEach((rowData, row) => {
+        rowData.forEach((color, col) => {
+          if (color === null) {
+            return;
+          }
+          const x = offsetX + col * cellSize;
+          const y = offsetY + row * cellSize;
+          playContext.fillStyle = color;
+          playContext.fillRect(x, y, cellSize, cellSize);
+        });
+      });
+
+      state.wrongPlacements.forEach((placement) => {
+        const x = offsetX + placement.col * cellSize;
+        const y = offsetY + placement.row * cellSize;
+        playContext.fillStyle = placement.color;
+        playContext.fillRect(x, y, cellSize, cellSize);
+        playContext.lineWidth = 3;
+        playContext.strokeStyle = "rgba(35, 23, 15, 0.7)";
+        playContext.strokeRect(x + 1.5, y + 1.5, cellSize - 3, cellSize - 3);
+        playContext.beginPath();
+        playContext.moveTo(x + 6, y + 6);
+        playContext.lineTo(x + cellSize - 6, y + cellSize - 6);
+        playContext.moveTo(x + cellSize - 6, y + 6);
+        playContext.lineTo(x + 6, y + cellSize - 6);
+        playContext.stroke();
+      });
+
+      state.flashes = state.flashes.filter((flash) => now - flash.startedAt < 320);
+      state.flashes.forEach((flash) => {
+        const progress = (now - flash.startedAt) / 320;
+        const alpha = Math.max(0, 0.8 - progress * 0.8);
+        const x = offsetX + flash.col * cellSize;
+        const y = offsetY + flash.row * cellSize;
+        playContext.fillStyle = "rgba(255, 255, 255, " + alpha + ")";
+        playContext.fillRect(x, y, cellSize, cellSize);
+        playContext.lineWidth = 4;
+        playContext.strokeStyle = "rgba(255, 214, 117, " + alpha + ")";
+        playContext.strokeRect(x + 2, y + 2, cellSize - 4, cellSize - 4);
+      });
+
+      playContext.lineWidth = 1;
+      playContext.strokeStyle = "rgba(35, 23, 15, 0.16)";
+      for (let index = 0; index <= state.size; index += 1) {
+        const x = offsetX + index * cellSize;
+        const y = offsetY + index * cellSize;
+        playContext.beginPath();
+        playContext.moveTo(offsetX, y);
+        playContext.lineTo(offsetX + cellSize * state.size, y);
+        playContext.stroke();
+        playContext.beginPath();
+        playContext.moveTo(x, offsetY);
+        playContext.lineTo(x, offsetY + cellSize * state.size);
+        playContext.stroke();
+      }
+    }
+
+    function renderLoop(now = performance.now()) {
+      drawPlayBoard(now);
+      if (!setupScreen.classList.contains("hidden")) {
+        return;
+      }
+      state.animationFrame = window.requestAnimationFrame(renderLoop);
+    }
+
+    function updateSelectedColor() {
+      selectedLabel.textContent = state.selectedColor ? state.selectedColor.toUpperCase() : "未选择";
+      if (!state.selectedColor) {
+        selectedSwatch.classList.add("hidden");
+        return;
+      }
+      selectedSwatch.classList.remove("hidden");
+      selectedSwatch.style.background = state.selectedColor;
+    }
+
+    function renderPiecePicker() {
+      const colors = getPlayableColors(state.currentPlayer);
+      const buttons = colors.map(([color, count]) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "piece-button";
+        if (state.selectedColor === color) {
+          button.classList.add("active");
+        }
+        const swatch = document.createElement("span");
+        swatch.className = "swatch";
+        swatch.style.background = color;
+        const label = document.createElement("span");
+        label.textContent = "x" + count;
+        button.append(swatch, label);
+        button.addEventListener("click", () => {
+          state.selectedColor = color;
+          updateSelectedColor();
+          renderPiecePicker();
+          setMessage("已选中 " + color.toUpperCase() + "，请点击棋盘上的目标格。");
+        });
+        return button;
+      });
+      piecePicker.replaceChildren(...buttons);
     }
 
     function updateHud() {
-      modeLabel.textContent = state.mode === "single" ? "单人模式" : "热座双人";
-      turnLabel.textContent = state.gameOver ? "本局结束" : getCurrentPlayerLabel();
-      movesLabel.textContent = String(state.movesLeft);
-      progressLabel.textContent = getProgress() + "%";
-      selectionLabel.textContent = describeSelection();
-      patternName.textContent = getPattern().name;
+      const totalCells = state.size * state.size;
+      modeLabel.textContent = state.mode === "single" ? "单人模式" : "双人热座";
+      turnLabel.textContent = state.gameComplete ? "已完成" : getCurrentPlayerLabel();
+      timeLabel.textContent = formatTime(state.elapsedSeconds);
+      stepsLabel.textContent = String(state.steps);
+      progressLabel.textContent = state.completedCount + " / " + totalCells;
+      ownershipCopy.textContent = state.mode === "single"
+        ? "单人模式下，全部提示位置都会显示。"
+        : "当前玩家只看得到自己的目标提示。";
+      templateName.textContent = getTemplate().name + " · " + state.size + "x" + state.size;
+      updateSelectedColor();
+      renderPiecePicker();
+      undoButton.disabled = !state.wrongPlacements.some((placement) => placement.owner === state.currentPlayer);
     }
 
-    function renderPalette(container) {
-      container.replaceChildren(...PALETTE.map((color, index) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "color-chip";
-        button.disabled = container === playPalette && (!state.selection || state.gameOver);
-        if (container === playPalette && state.selection && !state.gameOver) {
-          button.addEventListener("click", () => applyColor(index));
-        }
-
-        const swatch = document.createElement("span");
-        swatch.className = "swatch";
-        swatch.style.background = color.value;
-
-        const label = document.createElement("span");
-        label.textContent = color.name;
-
-        button.append(swatch, label);
-        return button;
-      }));
-    }
-
-    function isSelectedCell(row, col) {
-      if (!state.selection) {
-        return false;
-      }
-      if (state.selection.axis === "row") {
-        return state.selection.index === row;
-      }
-      return state.selection.index === col;
-    }
-
-    function createBoard(grid, interactive) {
-      const frame = document.createElement("div");
-      frame.className = "board-frame";
-
-      const corner = document.createElement("div");
-      corner.className = "corner";
-      frame.append(corner);
-
-      for (let col = 0; col < GRID_SIZE; col += 1) {
-        const columnButton = document.createElement(interactive ? "button" : "div");
-        columnButton.className = interactive ? "axis-button" : "corner";
-        if (interactive) {
-          columnButton.type = "button";
-          columnButton.textContent = String(col + 1);
-          if (state.selection && state.selection.axis === "col" && state.selection.index === col) {
-            columnButton.classList.add("active");
-          }
-          columnButton.disabled = state.gameOver;
-          columnButton.addEventListener("click", () => {
-            state.selection = { axis: "col", index: col };
-            renderGame();
-          });
-        }
-        frame.append(columnButton);
-      }
-
-      for (let row = 0; row < GRID_SIZE; row += 1) {
-        const rowButton = document.createElement(interactive ? "button" : "div");
-        rowButton.className = interactive ? "axis-button" : "corner";
-        if (interactive) {
-          rowButton.type = "button";
-          rowButton.textContent = String(row + 1);
-          if (state.selection && state.selection.axis === "row" && state.selection.index === row) {
-            rowButton.classList.add("active");
-          }
-          rowButton.disabled = state.gameOver;
-          rowButton.addEventListener("click", () => {
-            state.selection = { axis: "row", index: row };
-            renderGame();
-          });
-        }
-        frame.append(rowButton);
-
-        for (let col = 0; col < GRID_SIZE; col += 1) {
-          const cell = document.createElement("div");
-          cell.className = "cell";
-          if (!interactive) {
-            cell.classList.add("target");
-          }
-          if (interactive && isSelectedCell(row, col)) {
-            cell.classList.add("selected");
-          }
-          cell.style.background = PALETTE[grid[row][col]].value;
-          frame.append(cell);
-        }
-      }
-
-      return frame;
-    }
-
-    function finishGame(won) {
-      state.gameOver = true;
-      resultPanel.classList.remove("hidden");
-      resultTitle.textContent = won ? "还原成功" : "回合耗尽";
-      resultCopy.textContent = won
-        ? (state.mode === "single" ? "你在限定回合内完成了像素图案。" : "两位玩家在限定回合内完成了像素接力。")
-        : "还没能完全恢复目标图案，可以直接重开本局继续尝试。";
-      finalProgress.textContent = getProgress() + "%";
-      usedMoves.textContent = String(TURN_LIMIT - state.movesLeft);
-      updateHud();
-    }
-
-    function applyColor(colorIndex) {
-      if (!state.selection || state.gameOver || state.movesLeft <= 0) {
+    function placeCorrect(row, col, color) {
+      state.inventory[state.currentPlayer][color] -= 1;
+      state.correctGrid[row][col] = color;
+      state.completedCount += 1;
+      state.steps += 1;
+      state.flashes.push({ row, col, startedAt: performance.now() });
+      state.selectedColor = "";
+      if (state.completedCount === state.size * state.size) {
+        finishGame();
         return;
       }
-
-      const { axis, index } = state.selection;
-      if (axis === "row") {
-        for (let col = 0; col < GRID_SIZE; col += 1) {
-          state.board[index][col] = colorIndex;
-        }
-      } else {
-        for (let row = 0; row < GRID_SIZE; row += 1) {
-          state.board[row][index] = colorIndex;
-        }
+      if (state.mode === "hotseat") {
+        state.currentPlayer = state.currentPlayer === 0 ? 1 : 0;
       }
-
-      state.movesLeft -= 1;
-      state.selection = null;
-
-      if (getProgress() === 100) {
-        finishGame(true);
-      } else if (state.movesLeft === 0) {
-        finishGame(false);
-      } else if (state.mode === "coop") {
-        state.playerIndex = state.playerIndex === 0 ? 1 : 0;
-      }
-
-      renderGame();
+      setMessage("放置正确，" + getCurrentPlayerLabel() + "继续。");
+      updateHud();
     }
 
-    function renderGame() {
+    function placeWrong(row, col, color) {
+      state.inventory[state.currentPlayer][color] -= 1;
+      state.wrongPlacements.push({
+        id: state.nextWrongId,
+        owner: state.currentPlayer,
+        color,
+        row,
+        col
+      });
+      state.nextWrongId += 1;
+      state.steps += 1;
+      state.selectedColor = "";
+      setMessage("位置不对，错放碎片已停留在棋盘上，点击它可撤回。");
       updateHud();
-      renderPalette(playPalette);
-      currentBoard.replaceChildren(createBoard(state.board, true));
-      targetBoard.replaceChildren(createBoard(state.target, false));
+    }
+
+    function removeWrongPlacement(placementId) {
+      const index = state.wrongPlacements.findIndex((placement) => placement.id === placementId);
+      if (index === -1) {
+        return;
+      }
+      const [placement] = state.wrongPlacements.splice(index, 1);
+      state.inventory[placement.owner][placement.color] += 1;
+      setMessage("已撤回错放碎片。");
+      updateHud();
+    }
+
+    function finishGame() {
+      state.gameComplete = true;
+      state.elapsedSeconds = Math.floor((Date.now() - state.startedAt) / 1000);
+      window.clearInterval(state.timerId);
+      resultPanel.classList.remove("hidden");
+      resultTitle.textContent = "拼图完成";
+      resultCopy.textContent = "你们已经补完整幅像素画。";
+      finalTime.textContent = formatTime(state.elapsedSeconds);
+      finalSteps.textContent = String(state.steps);
+      setMessage("完成整幅画，用时 " + formatTime(state.elapsedSeconds) + "，总步数 " + state.steps + "。");
+      updateHud();
+    }
+
+    function resetGameState() {
+      const template = getTemplate();
+      state.size = template.size;
+      state.targetGrid = cloneGrid(template.grid);
+      state.ownershipGrid = createOwnerGrid(state.size);
+      state.correctGrid = createEmptyGrid(state.size, null);
+      state.wrongPlacements = [];
+      state.inventory = buildInventory(state.targetGrid, state.ownershipGrid);
+      state.selectedColor = "";
+      state.currentPlayer = 0;
+      state.steps = 0;
+      state.startedAt = Date.now();
+      state.elapsedSeconds = 0;
+      state.completedCount = 0;
+      state.gameComplete = false;
+      state.flashes = [];
+      state.nextWrongId = 1;
+      resultPanel.classList.add("hidden");
+      setMessage("请先从托盘选择一个颜色碎片。");
+      window.clearInterval(state.timerId);
+      state.timerId = window.setInterval(() => {
+        if (state.gameComplete) {
+          return;
+        }
+        state.elapsedSeconds = Math.floor((Date.now() - state.startedAt) / 1000);
+        updateHud();
+      }, 250);
+      updateHud();
+      drawReferenceBoard();
     }
 
     function startGame() {
-      const pattern = getPattern();
-      state.target = cloneGrid(pattern.grid);
-      state.board = createScrambledBoard(pattern.grid);
-      state.movesLeft = TURN_LIMIT;
-      state.selection = null;
-      state.playerIndex = 0;
-      state.gameOver = false;
-
-      resultPanel.classList.add("hidden");
+      resetGameState();
       setupScreen.classList.add("hidden");
       gameScreen.classList.remove("hidden");
-      renderGame();
+      window.cancelAnimationFrame(state.animationFrame);
+      state.animationFrame = window.requestAnimationFrame(renderLoop);
     }
 
     function returnToSetup() {
-      gameScreen.classList.add("hidden");
       setupScreen.classList.remove("hidden");
+      gameScreen.classList.add("hidden");
+      window.clearInterval(state.timerId);
+      window.cancelAnimationFrame(state.animationFrame);
     }
 
-    function initPatternOptions() {
-      patternSelect.replaceChildren(...PATTERNS.map((pattern) => {
+    function getCellFromEvent(event) {
+      const rect = playCanvas.getBoundingClientRect();
+      const scaleX = playCanvas.width / rect.width;
+      const scaleY = playCanvas.height / rect.height;
+      const canvasX = (event.clientX - rect.left) * scaleX;
+      const canvasY = (event.clientY - rect.top) * scaleY;
+      const { cellSize, offsetX, offsetY } = getBoardMetrics(playCanvas);
+      const col = Math.floor((canvasX - offsetX) / cellSize);
+      const row = Math.floor((canvasY - offsetY) / cellSize);
+      if (row < 0 || col < 0 || row >= state.size || col >= state.size) {
+        return null;
+      }
+      return { row, col };
+    }
+
+    function handlePlayBoardClick(event) {
+      if (state.gameComplete) {
+        return;
+      }
+      const cell = getCellFromEvent(event);
+      if (!cell) {
+        return;
+      }
+
+      const wrongPlacement = getWrongPlacementAt(cell.row, cell.col);
+      if (wrongPlacement) {
+        if (state.mode === "single" || wrongPlacement.owner === state.currentPlayer) {
+          removeWrongPlacement(wrongPlacement.id);
+        } else {
+          setMessage("这是另一位玩家错放的碎片，需要轮到对方时才能撤回。");
+        }
+        return;
+      }
+
+      if (state.correctGrid[cell.row][cell.col] !== null) {
+        setMessage("这个格子已经正确放好了。");
+        return;
+      }
+
+      if (!state.selectedColor) {
+        setMessage("请先从托盘选择一个颜色碎片。");
+        return;
+      }
+
+      const color = state.selectedColor;
+      const available = state.inventory[state.currentPlayer][color] ?? 0;
+      if (available <= 0) {
+        setMessage("该颜色碎片已经用完。");
+        state.selectedColor = "";
+        updateHud();
+        return;
+      }
+
+      const isCorrectCell = isOwnedByCurrentPlayer(cell.row, cell.col) && state.targetGrid[cell.row][cell.col] === color;
+      if (isCorrectCell) {
+        placeCorrect(cell.row, cell.col, color);
+      } else if (!isCellOccupied(cell.row, cell.col)) {
+        placeWrong(cell.row, cell.col, color);
+      } else {
+        setMessage("这个格子已经被占用了。");
+      }
+    }
+
+    function undoLatestWrongPlacement() {
+      const latestPlacement = [...state.wrongPlacements]
+        .reverse()
+        .find((placement) => placement.owner === state.currentPlayer);
+      if (!latestPlacement) {
+        setMessage("当前玩家没有可撤回的错放碎片。");
+        return;
+      }
+      removeWrongPlacement(latestPlacement.id);
+    }
+
+    function populateTemplateSelect() {
+      templateSelect.replaceChildren(...TEMPLATES.map((template) => {
         const option = document.createElement("option");
-        option.value = pattern.id;
-        option.textContent = pattern.name;
+        option.value = template.id;
+        option.textContent = template.name + " (" + template.size + "x" + template.size + ")";
         return option;
       }));
-      patternSelect.value = state.patternId;
+      templateSelect.value = state.templateId;
     }
 
-    function initModeButtons() {
-      modeButtons.forEach((button) => {
-        button.addEventListener("click", () => {
-          state.mode = button.dataset.mode;
-          modeButtons.forEach((item) => item.classList.toggle("active", item === button));
-        });
+    modeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        state.mode = button.dataset.mode;
+        modeButtons.forEach((item) => item.classList.toggle("active", item === button));
       });
-    }
+    });
 
-    patternSelect.addEventListener("change", (event) => {
-      state.patternId = event.target.value;
+    templateSelect.addEventListener("change", () => {
+      state.templateId = templateSelect.value;
     });
 
     startButton.addEventListener("click", startGame);
+    playCanvas.addEventListener("click", handlePlayBoardClick);
+    undoButton.addEventListener("click", undoLatestWrongPlacement);
     clearSelectionButton.addEventListener("click", () => {
-      state.selection = null;
-      renderGame();
+      state.selectedColor = "";
+      updateHud();
+      setMessage("已清除当前选择。");
     });
-    restartButton.addEventListener("click", startGame);
+    restartButton.addEventListener("click", resetGameState);
     backButton.addEventListener("click", returnToSetup);
 
-    initPatternOptions();
-    initModeButtons();
-    renderPalette(setupPalette);
+    populateTemplateSelect();
   </script>
 </body>
 </html>
