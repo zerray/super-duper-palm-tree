@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>像素调色板：合作拼图画布</title>
+  <style>
+    :root {
+      --bg: #12121a;
+      --panel: rgba(18, 22, 35, 0.92);
+      --panel-soft: rgba(27, 34, 54, 0.82);
+      --line: rgba(255, 255, 255, 0.1);
+      --text: #f3f5ff;
+      --muted: #aeb7d6;
+      --accent: #ffd166;
+      --accent-2: #77e4c8;
+      --danger: #ff7b72;
+      --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+      --cell-size: 28px;
+      --gap: 4px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(119, 228, 200, 0.16), transparent 26%),
+        radial-gradient(circle at top right, rgba(255, 209, 102, 0.12), transparent 24%),
+        linear-gradient(180deg, #1a2033, #0c0f18 48%, #12121a);
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 1px solid transparent;
+      border-radius: 14px;
+      padding: 10px 14px;
+      cursor: pointer;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.08);
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+
+    button:hover:not(:disabled),
+    button:focus-visible {
+      transform: translateY(-1px);
+      border-color: rgba(255, 209, 102, 0.5);
+      background: rgba(255, 255, 255, 0.13);
+      outline: none;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .page {
+      width: min(1200px, calc(100vw - 24px));
+      margin: 0 auto;
+      padding: 24px 0 36px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .setup {
+      display: grid;
+      gap: 24px;
+      grid-template-columns: minmax(320px, 480px) 1fr;
+      padding: 26px;
+    }
+
+    .setup h1,
+    .setup h2,
+    .board-shell h2,
+    .results h2 {
+      margin: 0;
+    }
+
+    .eyebrow,
+    .muted {
+      color: var(--muted);
+    }
+
+    .hero-copy {
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+
+    .hero-copy h1 {
+      font-size: clamp(2.3rem, 6vw, 4.6rem);
+      line-height: 0.95;
+    }
+
+    .hero-copy p {
+      margin: 0;
+      line-height: 1.65;
+    }
+
+    .rules {
+      display: grid;
+      gap: 12px;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--panel-soft);
+    }
+
+    .rules ul {
+      margin: 0;
+      padding-left: 18px;
+      line-height: 1.6;
+    }
+
+    .setup-card {
+      display: grid;
+      gap: 18px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+      align-content: start;
+    }
+
+    .difficulty-grid,
+    .stat-grid,
+    .private-grid,
+    .result-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .difficulty-grid {
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    .difficulty-card {
+      text-align: left;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .difficulty-card.active {
+      border-color: rgba(119, 228, 200, 0.7);
+      background: rgba(119, 228, 200, 0.14);
+    }
+
+    .difficulty-card strong,
+    .stat strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .primary {
+      background: linear-gradient(135deg, #ffd166, #ff9b54);
+      color: #17120d;
+      font-weight: 700;
+    }
+
+    .secondary {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .game {
+      display: grid;
+      gap: 18px;
+      margin-top: 20px;
+    }
+
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 22px;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .stat {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.05);
+      min-width: 110px;
+    }
+
+    .layout {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+    }
+
+    .sidebar,
+    .board-shell,
+    .results {
+      padding: 20px;
+    }
+
+    .sidebar {
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+
+    .section-box {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--panel-soft);
+    }
+
+    .mode-row,
+    .palette-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .mode-row button.active,
+    .palette-chip.active {
+      border-color: rgba(255, 209, 102, 0.8);
+      background: rgba(255, 209, 102, 0.18);
+    }
+
+    .palette-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 96px;
+      text-align: left;
+    }
+
+    .swatch {
+      width: 20px;
+      height: 20px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      flex: none;
+    }
+
+    .inventory-list,
+    .signal-log {
+      display: grid;
+      gap: 8px;
+    }
+
+    .inventory-item,
+    .signal-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .mini-grid {
+      display: grid;
+      gap: 2px;
+      justify-content: start;
+    }
+
+    .mini-cell {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .mini-cell.filled {
+      background: #aeb7d6;
+    }
+
+    .board-shell {
+      overflow: auto;
+    }
+
+    .signal-banner {
+      min-height: 28px;
+      color: var(--accent-2);
+      font-weight: 700;
+    }
+
+    .board-wrap {
+      display: grid;
+      gap: var(--gap);
+      align-items: start;
+      justify-content: start;
+      width: max-content;
+      margin-top: 12px;
+    }
+
+    .board-row,
+    .header-row {
+      display: grid;
+      gap: var(--gap);
+      grid-template-columns: 42px repeat(var(--grid-size), var(--cell-size));
+      align-items: center;
+    }
+
+    .corner {
+      width: 42px;
+      height: var(--cell-size);
+    }
+
+    .axis-button {
+      height: var(--cell-size);
+      border-radius: 10px;
+      padding: 0;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .board-cell {
+      width: var(--cell-size);
+      height: var(--cell-size);
+      border-radius: 8px;
+      padding: 0;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .board-cell.empty {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .board-cell.flash,
+    .axis-button.flash {
+      animation: flashSignal 1s ease-in-out infinite;
+    }
+
+    @keyframes flashSignal {
+      0%, 100% {
+        box-shadow: 0 0 0 rgba(255, 209, 102, 0);
+        filter: brightness(1);
+      }
+
+      50% {
+        box-shadow: 0 0 18px rgba(255, 209, 102, 0.65);
+        filter: brightness(1.2);
+      }
+    }
+
+    .transition {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(5, 8, 14, 0.86);
+      backdrop-filter: blur(10px);
+      z-index: 10;
+    }
+
+    .transition-card {
+      max-width: 520px;
+      width: 100%;
+      padding: 28px;
+      text-align: center;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(35, 44, 67, 0.98), rgba(18, 22, 35, 0.98));
+      box-shadow: var(--shadow);
+    }
+
+    .transition-card h2 {
+      margin: 10px 0 8px;
+      font-size: clamp(2rem, 5vw, 3.4rem);
+    }
+
+    .transition-card p {
+      margin: 8px 0 0;
+      line-height: 1.65;
+      color: var(--muted);
+    }
+
+    .results {
+      margin-top: 20px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .score-banner {
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(255, 209, 102, 0.16), rgba(119, 228, 200, 0.12));
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .compare-board {
+      display: grid;
+      gap: 2px;
+      justify-content: start;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 10px;
+      border-radius: 16px;
+      width: max-content;
+    }
+
+    .compare-cell {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .danger {
+      color: var(--danger);
+    }
+
+    @media (max-width: 980px) {
+      .setup,
+      .layout,
+      .result-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      :root {
+        --cell-size: 22px;
+      }
+
+      .page {
+        width: min(100vw - 12px, 1200px);
+        padding-top: 12px;
+      }
+
+      .setup,
+      .topbar,
+      .sidebar,
+      .board-shell,
+      .results {
+        padding: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="setup panel" id="setup-screen">
+      <div class="hero-copy">
+        <p class="eyebrow">Hot-seat Puzzle</p>
+        <h1>像素调色板</h1>
+        <p>两位玩家共用一块画布，但永远看不见同一份答案。玩家 A 只知道颜色总量，玩家 B 只知道哪些位置应该点亮。你们必须在有限回合内，用上色和高亮行列信号拼出目标图案。</p>
+        <div class="rules">
+          <h2>规则速览</h2>
+          <ul>
+            <li>每回合只能做一件事：放置或修改一个像素，或者发送一个行/列信号。</li>
+            <li>信号会在下一位玩家回合中闪烁显示，帮助对方聚焦某一行或某一列。</li>
+            <li>每局结束后按整张网格逐像素比较，计算精确匹配率。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="setup-card">
+        <div>
+          <h2>选择难度</h2>
+          <p class="muted">难度会同时调整网格大小、颜色数量和总回合数。</p>
+        </div>
+        <div class="difficulty-grid" id="difficulty-grid"></div>
+        <button class="primary" id="start-button" type="button">开始新局</button>
+      </div>
+    </section>
+
+    <section class="game hidden" id="game-screen">
+      <div class="topbar panel">
+        <div class="pill-row">
+          <div class="stat"><strong id="turn-player">玩家 A</strong><span>当前操作</span></div>
+          <div class="stat"><strong id="turns-left">0</strong><span>剩余回合</span></div>
+          <div class="stat"><strong id="difficulty-label">Easy</strong><span>当前难度</span></div>
+        </div>
+        <div class="pill-row">
+          <button class="secondary" id="restart-button" type="button">重新生成</button>
+          <button class="secondary" id="end-turn-button" type="button" disabled>本回合已待命</button>
+        </div>
+      </div>
+
+      <div class="layout">
+        <aside class="sidebar panel">
+          <div class="section-box">
+            <h2>私有线索</h2>
+            <p class="muted" id="private-info-title"></p>
+            <div id="private-info-body" class="private-grid"></div>
+          </div>
+
+          <div class="section-box">
+            <h2>行动模式</h2>
+            <div class="mode-row">
+              <button id="mode-paint" type="button">放置像素</button>
+              <button id="mode-signal" type="button">发送信号</button>
+            </div>
+            <p class="muted">放置像素时点击画布格子。发送信号时点击任意行号或列号。</p>
+          </div>
+
+          <div class="section-box">
+            <h2>颜色选择</h2>
+            <div class="palette-row" id="palette-row"></div>
+          </div>
+
+          <div class="section-box">
+            <h2>最近信号</h2>
+            <div class="signal-log" id="signal-log"></div>
+          </div>
+        </aside>
+
+        <section class="board-shell panel">
+          <h2>共享拼图画布</h2>
+          <p class="signal-banner" id="signal-banner"></p>
+          <p class="muted">空白格表示暂未放置。若要擦除像素，请选择「清空」再点击格子。</p>
+          <div class="board-wrap" id="board-wrap"></div>
+        </section>
+      </div>
+    </section>
+
+    <section class="results panel hidden" id="results-screen">
+      <div class="score-banner">
+        <h2>结果对比</h2>
+        <p id="score-summary"></p>
+      </div>
+      <div class="result-grid">
+        <div class="section-box">
+          <h2>目标图案</h2>
+          <div id="target-compare"></div>
+        </div>
+        <div class="section-box">
+          <h2>合作作品</h2>
+          <div id="shared-compare"></div>
+        </div>
+      </div>
+      <button class="primary" id="play-again-button" type="button">再玩一局</button>
+    </section>
+  </main>
+
+  <div class="transition hidden" id="transition-screen" aria-live="polite">
+    <div class="transition-card">
+      <p class="eyebrow">Pass Device</p>
+      <h2 id="transition-player">玩家 A</h2>
+      <p id="transition-copy"></p>
+      <button class="primary" id="continue-button" type="button">开始这一回合</button>
+      <p>也可以直接按 <strong>Enter</strong>。</p>
+    </div>
+  </div>
+
+  <script>
+    const DIFFICULTIES = {
+      easy: { label: "简单", size: 8, colors: 4, turns: 24, density: 0.42 },
+      medium: { label: "普通", size: 12, colors: 6, turns: 20, density: 0.38 },
+      hard: { label: "困难", size: 16, colors: 8, turns: 20, density: 0.34 }
+    };
+
+    const BASE_PALETTE = [
+      { key: "rose", label: "珊瑚红", hex: "#ff6b6b" },
+      { key: "gold", label: "蜂蜜黄", hex: "#ffd166" },
+      { key: "mint", label: "薄荷绿", hex: "#77e4c8" },
+      { key: "sky", label: "天青蓝", hex: "#69b7ff" },
+      { key: "violet", label: "靛紫", hex: "#8d7dff" },
+      { key: "peach", label: "桃橙", hex: "#ff9f68" },
+      { key: "lime", label: "酸橙", hex: "#b8f36b" },
+      { key: "pink", label: "亮粉", hex: "#ff8cc6" }
+    ];
+
+    const setupScreen = document.querySelector("#setup-screen");
+    const gameScreen = document.querySelector("#game-screen");
+    const resultsScreen = document.querySelector("#results-screen");
+    const difficultyGrid = document.querySelector("#difficulty-grid");
+    const startButton = document.querySelector("#start-button");
+    const restartButton = document.querySelector("#restart-button");
+    const playAgainButton = document.querySelector("#play-again-button");
+    const continueButton = document.querySelector("#continue-button");
+    const transitionScreen = document.querySelector("#transition-screen");
+    const transitionPlayer = document.querySelector("#transition-player");
+    const transitionCopy = document.querySelector("#transition-copy");
+    const turnPlayer = document.querySelector("#turn-player");
+    const turnsLeft = document.querySelector("#turns-left");
+    const difficultyLabel = document.querySelector("#difficulty-label");
+    const endTurnButton = document.querySelector("#end-turn-button");
+    const privateInfoTitle = document.querySelector("#private-info-title");
+    const privateInfoBody = document.querySelector("#private-info-body");
+    const paletteRow = document.querySelector("#palette-row");
+    const signalLog = document.querySelector("#signal-log");
+    const signalBanner = document.querySelector("#signal-banner");
+    const boardWrap = document.querySelector("#board-wrap");
+    const scoreSummary = document.querySelector("#score-summary");
+    const targetCompare = document.querySelector("#target-compare");
+    const sharedCompare = document.querySelector("#shared-compare");
+    const modePaintButton = document.querySelector("#mode-paint");
+    const modeSignalButton = document.querySelector("#mode-signal");
+
+    const state = {
+      difficultyKey: "easy",
+      currentPlayer: "A",
+      turnsRemaining: 0,
+      mode: "paint",
+      selectedColorKey: "empty",
+      palette: [],
+      target: [],
+      shared: [],
+      visibleSignal: null,
+      signalHistory: [],
+      actionLocked: false
+    };
+
+    function createEmptyGrid(size, fill = null) {
+      return Array.from({ length: size }, () => Array.from({ length: size }, () => fill));
+    }
+
+    function randomItem(items) {
+      return items[Math.floor(Math.random() * items.length)];
+    }
+
+    function buildMirrors(size, row, col) {
+      const points = [
+        [row, col],
+        [row, size - 1 - col],
+        [size - 1 - row, col],
+        [size - 1 - row, size - 1 - col]
+      ];
+
+      return Array.from(new Set(points.map((point) => point.join(",")))).map((value) => value.split(",").map(Number));
+    }
+
+    function generateTarget(config) {
+      const grid = createEmptyGrid(config.size);
+      const palette = BASE_PALETTE.slice(0, config.colors);
+      const halfRows = Math.ceil(config.size / 2);
+      const halfCols = Math.ceil(config.size / 2);
+
+      for (let row = 0; row < halfRows; row += 1) {
+        for (let col = 0; col < halfCols; col += 1) {
+          if (Math.random() > config.density) {
+            continue;
+          }
+
+          const color = randomItem(palette).key;
+          for (const [mirrorRow, mirrorCol] of buildMirrors(config.size, row, col)) {
+            grid[mirrorRow][mirrorCol] = color;
+          }
+        }
+      }
+
+      const crossColor = randomItem(palette).key;
+      const center = Math.floor(config.size / 2);
+      for (let offset = 0; offset < config.size; offset += 1) {
+        if (Math.random() < 0.3) {
+          grid[center][offset] = crossColor;
+          grid[offset][center] = crossColor;
+        }
+      }
+
+      const filledCount = grid.flat().filter(Boolean).length;
+      return filledCount >= config.size ? grid : generateTarget(config);
+    }
+
+    function getCounts(grid) {
+      const counts = new Map();
+      for (const cell of grid.flat()) {
+        if (!cell) {
+          continue;
+        }
+        counts.set(cell, (counts.get(cell) || 0) + 1);
+      }
+      return counts;
+    }
+
+    function switchPlayer(player) {
+      return player === "A" ? "B" : "A";
+    }
+
+    function currentDifficulty() {
+      return DIFFICULTIES[state.difficultyKey];
+    }
+
+    function activePalette() {
+      return [{ key: "empty", label: "清空", hex: "transparent" }, ...state.palette];
+    }
+
+    function getPaletteEntry(key) {
+      return activePalette().find((entry) => entry.key === key) || activePalette()[0];
+    }
+
+    function describeSignal(signal) {
+      if (!signal) {
+        return "暂无信号";
+      }
+      const axisLabel = signal.type === "row" ? "行" : "列";
+      return `玩家 ${signal.from} 高亮了第 ${signal.index + 1} ${axisLabel}`;
+    }
+
+    function renderDifficultyOptions() {
+      difficultyGrid.replaceChildren(
+        ...Object.entries(DIFFICULTIES).map(([key, config]) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = `difficulty-card${state.difficultyKey === key ? " active" : ""}`;
+          button.innerHTML = `<strong>${config.label}</strong><span>${config.size}x${config.size} / ${config.colors} 色 / ${config.turns} 回合</span>`;
+          button.addEventListener("click", () => {
+            state.difficultyKey = key;
+            renderDifficultyOptions();
+          });
+          return button;
+        })
+      );
+    }
+
+    function renderPalette() {
+      paletteRow.replaceChildren(
+        ...activePalette().map((entry) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = `palette-chip${state.selectedColorKey === entry.key ? " active" : ""}`;
+          button.disabled = state.mode !== "paint" || state.actionLocked;
+          button.addEventListener("click", () => {
+            state.selectedColorKey = entry.key;
+            renderPalette();
+          });
+
+          const swatch = document.createElement("span");
+          swatch.className = "swatch";
+          swatch.style.background = entry.hex === "transparent" ? "linear-gradient(135deg, transparent 45%, #ff7b72 45%, #ff7b72 55%, transparent 55%) rgba(255,255,255,0.08)" : entry.hex;
+          button.append(swatch, document.createTextNode(entry.label));
+          return button;
+        })
+      );
+    }
+
+    function renderPrivateInfo() {
+      privateInfoBody.replaceChildren();
+      const size = currentDifficulty().size;
+
+      if (state.currentPlayer === "A") {
+        privateInfoTitle.textContent = "你只知道目标中有哪些颜色，以及它们各自出现了多少次。";
+        const counts = Array.from(getCounts(state.target).entries())
+          .sort((a, b) => a[0].localeCompare(b[0]));
+        const list = document.createElement("div");
+        list.className = "inventory-list";
+
+        counts.forEach(([key, count]) => {
+          const entry = getPaletteEntry(key);
+          const row = document.createElement("div");
+          row.className = "inventory-item";
+
+          const info = document.createElement("div");
+          info.style.display = "flex";
+          info.style.alignItems = "center";
+          info.style.gap = "10px";
+
+          const swatch = document.createElement("span");
+          swatch.className = "swatch";
+          swatch.style.background = entry.hex;
+          info.append(swatch, document.createTextNode(entry.label));
+          row.append(info, document.createTextNode(`${count} 格`));
+          list.append(row);
+        });
+
+        privateInfoBody.append(list);
+        return;
+      }
+
+      privateInfoTitle.textContent = "你只知道目标中哪些位置需要上色，但不知道对应颜色。";
+      const preview = document.createElement("div");
+      preview.className = "mini-grid";
+      preview.style.gridTemplateColumns = `repeat(${size}, 12px)`;
+
+      for (let row = 0; row < size; row += 1) {
+        for (let col = 0; col < size; col += 1) {
+          const cell = document.createElement("div");
+          cell.className = `mini-cell${state.target[row][col] ? " filled" : ""}`;
+          preview.append(cell);
+        }
+      }
+      privateInfoBody.append(preview);
+    }
+
+    function renderSignalLog() {
+      const items = state.signalHistory.slice(-4).reverse();
+      signalLog.replaceChildren(
+        ...(items.length ? items : [null]).map((signal) => {
+          const row = document.createElement("div");
+          row.className = "signal-item";
+          row.textContent = signal ? describeSignal(signal) : "还没有任何信号";
+          return row;
+        })
+      );
+    }
+
+    function hasIncomingSignal() {
+      return Boolean(state.visibleSignal && state.visibleSignal.from !== state.currentPlayer);
+    }
+
+    function isHighlightedCell(row, col) {
+      if (!hasIncomingSignal()) {
+        return false;
+      }
+      return state.visibleSignal.type === "row" ? state.visibleSignal.index === row : state.visibleSignal.index === col;
+    }
+
+    function handlePaint(row, col) {
+      if (state.actionLocked || state.mode !== "paint") {
+        return;
+      }
+      state.shared[row][col] = state.selectedColorKey === "empty" ? null : state.selectedColorKey;
+      finishTurn();
+    }
+
+    function handleSignal(type, index) {
+      if (state.actionLocked || state.mode !== "signal") {
+        return;
+      }
+      state.visibleSignal = { type, index, from: state.currentPlayer };
+      state.signalHistory.push(state.visibleSignal);
+      finishTurn();
+    }
+
+    function renderBoard() {
+      const size = currentDifficulty().size;
+      boardWrap.style.setProperty("--grid-size", size);
+      const rows = [];
+
+      const headerRow = document.createElement("div");
+      headerRow.className = "header-row";
+      const corner = document.createElement("div");
+      corner.className = "corner";
+      headerRow.append(corner);
+
+      for (let col = 0; col < size; col += 1) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `axis-button${hasIncomingSignal() && state.visibleSignal.type === "col" && state.visibleSignal.index === col ? " flash" : ""}`;
+        button.textContent = col + 1;
+        button.disabled = state.mode !== "signal" || state.actionLocked;
+        button.addEventListener("click", () => handleSignal("col", col));
+        headerRow.append(button);
+      }
+      rows.push(headerRow);
+
+      for (let row = 0; row < size; row += 1) {
+        const line = document.createElement("div");
+        line.className = "board-row";
+
+        const axis = document.createElement("button");
+        axis.type = "button";
+        axis.className = `axis-button${hasIncomingSignal() && state.visibleSignal.type === "row" && state.visibleSignal.index === row ? " flash" : ""}`;
+        axis.textContent = row + 1;
+        axis.disabled = state.mode !== "signal" || state.actionLocked;
+        axis.addEventListener("click", () => handleSignal("row", row));
+        line.append(axis);
+
+        for (let col = 0; col < size; col += 1) {
+          const button = document.createElement("button");
+          button.type = "button";
+          const key = state.shared[row][col];
+          const entry = getPaletteEntry(key || "empty");
+          button.className = `board-cell${key ? "" : " empty"}${isHighlightedCell(row, col) ? " flash" : ""}`;
+          button.style.background = key ? entry.hex : "rgba(255, 255, 255, 0.04)";
+          button.disabled = state.mode !== "paint" || state.actionLocked;
+          button.setAttribute("aria-label", `第 ${row + 1} 行，第 ${col + 1} 列`);
+          button.addEventListener("click", () => handlePaint(row, col));
+          line.append(button);
+        }
+
+        rows.push(line);
+      }
+
+      boardWrap.replaceChildren(...rows);
+      signalBanner.textContent = hasIncomingSignal()
+        ? `收到信号：${describeSignal(state.visibleSignal)}`
+        : "";
+    }
+
+    function renderTurnHeader() {
+      turnPlayer.textContent = `玩家 ${state.currentPlayer}`;
+      turnsLeft.textContent = String(state.turnsRemaining);
+      difficultyLabel.textContent = currentDifficulty().label;
+      endTurnButton.textContent = state.actionLocked ? "等待切换玩家" : "本回合待命";
+      endTurnButton.disabled = !state.actionLocked;
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      modePaintButton.classList.toggle("active", mode === "paint");
+      modeSignalButton.classList.toggle("active", mode === "signal");
+      renderPalette();
+      renderBoard();
+    }
+
+    function showTransition() {
+      transitionPlayer.textContent = `玩家 ${state.currentPlayer}`;
+      transitionCopy.textContent = state.currentPlayer === "A"
+        ? "你将看到颜色库存，但看不到具体位置。确认前请让另一位玩家移开视线。"
+        : "你将看到需要填色的位置轮廓，但看不到真实颜色。确认前请让另一位玩家移开视线。";
+      transitionScreen.classList.remove("hidden");
+    }
+
+    function hideTransition() {
+      transitionScreen.classList.add("hidden");
+    }
+
+    function renderGame() {
+      renderTurnHeader();
+      renderPrivateInfo();
+      renderPalette();
+      renderSignalLog();
+      renderBoard();
+    }
+
+    function beginTurn() {
+      state.actionLocked = false;
+      renderGame();
+      hideTransition();
+    }
+
+    function finishTurn() {
+      state.actionLocked = true;
+      renderGame();
+      endTurnButton.disabled = false;
+    }
+
+    function advanceTurn() {
+      if (!state.actionLocked) {
+        return;
+      }
+
+      state.turnsRemaining -= 1;
+      if (state.turnsRemaining <= 0) {
+        showResults();
+        return;
+      }
+
+      state.currentPlayer = switchPlayer(state.currentPlayer);
+      showTransition();
+    }
+
+    function scoreBoards() {
+      let exactMatches = 0;
+      let targetFilled = 0;
+      let sharedFilled = 0;
+      const size = currentDifficulty().size;
+      const total = size * size;
+
+      for (let row = 0; row < size; row += 1) {
+        for (let col = 0; col < size; col += 1) {
+          const targetCell = state.target[row][col];
+          const sharedCell = state.shared[row][col];
+          if (targetCell === sharedCell) {
+            exactMatches += 1;
+          }
+          if (targetCell) {
+            targetFilled += 1;
+          }
+          if (sharedCell) {
+            sharedFilled += 1;
+          }
+        }
+      }
+
+      return {
+        exactMatches,
+        targetFilled,
+        sharedFilled,
+        total,
+        percent: Math.round((exactMatches / total) * 100)
+      };
+    }
+
+    function createCompareBoard(grid) {
+      const size = currentDifficulty().size;
+      const board = document.createElement("div");
+      board.className = "compare-board";
+      board.style.gridTemplateColumns = `repeat(${size}, 18px)`;
+
+      for (let row = 0; row < size; row += 1) {
+        for (let col = 0; col < size; col += 1) {
+          const cell = document.createElement("div");
+          cell.className = "compare-cell";
+          const key = grid[row][col];
+          if (key) {
+            cell.style.background = getPaletteEntry(key).hex;
+          }
+          board.append(cell);
+        }
+      }
+
+      return board;
+    }
+
+    function showResults() {
+      gameScreen.classList.add("hidden");
+      hideTransition();
+      resultsScreen.classList.remove("hidden");
+
+      const result = scoreBoards();
+      scoreSummary.textContent = `精确匹配 ${result.exactMatches} / ${result.total}，匹配率 ${result.percent}%。目标已上色 ${result.targetFilled} 格，你们当前作品上色 ${result.sharedFilled} 格。`;
+      targetCompare.replaceChildren(createCompareBoard(state.target));
+      sharedCompare.replaceChildren(createCompareBoard(state.shared));
+    }
+
+    function startGame() {
+      const config = currentDifficulty();
+      state.palette = BASE_PALETTE.slice(0, config.colors);
+      state.target = generateTarget(config);
+      state.shared = createEmptyGrid(config.size);
+      state.currentPlayer = "A";
+      state.turnsRemaining = config.turns;
+      state.visibleSignal = null;
+      state.signalHistory = [];
+      state.actionLocked = false;
+      state.selectedColorKey = state.palette[0].key;
+
+      setupScreen.classList.add("hidden");
+      resultsScreen.classList.add("hidden");
+      gameScreen.classList.remove("hidden");
+      setMode("paint");
+      showTransition();
+      renderGame();
+    }
+
+    difficultyGrid.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        const target = event.target.closest(".difficulty-card");
+        if (target) {
+          target.click();
+        }
+      }
+    });
+
+    startButton.addEventListener("click", startGame);
+    restartButton.addEventListener("click", startGame);
+    playAgainButton.addEventListener("click", startGame);
+    continueButton.addEventListener("click", beginTurn);
+    endTurnButton.addEventListener("click", advanceTurn);
+    modePaintButton.addEventListener("click", () => setMode("paint"));
+    modeSignalButton.addEventListener("click", () => setMode("signal"));
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !transitionScreen.classList.contains("hidden")) {
+        beginTurn();
+      }
+    });
+
+    renderDifficultyOptions();
+  </script>
+</body>
+</html>
