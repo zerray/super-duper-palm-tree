@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>像素调色板接力：合作拼图</title>
+  <style>
+    :root {
+      --bg: #f4ead7;
+      --panel: rgba(255, 250, 242, 0.92);
+      --panel-strong: #fffdf8;
+      --line: rgba(74, 52, 28, 0.16);
+      --text: #261c14;
+      --muted: #6b5847;
+      --accent: #cc5a2b;
+      --accent-soft: rgba(204, 90, 43, 0.14);
+      --shadow: 0 20px 48px rgba(71, 46, 17, 0.15);
+      --cell: 34px;
+      --gap: 4px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.75), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(204, 90, 43, 0.14), transparent 24%),
+        linear-gradient(180deg, #f8efdf 0%, var(--bg) 45%, #efe5d5 100%);
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    button,
+    select {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.78);
+    }
+
+    button {
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+    }
+
+    button:hover:not(:disabled),
+    button:focus-visible,
+    select:focus-visible {
+      outline: none;
+      transform: translateY(-1px);
+      border-color: rgba(204, 90, 43, 0.45);
+      background: #fffdf8;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .page {
+      width: min(1180px, calc(100vw - 28px));
+      margin: 0 auto;
+      padding: 24px 0 36px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .setup {
+      display: grid;
+      grid-template-columns: minmax(280px, 410px) minmax(0, 1fr);
+      gap: 24px;
+      padding: 28px;
+    }
+
+    .hero,
+    .setup-controls,
+    .hud,
+    .board-panel,
+    .results {
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+
+    .eyebrow,
+    .muted,
+    .hint {
+      color: var(--muted);
+    }
+
+    .eyebrow {
+      margin: 0;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--accent);
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2.8rem, 6vw, 4.8rem);
+      line-height: 0.92;
+      letter-spacing: -0.04em;
+    }
+
+    .hero p,
+    .setup-controls label,
+    .hint,
+    .results p {
+      line-height: 1.6;
+    }
+
+    .rule-box,
+    .control-box,
+    .info-box {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.62);
+    }
+
+    .rule-box ul {
+      margin: 10px 0 0;
+      padding-left: 20px;
+      line-height: 1.65;
+    }
+
+    .setup-controls {
+      padding: 22px;
+    }
+
+    .control-box {
+      display: grid;
+      gap: 12px;
+    }
+
+    .option-row,
+    .stat-row,
+    .palette,
+    .game-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .mode-button.active,
+    .axis-button.active,
+    .color-chip.active {
+      border-color: rgba(204, 90, 43, 0.5);
+      background: var(--accent-soft);
+    }
+
+    .primary {
+      background: linear-gradient(135deg, #dc6b39, #bf4b23);
+      border-color: #b64721;
+      color: #fff8f3;
+      font-weight: 700;
+    }
+
+    .workspace {
+      display: grid;
+      gap: 18px;
+      margin-top: 20px;
+    }
+
+    .hud {
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      padding: 18px 20px;
+    }
+
+    .stat-card {
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.64);
+    }
+
+    .stat-card strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 1.1rem;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+      gap: 18px;
+    }
+
+    .board-panel {
+      padding: 20px;
+    }
+
+    .palette {
+      margin-top: 8px;
+    }
+
+    .color-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 96px;
+    }
+
+    .swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 6px;
+      border: 1px solid rgba(0, 0, 0, 0.18);
+    }
+
+    .boards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .board-card {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .board-frame {
+      display: inline-grid;
+      grid-template-columns: 28px repeat(8, var(--cell));
+      grid-template-rows: 28px repeat(8, var(--cell));
+      gap: var(--gap);
+      margin-top: 12px;
+    }
+
+    .corner {
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.04);
+    }
+
+    .axis-button {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border-radius: 10px;
+      font-size: 0.82rem;
+    }
+
+    .cell {
+      width: var(--cell);
+      height: var(--cell);
+      border-radius: 10px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    }
+
+    .cell.target {
+      cursor: default;
+    }
+
+    .cell.selected {
+      outline: 3px solid rgba(204, 90, 43, 0.78);
+      outline-offset: -3px;
+    }
+
+    .results {
+      margin-top: 20px;
+      padding: 24px;
+    }
+
+    .results strong {
+      font-size: 1.15rem;
+    }
+
+    @media (max-width: 960px) {
+      .setup,
+      .layout,
+      .boards {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      :root {
+        --cell: 28px;
+      }
+
+      .page {
+        width: min(100vw - 16px, 1180px);
+        padding-top: 16px;
+      }
+
+      .setup,
+      .setup-controls,
+      .board-panel,
+      .results {
+        padding: 18px;
+      }
+
+      .board-frame {
+        grid-template-columns: 24px repeat(8, var(--cell));
+        grid-template-rows: 24px repeat(8, var(--cell));
+      }
+
+      .axis-button {
+        width: 24px;
+        height: 24px;
+        border-radius: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="setup panel" id="setup-screen">
+      <div class="hero">
+        <p class="eyebrow">Puzzle Relay</p>
+        <h1>像素调色板接力</h1>
+        <p>目标图案会先被打乱成随机颜色。每回合只能选一整行或一整列，再把它们一次性刷成同一种颜色。</p>
+        <div class="rule-box">
+          <h2>玩法</h2>
+          <ul>
+            <li>提供 3 幅 8x8 像素目标图案可选，右侧会始终显示目标参考。</li>
+            <li>每回合先选一行或一列，再从固定调色板中选一个颜色应用。</li>
+            <li>双人热座模式会轮流切换玩家；单人模式则连续由同一玩家操作。</li>
+            <li>在总回合数耗尽前把当前棋盘恢复成目标图案即可获胜。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="setup-controls panel">
+        <div class="control-box">
+          <label for="pattern-select">目标图案</label>
+          <select id="pattern-select"></select>
+        </div>
+
+        <div class="control-box">
+          <div>模式</div>
+          <div class="option-row">
+            <button type="button" class="mode-button active" data-mode="single">单人模式</button>
+            <button type="button" class="mode-button" data-mode="coop">热座双人</button>
+          </div>
+        </div>
+
+        <div class="control-box">
+          <div>固定调色板</div>
+          <div class="palette" id="setup-palette"></div>
+          <p class="hint">每回合只能把整行或整列涂成一种颜色，因此图案设计成可在回合限制内还原。</p>
+        </div>
+
+        <button type="button" class="primary" id="start-button">开始游戏</button>
+      </div>
+    </section>
+
+    <section class="workspace hidden" id="game-screen">
+      <div class="hud panel">
+        <div class="stat-card">
+          <span class="muted">当前模式</span>
+          <strong id="mode-label">单人模式</strong>
+        </div>
+        <div class="stat-card">
+          <span class="muted">当前回合</span>
+          <strong id="turn-label">玩家 1</strong>
+        </div>
+        <div class="stat-card">
+          <span class="muted">剩余回合</span>
+          <strong id="moves-label">20</strong>
+        </div>
+        <div class="stat-card">
+          <span class="muted">完成进度</span>
+          <strong id="progress-label">0%</strong>
+        </div>
+      </div>
+
+      <div class="layout">
+        <aside class="board-panel panel">
+          <div class="info-box">
+            <h2>操作面板</h2>
+            <p class="hint">先选一行或一列，再点击下面的颜色执行本回合操作。</p>
+          </div>
+
+          <div class="info-box">
+            <h3>行 / 列选择</h3>
+            <div class="game-actions">
+              <button type="button" id="clear-selection">清除选择</button>
+            </div>
+            <p class="hint" id="selection-label">未选择任何行或列。</p>
+          </div>
+
+          <div class="info-box">
+            <h3>调色板</h3>
+            <div class="palette" id="play-palette"></div>
+          </div>
+
+          <div class="info-box">
+            <h3>说明</h3>
+            <p class="hint">目标图案作为参考会一直显示。进度按当前颜色与目标颜色完全一致的像素占比计算。</p>
+          </div>
+
+          <div class="game-actions">
+            <button type="button" id="restart-button">重开本局</button>
+            <button type="button" id="back-button">返回设置</button>
+          </div>
+        </aside>
+
+        <section class="board-panel panel">
+          <div class="boards">
+            <div class="board-card">
+              <h2>当前棋盘</h2>
+              <p class="hint">点击上方列标或左侧行标进行选择。</p>
+              <div id="current-board"></div>
+            </div>
+
+            <div class="board-card">
+              <h2>目标图案</h2>
+              <p class="hint" id="pattern-name"></p>
+              <div id="target-board"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section class="results panel hidden" id="result-panel">
+        <strong id="result-title"></strong>
+        <p id="result-copy"></p>
+        <div class="stat-row">
+          <div class="stat-card">
+            <span class="muted">最终进度</span>
+            <strong id="final-progress">0%</strong>
+          </div>
+          <div class="stat-card">
+            <span class="muted">已用回合</span>
+            <strong id="used-moves">0</strong>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const PALETTE = [
+      { name: "奶油白", value: "#fff4d6" },
+      { name: "金黄", value: "#ffcc4d" },
+      { name: "橙色", value: "#ff8a3d" },
+      { name: "珊瑚红", value: "#f25f5c" },
+      { name: "莓果紫", value: "#8c5aff" },
+      { name: "天蓝", value: "#49a6ff" },
+      { name: "薄荷绿", value: "#54d4a6" },
+      { name: "墨蓝", value: "#2f3d6b" }
+    ];
+
+    const TURN_LIMIT = 20;
+    const GRID_SIZE = 8;
+    const PATTERNS = [
+      {
+        id: "sunset-bands",
+        name: "晚霞条带",
+        grid: [
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [1, 1, 1, 1, 1, 1, 1, 1],
+          [2, 2, 2, 2, 2, 2, 2, 2],
+          [3, 3, 3, 3, 3, 3, 3, 3],
+          [4, 4, 4, 4, 4, 4, 4, 4],
+          [5, 5, 5, 5, 5, 5, 5, 5],
+          [6, 6, 6, 6, 6, 6, 6, 6],
+          [7, 7, 7, 7, 7, 7, 7, 7]
+        ]
+      },
+      {
+        id: "signal-columns",
+        name: "信号光柱",
+        grid: [
+          [7, 6, 5, 4, 3, 2, 1, 0],
+          [7, 6, 5, 4, 3, 2, 1, 0],
+          [7, 6, 5, 4, 3, 2, 1, 0],
+          [7, 6, 5, 4, 3, 2, 1, 0],
+          [7, 6, 5, 4, 3, 2, 1, 0],
+          [7, 6, 5, 4, 3, 2, 1, 0],
+          [7, 6, 5, 4, 3, 2, 1, 0],
+          [7, 6, 5, 4, 3, 2, 1, 0]
+        ]
+      },
+      {
+        id: "harbor-lights",
+        name: "港口灯带",
+        grid: [
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [5, 5, 5, 5, 5, 5, 5, 5],
+          [5, 5, 5, 5, 5, 5, 5, 5],
+          [2, 2, 2, 2, 2, 2, 2, 2],
+          [2, 2, 2, 2, 2, 2, 2, 2],
+          [7, 7, 7, 7, 7, 7, 7, 7],
+          [7, 7, 7, 7, 7, 7, 7, 7]
+        ]
+      }
+    ];
+
+    const state = {
+      mode: "single",
+      patternId: PATTERNS[0].id,
+      board: [],
+      target: [],
+      movesLeft: TURN_LIMIT,
+      selection: null,
+      playerIndex: 0,
+      gameOver: false
+    };
+
+    const setupScreen = document.getElementById("setup-screen");
+    const gameScreen = document.getElementById("game-screen");
+    const patternSelect = document.getElementById("pattern-select");
+    const startButton = document.getElementById("start-button");
+    const setupPalette = document.getElementById("setup-palette");
+    const playPalette = document.getElementById("play-palette");
+    const currentBoard = document.getElementById("current-board");
+    const targetBoard = document.getElementById("target-board");
+    const modeLabel = document.getElementById("mode-label");
+    const turnLabel = document.getElementById("turn-label");
+    const movesLabel = document.getElementById("moves-label");
+    const progressLabel = document.getElementById("progress-label");
+    const patternName = document.getElementById("pattern-name");
+    const selectionLabel = document.getElementById("selection-label");
+    const resultPanel = document.getElementById("result-panel");
+    const resultTitle = document.getElementById("result-title");
+    const resultCopy = document.getElementById("result-copy");
+    const finalProgress = document.getElementById("final-progress");
+    const usedMoves = document.getElementById("used-moves");
+    const clearSelectionButton = document.getElementById("clear-selection");
+    const restartButton = document.getElementById("restart-button");
+    const backButton = document.getElementById("back-button");
+    const modeButtons = Array.from(document.querySelectorAll(".mode-button"));
+
+    function cloneGrid(grid) {
+      return grid.map((row) => row.slice());
+    }
+
+    function getPattern() {
+      return PATTERNS.find((pattern) => pattern.id === state.patternId) ?? PATTERNS[0];
+    }
+
+    function randomColorIndex(exclude) {
+      let candidate = exclude;
+      while (candidate === exclude) {
+        candidate = Math.floor(Math.random() * PALETTE.length);
+      }
+      return candidate;
+    }
+
+    function createScrambledBoard(targetGrid) {
+      return targetGrid.map((row) => row.map((colorIndex) => randomColorIndex(colorIndex)));
+    }
+
+    function getProgress() {
+      let matches = 0;
+      for (let row = 0; row < GRID_SIZE; row += 1) {
+        for (let col = 0; col < GRID_SIZE; col += 1) {
+          if (state.board[row][col] === state.target[row][col]) {
+            matches += 1;
+          }
+        }
+      }
+      return Math.round((matches / (GRID_SIZE * GRID_SIZE)) * 100);
+    }
+
+    function getCurrentPlayerLabel() {
+      if (state.mode === "single") {
+        return "单人";
+      }
+      return state.playerIndex === 0 ? "玩家 1" : "玩家 2";
+    }
+
+    function describeSelection() {
+      if (!state.selection) {
+        return "未选择任何行或列。";
+      }
+      const axisLabel = state.selection.axis === "row" ? "第" + (state.selection.index + 1) + "行" : "第" + (state.selection.index + 1) + "列";
+      return "已选择 " + axisLabel + "，请从下方点击一个颜色。";
+    }
+
+    function updateHud() {
+      modeLabel.textContent = state.mode === "single" ? "单人模式" : "热座双人";
+      turnLabel.textContent = state.gameOver ? "本局结束" : getCurrentPlayerLabel();
+      movesLabel.textContent = String(state.movesLeft);
+      progressLabel.textContent = getProgress() + "%";
+      selectionLabel.textContent = describeSelection();
+      patternName.textContent = getPattern().name;
+    }
+
+    function renderPalette(container) {
+      container.replaceChildren(...PALETTE.map((color, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "color-chip";
+        button.disabled = container === playPalette && (!state.selection || state.gameOver);
+        if (container === playPalette && state.selection && !state.gameOver) {
+          button.addEventListener("click", () => applyColor(index));
+        }
+
+        const swatch = document.createElement("span");
+        swatch.className = "swatch";
+        swatch.style.background = color.value;
+
+        const label = document.createElement("span");
+        label.textContent = color.name;
+
+        button.append(swatch, label);
+        return button;
+      }));
+    }
+
+    function isSelectedCell(row, col) {
+      if (!state.selection) {
+        return false;
+      }
+      if (state.selection.axis === "row") {
+        return state.selection.index === row;
+      }
+      return state.selection.index === col;
+    }
+
+    function createBoard(grid, interactive) {
+      const frame = document.createElement("div");
+      frame.className = "board-frame";
+
+      const corner = document.createElement("div");
+      corner.className = "corner";
+      frame.append(corner);
+
+      for (let col = 0; col < GRID_SIZE; col += 1) {
+        const columnButton = document.createElement(interactive ? "button" : "div");
+        columnButton.className = interactive ? "axis-button" : "corner";
+        if (interactive) {
+          columnButton.type = "button";
+          columnButton.textContent = String(col + 1);
+          if (state.selection && state.selection.axis === "col" && state.selection.index === col) {
+            columnButton.classList.add("active");
+          }
+          columnButton.disabled = state.gameOver;
+          columnButton.addEventListener("click", () => {
+            state.selection = { axis: "col", index: col };
+            renderGame();
+          });
+        }
+        frame.append(columnButton);
+      }
+
+      for (let row = 0; row < GRID_SIZE; row += 1) {
+        const rowButton = document.createElement(interactive ? "button" : "div");
+        rowButton.className = interactive ? "axis-button" : "corner";
+        if (interactive) {
+          rowButton.type = "button";
+          rowButton.textContent = String(row + 1);
+          if (state.selection && state.selection.axis === "row" && state.selection.index === row) {
+            rowButton.classList.add("active");
+          }
+          rowButton.disabled = state.gameOver;
+          rowButton.addEventListener("click", () => {
+            state.selection = { axis: "row", index: row };
+            renderGame();
+          });
+        }
+        frame.append(rowButton);
+
+        for (let col = 0; col < GRID_SIZE; col += 1) {
+          const cell = document.createElement("div");
+          cell.className = "cell";
+          if (!interactive) {
+            cell.classList.add("target");
+          }
+          if (interactive && isSelectedCell(row, col)) {
+            cell.classList.add("selected");
+          }
+          cell.style.background = PALETTE[grid[row][col]].value;
+          frame.append(cell);
+        }
+      }
+
+      return frame;
+    }
+
+    function finishGame(won) {
+      state.gameOver = true;
+      resultPanel.classList.remove("hidden");
+      resultTitle.textContent = won ? "还原成功" : "回合耗尽";
+      resultCopy.textContent = won
+        ? (state.mode === "single" ? "你在限定回合内完成了像素图案。" : "两位玩家在限定回合内完成了像素接力。")
+        : "还没能完全恢复目标图案，可以直接重开本局继续尝试。";
+      finalProgress.textContent = getProgress() + "%";
+      usedMoves.textContent = String(TURN_LIMIT - state.movesLeft);
+      updateHud();
+    }
+
+    function applyColor(colorIndex) {
+      if (!state.selection || state.gameOver || state.movesLeft <= 0) {
+        return;
+      }
+
+      const { axis, index } = state.selection;
+      if (axis === "row") {
+        for (let col = 0; col < GRID_SIZE; col += 1) {
+          state.board[index][col] = colorIndex;
+        }
+      } else {
+        for (let row = 0; row < GRID_SIZE; row += 1) {
+          state.board[row][index] = colorIndex;
+        }
+      }
+
+      state.movesLeft -= 1;
+      state.selection = null;
+
+      if (getProgress() === 100) {
+        finishGame(true);
+      } else if (state.movesLeft === 0) {
+        finishGame(false);
+      } else if (state.mode === "coop") {
+        state.playerIndex = state.playerIndex === 0 ? 1 : 0;
+      }
+
+      renderGame();
+    }
+
+    function renderGame() {
+      updateHud();
+      renderPalette(playPalette);
+      currentBoard.replaceChildren(createBoard(state.board, true));
+      targetBoard.replaceChildren(createBoard(state.target, false));
+    }
+
+    function startGame() {
+      const pattern = getPattern();
+      state.target = cloneGrid(pattern.grid);
+      state.board = createScrambledBoard(pattern.grid);
+      state.movesLeft = TURN_LIMIT;
+      state.selection = null;
+      state.playerIndex = 0;
+      state.gameOver = false;
+
+      resultPanel.classList.add("hidden");
+      setupScreen.classList.add("hidden");
+      gameScreen.classList.remove("hidden");
+      renderGame();
+    }
+
+    function returnToSetup() {
+      gameScreen.classList.add("hidden");
+      setupScreen.classList.remove("hidden");
+    }
+
+    function initPatternOptions() {
+      patternSelect.replaceChildren(...PATTERNS.map((pattern) => {
+        const option = document.createElement("option");
+        option.value = pattern.id;
+        option.textContent = pattern.name;
+        return option;
+      }));
+      patternSelect.value = state.patternId;
+    }
+
+    function initModeButtons() {
+      modeButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          state.mode = button.dataset.mode;
+          modeButtons.forEach((item) => item.classList.toggle("active", item === button));
+        });
+      });
+    }
+
+    patternSelect.addEventListener("change", (event) => {
+      state.patternId = event.target.value;
+    });
+
+    startButton.addEventListener("click", startGame);
+    clearSelectionButton.addEventListener("click", () => {
+      state.selection = null;
+      renderGame();
+    });
+    restartButton.addEventListener("click", startGame);
+    backButton.addEventListener("click", returnToSetup);
+
+    initPatternOptions();
+    initModeButtons();
+    renderPalette(setupPalette);
+  </script>
+</body>
+</html>
