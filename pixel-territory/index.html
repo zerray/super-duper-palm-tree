@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>像素领地</title>
+  <style>
+    :root {
+      --bg: #15111f;
+      --panel: rgba(24, 18, 37, 0.92);
+      --panel-border: rgba(255, 255, 255, 0.09);
+      --text: #f6f0ff;
+      --muted: #c8b8de;
+      --player-one: #62d0ff;
+      --player-two: #ff8f7a;
+      --accent: #ffe373;
+      --shadow: rgba(0, 0, 0, 0.28);
+      --cell-size: 44px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Noto Sans SC", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(255, 227, 115, 0.14), transparent 24%),
+        linear-gradient(180deg, #211633 0%, #0d0b15 100%);
+    }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 24px 0 40px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 20px;
+    }
+
+    .panel,
+    .board-shell {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      box-shadow: 0 22px 60px var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+
+    .board-shell {
+      padding: 22px;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      letter-spacing: 0.02em;
+      line-height: 0.95;
+      margin-bottom: 12px;
+    }
+
+    .subhead {
+      color: var(--muted);
+      max-width: 62ch;
+      line-height: 1.5;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+
+    .mode-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .mode-button,
+    .restart-button {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      transition: transform 140ms ease, background 140ms ease, border-color 140ms ease;
+    }
+
+    .mode-button.active,
+    .mode-button:hover,
+    .restart-button:hover,
+    .color-button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 227, 115, 0.5);
+    }
+
+    .board-frame {
+      padding: 16px;
+      border-radius: 20px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0 14px, transparent 14px 28px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      overflow: auto;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(12, var(--cell-size));
+      grid-template-rows: repeat(12, var(--cell-size));
+      gap: 4px;
+      width: fit-content;
+      margin: 0 auto;
+    }
+
+    .cell {
+      position: relative;
+      width: var(--cell-size);
+      height: var(--cell-size);
+      border: none;
+      border-radius: 10px;
+      box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.18);
+      overflow: hidden;
+      image-rendering: pixelated;
+      transition: transform 180ms ease, filter 180ms ease, opacity 180ms ease;
+    }
+
+    .cell::before {
+      content: "";
+      position: absolute;
+      inset: 2px;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      opacity: 0;
+      transition: opacity 180ms ease, border-color 180ms ease;
+    }
+
+    .cell::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.15), transparent 48%);
+      pointer-events: none;
+    }
+
+    .cell.owner-1::before,
+    .cell.owner-2::before {
+      opacity: 1;
+    }
+
+    .cell.owner-1::before {
+      border-color: var(--player-one);
+    }
+
+    .cell.owner-2::before {
+      border-color: var(--player-two);
+    }
+
+    .cell.owner-1 {
+      filter: saturate(1.08) brightness(1.03);
+    }
+
+    .cell.owner-2 {
+      filter: saturate(1.08) brightness(0.98);
+    }
+
+    .cell.new-capture {
+      animation: capturePulse 420ms ease;
+      z-index: 1;
+    }
+
+    @keyframes capturePulse {
+      0% {
+        transform: scale(0.78);
+        filter: brightness(1.4);
+      }
+      65% {
+        transform: scale(1.07);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    .panel {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .card {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .status {
+      display: grid;
+      gap: 10px;
+    }
+
+    .turn-banner {
+      padding: 14px;
+      border-radius: 18px;
+      font-size: 1.02rem;
+      line-height: 1.45;
+      background: rgba(255, 227, 115, 0.12);
+      border: 1px solid rgba(255, 227, 115, 0.24);
+    }
+
+    .score-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .score-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .score-row strong {
+      font-size: 1.2rem;
+    }
+
+    .score-row.player-1 strong {
+      color: var(--player-one);
+    }
+
+    .score-row.player-2 strong {
+      color: var(--player-two);
+    }
+
+    .color-picker {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .color-button {
+      position: relative;
+      min-height: 58px;
+      padding: 8px;
+      border-radius: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.12);
+      color: #130c1d;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      transition: transform 140ms ease, border-color 140ms ease, opacity 140ms ease;
+    }
+
+    .color-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.38;
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .color-button span {
+      position: relative;
+      z-index: 1;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+    }
+
+    .rules {
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 0.95rem;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(7, 6, 10, 0.72);
+      backdrop-filter: blur(6px);
+    }
+
+    .overlay[hidden] {
+      display: none;
+    }
+
+    .dialog {
+      width: min(420px, 100%);
+      padding: 24px;
+      border-radius: 24px;
+      background: #1d1430;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+      display: grid;
+      gap: 14px;
+      text-align: center;
+    }
+
+    .dialog p {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .dialog .restart-button {
+      justify-self: center;
+      min-width: 160px;
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        flex-direction: column;
+      }
+
+      .mode-strip {
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 640px) {
+      :root {
+        --cell-size: 30px;
+      }
+
+      .board-shell {
+        padding: 16px;
+      }
+
+      .color-picker {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="board-shell">
+      <div class="topbar">
+        <div>
+          <h1>像素领地</h1>
+          <p class="subhead">12×12 棋盘上轮流抢色扩张。每次选择一种新颜色，己方连通区域会改色，并吞并所有与之连通的同色地块。先占超过半数，或地图再无可吞并格子者获胜。</p>
+        </div>
+        <div class="mode-strip" id="mode-strip" aria-label="游戏模式">
+          <button class="mode-button active" data-mode="hotseat">双人热座</button>
+          <button class="mode-button" data-mode="ai">vs AI</button>
+          <button class="restart-button" id="restart-button" type="button">重新开局</button>
+        </div>
+      </div>
+      <div class="board-frame">
+        <div class="board" id="board" aria-label="12x12 territory board"></div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <section class="card status">
+        <h2>回合信息</h2>
+        <div class="turn-banner" id="turn-banner"></div>
+        <div class="score-grid">
+          <div class="score-row player-1"><span>玩家 1</span><strong id="score-1">1</strong></div>
+          <div class="score-row player-2"><span id="player-2-label">玩家 2</span><strong id="score-2">1</strong></div>
+        </div>
+        <div class="rules" id="status-detail"></div>
+      </section>
+
+      <section class="card">
+        <h2>选色</h2>
+        <div class="color-picker" id="color-picker"></div>
+      </section>
+
+      <section class="card">
+        <h2>规则</h2>
+        <p class="rules">不能选择自己当前领地颜色。吞并使用 BFS flood-fill：先把当前连通领地统一成所选颜色，再把边界外所有同色连通格纳入己方。AI 使用贪心策略，枚举合法颜色后选择本回合能吞并最多格子的那一个。</p>
+      </section>
+    </aside>
+  </main>
+
+  <div class="overlay" id="overlay" hidden>
+    <div class="dialog">
+      <h2 id="overlay-title">游戏结束</h2>
+      <p id="overlay-text"></p>
+      <button class="restart-button" id="overlay-restart" type="button">再来一局</button>
+    </div>
+  </div>
+
+  <script>
+    const BOARD_SIZE = 12;
+    const TOTAL_CELLS = BOARD_SIZE * BOARD_SIZE;
+    const WIN_THRESHOLD = 72;
+    const AI_DELAY_MS = 520;
+    const COLORS = [
+      { name: "桃红", value: "#ff5d8f" },
+      { name: "橙黄", value: "#ffb347" },
+      { name: "荧黄", value: "#f7ef5a" },
+      { name: "薄荷", value: "#3ce1a0" },
+      { name: "电青", value: "#3aa8ff" },
+      { name: "紫罗兰", value: "#9a63ff" }
+    ];
+
+    const PLAYER_LABELS = {
+      1: "玩家 1",
+      2: "玩家 2",
+      ai: "AI"
+    };
+
+    const boardElement = document.querySelector("#board");
+    const colorPickerElement = document.querySelector("#color-picker");
+    const turnBannerElement = document.querySelector("#turn-banner");
+    const statusDetailElement = document.querySelector("#status-detail");
+    const scoreOneElement = document.querySelector("#score-1");
+    const scoreTwoElement = document.querySelector("#score-2");
+    const playerTwoLabelElement = document.querySelector("#player-2-label");
+    const overlayElement = document.querySelector("#overlay");
+    const overlayTitleElement = document.querySelector("#overlay-title");
+    const overlayTextElement = document.querySelector("#overlay-text");
+    const restartButton = document.querySelector("#restart-button");
+    const overlayRestartButton = document.querySelector("#overlay-restart");
+    const modeButtons = Array.from(document.querySelectorAll(".mode-button"));
+
+    const state = {
+      board: [],
+      mode: "hotseat",
+      currentPlayer: 1,
+      turnCount: 1,
+      gameOver: false,
+      aiTimeout: null,
+      lastCaptureCount: 0
+    };
+
+    function createBoardUi() {
+      boardElement.innerHTML = "";
+      for (let row = 0; row < BOARD_SIZE; row += 1) {
+        for (let col = 0; col < BOARD_SIZE; col += 1) {
+          const cell = document.createElement("div");
+          cell.className = "cell";
+          cell.dataset.row = String(row);
+          cell.dataset.col = String(col);
+          boardElement.appendChild(cell);
+        }
+      }
+    }
+
+    function createColorButtons() {
+      colorPickerElement.innerHTML = "";
+      COLORS.forEach((color, colorIndex) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "color-button";
+        button.dataset.color = String(colorIndex);
+        button.style.background = color.value;
+        button.innerHTML = "<span>" + color.name + "</span>";
+        button.addEventListener("click", () => handleColorChoice(colorIndex));
+        colorPickerElement.appendChild(button);
+      });
+    }
+
+    function createEmptyBoard() {
+      return Array.from({ length: BOARD_SIZE }, () => Array.from({ length: BOARD_SIZE }, () => ({ color: 0, owner: 0 })));
+    }
+
+    function neighbors(row, col) {
+      return [
+        [row - 1, col],
+        [row + 1, col],
+        [row, col - 1],
+        [row, col + 1]
+      ].filter(([nextRow, nextCol]) => nextRow >= 0 && nextRow < BOARD_SIZE && nextCol >= 0 && nextCol < BOARD_SIZE);
+    }
+
+    function randomColorIndex(excluded = []) {
+      const legal = COLORS.map((_, index) => index).filter((index) => !excluded.includes(index));
+      return legal[Math.floor(Math.random() * legal.length)];
+    }
+
+    function createInitialState() {
+      const board = createEmptyBoard();
+      for (let row = 0; row < BOARD_SIZE; row += 1) {
+        for (let col = 0; col < BOARD_SIZE; col += 1) {
+          board[row][col] = { color: randomColorIndex(), owner: 0 };
+        }
+      }
+
+      const playerOneStart = randomColorIndex();
+      const playerTwoStart = randomColorIndex([playerOneStart]);
+
+      board[0][0] = { color: playerOneStart, owner: 1 };
+      board[BOARD_SIZE - 1][BOARD_SIZE - 1] = { color: playerTwoStart, owner: 2 };
+      return board;
+    }
+
+    function cloneBoard(board) {
+      return board.map((row) => row.map((cell) => ({ color: cell.color, owner: cell.owner })));
+    }
+
+    function getPlayerCells(board, player) {
+      const cells = [];
+      for (let row = 0; row < BOARD_SIZE; row += 1) {
+        for (let col = 0; col < BOARD_SIZE; col += 1) {
+          if (board[row][col].owner === player) {
+            cells.push([row, col]);
+          }
+        }
+      }
+      return cells;
+    }
+
+    function getPlayerColor(board, player) {
+      const cells = getPlayerCells(board, player);
+      if (!cells.length) {
+        return -1;
+      }
+      const [row, col] = cells[0];
+      return board[row][col].color;
+    }
+
+    function floodExpand(board, player, selectedColor) {
+      const frontier = getPlayerCells(board, player);
+      const visited = new Set();
+      const queue = [];
+      const captured = [];
+
+      frontier.forEach(([row, col]) => {
+        board[row][col].color = selectedColor;
+        const key = row + "," + col;
+        visited.add(key);
+        queue.push([row, col]);
+      });
+
+      while (queue.length) {
+        const [row, col] = queue.shift();
+        neighbors(row, col).forEach(([nextRow, nextCol]) => {
+          const key = nextRow + "," + nextCol;
+          if (visited.has(key)) {
+            return;
+          }
+          const cell = board[nextRow][nextCol];
+          if (cell.owner !== player && cell.color === selectedColor) {
+            cell.owner = player;
+            cell.color = selectedColor;
+            captured.push([nextRow, nextCol]);
+            visited.add(key);
+            queue.push([nextRow, nextCol]);
+            return;
+          }
+          if (cell.owner === player) {
+            cell.color = selectedColor;
+            visited.add(key);
+            queue.push([nextRow, nextCol]);
+          }
+        });
+      }
+
+      return captured;
+    }
+
+    function countScores(board) {
+      let playerOne = 0;
+      let playerTwo = 0;
+      let neutral = 0;
+      for (let row = 0; row < BOARD_SIZE; row += 1) {
+        for (let col = 0; col < BOARD_SIZE; col += 1) {
+          const owner = board[row][col].owner;
+          if (owner === 1) {
+            playerOne += 1;
+          } else if (owner === 2) {
+            playerTwo += 1;
+          } else {
+            neutral += 1;
+          }
+        }
+      }
+      return { 1: playerOne, 2: playerTwo, neutral };
+    }
+
+    function getLegalColors(board, player) {
+      const ownColor = getPlayerColor(board, player);
+      return COLORS.map((_, index) => index).filter((color) => color !== ownColor);
+    }
+
+    function evaluateMove(board, player, selectedColor) {
+      const simulation = cloneBoard(board);
+      const captured = floodExpand(simulation, player, selectedColor);
+      return {
+        color: selectedColor,
+        captured: captured.length,
+        board: simulation,
+        score: countScores(simulation)[player]
+      };
+    }
+
+    function chooseAiMove() {
+      const legalColors = getLegalColors(state.board, 2);
+      let bestMove = null;
+
+      legalColors.forEach((color) => {
+        const candidate = evaluateMove(state.board, 2, color);
+        if (!bestMove) {
+          bestMove = candidate;
+          return;
+        }
+        if (candidate.captured > bestMove.captured) {
+          bestMove = candidate;
+          return;
+        }
+        if (candidate.captured === bestMove.captured && candidate.score > bestMove.score) {
+          bestMove = candidate;
+        }
+      });
+
+      return bestMove || { color: legalColors[0] };
+    }
+
+    function hasAnyExpansion(board, player) {
+      return getLegalColors(board, player).some((color) => evaluateMove(board, player, color).captured > 0);
+    }
+
+    function checkGameOver() {
+      const scores = countScores(state.board);
+      if (scores[1] > WIN_THRESHOLD || scores[2] > WIN_THRESHOLD) {
+        return true;
+      }
+      if (scores.neutral === 0) {
+        return true;
+      }
+      if (!hasAnyExpansion(state.board, 1) && !hasAnyExpansion(state.board, 2)) {
+        return true;
+      }
+      return false;
+    }
+
+    function getWinnerText() {
+      const scores = countScores(state.board);
+      if (scores[1] === scores[2]) {
+        return {
+          title: "平局",
+          text: "双方各占 " + scores[1] + " 格，地图进入僵局。"
+        };
+      }
+      const winner = scores[1] > scores[2] ? 1 : 2;
+      const winnerLabel = winner === 2 && state.mode === "ai" ? "AI" : PLAYER_LABELS[winner];
+      return {
+        title: winnerLabel + " 胜利",
+        text: winnerLabel + " 占领了 " + scores[winner] + " 格，对局结束。"
+      };
+    }
+
+    function finishGame() {
+      state.gameOver = true;
+      if (state.aiTimeout) {
+        window.clearTimeout(state.aiTimeout);
+        state.aiTimeout = null;
+      }
+      const outcome = getWinnerText();
+      overlayTitleElement.textContent = outcome.title;
+      overlayTextElement.textContent = outcome.text;
+      overlayElement.hidden = false;
+      render();
+    }
+
+    function applyMove(player, selectedColor) {
+      const currentColor = getPlayerColor(state.board, player);
+      if (state.gameOver || selectedColor === currentColor) {
+        return;
+      }
+
+      const captured = floodExpand(state.board, player, selectedColor);
+      state.lastCaptureCount = captured.length;
+      state.turnCount += 1;
+      renderBoard(captured);
+
+      if (checkGameOver()) {
+        finishGame();
+        return;
+      }
+
+      state.currentPlayer = player === 1 ? 2 : 1;
+      render();
+      queueAiTurnIfNeeded();
+    }
+
+    function handleColorChoice(selectedColor) {
+      if (state.gameOver) {
+        return;
+      }
+      if (state.mode === "ai" && state.currentPlayer === 2) {
+        return;
+      }
+      applyMove(state.currentPlayer, selectedColor);
+    }
+
+    function queueAiTurnIfNeeded() {
+      if (state.mode !== "ai" || state.currentPlayer !== 2 || state.gameOver) {
+        return;
+      }
+      if (state.aiTimeout) {
+        window.clearTimeout(state.aiTimeout);
+      }
+      state.aiTimeout = window.setTimeout(() => {
+        state.aiTimeout = null;
+        const move = chooseAiMove();
+        applyMove(2, move.color);
+      }, AI_DELAY_MS);
+    }
+
+    function renderBoard(capturedCells = []) {
+      const capturedKeys = new Set(capturedCells.map(([row, col]) => row + "," + col));
+      Array.from(boardElement.children).forEach((cellElement) => {
+        const row = Number(cellElement.dataset.row);
+        const col = Number(cellElement.dataset.col);
+        const cell = state.board[row][col];
+        cellElement.className = "cell";
+        cellElement.style.background = COLORS[cell.color].value;
+        if (cell.owner === 1) {
+          cellElement.classList.add("owner-1");
+        } else if (cell.owner === 2) {
+          cellElement.classList.add("owner-2");
+        }
+        if (capturedKeys.has(row + "," + col)) {
+          cellElement.classList.add("new-capture");
+          window.setTimeout(() => {
+            cellElement.classList.remove("new-capture");
+          }, 450);
+        }
+      });
+    }
+
+    function renderStatus() {
+      const scores = countScores(state.board);
+      const currentLabel = state.currentPlayer === 2 && state.mode === "ai" ? "AI" : PLAYER_LABELS[state.currentPlayer];
+      const currentColorName = COLORS[getPlayerColor(state.board, state.currentPlayer)].name;
+      scoreOneElement.textContent = String(scores[1]);
+      scoreTwoElement.textContent = String(scores[2]);
+      playerTwoLabelElement.textContent = state.mode === "ai" ? "AI" : "玩家 2";
+
+      if (state.gameOver) {
+        turnBannerElement.textContent = "对局已结束";
+      } else if (state.mode === "ai" && state.currentPlayer === 2) {
+        turnBannerElement.textContent = "AI 正在评估最佳扩张颜色…";
+      } else {
+        turnBannerElement.textContent = currentLabel + " 行动中，当前领地颜色为 " + currentColorName + "。";
+      }
+
+      const playerOneCanGrow = hasAnyExpansion(state.board, 1);
+      const playerTwoCanGrow = hasAnyExpansion(state.board, 2);
+      statusDetailElement.textContent = "上一步吞并 " + state.lastCaptureCount + " 格。玩家 1 " + (playerOneCanGrow ? "仍可扩张" : "暂无可吞并格") + "，" + (state.mode === "ai" ? "AI" : "玩家 2") + " " + (playerTwoCanGrow ? "仍可扩张" : "暂无可吞并格") + "。";
+    }
+
+    function renderColorButtons() {
+      const legalColors = new Set(getLegalColors(state.board, state.currentPlayer));
+      Array.from(colorPickerElement.children).forEach((button) => {
+        const color = Number(button.dataset.color);
+        const disabled = state.gameOver || !legalColors.has(color) || (state.mode === "ai" && state.currentPlayer === 2);
+        button.disabled = disabled;
+      });
+    }
+
+    function render() {
+      renderBoard();
+      renderStatus();
+      renderColorButtons();
+    }
+
+    function resetGame() {
+      overlayElement.hidden = true;
+      if (state.aiTimeout) {
+        window.clearTimeout(state.aiTimeout);
+        state.aiTimeout = null;
+      }
+      state.board = createInitialState();
+      state.currentPlayer = 1;
+      state.turnCount = 1;
+      state.gameOver = false;
+      state.lastCaptureCount = 0;
+      render();
+      queueAiTurnIfNeeded();
+    }
+
+    modeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        state.mode = button.dataset.mode;
+        modeButtons.forEach((candidate) => candidate.classList.toggle("active", candidate === button));
+        resetGame();
+      });
+    });
+
+    restartButton.addEventListener("click", resetGame);
+    overlayRestartButton.addEventListener("click", resetGame);
+
+    createBoardUi();
+    createColorButtons();
+    resetGame();
+  </script>
+</body>
+</html>
