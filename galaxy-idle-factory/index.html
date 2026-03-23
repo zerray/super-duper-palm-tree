@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>放置星系工厂</title>
+  <style>
+    :root {
+      --bg: #060915;
+      --panel: rgba(13, 18, 36, 0.88);
+      --panel-border: rgba(182, 205, 255, 0.16);
+      --text: #f2f5ff;
+      --muted: #9dacd6;
+      --accent: #81d3ff;
+      --accent-strong: #ffe08a;
+      --good: #8cffba;
+      --danger: #ff8d9b;
+      --shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
+      --font-display: "Avenir Next Condensed", "Trebuchet MS", sans-serif;
+      --font-body: "Avenir Next", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-body);
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 20%, rgba(102, 162, 255, 0.2), transparent 22%),
+        radial-gradient(circle at 80% 12%, rgba(255, 177, 106, 0.18), transparent 20%),
+        radial-gradient(circle at 50% 100%, rgba(115, 40, 199, 0.18), transparent 28%),
+        linear-gradient(180deg, #0b1022 0%, #060915 65%, #03040b 100%);
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1280px, calc(100vw - 28px));
+      margin: 20px auto 32px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .topbar {
+      padding: 18px 20px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    .title-block {
+      padding: 18px 20px;
+      border-radius: 20px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(129, 211, 255, 0.06)),
+        rgba(255, 255, 255, 0.03);
+      display: grid;
+      gap: 10px;
+    }
+
+    .eyebrow {
+      font-size: 0.78rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2.4rem, 6vw, 4.5rem);
+      line-height: 0.9;
+      letter-spacing: -0.05em;
+    }
+
+    .subtitle {
+      max-width: 60ch;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+    .resource-card {
+      padding: 18px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.04);
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .resource-label {
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .resource-value {
+      font-size: clamp(1.5rem, 3vw, 2.3rem);
+      font-weight: 700;
+    }
+
+    .resource-note {
+      font-size: 0.92rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: minmax(280px, 360px) minmax(0, 1fr) minmax(260px, 320px);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .sidebar,
+    .info-rail {
+      display: grid;
+      gap: 16px;
+    }
+
+    .section {
+      padding: 18px;
+    }
+
+    .section h2 {
+      font-size: 1.02rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .section-copy {
+      margin-top: 8px;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 0.95rem;
+    }
+
+    .upgrades {
+      margin-top: 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .upgrade-button {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 18px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(129, 211, 255, 0.05)),
+        rgba(255, 255, 255, 0.03);
+      color: inherit;
+      padding: 16px;
+      text-align: left;
+      cursor: pointer;
+      transition: transform 140ms ease, border-color 140ms ease, opacity 140ms ease;
+      display: grid;
+      gap: 8px;
+    }
+
+    .upgrade-button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      border-color: rgba(129, 211, 255, 0.48);
+    }
+
+    .upgrade-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.52;
+    }
+
+    .upgrade-top,
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+    }
+
+    .upgrade-title {
+      font-size: 1.02rem;
+      font-weight: 700;
+    }
+
+    .upgrade-level {
+      color: var(--accent-strong);
+      font-size: 0.92rem;
+    }
+
+    .upgrade-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+
+    .upgrade-cost {
+      color: var(--good);
+      font-weight: 600;
+    }
+
+    .galaxy-panel {
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .galaxy-frame {
+      position: relative;
+      border-radius: 24px;
+      overflow: hidden;
+      min-height: 680px;
+      background:
+        radial-gradient(circle at top, rgba(118, 142, 255, 0.16), transparent 38%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 20%),
+        #040815;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    canvas {
+      width: 100%;
+      height: 680px;
+      display: block;
+    }
+
+    .overlay-label {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(6, 10, 26, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      max-width: 260px;
+      pointer-events: none;
+    }
+
+    .overlay-label strong {
+      display: block;
+      font-size: 0.98rem;
+      margin-bottom: 4px;
+    }
+
+    .overlay-label span {
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+
+    .info-grid {
+      margin-top: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .info-card {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: grid;
+      gap: 6px;
+    }
+
+    .info-card strong {
+      font-size: 0.92rem;
+      color: var(--accent-strong);
+    }
+
+    .info-card span {
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.92rem;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(1, 4, 12, 0.72);
+      padding: 16px;
+      z-index: 20;
+    }
+
+    .modal[hidden] {
+      display: none;
+    }
+
+    .modal-card {
+      width: min(420px, 100%);
+      padding: 24px;
+      border-radius: 24px;
+      background: rgba(9, 14, 31, 0.96);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 14px;
+    }
+
+    .modal-card p {
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .modal-card button {
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 16px;
+      background: linear-gradient(135deg, #ffd36d, #ff9c58);
+      color: #1d1306;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    @media (max-width: 1080px) {
+      .topbar,
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+
+      canvas,
+      .galaxy-frame {
+        min-height: 560px;
+        height: 560px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        background:
+          radial-gradient(circle at top, rgba(102, 162, 255, 0.16), transparent 24%),
+          linear-gradient(180deg, #0b1022 0%, #060915 70%, #03040b 100%);
+      }
+
+      .app {
+        width: min(100vw - 16px, 1280px);
+        margin-top: 10px;
+        margin-bottom: 18px;
+      }
+
+      .topbar {
+        gap: 10px;
+      }
+
+      .title-block,
+      .resource-card,
+      .section {
+        padding: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel topbar">
+      <div class="title-block">
+        <p class="eyebrow">Idle Galaxy</p>
+        <h1>放置星系工厂</h1>
+        <p class="subtitle">从一颗孤独小行星开始，点击采集星尘，堆出自动矿机、点亮行星环，再让恒星反向驱动整个资源链。</p>
+      </div>
+      <div class="resource-card">
+        <div class="resource-label">星尘储量</div>
+        <div class="resource-value" id="stardust-value">0</div>
+        <div class="resource-note" id="stardust-rate">+0 / 秒</div>
+      </div>
+      <div class="resource-card">
+        <div class="resource-label">手动采矿</div>
+        <div class="resource-value" id="click-power-value">1</div>
+        <div class="resource-note">点击小行星时获得的星尘数量。</div>
+      </div>
+      <div class="resource-card">
+        <div class="resource-label">离线结算</div>
+        <div class="resource-value" id="offline-status">在线</div>
+        <div class="resource-note" id="save-status">自动保存启用，关闭后会按速率结算。</div>
+      </div>
+    </section>
+
+    <section class="main-grid">
+      <aside class="sidebar">
+        <section class="panel section">
+          <h2>升级面板</h2>
+          <p class="section-copy">四层链条全部用星尘购买。矿机直接产出星尘，行星和恒星分别增幅下层单位的产出。</p>
+          <div class="upgrades" id="upgrade-list"></div>
+        </section>
+      </aside>
+
+      <section class="panel galaxy-panel">
+        <div class="galaxy-frame">
+          <canvas id="galaxy-canvas" width="900" height="680" aria-label="Galaxy visualization"></canvas>
+          <div class="overlay-label">
+            <strong>点击中央小行星采矿</strong>
+            <span>解锁矿机、行星和恒星后，轨道会逐层扩展，粒子与数字跳动会直接反馈采集结果。</span>
+          </div>
+        </div>
+      </section>
+
+      <aside class="info-rail">
+        <section class="panel section">
+          <h2>资源面板</h2>
+          <p class="section-copy">这里显示当前链条结构与实时产能。每层升级都会以指数价格上涨。</p>
+          <div class="info-grid">
+            <div class="info-card">
+              <strong id="miners-count">自动矿机 0</strong>
+              <span id="miners-rate">直接产出 0 星尘 / 秒</span>
+            </div>
+            <div class="info-card">
+              <strong id="planets-count">行星 0</strong>
+              <span id="planets-rate">每颗行星让矿机效率额外提升 15%</span>
+            </div>
+            <div class="info-card">
+              <strong id="stars-count">恒星 0</strong>
+              <span id="stars-rate">每颗恒星让行星加成额外提升 20%</span>
+            </div>
+            <div class="info-card">
+              <strong id="galaxy-stage">星系阶段：孤岩</strong>
+              <span id="galaxy-note">先拿到第一台自动矿机，轨道才会开始转起来。</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel section">
+          <h2>增长公式</h2>
+          <p class="section-copy">基础成本使用 `baseCost * multiplier^level`。离线收益使用当前总速率乘以离线秒数，保证 v1 范围简单稳定。</p>
+          <div class="info-grid">
+            <div class="info-card">
+              <strong>矿机产出</strong>
+              <span id="formula-miners">0 / 秒</span>
+            </div>
+            <div class="info-card">
+              <strong>行星加成</strong>
+              <span id="formula-planets">x1.00</span>
+            </div>
+            <div class="info-card">
+              <strong>恒星加成</strong>
+              <span id="formula-stars">x1.00</span>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </section>
+  </main>
+
+  <div class="modal" id="offline-modal" hidden>
+    <div class="modal-card">
+      <h2>离线收益已结算</h2>
+      <p id="offline-message">你刚刚回到星系。</p>
+      <button type="button" id="offline-close">继续扩张</button>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "galaxy-idle-factory-save";
+    const SAVE_INTERVAL_MS = 30000;
+    const upgradeDefs = [
+      {
+        key: "manualLevel",
+        title: "手动采矿强化",
+        description: "提升每次点击获得的星尘。",
+        baseCost: 12,
+        multiplier: 1.55,
+        getEffect(level) {
+          return 1 + level;
+        },
+        getRateText(state) {
+          return `当前每次点击 ${formatNumber(getClickPower(state))} 星尘`;
+        }
+      },
+      {
+        key: "miners",
+        title: "自动矿机",
+        description: "持续采集星尘，受行星加成影响。",
+        baseCost: 25,
+        multiplier: 1.72,
+        getEffect(level, state) {
+          return level * getPlanetMultiplier(state);
+        },
+        getRateText(state) {
+          return `当前产出 ${formatNumber(getMinerProductionRate(state))} / 秒`;
+        }
+      },
+      {
+        key: "planets",
+        title: "行星工坊",
+        description: "每颗行星提升所有矿机效率。",
+        baseCost: 90,
+        multiplier: 1.95,
+        getEffect(level, state) {
+          return getPlanetMultiplier(state);
+        },
+        getRateText(state) {
+          return `矿机倍率 ${formatMultiplier(getPlanetMultiplier(state))}`;
+        }
+      },
+      {
+        key: "stars",
+        title: "恒星核心",
+        description: "每颗恒星进一步强化行星加成。",
+        baseCost: 320,
+        multiplier: 2.18,
+        getEffect(level, state) {
+          return getStarMultiplier(state);
+        },
+        getRateText(state) {
+          return `行星倍率 ${formatMultiplier(getStarMultiplier(state))}`;
+        }
+      }
+    ];
+
+    const canvas = document.querySelector("#galaxy-canvas");
+    const ctx = canvas.getContext("2d");
+    const stardustValue = document.querySelector("#stardust-value");
+    const stardustRate = document.querySelector("#stardust-rate");
+    const clickPowerValue = document.querySelector("#click-power-value");
+    const offlineStatus = document.querySelector("#offline-status");
+    const saveStatus = document.querySelector("#save-status");
+    const minersCount = document.querySelector("#miners-count");
+    const minersRate = document.querySelector("#miners-rate");
+    const planetsCount = document.querySelector("#planets-count");
+    const planetsRate = document.querySelector("#planets-rate");
+    const starsCount = document.querySelector("#stars-count");
+    const starsRate = document.querySelector("#stars-rate");
+    const galaxyStage = document.querySelector("#galaxy-stage");
+    const galaxyNote = document.querySelector("#galaxy-note");
+    const formulaMiners = document.querySelector("#formula-miners");
+    const formulaPlanets = document.querySelector("#formula-planets");
+    const formulaStars = document.querySelector("#formula-stars");
+    const upgradeList = document.querySelector("#upgrade-list");
+    const offlineModal = document.querySelector("#offline-modal");
+    const offlineMessage = document.querySelector("#offline-message");
+    const offlineClose = document.querySelector("#offline-close");
+
+    const state = loadState();
+    const floatingTexts = [];
+    const particles = [];
+    const planetSeed = createPlanetSeeds(12);
+    let lastFrameTime = performance.now();
+    let lastSaveTime = performance.now();
+
+    function createDefaultState() {
+      return {
+        stardust: 0,
+        manualLevel: 0,
+        miners: 0,
+        planets: 0,
+        stars: 0,
+        lastTimestamp: Date.now()
+      };
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          return createDefaultState();
+        }
+        const parsed = JSON.parse(raw);
+        return {
+          ...createDefaultState(),
+          ...parsed
+        };
+      } catch (error) {
+        return createDefaultState();
+      }
+    }
+
+    function saveState() {
+      state.lastTimestamp = Date.now();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      saveStatus.textContent = `最近保存：${new Date(state.lastTimestamp).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
+    }
+
+    function formatNumber(value) {
+      if (!Number.isFinite(value)) {
+        return "0";
+      }
+      const abs = Math.abs(value);
+      if (abs < 1000) {
+        return value.toFixed(value >= 100 ? 0 : value >= 10 ? 1 : 2).replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1");
+      }
+      const units = ["K", "M", "B", "T", "Qa", "Qi"];
+      let scaled = value;
+      let unitIndex = -1;
+      while (Math.abs(scaled) >= 1000 && unitIndex < units.length - 1) {
+        scaled /= 1000;
+        unitIndex += 1;
+      }
+      return `${scaled.toFixed(scaled >= 100 ? 0 : scaled >= 10 ? 1 : 2).replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1")}${units[unitIndex]}`;
+    }
+
+    function formatMultiplier(value) {
+      return `x${value.toFixed(2)}`;
+    }
+
+    function formatDuration(seconds) {
+      const total = Math.max(1, Math.floor(seconds));
+      const hours = Math.floor(total / 3600);
+      const minutes = Math.floor((total % 3600) / 60);
+      const secs = total % 60;
+      if (hours > 0) {
+        return `${hours}小时 ${minutes}分钟`;
+      }
+      if (minutes > 0) {
+        return `${minutes}分钟 ${secs}秒`;
+      }
+      return `${secs}秒`;
+    }
+
+    function getClickPower(currentState) {
+      return 1 + currentState.manualLevel;
+    }
+
+    function getUpgradeCost(def, level) {
+      return Math.floor(def.baseCost * Math.pow(def.multiplier, level));
+    }
+
+    function getStarMultiplier(currentState) {
+      return 1 + currentState.stars * 0.2;
+    }
+
+    function getPlanetMultiplier(currentState) {
+      return 1 + currentState.planets * 0.15 * getStarMultiplier(currentState);
+    }
+
+    function getMinerProductionRate(currentState) {
+      return currentState.miners * getPlanetMultiplier(currentState);
+    }
+
+    function getTotalProductionPerSecond(currentState) {
+      return getMinerProductionRate(currentState);
+    }
+
+    function simulateSeconds(seconds) {
+      const totalRate = getTotalProductionPerSecond(state);
+      return totalRate * seconds;
+    }
+
+    function applyOfflineProgress() {
+      const now = Date.now();
+      const offlineSeconds = Math.max(0, (now - state.lastTimestamp) / 1000);
+      const offlineEarnings = simulateSeconds(offlineSeconds);
+      state.stardust += offlineEarnings;
+      state.lastTimestamp = now;
+      if (offlineSeconds >= 3 && offlineEarnings > 0) {
+        offlineStatus.textContent = formatDuration(offlineSeconds);
+        offlineMessage.textContent = `你离开了 ${formatDuration(offlineSeconds)}，矿机为你带回了 ${formatNumber(offlineEarnings)} 星尘。`;
+        offlineModal.hidden = false;
+      }
+    }
+
+    function createPlanetSeeds(count) {
+      return Array.from({ length: count }, (_, index) => {
+        const hue = (index * 53 + 30) % 360;
+        return {
+          size: 14 + (index % 5) * 5,
+          hue,
+          hasRing: index % 3 === 1,
+          stripe: index % 2 === 0
+        };
+      });
+    }
+
+    function createUpgradeButton(def) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "upgrade-button";
+      button.dataset.key = def.key;
+      button.addEventListener("click", () => {
+        buyUpgrade(def.key);
+      });
+      upgradeList.append(button);
+      return button;
+    }
+
+    const upgradeButtons = Object.fromEntries(upgradeDefs.map((def) => [def.key, createUpgradeButton(def)]));
+
+    function updateUpgradeButtons() {
+      for (const def of upgradeDefs) {
+        const level = state[def.key];
+        const cost = getUpgradeCost(def, level);
+        const canAfford = state.stardust >= cost;
+        const button = upgradeButtons[def.key];
+        button.disabled = !canAfford;
+        button.innerHTML = `
+          <div class="upgrade-top">
+            <span class="upgrade-title">${def.title}</span>
+            <span class="upgrade-level">Lv.${level}</span>
+          </div>
+          <div class="upgrade-meta">${def.description}</div>
+          <div class="stat-row">
+            <span>${def.getRateText(state)}</span>
+            <span class="upgrade-cost">花费 ${formatNumber(cost)} 星尘</span>
+          </div>
+        `;
+      }
+    }
+
+    function buyUpgrade(key) {
+      const def = upgradeDefs.find((item) => item.key === key);
+      if (!def) {
+        return;
+      }
+      const cost = getUpgradeCost(def, state[key]);
+      if (state.stardust < cost) {
+        return;
+      }
+      state.stardust -= cost;
+      state[key] += 1;
+      spawnFloatingText(canvas.width * 0.5, canvas.height * 0.55, `${def.title} +1`, "#ffe08a");
+      saveState();
+      updateUI();
+    }
+
+    function spawnFloatingText(x, y, text, color = "#ffffff") {
+      floatingTexts.push({
+        x,
+        y,
+        text,
+        color,
+        life: 0,
+        duration: 1.1
+      });
+    }
+
+    function spawnParticles(x, y, amount) {
+      for (let index = 0; index < amount; index += 1) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 40 + Math.random() * 140;
+        particles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 20,
+          life: 0,
+          duration: 0.45 + Math.random() * 0.45,
+          size: 2 + Math.random() * 3,
+          color: Math.random() > 0.4 ? "#81d3ff" : "#ffe08a"
+        });
+      }
+      if (particles.length > 160) {
+        particles.splice(0, particles.length - 160);
+      }
+    }
+
+    function handleAsteroidClick(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = (clientX - rect.left) * scaleX;
+      const y = (clientY - rect.top) * scaleY;
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const radius = 54;
+      const dx = x - centerX;
+      const dy = y - centerY;
+      if ((dx * dx) + (dy * dy) > radius * radius) {
+        return;
+      }
+      const gain = getClickPower(state);
+      state.stardust += gain;
+      spawnFloatingText(x, y - 8, `+${formatNumber(gain)}`, "#ffffff");
+      spawnParticles(x, y, 14);
+      updateUI();
+    }
+
+    function updateUI() {
+      const totalRate = getTotalProductionPerSecond(state);
+      stardustValue.textContent = formatNumber(state.stardust);
+      stardustRate.textContent = `+${formatNumber(totalRate)} / 秒`;
+      clickPowerValue.textContent = formatNumber(getClickPower(state));
+
+      minersCount.textContent = `自动矿机 ${state.miners}`;
+      minersRate.textContent = `直接产出 ${formatNumber(getMinerProductionRate(state))} 星尘 / 秒`;
+      planetsCount.textContent = `行星 ${state.planets}`;
+      planetsRate.textContent = `矿机倍率 ${formatMultiplier(getPlanetMultiplier(state))}`;
+      starsCount.textContent = `恒星 ${state.stars}`;
+      starsRate.textContent = `行星倍率 ${formatMultiplier(getStarMultiplier(state))}`;
+      formulaMiners.textContent = `${formatNumber(state.miners)} x ${formatMultiplier(getPlanetMultiplier(state))} = ${formatNumber(getMinerProductionRate(state))} / 秒`;
+      formulaPlanets.textContent = formatMultiplier(getPlanetMultiplier(state));
+      formulaStars.textContent = formatMultiplier(getStarMultiplier(state));
+
+      if (state.stars > 0) {
+        galaxyStage.textContent = "星系阶段：恒星链";
+        galaxyNote.textContent = "恒星已经点亮外轨，行星环开始反向放大矿机效率。";
+      } else if (state.planets > 0) {
+        galaxyStage.textContent = "星系阶段：行星带";
+        galaxyNote.textContent = "中层轨道已解锁，行星开始为矿机提供成倍增益。";
+      } else if (state.miners > 0) {
+        galaxyStage.textContent = "星系阶段：采矿轨道";
+        galaxyNote.textContent = "第一圈采矿机已部署，星尘开始自动流入仓库。";
+      } else {
+        galaxyStage.textContent = "星系阶段：孤岩";
+        galaxyNote.textContent = "先靠点击启动引擎，再把它变成真正的自动化星系。";
+      }
+
+      updateUpgradeButtons();
+    }
+
+    function drawBackground(nowSeconds) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const gradient = ctx.createRadialGradient(canvas.width * 0.5, canvas.height * 0.46, 10, canvas.width * 0.5, canvas.height * 0.5, canvas.width * 0.52);
+      gradient.addColorStop(0, "rgba(24, 38, 84, 0.42)");
+      gradient.addColorStop(1, "rgba(3, 5, 14, 0)");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (let index = 0; index < 80; index += 1) {
+        const x = (index * 173) % canvas.width;
+        const y = (index * 97) % canvas.height;
+        const twinkle = 0.35 + 0.35 * Math.sin(nowSeconds * 0.8 + index);
+        ctx.fillStyle = `rgba(255,255,255,${0.2 + twinkle * 0.35})`;
+        ctx.fillRect(x, y, index % 4 === 0 ? 2 : 1, index % 4 === 0 ? 2 : 1);
+      }
+    }
+
+    function drawOrbit(cx, cy, radiusX, radiusY, color) {
+      ctx.beginPath();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.2;
+      ctx.ellipse(cx, cy, radiusX, radiusY, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    function drawAsteroid(cx, cy, pulse) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(1 + pulse * 0.03, 1 + pulse * 0.03);
+      ctx.beginPath();
+      ctx.fillStyle = "#836a61";
+      ctx.arc(0, 0, 46, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.fillStyle = "#a4897e";
+      ctx.arc(-10, -6, 12, 0, Math.PI * 2);
+      ctx.arc(14, -12, 8, 0, Math.PI * 2);
+      ctx.arc(12, 12, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.strokeStyle = "rgba(255,255,255,0.22)";
+      ctx.lineWidth = 3;
+      ctx.arc(0, 0, 48, 0.1, Math.PI * 1.2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawMiners(cx, cy, nowSeconds) {
+      if (state.miners <= 0) {
+        return;
+      }
+      drawOrbit(cx, cy, 120, 80, "rgba(129, 211, 255, 0.22)");
+      const visible = Math.min(state.miners, 12);
+      for (let index = 0; index < visible; index += 1) {
+        const angle = nowSeconds * 0.48 + (index / visible) * Math.PI * 2;
+        const x = cx + Math.cos(angle) * 120;
+        const y = cy + Math.sin(angle) * 80;
+        ctx.beginPath();
+        ctx.fillStyle = "#8fdcff";
+        ctx.arc(x, y, 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.strokeStyle = "rgba(255,255,255,0.45)";
+        ctx.lineWidth = 1.2;
+        ctx.arc(x, y, 11, angle - 0.7, angle + 0.7);
+        ctx.stroke();
+      }
+    }
+
+    function drawPlanets(cx, cy, nowSeconds) {
+      if (state.planets <= 0) {
+        return;
+      }
+      drawOrbit(cx, cy, 214, 134, "rgba(144, 117, 255, 0.2)");
+      const visible = Math.min(state.planets, planetSeed.length);
+      for (let index = 0; index < visible; index += 1) {
+        const seed = planetSeed[index];
+        const angle = nowSeconds * 0.21 + (index / visible) * Math.PI * 2;
+        const x = cx + Math.cos(angle) * 214;
+        const y = cy + Math.sin(angle) * 134;
+        const planetGradient = ctx.createRadialGradient(x - seed.size * 0.35, y - seed.size * 0.35, 2, x, y, seed.size);
+        planetGradient.addColorStop(0, `hsla(${seed.hue}, 88%, 78%, 0.95)`);
+        planetGradient.addColorStop(1, `hsla(${(seed.hue + 34) % 360}, 58%, 42%, 0.98)`);
+
+        ctx.beginPath();
+        ctx.fillStyle = planetGradient;
+        ctx.arc(x, y, seed.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (seed.stripe) {
+          ctx.beginPath();
+          ctx.strokeStyle = "rgba(255,255,255,0.28)";
+          ctx.lineWidth = 2;
+          ctx.arc(x, y, seed.size * 0.72, -0.5, 2.4);
+          ctx.stroke();
+        }
+
+        if (seed.hasRing) {
+          ctx.beginPath();
+          ctx.strokeStyle = "rgba(255, 226, 152, 0.5)";
+          ctx.lineWidth = 2;
+          ctx.ellipse(x, y, seed.size * 1.8, seed.size * 0.7, 0.3, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+    }
+
+    function drawStars(cx, cy, nowSeconds) {
+      if (state.stars <= 0) {
+        return;
+      }
+      drawOrbit(cx, cy, 324, 210, "rgba(255, 203, 118, 0.2)");
+      const visible = Math.min(state.stars, 10);
+      for (let index = 0; index < visible; index += 1) {
+        const angle = nowSeconds * 0.12 + (index / visible) * Math.PI * 2;
+        const x = cx + Math.cos(angle) * 324;
+        const y = cy + Math.sin(angle) * 210;
+        const glow = 14 + Math.sin(nowSeconds * 2 + index) * 3;
+        const starGradient = ctx.createRadialGradient(x, y, 0, x, y, glow);
+        starGradient.addColorStop(0, "rgba(255, 250, 220, 0.95)");
+        starGradient.addColorStop(0.45, "rgba(255, 203, 118, 0.8)");
+        starGradient.addColorStop(1, "rgba(255, 203, 118, 0)");
+        ctx.fillStyle = starGradient;
+        ctx.beginPath();
+        ctx.arc(x, y, glow, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.fillStyle = "#fff0b8";
+        ctx.arc(x, y, 6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function updateEffects(deltaSeconds) {
+      for (let index = floatingTexts.length - 1; index >= 0; index -= 1) {
+        const item = floatingTexts[index];
+        item.life += deltaSeconds;
+        item.y -= 28 * deltaSeconds;
+        if (item.life >= item.duration) {
+          floatingTexts.splice(index, 1);
+        }
+      }
+
+      for (let index = particles.length - 1; index >= 0; index -= 1) {
+        const item = particles[index];
+        item.life += deltaSeconds;
+        item.x += item.vx * deltaSeconds;
+        item.y += item.vy * deltaSeconds;
+        item.vy += 120 * deltaSeconds;
+        if (item.life >= item.duration) {
+          particles.splice(index, 1);
+        }
+      }
+    }
+
+    function drawEffects() {
+      for (const item of particles) {
+        const alpha = 1 - (item.life / item.duration);
+        ctx.fillStyle = hexToRgba(item.color, alpha);
+        ctx.beginPath();
+        ctx.arc(item.x, item.y, item.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.textAlign = "center";
+      ctx.font = '700 20px "Avenir Next", sans-serif';
+      for (const item of floatingTexts) {
+        const alpha = 1 - (item.life / item.duration);
+        ctx.fillStyle = hexToRgba(item.color, alpha);
+        ctx.fillText(item.text, item.x, item.y);
+      }
+    }
+
+    function hexToRgba(hex, alpha) {
+      const normalized = hex.replace("#", "");
+      const value = normalized.length === 3
+        ? normalized.split("").map((char) => char + char).join("")
+        : normalized;
+      const red = Number.parseInt(value.slice(0, 2), 16);
+      const green = Number.parseInt(value.slice(2, 4), 16);
+      const blue = Number.parseInt(value.slice(4, 6), 16);
+      return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+    }
+
+    function drawScene(nowSeconds) {
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      drawBackground(nowSeconds);
+      drawStars(centerX, centerY, nowSeconds);
+      drawPlanets(centerX, centerY, nowSeconds);
+      drawMiners(centerX, centerY, nowSeconds);
+      drawAsteroid(centerX, centerY, Math.sin(nowSeconds * 3));
+      drawEffects();
+    }
+
+    function frame(now) {
+      const deltaSeconds = Math.min(0.05, (now - lastFrameTime) / 1000);
+      lastFrameTime = now;
+
+      state.stardust += getTotalProductionPerSecond(state) * deltaSeconds;
+      updateEffects(deltaSeconds);
+      updateUI();
+      drawScene(now / 1000);
+
+      if (now - lastSaveTime >= SAVE_INTERVAL_MS) {
+        saveState();
+        lastSaveTime = now;
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    canvas.addEventListener("pointerdown", (event) => {
+      handleAsteroidClick(event.clientX, event.clientY);
+    });
+
+    offlineClose.addEventListener("click", () => {
+      offlineModal.hidden = true;
+      offlineStatus.textContent = "已结算";
+    });
+
+    window.addEventListener("beforeunload", saveState);
+
+    applyOfflineProgress();
+    updateUI();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
