@@ -215,6 +215,17 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `pixel-biome-terrarium/index.html` 即可运行。
 
+## 像素生态缸
+
+新增 `pixel-ecosystem-tank/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的封闭像素生态缸，包含：
+
+- 默认初始生态配置，打开页面即可观赏藻类、浮游动物、小鱼三层食物链
+- 通过光照与温度两个滑块直接干预生态平衡，并明显影响繁殖与死亡
+- Canvas 2D 像素精灵渲染，以及繁殖绿色粒子、死亡红色粒子反馈
+- 实时统计面板，持续显示各物种数量与当前生态状态
+
+直接用浏览器打开 `pixel-ecosystem-tank/index.html` 即可运行。
+
 ## Gravity Well Sandbox
 
 新增 `gravity-well/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的重力井物理沙盒，包含：
