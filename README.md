@@ -93,6 +93,18 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `rhythm-tap/index.html` 即可游玩。
 
+## 节奏切水果
+
+新增 `rhythm-slice/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的音乐驱动切割小游戏，包含：
+
+- 2 首 30-40 秒内置短曲，使用 Web Audio API 实时合成并绑定预定义 beat 表
+- 几何形状按节拍从屏幕下方飞出，鼠标或触屏滑动即可切割
+- 基于切中时机的 Perfect / Good / Miss 三档判定、分数与 combo 统计
+- 每次命中触发 8-12 个粒子碎片，连续 Perfect 达到阈值后触发屏幕震动
+- 曲目结束后显示总分、各档命中数与最高连段
+
+直接用浏览器打开 `rhythm-slice/index.html` 即可游玩。
+
 ## Orbital Slingshot
 
 新增 `slingshot-game/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的重力弹弓物理玩具，包含：
