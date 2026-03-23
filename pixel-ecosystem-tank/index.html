@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>像素生态缸</title>
+  <style>
+    :root {
+      --bg: #08111d;
+      --panel: rgba(7, 22, 34, 0.9);
+      --panel-soft: rgba(20, 48, 68, 0.82);
+      --line: rgba(150, 218, 255, 0.18);
+      --text: #def6ff;
+      --muted: #94bfd1;
+      --accent: #ffd86b;
+      --accent-2: #74d8a7;
+      --danger: #ff8d7a;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 18px;
+      font-family: "Trebuchet MS", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(85, 165, 218, 0.24), transparent 30%),
+        linear-gradient(180deg, #07111b 0%, #0d2232 42%, #050b12 100%);
+    }
+
+    .app {
+      width: min(1200px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 18px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: 0 20px 44px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(12px);
+    }
+
+    .stage {
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 5vw, 4.1rem);
+      line-height: 0.92;
+      letter-spacing: -0.05em;
+    }
+
+    .lede {
+      max-width: 66ch;
+      margin-top: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .hud {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stat {
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .stat span {
+      display: block;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 1.35rem;
+    }
+
+    .tank-shell {
+      margin-top: 16px;
+      border-radius: 28px;
+      padding: 16px;
+      border: 1px solid rgba(157, 226, 255, 0.2);
+      background:
+        linear-gradient(180deg, rgba(108, 181, 225, 0.2), rgba(5, 20, 34, 0.18)),
+        rgba(255, 255, 255, 0.03);
+      position: relative;
+    }
+
+    #tank-canvas {
+      display: block;
+      width: 100%;
+      border-radius: 18px;
+      border: 1px solid rgba(201, 240, 255, 0.18);
+      background: #081a27;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 16px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 24px;
+      border-radius: 18px;
+      background: rgba(2, 9, 15, 0.78);
+    }
+
+    .overlay[hidden] {
+      display: none;
+    }
+
+    .overlay-card {
+      max-width: 340px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .side {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .card {
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: var(--panel-soft);
+      display: grid;
+      gap: 12px;
+    }
+
+    .card h2 {
+      font-size: 1rem;
+    }
+
+    .tool-grid,
+    .species-grid {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    button {
+      font: inherit;
+      color: var(--text);
+      background: linear-gradient(180deg, rgba(88, 165, 216, 0.95), rgba(27, 79, 120, 0.95));
+      border: 0;
+      border-radius: 999px;
+      min-height: 40px;
+      padding: 0 14px;
+      cursor: pointer;
+      transition: transform 140ms ease, filter 140ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.06);
+    }
+
+    button.secondary {
+      background: linear-gradient(180deg, rgba(117, 215, 162, 0.95), rgba(44, 125, 95, 0.95));
+    }
+
+    button.ghost {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--line);
+    }
+
+    button.locked {
+      opacity: 0.45;
+      cursor: not-allowed;
+      filter: grayscale(0.45);
+    }
+
+    button.active-tool {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .progress {
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      border: 1px solid var(--line);
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #7fe4bd 0%, #ffe27d 100%);
+    }
+
+    .species-list {
+      display: grid;
+      gap: 8px;
+      font-size: 0.94rem;
+    }
+
+    .species-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    #collapse-title {
+      color: var(--danger);
+      font-size: 1.5rem;
+    }
+
+    @media (max-width: 960px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .hud {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel stage">
+      <h1>像素生态缸</h1>
+      <p class="lede">
+        在低分辨率水族缸里维持一个脆弱的小生态。点击缸体投喂食物或放置新生物，观察浮游生物、虾、小鱼、大鱼与珊瑚在简化食物链里游荡、觅食、逃跑与繁殖。
+      </p>
+      <div class="hud">
+        <div class="stat"><span>多样性指数</span><strong id="diversity-value">0.00</strong></div>
+        <div class="stat"><span>总生物数</span><strong id="population-value">0</strong></div>
+        <div class="stat"><span>已解锁物种</span><strong id="unlock-value">0 / 5</strong></div>
+        <div class="stat"><span>生态状态</span><strong id="status-value">稳定</strong></div>
+      </div>
+      <div class="tank-shell">
+        <canvas id="tank-canvas" width="640" height="384" aria-label="Pixel ecosystem tank"></canvas>
+        <div class="overlay" id="collapse-overlay" hidden>
+          <div class="overlay-card">
+            <h2 id="collapse-title">生态崩溃</h2>
+            <p class="small">缸中没有任何生物存活。重启生态缸，再次尝试维持平衡。</p>
+            <button id="restart-button" type="button">重新启动</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel side">
+      <section class="card">
+        <h2>点击工具</h2>
+        <div class="tool-grid" id="tool-grid"></div>
+        <p class="small">当前工具会作用于你点击的缸体位置。</p>
+      </section>
+
+      <section class="card">
+        <h2>解锁进度</h2>
+        <div class="progress"><div class="progress-bar" id="unlock-progress"></div></div>
+        <p class="small" id="unlock-note">达到 Shannon 多样性阈值可解锁新物种。</p>
+      </section>
+
+      <section class="card">
+        <h2>物种统计</h2>
+        <div class="species-list" id="species-list"></div>
+      </section>
+
+      <section class="card">
+        <h2>规则</h2>
+        <p class="small">
+          大鱼会追逐小鱼和虾，小鱼以浮游生物和虾为食，虾会吃浮游生物，珊瑚固定在底部并缓慢释放新的浮游生物。所有移动生物都会老化、消耗能量，并在条件满足时繁殖。
+        </p>
+        <button id="reset-button" class="ghost" type="button">重置缸体</button>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("tank-canvas");
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+
+    const diversityValue = document.getElementById("diversity-value");
+    const populationValue = document.getElementById("population-value");
+    const unlockValue = document.getElementById("unlock-value");
+    const statusValue = document.getElementById("status-value");
+    const speciesList = document.getElementById("species-list");
+    const unlockProgress = document.getElementById("unlock-progress");
+    const unlockNote = document.getElementById("unlock-note");
+    const collapseOverlay = document.getElementById("collapse-overlay");
+    const toolGrid = document.getElementById("tool-grid");
+    const resetButton = document.getElementById("reset-button");
+    const restartButton = document.getElementById("restart-button");
+
+    const WORLD_WIDTH = canvas.width;
+    const WORLD_HEIGHT = canvas.height;
+    const FLOOR_Y = WORLD_HEIGHT - 52;
+    const ECOLOGY_TICK_MS = 900;
+    const MAX_FOOD = 48;
+    const MAX_CREATURES = 80;
+    const TOOL_TYPES = ["food", "plankton", "shrimp", "smallFish", "coral", "bigFish"];
+
+    const speciesDefinitions = {
+      plankton: {
+        key: "plankton",
+        name: "浮游生物",
+        sprite: "plankton",
+        unlocked: true,
+        start: 14,
+        size: 8,
+        maxEnergy: 14,
+        startEnergy: 9,
+        speed: 0.22,
+        reproductionRate: 0.19,
+        deathRate: 0.006,
+        behavior: "drift"
+      },
+      shrimp: {
+        key: "shrimp",
+        name: "小虾",
+        sprite: "shrimp",
+        unlocked: true,
+        start: 7,
+        size: 8,
+        maxEnergy: 22,
+        startEnergy: 15,
+        speed: 0.8,
+        reproductionRate: 0.08,
+        deathRate: 0.008,
+        behavior: "grazer"
+      },
+      smallFish: {
+        key: "smallFish",
+        name: "小鱼",
+        sprite: "smallFish",
+        unlocked: true,
+        start: 5,
+        size: 16,
+        maxEnergy: 28,
+        startEnergy: 20,
+        speed: 1.15,
+        reproductionRate: 0.055,
+        deathRate: 0.009,
+        behavior: "school"
+      },
+      coral: {
+        key: "coral",
+        name: "珊瑚",
+        sprite: "coral",
+        unlocked: false,
+        unlockAt: 1.02,
+        start: 0,
+        size: 16,
+        maxEnergy: 999,
+        startEnergy: 999,
+        speed: 0,
+        reproductionRate: 0,
+        deathRate: 0,
+        behavior: "coral"
+      },
+      bigFish: {
+        key: "bigFish",
+        name: "大鱼",
+        sprite: "bigFish",
+        unlocked: false,
+        unlockAt: 1.34,
+        start: 0,
+        size: 16,
+        maxEnergy: 36,
+        startEnergy: 28,
+        speed: 0.9,
+        reproductionRate: 0.04,
+        deathRate: 0.012,
+        behavior: "hunter"
+      }
+    };
+
+    const MILESTONES = Object.values(speciesDefinitions)
+      .filter((species) => typeof species.unlockAt === "number")
+      .sort((a, b) => a.unlockAt - b.unlockAt);
+
+    const pixelSprites = {
+      plankton: [
+        "..22....",
+        ".2332...",
+        "..33....",
+        "...2....",
+        "..23....",
+        ".32.....",
+        "........",
+        "........"
+      ],
+      shrimp: [
+        "........",
+        "..444...",
+        ".44554..",
+        ".455554.",
+        "..4554..",
+        "...44.4.",
+        "....4...",
+        "........"
+      ],
+      smallFish: [
+        "................",
+        "......666.......",
+        "....6666666.....",
+        "..666667776.....",
+        ".66667777776....",
+        "6666771177776...",
+        ".66667777776....",
+        "..666667776.....",
+        "....6666666.....",
+        "......666.......",
+        "...........66...",
+        ".........6666...",
+        ".......666......",
+        "................",
+        "................",
+        "................"
+      ],
+      bigFish: [
+        "................",
+        ".....8888.......",
+        "..888888888.....",
+        ".88888999988....",
+        "8888999999988...",
+        "88899111999988..",
+        "8888999999988...",
+        ".88888999988....",
+        "..888888888.....",
+        ".....8888.......",
+        "...........88...",
+        "........88888...",
+        ".....88888......",
+        "................",
+        "................",
+        "................"
+      ],
+      coral: [
+        ".......aa.......",
+        "......aaaa......",
+        "....aa.a.aa.....",
+        "...aaaa.aaaa....",
+        "..aa.a...a.aa...",
+        "...aa.....aa....",
+        "......bb........",
+        ".....bbbb.......",
+        "....bbbbbb......",
+        "...bbbccbbb.....",
+        "..bbbccccbbb....",
+        ".bbbccccccbbb...",
+        ".dddddddddddd...",
+        "dddddddddddddd..",
+        "dddddddddddddd..",
+        "................"
+      ]
+    };
+
+    const palettes = {
+      "1": "#0f1720",
+      "2": "#8ff6ff",
+      "3": "#62d6e8",
+      "4": "#ffb86a",
+      "5": "#ff8e62",
+      "6": "#a9f6b8",
+      "7": "#5d93d7",
+      "8": "#f6d46a",
+      "9": "#cc9cff",
+      a: "#ff7eb0",
+      b: "#ffb48e",
+      c: "#8fefdf",
+      d: "#c4a36a"
+    };
+
+    const state = {
+      creatures: [],
+      foodPellets: [],
+      bubbles: [],
+      tool: "food",
+      unlockedSpecies: new Set(),
+      diversity: 0,
+      ecologyAccumulator: 0,
+      lastTime: 0,
+      collapse: false,
+      message: "稳定",
+      wavePhase: 0
+    };
+
+    function randomRange(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function distance(a, b) {
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function createCreature(type, x, y) {
+      const species = speciesDefinitions[type];
+      const nearBottom = type === "coral";
+      return {
+        id: `${type}-${Math.random().toString(36).slice(2, 9)}`,
+        type,
+        x,
+        y: nearBottom ? clamp(y, FLOOR_Y - 10, FLOOR_Y + 12) : clamp(y, 28, FLOOR_Y - 18),
+        vx: randomRange(-species.speed, species.speed),
+        vy: randomRange(-species.speed * 0.4, species.speed * 0.4),
+        energy: species.startEnergy,
+        age: 0,
+        dir: Math.random() > 0.5 ? 1 : -1,
+        state: "wander",
+        breedCooldown: randomRange(1, 4),
+        thinkTimer: randomRange(0.2, 0.9),
+        pulse: randomRange(0, Math.PI * 2)
+      };
+    }
+
+    function seedTank() {
+      state.creatures = [];
+      state.foodPellets = [];
+      state.bubbles = [];
+      state.unlockedSpecies = new Set(["plankton", "shrimp", "smallFish"]);
+      state.diversity = 0;
+      state.ecologyAccumulator = 0;
+      state.lastTime = 0;
+      state.collapse = false;
+      state.message = "稳定";
+      state.wavePhase = 0;
+      collapseOverlay.hidden = true;
+
+      Object.values(speciesDefinitions).forEach((species) => {
+        if (species.unlocked) {
+          for (let i = 0; i < species.start; i += 1) {
+            const x = randomRange(36, WORLD_WIDTH - 36);
+            const y = species.key === "coral" ? randomRange(FLOOR_Y - 4, FLOOR_Y + 8) : randomRange(36, FLOOR_Y - 24);
+            state.creatures.push(createCreature(species.key, x, y));
+          }
+        }
+      });
+
+      for (let i = 0; i < 16; i += 1) {
+        state.bubbles.push({
+          x: randomRange(20, WORLD_WIDTH - 20),
+          y: randomRange(30, WORLD_HEIGHT - 20),
+          speed: randomRange(0.3, 0.8),
+          radius: randomRange(1.2, 3.4)
+        });
+      }
+
+      state.diversity = calculateShannonDiversity();
+      handleUnlocks();
+      updateUI();
+      render(0);
+    }
+
+    function dropFood(x, y, amount = 1) {
+      for (let i = 0; i < amount; i += 1) {
+        if (state.foodPellets.length >= MAX_FOOD) {
+          state.foodPellets.shift();
+        }
+        state.foodPellets.push({
+          x: clamp(x + randomRange(-8, 8), 8, WORLD_WIDTH - 8),
+          y: clamp(y + randomRange(-8, 8), 18, FLOOR_Y),
+          vy: randomRange(0.25, 0.55),
+          nutrition: 4
+        });
+      }
+    }
+
+    function addCreature(type, x, y) {
+      if (!state.unlockedSpecies.has(type)) {
+        return false;
+      }
+      if (state.creatures.length >= MAX_CREATURES) {
+        return false;
+      }
+      state.creatures.push(createCreature(type, x, y));
+      return true;
+    }
+
+    function getCanvasPosition(event) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      return {
+        x: (event.clientX - rect.left) * scaleX,
+        y: (event.clientY - rect.top) * scaleY
+      };
+    }
+
+    function setTool(nextTool) {
+      state.tool = nextTool;
+      [...toolGrid.querySelectorAll("button")].forEach((button) => {
+        button.classList.toggle("active-tool", button.dataset.tool === nextTool);
+      });
+    }
+
+    function buildToolButtons() {
+      const fragment = document.createDocumentFragment();
+      TOOL_TYPES.forEach((type) => {
+        const button = document.createElement("button");
+        const species = speciesDefinitions[type];
+        const isFood = type === "food";
+        button.type = "button";
+        button.dataset.tool = type;
+        button.textContent = isFood ? "投喂食物" : `放置${species.name}`;
+        button.addEventListener("click", () => {
+          if (!isFood && !state.unlockedSpecies.has(type)) {
+            return;
+          }
+          setTool(type);
+        });
+        fragment.appendChild(button);
+      });
+      toolGrid.replaceChildren(fragment);
+      setTool("food");
+      refreshToolLocks();
+    }
+
+    function refreshToolLocks() {
+      [...toolGrid.querySelectorAll("button")].forEach((button) => {
+        const tool = button.dataset.tool;
+        const unlocked = tool === "food" || state.unlockedSpecies.has(tool);
+        button.disabled = !unlocked;
+        button.classList.toggle("locked", !unlocked);
+      });
+      if (state.tool !== "food" && !state.unlockedSpecies.has(state.tool)) {
+        setTool("food");
+      }
+    }
+
+    function findNearestFood(creature) {
+      let nearest = null;
+      let bestDistance = Infinity;
+      for (const pellet of state.foodPellets) {
+        const d = distance(creature, pellet);
+        if (d < bestDistance) {
+          nearest = pellet;
+          bestDistance = d;
+        }
+      }
+      return nearest;
+    }
+
+    function findNearestPrey(creature) {
+      const preyTypes = creature.type === "bigFish"
+        ? new Set(["smallFish", "shrimp"])
+        : creature.type === "smallFish"
+          ? new Set(["shrimp", "plankton"])
+          : creature.type === "shrimp"
+            ? new Set(["plankton"])
+            : new Set();
+      let nearest = null;
+      let bestDistance = Infinity;
+      for (const target of state.creatures) {
+        if (target === creature || !preyTypes.has(target.type)) {
+          continue;
+        }
+        const d = distance(creature, target);
+        if (d < bestDistance) {
+          nearest = target;
+          bestDistance = d;
+        }
+      }
+      return nearest;
+    }
+
+    function findPredator(creature) {
+      const predatorTypes = creature.type === "shrimp"
+        ? new Set(["smallFish", "bigFish"])
+        : creature.type === "smallFish"
+          ? new Set(["bigFish"])
+          : new Set();
+      let nearest = null;
+      let bestDistance = Infinity;
+      for (const target of state.creatures) {
+        if (target === creature || !predatorTypes.has(target.type)) {
+          continue;
+        }
+        const d = distance(creature, target);
+        if (d < bestDistance) {
+          nearest = target;
+          bestDistance = d;
+        }
+      }
+      return nearest && bestDistance < 110 ? nearest : null;
+    }
+
+    function steerToward(creature, target, strength) {
+      const dx = target.x - creature.x;
+      const dy = target.y - creature.y;
+      const length = Math.hypot(dx, dy) || 1;
+      creature.vx += (dx / length) * strength;
+      creature.vy += (dy / length) * strength;
+    }
+
+    function steerAway(creature, target, strength) {
+      const dx = creature.x - target.x;
+      const dy = creature.y - target.y;
+      const length = Math.hypot(dx, dy) || 1;
+      creature.vx += (dx / length) * strength;
+      creature.vy += (dy / length) * strength;
+    }
+
+    function updateFood(deltaSeconds) {
+      for (const pellet of state.foodPellets) {
+        pellet.y = Math.min(FLOOR_Y + 8, pellet.y + pellet.vy * deltaSeconds * 60);
+      }
+      state.foodPellets = state.foodPellets.filter((pellet) => pellet.nutrition > 0 && pellet.y < FLOOR_Y + 10);
+    }
+
+    function updateBubbles(deltaSeconds) {
+      for (const bubble of state.bubbles) {
+        bubble.y -= bubble.speed * deltaSeconds * 60;
+        bubble.x += Math.sin((state.wavePhase + bubble.y) * 0.015) * 0.3;
+        if (bubble.y < 18) {
+          bubble.y = WORLD_HEIGHT - randomRange(10, 40);
+          bubble.x = randomRange(18, WORLD_WIDTH - 18);
+        }
+      }
+    }
+
+    function updateCreature(creature, deltaSeconds) {
+      const species = speciesDefinitions[creature.type];
+      creature.age += deltaSeconds;
+      creature.thinkTimer -= deltaSeconds;
+      creature.breedCooldown = Math.max(0, creature.breedCooldown - deltaSeconds);
+      creature.pulse += deltaSeconds * 2;
+
+      if (creature.type !== "coral") {
+        creature.energy -= deltaSeconds * 0.55;
+      }
+
+      if (creature.type === "coral") {
+        creature.state = "anchor";
+        creature.x = clamp(creature.x, 26, WORLD_WIDTH - 26);
+        creature.y = clamp(creature.y, FLOOR_Y - 4, FLOOR_Y + 10);
+        if (Math.random() < 0.014 && countByType("plankton") < 22) {
+          const spawnX = clamp(creature.x + randomRange(-18, 18), 16, WORLD_WIDTH - 16);
+          const spawnY = clamp(creature.y - randomRange(12, 36), 20, FLOOR_Y - 12);
+          state.creatures.push(createCreature("plankton", spawnX, spawnY));
+        }
+        return;
+      }
+
+      const predator = findPredator(creature);
+      const prey = findNearestPrey(creature);
+      const pellet = findNearestFood(creature);
+
+      if (predator) {
+        creature.state = "flee";
+        steerAway(creature, predator, 0.18);
+      } else if (prey && creature.energy < species.maxEnergy * 0.88) {
+        creature.state = "seek_food";
+        steerToward(creature, prey, 0.1);
+      } else if (pellet && creature.energy < species.maxEnergy * 0.7) {
+        creature.state = "seek_food";
+        steerToward(creature, pellet, 0.08);
+      } else {
+        creature.state = species.behavior === "school" ? "school" : "wander";
+        if (creature.thinkTimer <= 0) {
+          creature.vx += randomRange(-0.45, 0.45);
+          creature.vy += randomRange(-0.25, 0.25);
+          creature.thinkTimer = randomRange(0.25, 1.2);
+        }
+      }
+
+      const speedLimit = species.speed * (creature.state === "flee" ? 1.6 : 1.1);
+      creature.vx = clamp(creature.vx, -speedLimit, speedLimit);
+      creature.vy = clamp(creature.vy, -speedLimit * 0.7, speedLimit * 0.7);
+      creature.x += creature.vx * deltaSeconds * 60;
+      creature.y += creature.vy * deltaSeconds * 60;
+      creature.vx *= 0.98;
+      creature.vy *= 0.98;
+
+      if (creature.x < 18 || creature.x > WORLD_WIDTH - 18) {
+        creature.vx *= -1;
+      }
+      if (creature.y < 24 || creature.y > FLOOR_Y - 12) {
+        creature.vy *= -1;
+      }
+      creature.x = clamp(creature.x, 18, WORLD_WIDTH - 18);
+      creature.y = clamp(creature.y, 24, FLOOR_Y - 12);
+      creature.dir = creature.vx >= 0 ? 1 : -1;
+    }
+
+    function consumeInteractions() {
+      const removed = new Set();
+      const eatenPellets = new Set();
+
+      for (let i = 0; i < state.creatures.length; i += 1) {
+        const creature = state.creatures[i];
+        if (removed.has(creature.id) || creature.type === "coral") {
+          continue;
+        }
+
+        for (let j = 0; j < state.foodPellets.length; j += 1) {
+          const pellet = state.foodPellets[j];
+          if (eatenPellets.has(j)) {
+            continue;
+          }
+          if (distance(creature, pellet) < (creature.type === "plankton" ? 10 : 14)) {
+            pellet.nutrition -= 2;
+            creature.energy = clamp(creature.energy + 3.5, 0, speciesDefinitions[creature.type].maxEnergy);
+            eatenPellets.add(j);
+            creature.state = "eat";
+            break;
+          }
+        }
+
+        const prey = findNearestPrey(creature);
+        if (!prey || removed.has(prey.id)) {
+          continue;
+        }
+        const biteRange = creature.type === "bigFish" ? 18 : 12;
+        if (distance(creature, prey) <= biteRange) {
+          removed.add(prey.id);
+          creature.energy = clamp(creature.energy + (prey.type === "plankton" ? 4 : 7), 0, speciesDefinitions[creature.type].maxEnergy);
+          creature.state = "eat";
+        }
+      }
+
+      state.foodPellets = state.foodPellets.filter((pellet, index) => pellet.nutrition > 0 && !eatenPellets.has(index));
+      state.creatures = state.creatures.filter((creature) => !removed.has(creature.id));
+    }
+
+    function reproductionPass() {
+      const offspring = [];
+      for (const creature of state.creatures) {
+        const species = speciesDefinitions[creature.type];
+        if (creature.type === "coral") {
+          continue;
+        }
+        if (creature.breedCooldown > 0) {
+          continue;
+        }
+        if (creature.energy < species.maxEnergy * 0.72) {
+          continue;
+        }
+        if (Math.random() > species.reproductionRate) {
+          continue;
+        }
+        const spawnType = creature.type;
+        offspring.push(createCreature(
+          spawnType,
+          clamp(creature.x + randomRange(-20, 20), 16, WORLD_WIDTH - 16),
+          clamp(creature.y + randomRange(-16, 16), 18, FLOOR_Y - 14)
+        ));
+        creature.energy *= 0.6;
+        creature.breedCooldown = randomRange(4, 7);
+        creature.state = "reproduce";
+      }
+      if (offspring.length > 0) {
+        state.creatures.push(...offspring.slice(0, Math.max(0, MAX_CREATURES - state.creatures.length)));
+      }
+    }
+
+    function mortalityPass() {
+      state.creatures = state.creatures.filter((creature) => {
+        const species = speciesDefinitions[creature.type];
+        if (creature.type === "coral") {
+          return true;
+        }
+        if (creature.energy <= 0) {
+          return false;
+        }
+        if (creature.age > 70 && Math.random() < species.deathRate * 6) {
+          return false;
+        }
+        if (Math.random() < species.deathRate * 0.1) {
+          return false;
+        }
+        return true;
+      });
+    }
+
+    function countByType(type) {
+      let count = 0;
+      for (const creature of state.creatures) {
+        if (creature.type === type) {
+          count += 1;
+        }
+      }
+      return count;
+    }
+
+    function calculateShannonDiversity() {
+      const counts = Object.keys(speciesDefinitions)
+        .map((type) => countByType(type))
+        .filter((count) => count > 0);
+      const total = counts.reduce((sum, count) => sum + count, 0);
+      if (total === 0) {
+        return 0;
+      }
+      let shannon = 0;
+      for (const count of counts) {
+        const p = count / total;
+        shannon -= p * Math.log(p);
+      }
+      return shannon;
+    }
+
+    function handleUnlocks() {
+      let nextMilestone = null;
+      for (const species of MILESTONES) {
+        if (!state.unlockedSpecies.has(species.key) && state.diversity >= species.unlockAt) {
+          state.unlockedSpecies.add(species.key);
+        }
+        if (!state.unlockedSpecies.has(species.key) && !nextMilestone) {
+          nextMilestone = species;
+        }
+      }
+
+      refreshToolLocks();
+
+      const maxThreshold = MILESTONES[MILESTONES.length - 1]?.unlockAt ?? 1;
+      unlockProgress.style.width = `${clamp((state.diversity / maxThreshold) * 100, 0, 100)}%`;
+      unlockNote.textContent = nextMilestone
+        ? `下一个解锁：${nextMilestone.name}，需要多样性 ${nextMilestone.unlockAt.toFixed(2)}`
+        : "全部物种已解锁。继续维持平衡，避免系统崩溃。";
+    }
+
+    function ecologyTick() {
+      if (state.collapse) {
+        return;
+      }
+
+      consumeInteractions();
+      reproductionPass();
+      mortalityPass();
+      state.diversity = calculateShannonDiversity();
+      handleUnlocks();
+
+      const totalPopulation = state.creatures.length;
+      const bigFishCount = countByType("bigFish");
+      const smallFishCount = countByType("smallFish");
+
+      if (totalPopulation === 0) {
+        state.collapse = true;
+        collapseOverlay.hidden = false;
+        state.message = "崩溃";
+      } else if (bigFishCount > smallFishCount + 2) {
+        state.message = "捕食压力高";
+      } else if (countByType("plankton") < 4) {
+        state.message = "底层食物短缺";
+      } else {
+        state.message = "稳定";
+      }
+
+      updateUI();
+    }
+
+    function updateUI() {
+      const totalPopulation = state.creatures.length;
+      diversityValue.textContent = state.diversity.toFixed(2);
+      populationValue.textContent = String(totalPopulation);
+      unlockValue.textContent = `${state.unlockedSpecies.size} / ${Object.keys(speciesDefinitions).length}`;
+      statusValue.textContent = state.message;
+
+      const rows = Object.values(speciesDefinitions).map((species) => {
+        const row = document.createElement("div");
+        row.className = "species-row";
+        const left = document.createElement("span");
+        const lockedLabel = state.unlockedSpecies.has(species.key) ? "" : " (未解锁)";
+        left.textContent = `${species.name}${lockedLabel}`;
+        const right = document.createElement("strong");
+        right.textContent = String(countByType(species.key));
+        row.append(left, right);
+        return row;
+      });
+      speciesList.replaceChildren(...rows);
+    }
+
+    function drawSprite(spriteName, x, y, size, direction = 1, wobble = 0) {
+      const sprite = pixelSprites[spriteName];
+      const pixelSize = size / sprite[0].length;
+      ctx.save();
+      ctx.translate(x, y + wobble);
+      ctx.scale(direction, 1);
+      ctx.translate(-size / 2, -size / 2);
+      for (let row = 0; row < sprite.length; row += 1) {
+        for (let col = 0; col < sprite[row].length; col += 1) {
+          const code = sprite[row][col];
+          if (code === ".") {
+            continue;
+          }
+          ctx.fillStyle = palettes[code];
+          ctx.fillRect(col * pixelSize, row * pixelSize, pixelSize, pixelSize);
+        }
+      }
+      ctx.restore();
+    }
+
+    function drawWater() {
+      const gradient = ctx.createLinearGradient(0, 0, 0, WORLD_HEIGHT);
+      gradient.addColorStop(0, "#4ea3d8");
+      gradient.addColorStop(0.45, "#1e6ea1");
+      gradient.addColorStop(1, "#0b1e2f");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+      for (let i = 0; i < 7; i += 1) {
+        const x = 40 + i * 88 + Math.sin(state.wavePhase * 0.8 + i) * 10;
+        ctx.fillStyle = "rgba(255,255,210,0.07)";
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x + 42, 0);
+        ctx.lineTo(x - 6, WORLD_HEIGHT);
+        ctx.lineTo(x - 30, WORLD_HEIGHT);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      ctx.fillStyle = "#866846";
+      ctx.fillRect(0, FLOOR_Y, WORLD_WIDTH, WORLD_HEIGHT - FLOOR_Y);
+      ctx.fillStyle = "#aa8a58";
+      for (let x = 0; x < WORLD_WIDTH; x += 8) {
+        const height = 4 + ((x / 8) % 3);
+        ctx.fillRect(x, FLOOR_Y + 8 - height, 6, height);
+      }
+
+      ctx.strokeStyle = "rgba(210, 245, 255, 0.18)";
+      for (let y = 18; y < FLOOR_Y - 12; y += 22) {
+        ctx.beginPath();
+        for (let x = 0; x <= WORLD_WIDTH; x += 16) {
+          const waveY = y + Math.sin((x * 0.05) + state.wavePhase + y * 0.04) * 2;
+          if (x === 0) {
+            ctx.moveTo(x, waveY);
+          } else {
+            ctx.lineTo(x, waveY);
+          }
+        }
+        ctx.stroke();
+      }
+    }
+
+    function drawFood() {
+      for (const pellet of state.foodPellets) {
+        ctx.fillStyle = "#ffd86b";
+        ctx.fillRect(Math.round(pellet.x) - 2, Math.round(pellet.y) - 2, 4, 4);
+      }
+    }
+
+    function drawBubbles() {
+      ctx.strokeStyle = "rgba(210, 247, 255, 0.45)";
+      for (const bubble of state.bubbles) {
+        ctx.beginPath();
+        ctx.arc(bubble.x, bubble.y, bubble.radius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    function drawCreatures() {
+      const ordered = state.creatures.slice().sort((a, b) => {
+        if (a.type === "coral" && b.type !== "coral") {
+          return -1;
+        }
+        if (a.type !== "coral" && b.type === "coral") {
+          return 1;
+        }
+        return a.y - b.y;
+      });
+
+      for (const creature of ordered) {
+        const species = speciesDefinitions[creature.type];
+        const wobble = Math.sin(creature.pulse + state.wavePhase * 1.8) * (creature.type === "coral" ? 1.5 : 2.5);
+        drawSprite(species.sprite, creature.x, creature.y, species.size, creature.dir, wobble);
+      }
+    }
+
+    function drawLabels() {
+      ctx.fillStyle = "rgba(230, 248, 255, 0.9)";
+      ctx.font = "12px sans-serif";
+      ctx.fillText(`Tool: ${state.tool === "food" ? "food" : speciesDefinitions[state.tool].name}`, 12, 18);
+      ctx.fillText(`Shannon diversity: ${state.diversity.toFixed(2)}`, 12, 34);
+    }
+
+    function render(timestamp) {
+      state.wavePhase = timestamp * 0.0012;
+      drawWater();
+      drawFood();
+      drawCreatures();
+      drawBubbles();
+      drawLabels();
+    }
+
+    function frame(timestamp) {
+      if (!state.lastTime) {
+        state.lastTime = timestamp;
+      }
+      const deltaSeconds = Math.min(0.033, (timestamp - state.lastTime) / 1000);
+      state.lastTime = timestamp;
+
+      if (!state.collapse) {
+        updateFood(deltaSeconds);
+        updateBubbles(deltaSeconds);
+        for (const creature of state.creatures) {
+          updateCreature(creature, deltaSeconds);
+        }
+
+        state.ecologyAccumulator += deltaSeconds * 1000;
+        while (state.ecologyAccumulator >= ECOLOGY_TICK_MS) {
+          ecologyTick();
+          state.ecologyAccumulator -= ECOLOGY_TICK_MS;
+        }
+      }
+
+      render(timestamp);
+      requestAnimationFrame(frame);
+    }
+
+    canvas.addEventListener("click", (event) => {
+      if (state.collapse) {
+        return;
+      }
+      const position = getCanvasPosition(event);
+      if (state.tool === "food") {
+        dropFood(position.x, position.y, 3);
+      } else {
+        addCreature(state.tool, position.x, position.y);
+      }
+      updateUI();
+    });
+
+    resetButton.addEventListener("click", seedTank);
+    restartButton.addEventListener("click", () => {
+      collapseOverlay.hidden = true;
+      seedTank();
+    });
+
+    buildToolButtons();
+    seedTank();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
