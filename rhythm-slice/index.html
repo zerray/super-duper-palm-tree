@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>节奏切水果</title>
+  <style>
+    :root {
+      --bg: #07111f;
+      --bg-soft: #0f1d34;
+      --panel: rgba(11, 20, 37, 0.82);
+      --panel-border: rgba(151, 178, 255, 0.18);
+      --text: #eef4ff;
+      --muted: #8ea4d6;
+      --accent: #ffb648;
+      --accent-2: #8af5d0;
+      --danger: #ff7d98;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(93, 124, 255, 0.26), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(255, 124, 150, 0.18), transparent 24%),
+        linear-gradient(180deg, #0b1630, #050b17 62%);
+    }
+
+    .page {
+      width: min(1160px, calc(100vw - 28px));
+      margin: 0 auto;
+      padding: 22px 0 30px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 310px;
+      gap: 20px;
+    }
+
+    .shell,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .shell {
+      padding: 20px;
+    }
+
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: start;
+      margin-bottom: 16px;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 5vw, 4.6rem);
+      line-height: 0.9;
+      letter-spacing: -0.06em;
+    }
+
+    .lede {
+      margin-top: 10px;
+      color: var(--muted);
+      max-width: 62ch;
+      line-height: 1.55;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .pill {
+      padding: 9px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .arena-wrap {
+      position: relative;
+      border-radius: 24px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 30%, rgba(116, 154, 255, 0.2), transparent 22%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
+        #040914;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .arena-wrap.shake {
+      animation: arena-shake 220ms linear;
+    }
+
+    @keyframes arena-shake {
+      0% { transform: translate(0, 0); }
+      20% { transform: translate(-5px, 3px); }
+      40% { transform: translate(5px, -2px); }
+      60% { transform: translate(-4px, -3px); }
+      80% { transform: translate(4px, 2px); }
+      100% { transform: translate(0, 0); }
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 16 / 9;
+      touch-action: none;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: linear-gradient(180deg, rgba(6, 12, 24, 0.24), rgba(6, 12, 24, 0.62));
+      pointer-events: none;
+    }
+
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .metric {
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(8px);
+    }
+
+    .metric-label {
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .metric-value {
+      margin-top: 7px;
+      font-size: 1.62rem;
+      font-weight: 700;
+    }
+
+    .combo-banner {
+      align-self: center;
+      padding: 12px 18px;
+      border-radius: 999px;
+      background: rgba(255, 182, 72, 0.16);
+      border: 1px solid rgba(255, 182, 72, 0.35);
+      color: #ffe2a7;
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 140ms ease, transform 140ms ease;
+    }
+
+    .combo-banner.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .result-card,
+    .menu-card {
+      position: absolute;
+      inset: 26px;
+      display: grid;
+      place-items: center;
+      text-align: left;
+      border-radius: 24px;
+      background: rgba(7, 12, 23, 0.84);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+      pointer-events: auto;
+    }
+
+    .menu-card[hidden],
+    .result-card[hidden] {
+      display: none;
+    }
+
+    .card-inner {
+      width: min(520px, 100%);
+      display: grid;
+      gap: 18px;
+    }
+
+    .card-title {
+      font-size: clamp(2.1rem, 4.8vw, 3.8rem);
+      line-height: 0.92;
+      letter-spacing: -0.05em;
+    }
+
+    .card-copy {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .track-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .track-option {
+      display: grid;
+      gap: 6px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+
+    .track-option:hover,
+    .track-option.active {
+      transform: translateY(-1px);
+      border-color: rgba(255, 182, 72, 0.42);
+      background: rgba(255, 182, 72, 0.12);
+    }
+
+    .track-name {
+      font-size: 1.06rem;
+      font-weight: 700;
+    }
+
+    .track-meta,
+    .rank-line {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 13px 18px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 120ms ease, filter 120ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.04);
+    }
+
+    .primary {
+      background: linear-gradient(135deg, #ffce71, #ff9852);
+      color: #1b1203;
+    }
+
+    .secondary {
+      background: rgba(255, 255, 255, 0.09);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .panel {
+      padding: 18px;
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+
+    .panel h2 {
+      font-size: 1.28rem;
+    }
+
+    .panel p,
+    .panel li {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .legend-grid,
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .legend-card,
+    .result-pill {
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .legend-card strong,
+    .result-pill strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+
+    .footnote {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    @media (max-width: 920px) {
+      .page {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 680px) {
+      body {
+        padding-bottom: 18px;
+      }
+
+      .page {
+        width: min(100vw - 18px, 1160px);
+        padding-top: 10px;
+        gap: 14px;
+      }
+
+      .shell,
+      .panel {
+        border-radius: 22px;
+      }
+
+      .shell {
+        padding: 14px;
+      }
+
+      .hero {
+        flex-direction: column;
+      }
+
+      .hud {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .overlay {
+        padding: 14px;
+      }
+
+      .menu-card,
+      .result-card {
+        inset: 12px;
+        padding: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="shell">
+      <div class="hero">
+        <div>
+          <h1>节奏切水果</h1>
+          <p class="lede">跟着节拍切开彩色几何体。切中越接近 beat 中心，判定越高，连续 Perfect 会触发 combo 与屏幕震动。</p>
+          <div class="pill-row">
+            <div class="pill">Web Audio 合成内置短曲</div>
+            <div class="pill">鼠标 / 触屏滑动切割</div>
+            <div class="pill">Perfect / Good / Miss 三档判定</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="arena-wrap" id="arena-wrap">
+        <canvas id="game-canvas" width="960" height="540" aria-label="节奏切割游戏画布"></canvas>
+        <div class="overlay">
+          <div class="hud">
+            <div class="metric">
+              <div class="metric-label">Score</div>
+              <div class="metric-value" id="score-value">0</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Judgement</div>
+              <div class="metric-value" id="judge-value">Ready</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Combo</div>
+              <div class="metric-value" id="combo-value">0</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Track</div>
+              <div class="metric-value" id="track-value">Menu</div>
+            </div>
+          </div>
+          <div class="combo-banner" id="combo-banner">PERFECT CHAIN x0</div>
+        </div>
+
+        <div class="menu-card" id="menu-card">
+          <div class="card-inner">
+            <div>
+              <p class="pill">Arcade / Music</p>
+              <h2 class="card-title">点击开始，按节拍切割。</h2>
+            </div>
+            <p class="card-copy">每首歌都内置了预定义 beat 表与合成旋律。切到方块、圆形、三角形或菱形时，系统按你切中的时机给出 Perfect、Good 或 Miss。</p>
+            <div class="track-list" id="track-list"></div>
+            <div class="button-row">
+              <button class="primary" id="start-button" type="button">开始游戏</button>
+            </div>
+            <p class="footnote">提示：尽量在形状飞到中央附近时挥动。触屏设备也支持滑动切割。</p>
+          </div>
+        </div>
+
+        <div class="result-card" id="result-card" hidden>
+          <div class="card-inner">
+            <div>
+              <p class="pill">Track Complete</p>
+              <h2 class="card-title" id="result-title">结算</h2>
+            </div>
+            <div class="results-grid">
+              <div class="result-pill"><strong>总分</strong><span id="result-score">0</span></div>
+              <div class="result-pill"><strong>最高 Combo</strong><span id="result-max-combo">0</span></div>
+              <div class="result-pill"><strong>Perfect</strong><span id="result-perfect">0</span></div>
+              <div class="result-pill"><strong>Good</strong><span id="result-good">0</span></div>
+              <div class="result-pill"><strong>Miss</strong><span id="result-miss">0</span></div>
+              <div class="result-pill"><strong>命中率</strong><span id="result-accuracy">0%</span></div>
+            </div>
+            <div class="button-row">
+              <button class="primary" id="replay-button" type="button">再来一次</button>
+              <button class="secondary" id="menu-button" type="button">返回菜单</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div>
+        <h2>玩法</h2>
+        <ul>
+          <li>长按拖动鼠标或手指，让切割轨迹穿过形状包围盒。</li>
+          <li>命中时机距离 beat 中心不超过 80ms 为 Perfect，不超过 200ms 为 Good。</li>
+          <li>漏切或时机偏差超过 200ms 记为 Miss，并会打断 Perfect 连段。</li>
+        </ul>
+      </div>
+      <div>
+        <h2>反馈</h2>
+        <div class="legend-grid">
+          <div class="legend-card">
+            <strong>粒子特效</strong>
+            <span>每次切中会生成 8-12 个碎片，颜色与目标一致。</span>
+          </div>
+          <div class="legend-card">
+            <strong>Combo 震动</strong>
+            <span>连续 Perfect 达到 3 次后，后续 Perfect 会触发屏幕 shake。</span>
+          </div>
+          <div class="legend-card">
+            <strong>内置音轨</strong>
+            <span>两首 30-40 秒短曲，全部由 Web Audio API 实时合成。</span>
+          </div>
+          <div class="legend-card">
+            <strong>结算页</strong>
+            <span>歌曲结束后显示总分、各档命中统计与最高连段。</span>
+          </div>
+        </div>
+      </div>
+      <p class="rank-line">判定分数：Perfect 300 / Good 120 / Miss 0</p>
+    </aside>
+  </main>
+
+  <script>
+    const canvas = document.querySelector("#game-canvas");
+    const ctx = canvas.getContext("2d");
+    const arenaWrap = document.querySelector("#arena-wrap");
+    const scoreValue = document.querySelector("#score-value");
+    const judgeValue = document.querySelector("#judge-value");
+    const comboValue = document.querySelector("#combo-value");
+    const comboBanner = document.querySelector("#combo-banner");
+    const trackValue = document.querySelector("#track-value");
+    const menuCard = document.querySelector("#menu-card");
+    const resultCard = document.querySelector("#result-card");
+    const startButton = document.querySelector("#start-button");
+    const replayButton = document.querySelector("#replay-button");
+    const menuButton = document.querySelector("#menu-button");
+    const trackList = document.querySelector("#track-list");
+
+    const resultTitle = document.querySelector("#result-title");
+    const resultScore = document.querySelector("#result-score");
+    const resultMaxCombo = document.querySelector("#result-max-combo");
+    const resultPerfect = document.querySelector("#result-perfect");
+    const resultGood = document.querySelector("#result-good");
+    const resultMiss = document.querySelector("#result-miss");
+    const resultAccuracy = document.querySelector("#result-accuracy");
+
+    const width = canvas.width;
+    const height = canvas.height;
+    const shapePalette = ["#6df7c1", "#ffce71", "#ff7d98", "#79a9ff", "#d08cff"];
+    const shapeKinds = ["circle", "square", "triangle", "diamond", "hex"];
+    const perfectWindowMs = 80;
+    const goodWindowMs = 200;
+    const spawnLeadTime = 1.18;
+    const gravity = 530;
+    const slashLifetimeMs = 180;
+    const trailWindowMs = 120;
+
+    function createBeatMap(bpm, patternGroups, shapeOffset = 0) {
+      const beatDuration = 60 / bpm / 2;
+      const beatMap = [];
+      patternGroups.forEach((pattern, measureIndex) => {
+        for (let step = 0; step < pattern.length; step += 1) {
+          if (pattern[step] !== "x") {
+            continue;
+          }
+          const index = beatMap.length;
+          beatMap.push({
+            time: Number(((measureIndex * pattern.length + step) * beatDuration).toFixed(3)),
+            shape: shapeKinds[(index + shapeOffset + step) % shapeKinds.length]
+          });
+        }
+      });
+      return beatMap;
+    }
+
+    function createMelodyNotes(bpm, bars, progression, octave = 4) {
+      const step = 60 / bpm / 2;
+      const notes = [];
+      const scale = {
+        c: 0,
+        d: 2,
+        e: 4,
+        g: 7,
+        a: 9,
+        b: 11
+      };
+
+      bars.forEach((bar, barIndex) => {
+        for (let i = 0; i < bar.length; i += 1) {
+          const symbol = bar[i];
+          if (symbol === "-") {
+            continue;
+          }
+          const semitone = scale[symbol] + progression[barIndex % progression.length];
+          const midi = 12 * (octave + 1) + semitone;
+          notes.push({
+            time: Number(((barIndex * bar.length + i) * step).toFixed(3)),
+            duration: step * (symbol === "g" || symbol === "a" ? 1.35 : 1.05),
+            frequency: 440 * 2 ** ((midi - 69) / 12)
+          });
+        }
+      });
+      return notes;
+    }
+
+    function createBassNotes(bpm, bars, roots, octave = 2) {
+      const step = 60 / bpm / 2;
+      return bars.flatMap((bar, barIndex) => {
+        const root = roots[barIndex % roots.length];
+        return bar.split("").flatMap((symbol, i) => {
+          if (symbol !== "x") {
+            return [];
+          }
+          const midi = 12 * (octave + 1) + root;
+          return [{
+            time: Number(((barIndex * bar.length + i) * step).toFixed(3)),
+            duration: step * 1.8,
+            frequency: 440 * 2 ** ((midi - 69) / 12)
+          }];
+        });
+      });
+    }
+
+    const tracks = [
+      {
+        id: "sunset-sync",
+        title: "Sunset Sync",
+        difficulty: "Easy",
+        bpm: 118,
+        duration: 32.6,
+        beatMap: createBeatMap(118, [
+          "x-x-x-x-",
+          "x-xx-xx-",
+          "x-x-xxxx",
+          "xx-x-x-x",
+          "x-x-x-x-",
+          "x-xx-xx-",
+          "x-x-xxxx",
+          "xxxx-xx-",
+          "x-x-x-x-",
+          "x-xx-xx-",
+          "x-x-xxxx",
+          "xx-x-x-x",
+          "x-x-x-x-",
+          "x-xx-xx-",
+          "x-x-xxxx",
+          "xxxx-xxx"
+        ], 0),
+        melody: createMelodyNotes(118, [
+          "c-e-g-e",
+          "c-e-a-e",
+          "d-g-a-g",
+          "c-e-g-a",
+          "c-e-g-e",
+          "c-e-a-e",
+          "d-g-a-g",
+          "b-a-g-e",
+          "c-e-g-e",
+          "c-e-a-e",
+          "d-g-a-g",
+          "c-e-g-a",
+          "e-g-a-g",
+          "d-g-a-g",
+          "c-e-g-e",
+          "b-a-g-e"
+        ], [0, 0, 2, 0], 4),
+        bass: createBassNotes(118, [
+          "x---x---",
+          "x---x---",
+          "x---x---",
+          "x-xx----",
+          "x---x---",
+          "x---x---",
+          "x---x---",
+          "x-xx-x--",
+          "x---x---",
+          "x---x---",
+          "x---x---",
+          "x-xx----",
+          "x---x---",
+          "x---x---",
+          "x---x---",
+          "x-xx-x-x"
+        ], [0, 0, 2, 7], 2)
+      },
+      {
+        id: "neon-rush",
+        title: "Neon Rush",
+        difficulty: "Hard",
+        bpm: 134,
+        duration: 35.9,
+        beatMap: createBeatMap(134, [
+          "xxxx-xxx",
+          "x-xx-xxx",
+          "xxxx-xxx",
+          "xxxx-xxx",
+          "xxxx-xxx",
+          "x-xx-xxx",
+          "xxxx-xxx",
+          "xxxxxxxx",
+          "xxxx-xxx",
+          "x-xx-xxx",
+          "xxxx-xxx",
+          "xxxx-xxx",
+          "xxxx-xxx",
+          "x-xx-xxx",
+          "xxxx-xxx",
+          "xxxxxxxx",
+          "xxxx-xxx",
+          "x-xx-xxx",
+          "xxxx-xxx",
+          "xxxxxxxx"
+        ], 2),
+        melody: createMelodyNotes(134, [
+          "e-g-a-b",
+          "g-a-b-a",
+          "e-g-a-b",
+          "a-g-e-d",
+          "e-g-a-b",
+          "g-a-b-a",
+          "b-a-g-e",
+          "d-e-g-a",
+          "e-g-a-b",
+          "g-a-b-a",
+          "e-g-a-b",
+          "a-g-e-d",
+          "e-g-a-b",
+          "g-a-b-a",
+          "b-a-g-e",
+          "d-e-g-a",
+          "a-b-a-g",
+          "e-g-a-b",
+          "a-g-e-d",
+          "b-a-g-e"
+        ], [4, 7, 9, 7], 4),
+        bass: createBassNotes(134, [
+          "x-x-x-x-",
+          "x-x-xx--",
+          "x-x-x-x-",
+          "x-xx-xx-",
+          "x-x-x-x-",
+          "x-x-xx--",
+          "x-x-x-x-",
+          "xxxxxxxx",
+          "x-x-x-x-",
+          "x-x-xx--",
+          "x-x-x-x-",
+          "x-xx-xx-",
+          "x-x-x-x-",
+          "x-x-xx--",
+          "x-x-x-x-",
+          "xxxxxxxx",
+          "x-x-x-x-",
+          "x-xx-xx-",
+          "x-x-x-x-",
+          "xxxxxxxx"
+        ], [4, 7, 9, 7], 2)
+      }
+    ];
+
+    const state = {
+      mode: "menu",
+      trackIndex: 0,
+      currentTrack: null,
+      audioContext: null,
+      audioStartTime: 0,
+      animationFrame: 0,
+      shapes: [],
+      particles: [],
+      slashPoints: [],
+      spawnedIndex: 0,
+      score: 0,
+      combo: 0,
+      maxCombo: 0,
+      judgement: "Ready",
+      counts: { perfect: 0, good: 0, miss: 0 },
+      ended: false
+    };
+
+    function renderTrackMenu() {
+      const options = tracks.map((track, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `track-option${index === state.trackIndex ? " active" : ""}`;
+        button.innerHTML = `
+          <span class="track-name">${track.title}</span>
+          <span class="track-meta">${track.difficulty} · ${track.duration.toFixed(0)}s · ${track.beatMap.length} beats</span>
+        `;
+        button.addEventListener("click", () => {
+          state.trackIndex = index;
+          renderTrackMenu();
+        });
+        return button;
+      });
+      trackList.replaceChildren(...options);
+    }
+
+    function resetGameState() {
+      state.shapes = [];
+      state.particles = [];
+      state.slashPoints = [];
+      state.spawnedIndex = 0;
+      state.score = 0;
+      state.combo = 0;
+      state.maxCombo = 0;
+      state.judgement = "Ready";
+      state.counts = { perfect: 0, good: 0, miss: 0 };
+      state.ended = false;
+      updateHud();
+    }
+
+    function updateHud() {
+      scoreValue.textContent = String(state.score);
+      judgeValue.textContent = state.judgement;
+      comboValue.textContent = String(state.combo);
+      trackValue.textContent = state.currentTrack ? state.currentTrack.title : "Menu";
+      comboBanner.textContent = `PERFECT CHAIN x${state.combo}`;
+      comboBanner.classList.toggle("visible", state.combo >= 3);
+    }
+
+    function resizeCanvas() {
+      const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.max(1, Math.round(rect.width * dpr));
+      canvas.height = Math.max(1, Math.round(rect.height * dpr));
+      ctx.setTransform(canvas.width / width, 0, 0, canvas.height / height, 0, 0);
+    }
+
+    function pointerToWorld(event) {
+      const rect = canvas.getBoundingClientRect();
+      const x = ((event.clientX - rect.left) / rect.width) * width;
+      const y = ((event.clientY - rect.top) / rect.height) * height;
+      return { x, y, time: performance.now() };
+    }
+
+    function startShake() {
+      arenaWrap.classList.remove("shake");
+      void arenaWrap.offsetWidth;
+      arenaWrap.classList.add("shake");
+    }
+
+    arenaWrap.addEventListener("animationend", () => {
+      arenaWrap.classList.remove("shake");
+    });
+
+    function scheduleTrackAudio(context, startAt, track) {
+      const master = context.createGain();
+      master.gain.value = 0.22;
+      master.connect(context.destination);
+
+      function scheduleOscillator(frequency, time, duration, type, volume) {
+        const osc = context.createOscillator();
+        const gain = context.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(frequency, time);
+        gain.gain.setValueAtTime(0.0001, time);
+        gain.gain.exponentialRampToValueAtTime(volume, time + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+        osc.connect(gain);
+        gain.connect(master);
+        osc.start(time);
+        osc.stop(time + duration + 0.04);
+      }
+
+      track.melody.forEach((note) => {
+        scheduleOscillator(note.frequency, startAt + note.time, note.duration, "triangle", 0.08);
+      });
+
+      track.bass.forEach((note) => {
+        scheduleOscillator(note.frequency, startAt + note.time, note.duration, "sine", 0.05);
+      });
+
+      track.beatMap.forEach((beat, index) => {
+        const time = startAt + beat.time;
+        scheduleOscillator(index % 4 === 0 ? 190 : 240, time, 0.08, "square", index % 4 === 0 ? 0.045 : 0.03);
+      });
+    }
+
+    async function ensureAudioContext() {
+      if (state.audioContext && state.audioContext.state !== "closed") {
+        return state.audioContext;
+      }
+      const context = new window.AudioContext();
+      await context.resume();
+      state.audioContext = context;
+      return context;
+    }
+
+    async function stopAudioContext() {
+      if (state.audioContext && state.audioContext.state !== "closed") {
+        await state.audioContext.close();
+      }
+      state.audioContext = null;
+    }
+
+    function createShape(beat, index) {
+      const originX = width / 2 + (Math.random() - 0.5) * 170;
+      const originY = height + 50;
+      return {
+        id: `${beat.time}-${index}`,
+        beatTime: beat.time,
+        x: originX,
+        y: originY,
+        vx: (Math.random() - 0.5) * 280,
+        vy: -520 - Math.random() * 120,
+        rotation: Math.random() * Math.PI * 2,
+        spin: (Math.random() - 0.5) * 2.6,
+        radius: 24 + Math.random() * 16,
+        color: shapePalette[index % shapePalette.length],
+        kind: beat.shape,
+        age: 0,
+        judged: false,
+        cut: false,
+        settledMiss: false
+      };
+    }
+
+    function spawnShapesUntil(songTime) {
+      const beatMap = state.currentTrack.beatMap;
+      while (state.spawnedIndex < beatMap.length && beatMap[state.spawnedIndex].time - spawnLeadTime <= songTime) {
+        state.shapes.push(createShape(beatMap[state.spawnedIndex], state.spawnedIndex));
+        state.spawnedIndex += 1;
+      }
+    }
+
+    function lineIntersectsBox(a, b, box) {
+      const minX = Math.min(a.x, b.x);
+      const maxX = Math.max(a.x, b.x);
+      const minY = Math.min(a.y, b.y);
+      const maxY = Math.max(a.y, b.y);
+      if (maxX < box.left || minX > box.right || maxY < box.top || minY > box.bottom) {
+        return false;
+      }
+      return true;
+    }
+
+    function emitParticles(shape, count) {
+      for (let i = 0; i < count; i += 1) {
+        state.particles.push({
+          x: shape.x,
+          y: shape.y,
+          vx: (Math.random() - 0.5) * 260,
+          vy: (Math.random() - 0.7) * 220,
+          life: 0.55 + Math.random() * 0.15,
+          age: 0,
+          size: 3 + Math.random() * 4,
+          color: shape.color
+        });
+      }
+    }
+
+    function judgeShape(shape, nowTime, wasSliced) {
+      if (shape.judged) {
+        return;
+      }
+      shape.judged = true;
+      const deltaMs = Math.abs(nowTime - shape.beatTime) * 1000;
+
+      if (!wasSliced || deltaMs > goodWindowMs) {
+        state.counts.miss += 1;
+        state.combo = 0;
+        state.judgement = "Miss";
+        return;
+      }
+
+      if (deltaMs <= perfectWindowMs) {
+        state.counts.perfect += 1;
+        state.score += 300;
+        state.combo += 1;
+        state.maxCombo = Math.max(state.maxCombo, state.combo);
+        state.judgement = "Perfect";
+        if (state.combo >= 3) {
+          startShake();
+        }
+        return;
+      }
+
+      state.counts.good += 1;
+      state.score += 120;
+      state.combo = 0;
+      state.judgement = "Good";
+    }
+
+    function trySliceAtSegment(a, b, songTime) {
+      state.shapes.forEach((shape) => {
+        if (shape.cut || shape.y > height + 60) {
+          return;
+        }
+        const box = {
+          left: shape.x - shape.radius,
+          right: shape.x + shape.radius,
+          top: shape.y - shape.radius,
+          bottom: shape.y + shape.radius
+        };
+        if (!lineIntersectsBox(a, b, box)) {
+          return;
+        }
+        shape.cut = true;
+        judgeShape(shape, songTime, true);
+        emitParticles(shape, 8 + Math.floor(Math.random() * 5));
+      });
+      updateHud();
+    }
+
+    function updateSlashTrail(now) {
+      state.slashPoints = state.slashPoints.filter((point) => now - point.time <= trailWindowMs);
+    }
+
+    function addSlashPoint(point) {
+      const previous = state.slashPoints[state.slashPoints.length - 1];
+      state.slashPoints.push(point);
+      if (!previous || state.mode !== "playing") {
+        return;
+      }
+      const songTime = Math.max(0, state.audioContext.currentTime - state.audioStartTime);
+      trySliceAtSegment(previous, point, songTime);
+    }
+
+    function updateSimulation(delta, songTime) {
+      spawnShapesUntil(songTime);
+
+      state.shapes.forEach((shape) => {
+        shape.age += delta;
+        shape.vy += gravity * delta;
+        shape.x += shape.vx * delta;
+        shape.y += shape.vy * delta;
+        shape.rotation += shape.spin * delta;
+
+        if (!shape.judged && songTime - shape.beatTime > goodWindowMs / 1000) {
+          judgeShape(shape, songTime, false);
+        }
+      });
+
+      state.shapes = state.shapes.filter((shape) => !(shape.cut && shape.age > spawnLeadTime + 1.2) && shape.y < height + 120);
+
+      state.particles.forEach((particle) => {
+        particle.age += delta;
+        particle.x += particle.vx * delta;
+        particle.y += particle.vy * delta;
+        particle.vy += 360 * delta;
+      });
+      state.particles = state.particles.filter((particle) => particle.age < particle.life);
+
+      updateHud();
+
+      if (!state.ended && songTime > state.currentTrack.duration + 1.2 && state.shapes.length === 0) {
+        finishTrack();
+      }
+    }
+
+    function drawBackground(songTime) {
+      ctx.clearRect(0, 0, width, height);
+      const gradient = ctx.createLinearGradient(0, 0, 0, height);
+      gradient.addColorStop(0, "#0c1630");
+      gradient.addColorStop(1, "#050a14");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.save();
+      ctx.translate(width / 2, height * 0.36);
+      const pulse = 0.94 + Math.sin(songTime * Math.PI * 2) * 0.03;
+      ctx.scale(1.8 * pulse, 1.2 * pulse);
+      const halo = ctx.createRadialGradient(0, 0, 24, 0, 0, 130);
+      halo.addColorStop(0, "rgba(117, 163, 255, 0.28)");
+      halo.addColorStop(1, "rgba(117, 163, 255, 0)");
+      ctx.fillStyle = halo;
+      ctx.beginPath();
+      ctx.arc(0, 0, 130, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.strokeStyle = "rgba(255,255,255,0.04)";
+      for (let i = 1; i < 7; i += 1) {
+        ctx.beginPath();
+        ctx.moveTo(0, (height / 7) * i);
+        ctx.lineTo(width, (height / 7) * i);
+        ctx.stroke();
+      }
+    }
+
+    function drawShape(shape) {
+      ctx.save();
+      ctx.translate(shape.x, shape.y);
+      ctx.rotate(shape.rotation);
+      ctx.fillStyle = shape.color;
+      ctx.strokeStyle = "rgba(255,255,255,0.35)";
+      ctx.lineWidth = 2;
+      ctx.shadowColor = shape.color;
+      ctx.shadowBlur = 18;
+      ctx.beginPath();
+      switch (shape.kind) {
+        case "circle":
+          ctx.arc(0, 0, shape.radius, 0, Math.PI * 2);
+          break;
+        case "square":
+          ctx.rect(-shape.radius, -shape.radius, shape.radius * 2, shape.radius * 2);
+          break;
+        case "triangle":
+          ctx.moveTo(0, -shape.radius);
+          ctx.lineTo(shape.radius, shape.radius);
+          ctx.lineTo(-shape.radius, shape.radius);
+          ctx.closePath();
+          break;
+        case "diamond":
+          ctx.moveTo(0, -shape.radius);
+          ctx.lineTo(shape.radius, 0);
+          ctx.lineTo(0, shape.radius);
+          ctx.lineTo(-shape.radius, 0);
+          ctx.closePath();
+          break;
+        default:
+          for (let i = 0; i < 6; i += 1) {
+            const angle = (Math.PI * 2 / 6) * i - Math.PI / 2;
+            const px = Math.cos(angle) * shape.radius;
+            const py = Math.sin(angle) * shape.radius;
+            if (i === 0) {
+              ctx.moveTo(px, py);
+            } else {
+              ctx.lineTo(px, py);
+            }
+          }
+          ctx.closePath();
+      }
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawParticles() {
+      state.particles.forEach((particle) => {
+        const alpha = 1 - particle.age / particle.life;
+        ctx.fillStyle = particle.color.replace(")", `, ${alpha})`).replace("rgb", "rgba");
+        if (!ctx.fillStyle.includes("rgba")) {
+          ctx.fillStyle = `${particle.color}${Math.round(alpha * 255).toString(16).padStart(2, "0")}`;
+        }
+        ctx.globalAlpha = alpha;
+        ctx.fillRect(particle.x, particle.y, particle.size, particle.size);
+        ctx.globalAlpha = 1;
+      });
+    }
+
+    function drawSlashTrail(now) {
+      if (state.slashPoints.length < 2) {
+        return;
+      }
+      ctx.save();
+      ctx.lineCap = "round";
+      for (let i = 1; i < state.slashPoints.length; i += 1) {
+        const prev = state.slashPoints[i - 1];
+        const current = state.slashPoints[i];
+        const alpha = 1 - (now - current.time) / slashLifetimeMs;
+        if (alpha <= 0) {
+          continue;
+        }
+        ctx.strokeStyle = `rgba(255, 239, 186, ${alpha})`;
+        ctx.lineWidth = 4 + alpha * 8;
+        ctx.beginPath();
+        ctx.moveTo(prev.x, prev.y);
+        ctx.lineTo(current.x, current.y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawGame(now, songTime) {
+      drawBackground(songTime);
+      state.shapes.forEach((shape) => {
+        if (!shape.cut) {
+          drawShape(shape);
+        }
+      });
+      drawParticles();
+      drawSlashTrail(now);
+    }
+
+    function finishTrack() {
+      state.ended = true;
+      state.mode = "results";
+      cancelAnimationFrame(state.animationFrame);
+      const totalHits = state.counts.perfect + state.counts.good + state.counts.miss;
+      const accuracy = totalHits === 0 ? 0 : Math.round(((state.counts.perfect + state.counts.good) / totalHits) * 100);
+
+      resultTitle.textContent = `${state.currentTrack.title} 结算`;
+      resultScore.textContent = String(state.score);
+      resultMaxCombo.textContent = String(state.maxCombo);
+      resultPerfect.textContent = String(state.counts.perfect);
+      resultGood.textContent = String(state.counts.good);
+      resultMiss.textContent = String(state.counts.miss);
+      resultAccuracy.textContent = `${accuracy}%`;
+      resultCard.hidden = false;
+    }
+
+    function animationLoop(previousTime) {
+      function frame(now) {
+        const delta = Math.min(0.033, (now - previousTime) / 1000);
+        previousTime = now;
+        updateSlashTrail(now);
+        const songTime = Math.max(0, state.audioContext.currentTime - state.audioStartTime);
+        updateSimulation(delta, songTime);
+        drawGame(now, songTime);
+        if (!state.ended) {
+          state.animationFrame = requestAnimationFrame(frame);
+        }
+      }
+      state.animationFrame = requestAnimationFrame(frame);
+    }
+
+    async function startGame() {
+      state.currentTrack = tracks[state.trackIndex];
+      state.mode = "playing";
+      menuCard.hidden = true;
+      resultCard.hidden = true;
+      resetGameState();
+      await stopAudioContext();
+      const context = await ensureAudioContext();
+      state.audioStartTime = context.currentTime + 0.08;
+      scheduleTrackAudio(context, state.audioStartTime, state.currentTrack);
+      updateHud();
+      cancelAnimationFrame(state.animationFrame);
+      animationLoop(performance.now());
+    }
+
+    function showMenu() {
+      state.mode = "menu";
+      state.currentTrack = null;
+      menuCard.hidden = false;
+      resultCard.hidden = true;
+      cancelAnimationFrame(state.animationFrame);
+      resetGameState();
+      drawGame(performance.now(), 0);
+      stopAudioContext();
+    }
+
+    canvas.addEventListener("pointerdown", (event) => {
+      canvas.setPointerCapture(event.pointerId);
+      addSlashPoint(pointerToWorld(event));
+    });
+
+    canvas.addEventListener("pointermove", (event) => {
+      if (event.buttons === 0 && event.pointerType !== "touch") {
+        return;
+      }
+      addSlashPoint(pointerToWorld(event));
+    });
+
+    canvas.addEventListener("pointerup", () => {
+      state.slashPoints = [];
+    });
+
+    canvas.addEventListener("pointercancel", () => {
+      state.slashPoints = [];
+    });
+
+    startButton.addEventListener("click", startGame);
+    replayButton.addEventListener("click", startGame);
+    menuButton.addEventListener("click", showMenu);
+
+    window.addEventListener("resize", resizeCanvas);
+
+    renderTrackMenu();
+    resizeCanvas();
+    drawGame(performance.now(), 0);
+  </script>
+</body>
+</html>
