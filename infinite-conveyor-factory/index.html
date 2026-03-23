@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>无限工厂传送带</title>
+  <style>
+    :root {
+      --bg: #10161c;
+      --panel: rgba(18, 27, 35, 0.96);
+      --panel-soft: rgba(32, 44, 56, 0.96);
+      --line: rgba(170, 206, 221, 0.16);
+      --text: #ecf7ff;
+      --muted: #92a8b7;
+      --accent: #f2b24c;
+      --good: #6ad4a6;
+      --danger: #f57b7b;
+      --ore: #9fd3ff;
+      --plate: #ffd36c;
+      --belt: #36566c;
+      --mine: #5ca1a1;
+      --ship: #7fbf6d;
+      --processor: #9f74d5;
+      --shadow: 0 18px 42px rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(106, 212, 166, 0.12), transparent 24%),
+        radial-gradient(circle at top right, rgba(242, 178, 76, 0.12), transparent 24%),
+        linear-gradient(180deg, #18222a 0%, var(--bg) 45%, #0c1116 100%);
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1380px, calc(100vw - 24px));
+      margin: 12px auto;
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel,
+    .board-shell {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .panel {
+      padding: 18px;
+      display: grid;
+      gap: 16px;
+      position: sticky;
+      top: 12px;
+    }
+
+    .hero {
+      display: grid;
+      gap: 10px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+    }
+
+    .eyebrow,
+    .hint,
+    .small {
+      color: var(--muted);
+    }
+
+    .eyebrow,
+    .section-title {
+      font-size: 0.82rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .lede,
+    .hint,
+    .small {
+      line-height: 1.55;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stat {
+      padding: 12px;
+      border-radius: 16px;
+      background: var(--panel-soft);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 1.4rem;
+      margin-top: 6px;
+    }
+
+    .section {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 18px;
+      background: var(--panel-soft);
+    }
+
+    .tool-grid,
+    .direction-grid,
+    .actions {
+      display: grid;
+      gap: 8px;
+    }
+
+    .tool-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .direction-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .tool-button,
+    .direction-button,
+    .action-button {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      color: inherit;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+      text-align: left;
+    }
+
+    .tool-button:hover,
+    .direction-button:hover,
+    .action-button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(242, 178, 76, 0.45);
+    }
+
+    .tool-button.active,
+    .direction-button.active {
+      background: rgba(242, 178, 76, 0.15);
+      border-color: rgba(242, 178, 76, 0.7);
+    }
+
+    .tool-button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .action-button.danger {
+      border-color: rgba(245, 123, 123, 0.3);
+    }
+
+    .action-button.danger:hover {
+      border-color: rgba(245, 123, 123, 0.72);
+    }
+
+    .tool-name {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .board-shell {
+      padding: 18px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .board-top {
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .chip-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--line);
+    }
+
+    .board-wrap {
+      overflow: auto;
+      max-height: calc(100vh - 140px);
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent),
+        #0b1218;
+    }
+
+    canvas {
+      display: block;
+      margin: 0;
+      cursor: crosshair;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        position: static;
+      }
+
+      .board-wrap {
+        max-height: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <aside class="panel">
+      <section class="hero">
+        <p class="eyebrow">Idle Automation</p>
+        <h1>无限工厂传送带</h1>
+        <p class="lede">在 16x16 网格上铺机器、摆传送带、自动卖货。金币够了以后再解锁加工站，把两份原材料压成更值钱的板材。</p>
+      </section>
+
+      <section class="stats">
+        <div class="stat">
+          <span class="eyebrow">金币</span>
+          <strong id="gold-value">0</strong>
+        </div>
+        <div class="stat">
+          <span class="eyebrow">解锁阈值</span>
+          <strong id="unlock-value">40</strong>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">建造面板</h2>
+        <div class="tool-grid" id="tool-grid"></div>
+        <p class="hint" id="tool-hint">点击网格放置。再次点击已有传送带会旋转方向。</p>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">传送方向</h2>
+        <div class="direction-grid" id="direction-grid"></div>
+        <p class="small">采矿机和加工站会朝当前方向吐出物品。出货口无方向要求。</p>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">控制</h2>
+        <div class="actions">
+          <button class="action-button" id="clear-map-button" type="button">清空地图</button>
+          <button class="action-button danger" id="restart-button" type="button">重新开始</button>
+        </div>
+        <p class="small">清空地图只移除建筑，重新开始会把金币和解锁一起重置。进度自动存到 localStorage。</p>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">规则</h2>
+        <p class="small">采矿机每隔一段时间产出原材料。物品每个 tick 沿传送带移动，到达出货口会自动卖出。加工站解锁后会吞下 2 个原材料，产出 1 个高价值板材。</p>
+      </section>
+    </aside>
+
+    <section class="board-shell">
+      <div class="board-top">
+        <div>
+          <h2>滚动工厂地图</h2>
+          <p class="hint">拖动滚动条查看整个地图，左键建造，右键清除当前格。</p>
+        </div>
+        <div class="chip-row">
+          <span class="chip" id="selection-chip">当前: 传送带</span>
+          <span class="chip" id="autosave-chip">自动保存已启用</span>
+        </div>
+      </div>
+
+      <div class="board-wrap" id="board-wrap">
+        <canvas id="factory-canvas" width="832" height="832" aria-label="Factory grid"></canvas>
+      </div>
+
+      <div class="legend">
+        <span><i class="dot" style="background: var(--ore)"></i>原材料</span>
+        <span><i class="dot" style="background: var(--plate)"></i>板材成品</span>
+        <span><i class="dot" style="background: var(--mine)"></i>采矿机</span>
+        <span><i class="dot" style="background: var(--ship)"></i>出货口</span>
+        <span><i class="dot" style="background: var(--processor)"></i>加工站</span>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "infinite-conveyor-factory-save";
+    const GRID_SIZE = 16;
+    const CELL_SIZE = 52;
+    const TICK_MS = 420;
+    const PROCESSOR_UNLOCK_GOLD = 40;
+    const SAVE_INTERVAL_MS = 30000;
+    const DIRECTION_ORDER = ["up", "right", "down", "left"];
+    const DIRECTION_LABELS = { up: "↑", right: "→", down: "↓", left: "←" };
+    const DIRECTION_VECTORS = {
+      up: { dx: 0, dy: -1 },
+      right: { dx: 1, dy: 0 },
+      down: { dx: 0, dy: 1 },
+      left: { dx: -1, dy: 0 }
+    };
+    const ITEM_VALUES = { ore: 1, plate: 5 };
+
+    const toolDefs = [
+      { key: "belt", name: "传送带", description: "4 个方向可切换，点击已有传送带会旋转。" },
+      { key: "miner", name: "采矿机", description: "自动产出原材料到前方格子。" },
+      { key: "shipper", name: "出货口", description: "物品进入后立即售出换金币。" },
+      { key: "processor", name: "加工站", description: "消耗 2 个原材料，输出 1 个板材。", locked: true }
+    ];
+
+    const state = createInitialState();
+
+    const canvas = document.querySelector("#factory-canvas");
+    const ctx = canvas.getContext("2d");
+    const goldValue = document.querySelector("#gold-value");
+    const unlockValue = document.querySelector("#unlock-value");
+    const selectionChip = document.querySelector("#selection-chip");
+    const toolHint = document.querySelector("#tool-hint");
+    const toolGrid = document.querySelector("#tool-grid");
+    const directionGrid = document.querySelector("#direction-grid");
+    const clearMapButton = document.querySelector("#clear-map-button");
+    const restartButton = document.querySelector("#restart-button");
+
+    let lastFrame = performance.now();
+    let tickAccumulator = 0;
+    let isPointerDown = false;
+    let lastPaintedCell = "";
+
+    function createInitialState() {
+      return {
+        grid: Array.from({ length: GRID_SIZE }, () => Array.from({ length: GRID_SIZE }, createEmptyCell)),
+        items: [],
+        gold: 0,
+        unlockedProcessor: false,
+        selectedTool: "belt",
+        selectedDirection: "right"
+      };
+    }
+
+    function createEmptyCell() {
+      return { type: "empty", direction: "right", buffer: 0, cooldown: 0 };
+    }
+
+    function makeCell(type, direction = "right") {
+      return { type, direction, buffer: 0, cooldown: 0 };
+    }
+
+    function inBounds(x, y) {
+      return x >= 0 && y >= 0 && x < GRID_SIZE && y < GRID_SIZE;
+    }
+
+    function getCell(x, y) {
+      return inBounds(x, y) ? state.grid[y][x] : null;
+    }
+
+    function setCell(x, y, cell) {
+      if (inBounds(x, y)) {
+        state.grid[y][x] = cell;
+      }
+    }
+
+    function itemAt(x, y) {
+      return state.items.find((item) => item.x === x && item.y === y) ?? null;
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          return;
+        }
+        const parsed = JSON.parse(raw);
+        if (!parsed || !Array.isArray(parsed.grid) || parsed.grid.length !== GRID_SIZE) {
+          return;
+        }
+
+        state.grid = parsed.grid.map((row) => row.map((cell) => ({
+          type: cell.type ?? "empty",
+          direction: cell.direction ?? "right",
+          buffer: Number.isFinite(cell.buffer) ? cell.buffer : 0,
+          cooldown: Number.isFinite(cell.cooldown) ? cell.cooldown : 0
+        })));
+        state.items = Array.isArray(parsed.items) ? parsed.items
+          .filter((item) => inBounds(item.x, item.y) && (item.kind === "ore" || item.kind === "plate"))
+          .map((item) => ({
+            kind: item.kind,
+            x: item.x,
+            y: item.y,
+            fromX: item.x,
+            fromY: item.y
+          })) : [];
+        state.gold = Number.isFinite(parsed.gold) ? parsed.gold : 0;
+        state.unlockedProcessor = Boolean(parsed.unlockedProcessor || state.gold >= PROCESSOR_UNLOCK_GOLD);
+        state.selectedTool = parsed.selectedTool === "processor" && !state.unlockedProcessor ? "belt" : (parsed.selectedTool ?? "belt");
+        state.selectedDirection = DIRECTION_ORDER.includes(parsed.selectedDirection) ? parsed.selectedDirection : "right";
+      } catch (error) {
+        console.warn("Failed to load save", error);
+      }
+    }
+
+    function saveState() {
+      const payload = {
+        grid: state.grid,
+        items: state.items.map((item) => ({ kind: item.kind, x: item.x, y: item.y })),
+        gold: state.gold,
+        unlockedProcessor: state.unlockedProcessor,
+        selectedTool: state.selectedTool,
+        selectedDirection: state.selectedDirection
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    }
+
+    function maybeUnlockProcessor() {
+      if (!state.unlockedProcessor && state.gold >= PROCESSOR_UNLOCK_GOLD) {
+        state.unlockedProcessor = true;
+        if (state.selectedTool === "processor") {
+          state.selectedTool = "processor";
+        }
+      }
+    }
+
+    function rotateDirection(direction) {
+      const index = DIRECTION_ORDER.indexOf(direction);
+      return DIRECTION_ORDER[(index + 1) % DIRECTION_ORDER.length];
+    }
+
+    function buildToolButtons() {
+      const buttons = toolDefs.map((tool) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "tool-button";
+        button.dataset.tool = tool.key;
+        button.innerHTML = `<span class="tool-name">${tool.name}</span><span class="small">${tool.description}</span>`;
+        button.addEventListener("click", () => {
+          if (tool.key === "processor" && !state.unlockedProcessor) {
+            return;
+          }
+          state.selectedTool = tool.key;
+          renderUi();
+        });
+        return button;
+      });
+      toolGrid.replaceChildren(...buttons);
+    }
+
+    function buildDirectionButtons() {
+      const buttons = DIRECTION_ORDER.map((direction) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "direction-button";
+        button.textContent = DIRECTION_LABELS[direction];
+        button.addEventListener("click", () => {
+          state.selectedDirection = direction;
+          renderUi();
+        });
+        return button;
+      });
+      directionGrid.replaceChildren(...buttons);
+    }
+
+    function renderUi() {
+      maybeUnlockProcessor();
+      goldValue.textContent = `${Math.floor(state.gold)}`;
+      unlockValue.textContent = state.unlockedProcessor ? "已解锁" : `${PROCESSOR_UNLOCK_GOLD}`;
+      selectionChip.textContent = `当前: ${toolDefs.find((tool) => tool.key === state.selectedTool)?.name ?? "传送带"}`;
+      toolHint.textContent = state.unlockedProcessor
+        ? "加工站已解锁。传送带再次点击会旋转，右键可擦除。"
+        : `金币达到 ${PROCESSOR_UNLOCK_GOLD} 自动解锁加工站。`;
+
+      Array.from(toolGrid.children).forEach((button) => {
+        const isLockedProcessor = button.dataset.tool === "processor" && !state.unlockedProcessor;
+        button.classList.toggle("active", button.dataset.tool === state.selectedTool);
+        button.disabled = isLockedProcessor;
+      });
+
+      Array.from(directionGrid.children).forEach((button, index) => {
+        button.classList.toggle("active", DIRECTION_ORDER[index] === state.selectedDirection);
+      });
+    }
+
+    function clearMap(preserveEconomy) {
+      for (let y = 0; y < GRID_SIZE; y += 1) {
+        for (let x = 0; x < GRID_SIZE; x += 1) {
+          state.grid[y][x] = createEmptyCell();
+        }
+      }
+      state.items = [];
+      if (!preserveEconomy) {
+        state.gold = 0;
+        state.unlockedProcessor = false;
+        state.selectedTool = "belt";
+      }
+      renderUi();
+      saveState();
+    }
+
+    function placeAt(x, y, erase = false) {
+      if (!inBounds(x, y)) {
+        return;
+      }
+
+      const key = `${x},${y},${erase ? "erase" : state.selectedTool},${state.selectedDirection}`;
+      if (isPointerDown && lastPaintedCell === key) {
+        return;
+      }
+      lastPaintedCell = key;
+
+      if (erase) {
+        setCell(x, y, createEmptyCell());
+        state.items = state.items.filter((item) => item.x !== x || item.y !== y);
+        saveState();
+        return;
+      }
+
+      if (state.selectedTool === "processor" && !state.unlockedProcessor) {
+        return;
+      }
+
+      const existing = getCell(x, y);
+      if (state.selectedTool === "belt" && existing.type === "belt") {
+        existing.direction = rotateDirection(existing.direction);
+      } else if (state.selectedTool === "shipper") {
+        setCell(x, y, makeCell("shipper"));
+      } else {
+        setCell(x, y, makeCell(state.selectedTool, state.selectedDirection));
+      }
+      saveState();
+    }
+
+    function eventToCell(event) {
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor((event.clientX - rect.left) / CELL_SIZE);
+      const y = Math.floor((event.clientY - rect.top) / CELL_SIZE);
+      return { x, y };
+    }
+
+    function canAcceptItem(x, y, kind) {
+      const cell = getCell(x, y);
+      if (!cell || cell.type === "empty") {
+        return false;
+      }
+      if (itemAt(x, y)) {
+        return false;
+      }
+      if (cell.type === "belt") {
+        return true;
+      }
+      if (cell.type === "shipper") {
+        return true;
+      }
+      if (cell.type === "processor") {
+        return kind === "ore";
+      }
+      return false;
+    }
+
+    function tryOutputItem(fromCell, x, y, kind) {
+      const vector = DIRECTION_VECTORS[fromCell.direction];
+      const nextX = x + vector.dx;
+      const nextY = y + vector.dy;
+      if (!inBounds(nextX, nextY) || !canAcceptItem(nextX, nextY, kind)) {
+        return false;
+      }
+
+      state.items.push({ kind, x: nextX, y: nextY, fromX: x, fromY: y });
+      return true;
+    }
+
+    function produceFromMachines() {
+      for (let y = 0; y < GRID_SIZE; y += 1) {
+        for (let x = 0; x < GRID_SIZE; x += 1) {
+          const cell = getCell(x, y);
+          if (cell.type === "miner") {
+            cell.cooldown += 1;
+            if (cell.cooldown >= 2 && tryOutputItem(cell, x, y, "ore")) {
+              cell.cooldown = 0;
+            }
+          } else if (cell.type === "processor") {
+            if (cell.buffer >= 2 && tryOutputItem(cell, x, y, "plate")) {
+              cell.buffer -= 2;
+            }
+          }
+        }
+      }
+    }
+
+    function runTick() {
+      produceFromMachines();
+
+      const occupiedNext = new Set();
+      const updatedItems = [];
+
+      for (const item of state.items) {
+        const cell = getCell(item.x, item.y);
+        item.fromX = item.x;
+        item.fromY = item.y;
+
+        if (!cell || cell.type !== "belt") {
+          updatedItems.push(item);
+          continue;
+        }
+
+        const vector = DIRECTION_VECTORS[cell.direction];
+        const nextX = item.x + vector.dx;
+        const nextY = item.y + vector.dy;
+        const nextCell = getCell(nextX, nextY);
+
+        if (!inBounds(nextX, nextY) || !nextCell) {
+          updatedItems.push(item);
+          continue;
+        }
+
+        const targetKey = `${nextX},${nextY}`;
+        const occupiedNow = state.items.some((other) => other !== item && other.x === nextX && other.y === nextY);
+
+        if (nextCell.type === "shipper") {
+          state.gold += ITEM_VALUES[item.kind];
+          maybeUnlockProcessor();
+          continue;
+        }
+
+        if (nextCell.type === "processor" && item.kind === "ore") {
+          nextCell.buffer += 1;
+          continue;
+        }
+
+        if (nextCell.type === "belt" && !occupiedNow && !occupiedNext.has(targetKey)) {
+          occupiedNext.add(targetKey);
+          item.x = nextX;
+          item.y = nextY;
+        }
+
+        updatedItems.push(item);
+      }
+
+      state.items = updatedItems;
+    }
+
+    function drawGrid() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#0f171d";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (let y = 0; y < GRID_SIZE; y += 1) {
+        for (let x = 0; x < GRID_SIZE; x += 1) {
+          const px = x * CELL_SIZE;
+          const py = y * CELL_SIZE;
+          const cell = getCell(x, y);
+
+          ctx.fillStyle = "#142028";
+          ctx.fillRect(px, py, CELL_SIZE - 1, CELL_SIZE - 1);
+
+          if (cell.type === "belt") {
+            ctx.fillStyle = "rgba(54, 86, 108, 0.9)";
+            roundRect(px + 6, py + 6, CELL_SIZE - 12, CELL_SIZE - 12, 12);
+            ctx.fill();
+            drawArrow(px, py, cell.direction, "#d7efff");
+          } else if (cell.type === "miner") {
+            ctx.fillStyle = "rgba(92, 161, 161, 0.95)";
+            roundRect(px + 7, py + 7, CELL_SIZE - 14, CELL_SIZE - 14, 12);
+            ctx.fill();
+            drawMachineGlyph(px, py, "M", "#0e1b20");
+            drawArrow(px, py, cell.direction, "#0e1b20", 12);
+          } else if (cell.type === "shipper") {
+            ctx.fillStyle = "rgba(127, 191, 109, 0.95)";
+            roundRect(px + 7, py + 7, CELL_SIZE - 14, CELL_SIZE - 14, 12);
+            ctx.fill();
+            drawMachineGlyph(px, py, "$", "#133019");
+          } else if (cell.type === "processor") {
+            ctx.fillStyle = "rgba(159, 116, 213, 0.95)";
+            roundRect(px + 7, py + 7, CELL_SIZE - 14, CELL_SIZE - 14, 12);
+            ctx.fill();
+            drawMachineGlyph(px, py, `${Math.min(cell.buffer, 9)}`, "#180d26");
+            drawArrow(px, py, cell.direction, "#180d26", 12);
+          }
+        }
+      }
+
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+      for (let i = 0; i <= GRID_SIZE; i += 1) {
+        const offset = i * CELL_SIZE;
+        ctx.beginPath();
+        ctx.moveTo(offset, 0);
+        ctx.lineTo(offset, canvas.height);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, offset);
+        ctx.lineTo(canvas.width, offset);
+        ctx.stroke();
+      }
+    }
+
+    function drawItems(progress) {
+      for (const item of state.items) {
+        const cell = getCell(item.x, item.y);
+        const isMoving = item.fromX !== item.x || item.fromY !== item.y;
+        const t = isMoving ? progress : 1;
+        const drawX = ((item.fromX ?? item.x) + ((item.x - (item.fromX ?? item.x)) * t)) * CELL_SIZE + (CELL_SIZE / 2);
+        const drawY = ((item.fromY ?? item.y) + ((item.y - (item.fromY ?? item.y)) * t)) * CELL_SIZE + (CELL_SIZE / 2);
+        ctx.beginPath();
+        ctx.fillStyle = item.kind === "ore" ? getComputedStyle(document.documentElement).getPropertyValue("--ore").trim() : getComputedStyle(document.documentElement).getPropertyValue("--plate").trim();
+        ctx.arc(drawX, drawY, 9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = cell?.type === "shipper" ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.25)";
+        ctx.stroke();
+      }
+    }
+
+    function drawMachineGlyph(px, py, text, color) {
+      ctx.fillStyle = color;
+      ctx.font = "bold 18px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, px + CELL_SIZE / 2, py + CELL_SIZE / 2 - 1);
+    }
+
+    function drawArrow(px, py, direction, color, fontSize = 18) {
+      ctx.fillStyle = color;
+      ctx.font = `bold ${fontSize}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(DIRECTION_LABELS[direction], px + CELL_SIZE / 2, py + CELL_SIZE / 2 + 0.5);
+    }
+
+    function roundRect(x, y, width, height, radius) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+    }
+
+    function frame(now) {
+      const delta = now - lastFrame;
+      lastFrame = now;
+      tickAccumulator += delta;
+
+      while (tickAccumulator >= TICK_MS) {
+        tickAccumulator -= TICK_MS;
+        runTick();
+      }
+
+      drawGrid();
+      drawItems(Math.min(tickAccumulator / TICK_MS, 1));
+      renderUi();
+      requestAnimationFrame(frame);
+    }
+
+    canvas.addEventListener("pointerdown", (event) => {
+      isPointerDown = true;
+      const { x, y } = eventToCell(event);
+      placeAt(x, y, event.button === 2);
+    });
+
+    canvas.addEventListener("pointermove", (event) => {
+      if (!isPointerDown) {
+        return;
+      }
+      const { x, y } = eventToCell(event);
+      placeAt(x, y, event.buttons === 2);
+    });
+
+    window.addEventListener("pointerup", () => {
+      isPointerDown = false;
+      lastPaintedCell = "";
+    });
+
+    canvas.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+      const { x, y } = eventToCell(event);
+      placeAt(x, y, true);
+    });
+
+    clearMapButton.addEventListener("click", () => {
+      if (window.confirm("清空地图上的所有建筑？金币和解锁会保留。")) {
+        clearMap(true);
+      }
+    });
+
+    restartButton.addEventListener("click", () => {
+      if (window.confirm("重新开始会删除当前地图、金币和解锁进度。确定继续？")) {
+        localStorage.removeItem(STORAGE_KEY);
+        clearMap(false);
+      }
+    });
+
+    loadState();
+    buildToolButtons();
+    buildDirectionButtons();
+    renderUi();
+    saveState();
+    setInterval(saveState, SAVE_INTERVAL_MS);
+    window.addEventListener("beforeunload", saveState);
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
