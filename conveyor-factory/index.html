@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>无尽工厂：放置传送带</title>
+  <style>
+    :root {
+      --bg: #101820;
+      --panel: rgba(18, 28, 38, 0.92);
+      --panel-soft: rgba(23, 36, 48, 0.88);
+      --line: rgba(166, 193, 214, 0.18);
+      --text: #eef5fb;
+      --muted: #90a6b8;
+      --accent: #f0b24d;
+      --accent-soft: rgba(240, 178, 77, 0.14);
+      --good: #62d29e;
+      --danger: #f17d7d;
+      --ore: #8cb2c9;
+      --ingot: #ffcf70;
+      --gear: #ff8a4d;
+      --shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
+      --display: "Avenir Next Condensed", "Trebuchet MS", sans-serif;
+      --body: "Avenir Next", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--body);
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(98, 210, 158, 0.14), transparent 20%),
+        radial-gradient(circle at top right, rgba(240, 178, 77, 0.18), transparent 24%),
+        linear-gradient(180deg, #162331 0%, #101820 42%, #0d141b 100%);
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1340px, calc(100vw - 24px));
+      margin: 16px auto 28px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .hero {
+      padding: 22px;
+      display: grid;
+      gap: 16px;
+      grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr));
+      align-items: stretch;
+    }
+
+    .title-block,
+    .stat-card,
+    .section {
+      border-radius: 18px;
+      background: var(--panel-soft);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .title-block {
+      padding: 20px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .eyebrow {
+      margin: 0;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-size: 0.78rem;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-family: var(--display);
+      font-size: clamp(2.4rem, 6vw, 4.2rem);
+      line-height: 0.92;
+      letter-spacing: -0.05em;
+    }
+
+    .lede {
+      max-width: 60ch;
+      color: var(--muted);
+      line-height: 1.58;
+    }
+
+    .stat-card {
+      padding: 18px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .stat-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+    }
+
+    .stat-value {
+      font-size: clamp(1.5rem, 3vw, 2.4rem);
+      font-weight: 700;
+    }
+
+    .stat-note {
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.94rem;
+    }
+
+    .layout {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: 320px minmax(0, 1fr) 300px;
+      align-items: start;
+    }
+
+    .sidebar,
+    .rail {
+      display: grid;
+      gap: 16px;
+    }
+
+    .section {
+      padding: 18px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .section h2 {
+      font-size: 1rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .section-copy {
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.55;
+    }
+
+    .toolbar-grid,
+    .shop-list,
+    .tech-list,
+    .legend-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .tool-button,
+    .shop-button,
+    .tech-button,
+    .control-button {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      color: inherit;
+      padding: 14px;
+      text-align: left;
+      cursor: pointer;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease, opacity 140ms ease;
+      display: grid;
+      gap: 6px;
+    }
+
+    .tool-button:hover,
+    .shop-button:hover:not(:disabled),
+    .tech-button:hover:not(:disabled),
+    .control-button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(240, 178, 77, 0.42);
+    }
+
+    .tool-button.active {
+      border-color: rgba(240, 178, 77, 0.6);
+      background: var(--accent-soft);
+    }
+
+    .shop-button:disabled,
+    .tech-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .button-top,
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .button-title {
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .button-cost {
+      color: var(--good);
+      font-weight: 700;
+    }
+
+    .button-copy,
+    .small-copy {
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 0.92rem;
+    }
+
+    .orientation-select {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.05);
+      color: inherit;
+      padding: 12px 14px;
+    }
+
+    .board-panel {
+      padding: 18px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .board-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .board-meta {
+      color: var(--muted);
+      font-size: 0.94rem;
+      line-height: 1.5;
+    }
+
+    canvas {
+      width: 100%;
+      aspect-ratio: 1;
+      display: block;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 24%),
+        #121d27;
+      touch-action: none;
+      user-select: none;
+      cursor: crosshair;
+    }
+
+    .status {
+      min-height: 2.6em;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.92rem;
+    }
+
+    .legend-item {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      flex: none;
+    }
+
+    .footer-actions {
+      display: grid;
+      gap: 10px;
+    }
+
+    @media (max-width: 1100px) {
+      .hero,
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel hero">
+      <div class="title-block">
+        <p class="eyebrow">Idle Factory</p>
+        <h1>无尽工厂：放置传送带</h1>
+        <p class="lede">
+          在 12x12 工厂网格上拖拽摆放传送带和机器，把矿石送进加工链，再送到收集器换成金币。科技解锁后可升级到更快的矿机与更贵的高阶产品。
+        </p>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">金币</div>
+        <div class="stat-value" id="gold-value">0</div>
+        <div class="stat-note">自动由收集器累计，用于购买建筑与科技。</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">产线</div>
+        <div class="stat-value" id="throughput-value">0 / min</div>
+        <div class="stat-note">按最近一分钟的收集价值估算当前产出速度。</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">科技层</div>
+        <div class="stat-value" id="tech-value">Tier 1</div>
+        <div class="stat-note">解锁高阶加工机后可生产齿轮，价值更高。</div>
+      </div>
+    </section>
+
+    <section class="layout">
+      <div class="sidebar">
+        <section class="panel section">
+          <h2>工具栏</h2>
+          <p class="section-copy">先点击购买，再选择工具放置。拖拽可连续铺设，右键删除。</p>
+          <div class="toolbar-grid" id="toolbar"></div>
+          <label class="small-copy" for="machine-facing">机器朝向</label>
+          <select class="orientation-select" id="machine-facing" aria-label="机器朝向">
+            <option value="right">朝右输出</option>
+            <option value="down">朝下输出</option>
+            <option value="left">朝左输出</option>
+            <option value="up">朝上输出</option>
+          </select>
+        </section>
+
+        <section class="panel section">
+          <h2>商店</h2>
+          <p class="section-copy">购买后不会立即放置，而是增加对应库存。库存会显示在工具按钮右侧。</p>
+          <div class="shop-list" id="shop-list"></div>
+        </section>
+      </div>
+
+      <section class="panel board-panel">
+        <div class="board-top">
+          <div>
+            <h2>工厂网格</h2>
+            <p class="board-meta">矿机从前方输出矿石，加工机从背后吃矿石并向前吐出产品，收集器从背后收货。断开的传送带不会继续运输。</p>
+          </div>
+          <div class="small-copy">左键放置 / 拖拽，右键删除，状态自动保存。</div>
+        </div>
+        <canvas id="factory-canvas" width="720" height="720" aria-label="Factory Grid"></canvas>
+        <div class="status" id="status-text"></div>
+      </section>
+
+      <div class="rail">
+        <section class="panel section">
+          <h2>科技树</h2>
+          <p class="section-copy">至少两层科技。先解锁高阶矿机，再解锁高阶加工机。</p>
+          <div class="tech-list" id="tech-list"></div>
+        </section>
+
+        <section class="panel section">
+          <h2>图例</h2>
+          <div class="legend-list">
+            <div class="legend-item"><span class="swatch" style="background: var(--ore)"></span>矿石：由矿机产出，供基础加工机消耗</div>
+            <div class="legend-item"><span class="swatch" style="background: var(--ingot)"></span>合金锭：基础加工产物，收集器换成 6 金币</div>
+            <div class="legend-item"><span class="swatch" style="background: var(--gear)"></span>齿轮组：高阶加工产物，收集器换成 16 金币</div>
+          </div>
+        </section>
+
+        <section class="panel section">
+          <h2>控制</h2>
+          <div class="footer-actions">
+            <button type="button" class="control-button" id="clear-save-button">
+              <span class="button-title">清空存档并重开</span>
+              <span class="button-copy">删除本地进度，恢复到初始 60 金币。</span>
+            </button>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "conveyor-factory-save";
+    const GRID_SIZE = 12;
+    const TICK_MS = 500;
+    const SAVE_INTERVAL_MS = 15000;
+    const canvas = document.querySelector("#factory-canvas");
+    const ctx = canvas.getContext("2d");
+
+    const directionVectors = {
+      up: { dx: 0, dy: -1 },
+      right: { dx: 1, dy: 0 },
+      down: { dx: 0, dy: 1 },
+      left: { dx: -1, dy: 0 }
+    };
+
+    const oppositeDirection = {
+      up: "down",
+      right: "left",
+      down: "up",
+      left: "right"
+    };
+
+    const productDefs = {
+      ore: { color: "#8cb2c9", label: "矿石", value: 0 },
+      ingot: { color: "#ffcf70", label: "合金锭", value: 6 },
+      gear: { color: "#ff8a4d", label: "齿轮组", value: 16 }
+    };
+
+    const toolDefs = [
+      { key: "erase", kind: "erase", label: "橡皮擦", copy: "删除当前格建筑或物品。" },
+      { key: "belt-up", kind: "belt", direction: "up", label: "传送带 ↑", copy: "向上输送 1 格。", inventoryKey: "belt" },
+      { key: "belt-right", kind: "belt", direction: "right", label: "传送带 →", copy: "向右输送 1 格。", inventoryKey: "belt" },
+      { key: "belt-down", kind: "belt", direction: "down", label: "传送带 ↓", copy: "向下输送 1 格。", inventoryKey: "belt" },
+      { key: "belt-left", kind: "belt", direction: "left", label: "传送带 ←", copy: "向左输送 1 格。", inventoryKey: "belt" },
+      { key: "miner", kind: "machine", machineType: "miner", label: "矿机", copy: "从前方输出矿石。", inventoryKey: "miner" },
+      { key: "processor", kind: "machine", machineType: "processor", label: "加工机", copy: "矿石变合金锭。", inventoryKey: "processor" },
+      { key: "collector", kind: "machine", machineType: "collector", label: "收集器", copy: "收产品并自动换金币。", inventoryKey: "collector" },
+      { key: "advanced-miner", kind: "machine", machineType: "advancedMiner", label: "高阶矿机", copy: "更快产出矿石。", inventoryKey: "advancedMiner", requires: "advancedMining" },
+      { key: "advanced-processor", kind: "machine", machineType: "advancedProcessor", label: "高阶加工机", copy: "矿石变齿轮组。", inventoryKey: "advancedProcessor", requires: "advancedProcessing" }
+    ];
+
+    const shopDefs = [
+      { key: "belt", label: "购买传送带", cost: 2, copy: "库存 +1，可拖拽连续铺设。" },
+      { key: "miner", label: "购买矿机", cost: 16, copy: "基础矿机，4 tick 产 1 矿。" },
+      { key: "processor", label: "购买加工机", cost: 24, copy: "消耗矿石，3 tick 产 1 合金锭。" },
+      { key: "collector", label: "购买收集器", cost: 18, copy: "把产品自动变成金币。" },
+      { key: "advancedMiner", label: "购买高阶矿机", cost: 38, copy: "解锁后可买，2 tick 产 1 矿。", requires: "advancedMining" },
+      { key: "advancedProcessor", label: "购买高阶加工机", cost: 62, copy: "解锁后可买，4 tick 产 1 齿轮组。", requires: "advancedProcessing" }
+    ];
+
+    const techDefs = [
+      { key: "advancedMining", label: "高阶采矿", cost: 90, copy: "解锁高阶矿机，让矿石供给翻倍。", tier: 2 },
+      { key: "advancedProcessing", label: "精密加工", cost: 180, copy: "解锁高阶加工机，将矿石加工成更贵的齿轮组。", tier: 2, requires: "advancedMining" }
+    ];
+
+    const defaultState = () => ({
+      gold: 60,
+      inventory: {
+        belt: 8,
+        miner: 1,
+        processor: 1,
+        collector: 1,
+        advancedMiner: 0,
+        advancedProcessor: 0
+      },
+      tech: {
+        advancedMining: false,
+        advancedProcessing: false
+      },
+      grid: Array.from({ length: GRID_SIZE * GRID_SIZE }, () => emptyCell()),
+      throughputLog: [],
+      lastTickAt: Date.now()
+    });
+
+    function emptyCell() {
+      return {
+        structure: null,
+        item: null
+      };
+    }
+
+    let state = loadState();
+    let selectedTool = "belt-right";
+    let isPointerDown = false;
+    let lastPaintedCell = null;
+    let tickProgress = 0;
+    let statusMessage = "选择一个工具，然后在网格上点击或拖拽铺设产线。";
+    let lastTimestamp = performance.now();
+
+    const toolbar = document.querySelector("#toolbar");
+    const shopList = document.querySelector("#shop-list");
+    const techList = document.querySelector("#tech-list");
+    const machineFacing = document.querySelector("#machine-facing");
+    const goldValue = document.querySelector("#gold-value");
+    const throughputValue = document.querySelector("#throughput-value");
+    const techValue = document.querySelector("#tech-value");
+    const statusText = document.querySelector("#status-text");
+    const clearSaveButton = document.querySelector("#clear-save-button");
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          return defaultState();
+        }
+        const parsed = JSON.parse(raw);
+        const fresh = defaultState();
+        const merged = {
+          ...fresh,
+          ...parsed,
+          inventory: { ...fresh.inventory, ...(parsed.inventory || {}) },
+          tech: { ...fresh.tech, ...(parsed.tech || {}) },
+          throughputLog: Array.isArray(parsed.throughputLog) ? parsed.throughputLog : []
+        };
+        if (!Array.isArray(parsed.grid) || parsed.grid.length !== GRID_SIZE * GRID_SIZE) {
+          merged.grid = fresh.grid;
+        } else {
+          merged.grid = parsed.grid.map((cell) => ({
+            structure: cell && cell.structure ? { ...cell.structure } : null,
+            item: cell && cell.item ? { ...cell.item } : null
+          }));
+        }
+        return merged;
+      } catch (error) {
+        return defaultState();
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        gold: state.gold,
+        inventory: state.inventory,
+        tech: state.tech,
+        grid: state.grid,
+        throughputLog: state.throughputLog
+      }));
+    }
+
+    function gridIndex(x, y) {
+      return y * GRID_SIZE + x;
+    }
+
+    function isInside(x, y) {
+      return x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE;
+    }
+
+    function getCell(x, y) {
+      if (!isInside(x, y)) {
+        return null;
+      }
+      return state.grid[gridIndex(x, y)];
+    }
+
+    function getNeighbor(x, y, direction) {
+      const vector = directionVectors[direction];
+      return { x: x + vector.dx, y: y + vector.dy };
+    }
+
+    function acceptsItemFrom(cell, incomingDirection) {
+      if (!cell || !cell.structure) {
+        return false;
+      }
+      const structure = cell.structure;
+      if (structure.kind === "belt") {
+        return incomingDirection === oppositeDirection[structure.direction];
+      }
+      if (structure.kind === "machine") {
+        if (structure.machineType === "collector" || structure.machineType === "processor" || structure.machineType === "advancedProcessor") {
+          return incomingDirection === oppositeDirection[structure.direction];
+        }
+      }
+      return false;
+    }
+
+    function outgoingTarget(x, y, structure) {
+      if (!structure) {
+        return null;
+      }
+      const direction = structure.direction;
+      return getNeighbor(x, y, direction);
+    }
+
+    function canMoveItemTo(targetX, targetY, incomingDirection) {
+      const cell = getCell(targetX, targetY);
+      if (!cell || cell.item) {
+        return false;
+      }
+      return acceptsItemFrom(cell, incomingDirection);
+    }
+
+    function placeAt(x, y, forceErase = false) {
+      const cell = getCell(x, y);
+      if (!cell) {
+        return;
+      }
+      if (forceErase || selectedTool === "erase") {
+        refundStructure(cell.structure);
+        cell.structure = null;
+        cell.item = null;
+        statusMessage = `已清除 (${x + 1}, ${y + 1})。`;
+        return;
+      }
+      const tool = toolDefs.find((entry) => entry.key === selectedTool);
+      if (!tool) {
+        return;
+      }
+      if (tool.requires && !state.tech[tool.requires]) {
+        statusMessage = `${tool.label} 还未解锁。`;
+        return;
+      }
+      const inventoryKey = tool.inventoryKey;
+      if (!inventoryKey || state.inventory[inventoryKey] <= 0) {
+        statusMessage = `${tool.label} 库存不足，先去商店购买。`;
+        return;
+      }
+      if (cell.structure && structureMatchesTool(cell.structure, tool)) {
+        return;
+      }
+      if (cell.structure && !structureMatchesTool(cell.structure, tool)) {
+        refundStructure(cell.structure);
+      }
+      cell.item = null;
+      if (tool.kind === "belt") {
+        cell.structure = { kind: "belt", direction: tool.direction };
+      } else {
+        cell.structure = {
+          kind: "machine",
+          machineType: tool.machineType,
+          direction: machineFacing.value,
+          progress: 0,
+          inputBuffer: null
+        };
+      }
+      state.inventory[inventoryKey] -= 1;
+      statusMessage = `已放置 ${tool.label} 于 (${x + 1}, ${y + 1})。`;
+    }
+
+    function refundStructure(structure) {
+      if (!structure) {
+        return;
+      }
+      if (structure.kind === "belt") {
+        state.inventory.belt += 1;
+        return;
+      }
+      const key = structure.machineType;
+      if (key in state.inventory) {
+        state.inventory[key] += 1;
+      }
+    }
+
+    function structureMatchesTool(structure, tool) {
+      if (tool.kind === "belt") {
+        return structure.kind === "belt" && structure.direction === tool.direction;
+      }
+      return structure.kind === "machine"
+        && structure.machineType === tool.machineType
+        && structure.direction === machineFacing.value;
+    }
+
+    function buyItem(def) {
+      if (def.requires && !state.tech[def.requires]) {
+        statusMessage = `${def.label} 需要先解锁对应科技。`;
+        return;
+      }
+      if (state.gold < def.cost) {
+        statusMessage = `金币不足，无法购买 ${def.label}。`;
+        return;
+      }
+      state.gold -= def.cost;
+      state.inventory[def.key] += 1;
+      statusMessage = `已购买 ${def.label}，库存 +1。`;
+      renderUI();
+    }
+
+    function unlockTech(def) {
+      if (def.requires && !state.tech[def.requires]) {
+        statusMessage = `需要先完成前置科技。`;
+        return;
+      }
+      if (state.gold < def.cost) {
+        statusMessage = `金币不足，无法解锁 ${def.label}。`;
+        return;
+      }
+      state.gold -= def.cost;
+      state.tech[def.key] = true;
+      statusMessage = `${def.label} 已解锁。`;
+      renderUI();
+    }
+
+    function collectValue(amount) {
+      state.gold += amount;
+      state.throughputLog.push({ time: Date.now(), amount });
+      pruneThroughputLog();
+    }
+
+    function pruneThroughputLog() {
+      const cutoff = Date.now() - 60000;
+      state.throughputLog = state.throughputLog.filter((entry) => entry.time >= cutoff);
+    }
+
+    function computeThroughputPerMinute() {
+      pruneThroughputLog();
+      const total = state.throughputLog.reduce((sum, entry) => sum + entry.amount, 0);
+      return Math.round(total);
+    }
+
+    function processMachineAt(x, y, structure) {
+      if (structure.machineType === "miner" || structure.machineType === "advancedMiner") {
+        const recipeTicks = structure.machineType === "advancedMiner" ? 2 : 4;
+        structure.progress += 1;
+        if (structure.progress < recipeTicks) {
+          return;
+        }
+        const target = outgoingTarget(x, y, structure);
+        if (!target) {
+          return;
+        }
+        if (canMoveItemTo(target.x, target.y, oppositeDirection[structure.direction])) {
+          const outputCell = getCell(target.x, target.y);
+          outputCell.item = { type: "ore", moved: true };
+          structure.progress = 0;
+        }
+        return;
+      }
+
+      if (structure.machineType === "processor" || structure.machineType === "advancedProcessor") {
+        const outputType = structure.machineType === "advancedProcessor" ? "gear" : "ingot";
+        const recipeTicks = structure.machineType === "advancedProcessor" ? 4 : 3;
+        if (!structure.inputBuffer) {
+          return;
+        }
+        structure.progress += 1;
+        if (structure.progress < recipeTicks) {
+          return;
+        }
+        const target = outgoingTarget(x, y, structure);
+        if (!target) {
+          return;
+        }
+        if (canMoveItemTo(target.x, target.y, oppositeDirection[structure.direction])) {
+          const outputCell = getCell(target.x, target.y);
+          outputCell.item = { type: outputType, moved: true };
+          structure.inputBuffer = null;
+          structure.progress = 0;
+        }
+        return;
+      }
+    }
+
+    function runTick() {
+      for (const cell of state.grid) {
+        if (cell.item) {
+          cell.item.moved = false;
+        }
+      }
+
+      for (let y = 0; y < GRID_SIZE; y += 1) {
+        for (let x = 0; x < GRID_SIZE; x += 1) {
+          const cell = getCell(x, y);
+          if (!cell || !cell.item || cell.item.moved || !cell.structure || cell.structure.kind !== "belt") {
+            continue;
+          }
+          const structure = cell.structure;
+          const target = outgoingTarget(x, y, structure);
+          if (!target) {
+            continue;
+          }
+          if (canMoveItemTo(target.x, target.y, oppositeDirection[structure.direction])) {
+            const targetCell = getCell(target.x, target.y);
+            targetCell.item = { ...cell.item, moved: true };
+            cell.item = null;
+          }
+        }
+      }
+
+      for (let y = 0; y < GRID_SIZE; y += 1) {
+        for (let x = 0; x < GRID_SIZE; x += 1) {
+          const cell = getCell(x, y);
+          if (!cell || !cell.structure || cell.structure.kind !== "machine") {
+            continue;
+          }
+          const structure = cell.structure;
+          if ((structure.machineType === "collector" || structure.machineType === "processor" || structure.machineType === "advancedProcessor") && cell.item) {
+            const acceptsOre = structure.machineType === "processor" || structure.machineType === "advancedProcessor";
+            if (acceptsOre && !structure.inputBuffer && cell.item.type === "ore") {
+              structure.inputBuffer = cell.item.type;
+              structure.progress = 0;
+              cell.item = null;
+            } else if (structure.machineType === "collector") {
+              const value = productDefs[cell.item.type]?.value || 0;
+              if (value > 0) {
+                collectValue(value);
+                cell.item = null;
+              }
+            }
+          }
+        }
+      }
+
+      for (let y = 0; y < GRID_SIZE; y += 1) {
+        for (let x = 0; x < GRID_SIZE; x += 1) {
+          const cell = getCell(x, y);
+          if (!cell || !cell.structure || cell.structure.kind !== "machine") {
+            continue;
+          }
+          processMachineAt(x, y, cell.structure);
+        }
+      }
+
+      renderUI();
+    }
+
+    function renderToolbar() {
+      const buttons = toolDefs
+        .filter((tool) => !tool.requires || state.tech[tool.requires])
+        .map((tool) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = `tool-button${selectedTool === tool.key ? " active" : ""}`;
+          const stock = tool.inventoryKey ? `库存 ${state.inventory[tool.inventoryKey]}` : "无库存限制";
+          button.innerHTML = `
+            <span class="button-top">
+              <span class="button-title">${tool.label}</span>
+              <span class="button-cost">${stock}</span>
+            </span>
+            <span class="button-copy">${tool.copy}</span>
+          `;
+          button.addEventListener("click", () => {
+            selectedTool = tool.key;
+            renderToolbar();
+          });
+          return button;
+        });
+      toolbar.replaceChildren(...buttons);
+    }
+
+    function renderShop() {
+      const buttons = shopDefs.map((def) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "shop-button";
+        const locked = def.requires && !state.tech[def.requires];
+        button.disabled = locked || state.gold < def.cost;
+        button.innerHTML = `
+          <span class="button-top">
+            <span class="button-title">${def.label}</span>
+            <span class="button-cost">${def.cost} 金</span>
+          </span>
+          <span class="button-copy">${locked ? "需要先解锁科技。" : def.copy}</span>
+        `;
+        button.addEventListener("click", () => buyItem(def));
+        return button;
+      });
+      shopList.replaceChildren(...buttons);
+    }
+
+    function renderTech() {
+      const buttons = techDefs.map((def) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "tech-button";
+        const unlocked = state.tech[def.key];
+        const lockedByRequirement = def.requires && !state.tech[def.requires];
+        button.disabled = unlocked || lockedByRequirement || state.gold < def.cost;
+        button.innerHTML = `
+          <span class="button-top">
+            <span class="button-title">${def.label}</span>
+            <span class="button-cost">${unlocked ? "已解锁" : `${def.cost} 金`}</span>
+          </span>
+          <span class="button-copy">${lockedByRequirement ? "需要先完成前置科技。" : def.copy}</span>
+        `;
+        button.addEventListener("click", () => unlockTech(def));
+        return button;
+      });
+      techList.replaceChildren(...buttons);
+    }
+
+    function renderUI() {
+      goldValue.textContent = Math.floor(state.gold).toString();
+      throughputValue.textContent = `${computeThroughputPerMinute()} / min`;
+      techValue.textContent = state.tech.advancedProcessing ? "Tier 2" : "Tier 1";
+      statusText.textContent = statusMessage;
+      renderToolbar();
+      renderShop();
+      renderTech();
+    }
+
+    function drawGrid() {
+      const size = canvas.width / GRID_SIZE;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#121d27";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (let y = 0; y < GRID_SIZE; y += 1) {
+        for (let x = 0; x < GRID_SIZE; x += 1) {
+          const px = x * size;
+          const py = y * size;
+          ctx.fillStyle = (x + y) % 2 === 0 ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.04)";
+          ctx.fillRect(px, py, size, size);
+          drawCellStructure(x, y, px, py, size);
+          drawCellItem(x, y, px, py, size);
+        }
+      }
+
+      ctx.strokeStyle = "rgba(177, 203, 222, 0.14)";
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= GRID_SIZE; i += 1) {
+        const pos = i * size;
+        ctx.beginPath();
+        ctx.moveTo(pos, 0);
+        ctx.lineTo(pos, canvas.height);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, pos);
+        ctx.lineTo(canvas.width, pos);
+        ctx.stroke();
+      }
+    }
+
+    function drawCellStructure(x, y, px, py, size) {
+      const cell = getCell(x, y);
+      if (!cell || !cell.structure) {
+        return;
+      }
+      const { structure } = cell;
+      const cx = px + size / 2;
+      const cy = py + size / 2;
+
+      if (structure.kind === "belt") {
+        ctx.fillStyle = "rgba(99, 129, 149, 0.32)";
+        ctx.fillRect(px + 6, py + 6, size - 12, size - 12);
+        drawArrow(cx, cy, size * 0.3, structure.direction, "rgba(240, 178, 77, 0.95)", 4 + Math.sin(tickProgress * Math.PI * 2) * 1.2);
+        return;
+      }
+
+      const machineColors = {
+        miner: "#5ab7f7",
+        advancedMiner: "#3dd6d0",
+        processor: "#f0b24d",
+        advancedProcessor: "#ff8a4d",
+        collector: "#62d29e"
+      };
+      ctx.fillStyle = machineColors[structure.machineType] || "#ffffff";
+      ctx.fillRect(px + 8, py + 8, size - 16, size - 16);
+      ctx.fillStyle = "rgba(10, 15, 20, 0.48)";
+      ctx.fillRect(px + 14, py + 14, size - 28, size - 28);
+      drawArrow(cx, cy, size * 0.22, structure.direction, "#f8fbff", 5);
+      if (structure.machineType === "processor" || structure.machineType === "advancedProcessor") {
+        ctx.fillStyle = "rgba(255,255,255,0.88)";
+        const ratio = structure.inputBuffer ? Math.min(structure.progress / (structure.machineType === "advancedProcessor" ? 4 : 3), 1) : 0;
+        ctx.fillRect(px + 10, py + size - 12, (size - 20) * ratio, 4);
+      }
+      if (structure.machineType === "miner" || structure.machineType === "advancedMiner") {
+        ctx.fillStyle = "rgba(255,255,255,0.8)";
+        const ratio = Math.min(structure.progress / (structure.machineType === "advancedMiner" ? 2 : 4), 1);
+        ctx.fillRect(px + 10, py + size - 12, (size - 20) * ratio, 4);
+      }
+    }
+
+    function drawArrow(cx, cy, length, direction, color, width) {
+      const vector = directionVectors[direction];
+      const tx = cx + vector.dx * length;
+      const ty = cy + vector.dy * length;
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = width;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(cx - vector.dx * length * 0.6, cy - vector.dy * length * 0.6);
+      ctx.lineTo(tx, ty);
+      ctx.stroke();
+      const sideX = vector.dy;
+      const sideY = -vector.dx;
+      ctx.beginPath();
+      ctx.moveTo(tx, ty);
+      ctx.lineTo(tx - vector.dx * 10 + sideX * 6, ty - vector.dy * 10 + sideY * 6);
+      ctx.lineTo(tx - vector.dx * 10 - sideX * 6, ty - vector.dy * 10 - sideY * 6);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drawCellItem(x, y, px, py, size) {
+      const cell = getCell(x, y);
+      if (!cell || !cell.item) {
+        return;
+      }
+      const item = cell.item;
+      const product = productDefs[item.type];
+      if (!product) {
+        return;
+      }
+      let cx = px + size / 2;
+      let cy = py + size / 2;
+      if (cell.structure && cell.structure.kind === "belt") {
+        const vector = directionVectors[cell.structure.direction];
+        cx += vector.dx * size * (tickProgress - 0.5) * 0.7;
+        cy += vector.dy * size * (tickProgress - 0.5) * 0.7;
+      }
+      ctx.fillStyle = product.color;
+      ctx.beginPath();
+      ctx.arc(cx, cy, size * 0.13, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,0.35)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    function cellFromEvent(event) {
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor(((event.clientX - rect.left) / rect.width) * GRID_SIZE);
+      const y = Math.floor(((event.clientY - rect.top) / rect.height) * GRID_SIZE);
+      if (!isInside(x, y)) {
+        return null;
+      }
+      return { x, y };
+    }
+
+    function handlePaint(event, forceErase = false) {
+      const point = cellFromEvent(event);
+      if (!point) {
+        return;
+      }
+      if (lastPaintedCell && lastPaintedCell.x === point.x && lastPaintedCell.y === point.y) {
+        return;
+      }
+      placeAt(point.x, point.y, forceErase);
+      lastPaintedCell = point;
+      renderUI();
+    }
+
+    canvas.addEventListener("pointerdown", (event) => {
+      isPointerDown = true;
+      lastPaintedCell = null;
+      canvas.setPointerCapture(event.pointerId);
+      handlePaint(event, event.button === 2);
+    });
+
+    canvas.addEventListener("pointermove", (event) => {
+      if (!isPointerDown) {
+        return;
+      }
+      handlePaint(event, event.buttons === 2);
+    });
+
+    canvas.addEventListener("pointerup", () => {
+      isPointerDown = false;
+      lastPaintedCell = null;
+    });
+
+    canvas.addEventListener("pointerleave", () => {
+      lastPaintedCell = null;
+    });
+
+    canvas.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+    });
+
+    clearSaveButton.addEventListener("click", () => {
+      localStorage.removeItem(STORAGE_KEY);
+      state = defaultState();
+      selectedTool = "belt-right";
+      statusMessage = "已清空存档，重新开始。";
+      renderUI();
+    });
+
+    setInterval(() => {
+      runTick();
+      saveState();
+    }, TICK_MS);
+
+    setInterval(() => {
+      saveState();
+    }, SAVE_INTERVAL_MS);
+
+    window.addEventListener("beforeunload", saveState);
+
+    function frame(timestamp) {
+      const delta = timestamp - lastTimestamp;
+      lastTimestamp = timestamp;
+      tickProgress = (tickProgress + delta / TICK_MS) % 1;
+      drawGrid();
+      requestAnimationFrame(frame);
+    }
+
+    renderUI();
+    drawGrid();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
