@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>像素调色进化器</title>
+  <style>
+    :root {
+      --bg: #f4efe7;
+      --panel: rgba(255, 252, 247, 0.86);
+      --panel-strong: #fff8ef;
+      --line: rgba(71, 47, 22, 0.14);
+      --text: #2a1f16;
+      --muted: #715d4c;
+      --accent: #bb5a30;
+      --shadow: 0 20px 44px rgba(76, 52, 22, 0.16);
+      --grid-size: 8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "PingFang SC", "Noto Sans SC", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.85), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(187, 90, 48, 0.18), transparent 24%),
+        linear-gradient(180deg, #efe5d6 0%, var(--bg) 45%, #f6f1e9 100%);
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1080px, calc(100vw - 28px));
+      margin: 0 auto;
+      padding: 26px 0 36px;
+    }
+
+    .hero,
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .hero {
+      padding: 26px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 5vw, 4.6rem);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+      max-width: 8ch;
+    }
+
+    .lede {
+      margin-top: 12px;
+      max-width: 58ch;
+      line-height: 1.65;
+      color: var(--muted);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.9fr);
+      gap: 18px;
+      margin-top: 22px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      padding: 18px;
+    }
+
+    .target-row,
+    .stat-row,
+    .primary-buttons,
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .target-card {
+      display: grid;
+      grid-template-columns: 88px 1fr;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .swatch {
+      width: 88px;
+      height: 88px;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      box-shadow: inset 0 0 0 1px rgba(44, 28, 11, 0.08);
+      background: hsl(0deg 60% 50%);
+    }
+
+    .meta-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+    }
+
+    .meta-value {
+      margin-top: 6px;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .meta-copy {
+      margin-top: 8px;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 0.95rem;
+    }
+
+    .pill {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.54);
+      min-width: 110px;
+    }
+
+    .pill strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 1.1rem;
+    }
+
+    .primary-buttons button,
+    .secondary-action {
+      border: 1px solid rgba(42, 31, 22, 0.12);
+      border-radius: 999px;
+      padding: 10px 14px;
+      color: #fff9f2;
+      cursor: pointer;
+      transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+      box-shadow: 0 10px 18px rgba(70, 42, 15, 0.12);
+    }
+
+    .primary-buttons button:hover,
+    .secondary-action:hover {
+      transform: translateY(-1px);
+    }
+
+    .primary-buttons button[aria-pressed="true"] {
+      border-color: rgba(42, 31, 22, 0.42);
+      box-shadow: 0 0 0 3px rgba(42, 31, 22, 0.12);
+    }
+
+    .secondary-action {
+      background: #3b2d21;
+    }
+
+    .primary-red {
+      background: linear-gradient(135deg, #e64f5c, #c8353b);
+    }
+
+    .primary-yellow {
+      color: #503800;
+      background: linear-gradient(135deg, #ffdc5a, #f6bc2c);
+    }
+
+    .primary-blue {
+      background: linear-gradient(135deg, #4f8fff, #2a5ad9);
+    }
+
+    .board-wrap {
+      position: relative;
+      display: grid;
+      gap: 14px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(var(--grid-size), minmax(0, 1fr));
+      gap: 6px;
+      padding: 10px;
+      border-radius: 26px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.75), rgba(246, 237, 223, 0.94)),
+        rgba(255, 255, 255, 0.58);
+      border: 1px solid var(--line);
+      min-height: 560px;
+    }
+
+    .cell {
+      position: relative;
+      aspect-ratio: 1;
+      border: 0;
+      border-radius: 16px;
+      cursor: pointer;
+      overflow: hidden;
+      transition: transform 120ms ease, box-shadow 120ms ease, background-color 700ms ease;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.34);
+    }
+
+    .cell:hover {
+      transform: scale(1.05);
+      box-shadow: 0 10px 18px rgba(76, 52, 22, 0.18), inset 0 0 0 1px rgba(255, 255, 255, 0.56);
+    }
+
+    .cell.selected::after,
+    .cell.closest::after {
+      content: "";
+      position: absolute;
+      inset: 5px;
+      border-radius: 12px;
+      border: 2px solid rgba(255, 255, 255, 0.92);
+      pointer-events: none;
+    }
+
+    .cell.closest::before {
+      content: "◎";
+      position: absolute;
+      inset: 8px auto auto 10px;
+      font-size: 0.95rem;
+      color: rgba(255, 255, 255, 0.96);
+      text-shadow: 0 1px 4px rgba(42, 31, 22, 0.44);
+    }
+
+    .banner {
+      position: absolute;
+      inset: 18px 18px auto;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(34, 78, 58, 0.88);
+      color: #f8fff8;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      transform: translateY(-12px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 220ms ease, transform 220ms ease;
+    }
+
+    .banner.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .legend {
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.55;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.48);
+      border: 1px solid rgba(42, 31, 22, 0.08);
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+    }
+
+    @media (max-width: 900px) {
+      .hero-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .grid {
+        min-height: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="hero">
+      <h1>像素调色进化器</h1>
+      <p class="lede">
+        每个格子里都住着一只色素生物。它们会自动与相邻细胞混色繁殖，而你只负责注入红、黄、蓝三原色，慢慢把整片世界引导到目标色附近。
+      </p>
+      <div class="hero-grid">
+        <div class="stack">
+          <section class="panel">
+            <div class="target-card">
+              <div class="swatch" id="target-swatch" aria-hidden="true"></div>
+              <div>
+                <div class="meta-label">当前目标色</div>
+                <div class="meta-value" id="target-label">H 0° · S 0% · L 0%</div>
+                <p class="meta-copy">让任意格子的色距低于阈值，即可完成这一轮并生成下一个目标。</p>
+              </div>
+            </div>
+            <div class="stat-row" style="margin-top: 16px;">
+              <div class="pill">最接近色距<strong id="distance-output">0.0</strong></div>
+              <div class="pill">当前轮次<strong id="round-output">1</strong></div>
+              <div class="pill">离线快进<strong id="offline-output">0 步</strong></div>
+            </div>
+          </section>
+          <section class="panel">
+            <div class="meta-label">注入三原色</div>
+            <p class="meta-copy" style="margin-top: 8px;">先选颜色，再点击任意格子。每 2 到 5 秒世界会自动繁殖一轮。</p>
+            <div class="primary-buttons" id="primary-buttons" style="margin-top: 14px;">
+              <button type="button" class="primary-red" data-primary="red">注入红</button>
+              <button type="button" class="primary-yellow" data-primary="yellow">注入黄</button>
+              <button type="button" class="primary-blue" data-primary="blue">注入蓝</button>
+            </div>
+            <div style="margin-top: 14px;">
+              <button type="button" class="secondary-action" id="reset-button">重置世界</button>
+            </div>
+          </section>
+        </div>
+        <section class="panel">
+          <div class="meta-label">规则摘要</div>
+          <div class="legend" style="margin-top: 12px;">
+            <span><i class="dot" style="color:#ffffff;"></i> 白边代表当前选中的注入格</span>
+            <span><i class="dot" style="color:#f7f4e0;"></i> ◎ 标记离目标色最近的格子</span>
+            <span><i class="dot" style="color:#d17d37;"></i> HSL 加权平均负责繁殖混色</span>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="panel board-wrap" style="margin-top: 18px;">
+      <div class="banner" id="success-banner" role="status" aria-live="polite"></div>
+      <div class="grid" id="grid" aria-label="色素生物网格"></div>
+    </section>
+  </main>
+
+  <script>
+    const GRID_SIZE = 8;
+    const STORAGE_KEY = "pixel-color-evolver-save";
+    const EVOLUTION_MIN_MS = 2000;
+    const EVOLUTION_MAX_MS = 5000;
+    const OFFLINE_STEP_MS = 3200;
+    const MAX_OFFLINE_STEPS = 500;
+    const SUCCESS_THRESHOLD = 11.5;
+    const PRIMARY_COLORS = {
+      red: { h: 0, s: 84, l: 54, key: "red" },
+      yellow: { h: 54, s: 92, l: 58, key: "yellow" },
+      blue: { h: 220, s: 80, l: 56, key: "blue" }
+    };
+
+    const gridElement = document.getElementById("grid");
+    const targetSwatch = document.getElementById("target-swatch");
+    const targetLabel = document.getElementById("target-label");
+    const distanceOutput = document.getElementById("distance-output");
+    const roundOutput = document.getElementById("round-output");
+    const offlineOutput = document.getElementById("offline-output");
+    const successBanner = document.getElementById("success-banner");
+    const primaryButtons = [...document.querySelectorAll("[data-primary]")];
+    const resetButton = document.getElementById("reset-button");
+
+    const cellButtons = [];
+    let state = createNewState();
+    let selectedPrimary = "red";
+    let selectedCellIndex = 0;
+    let bannerTimer = 0;
+    let evolutionTimer = 0;
+
+    function createNewState() {
+      return {
+        version: 1,
+        grid: createInitialGrid(),
+        target: createTargetColor(),
+        round: 1,
+        lastSavedAt: Date.now(),
+        lastClosestIndex: 0
+      };
+    }
+
+    function createInitialGrid() {
+      const cells = [];
+      for (let index = 0; index < GRID_SIZE * GRID_SIZE; index += 1) {
+        cells.push({
+          h: Math.random() * 360,
+          s: 42 + Math.random() * 28,
+          l: 42 + Math.random() * 18
+        });
+      }
+      return cells;
+    }
+
+    function createTargetColor() {
+      return {
+        h: Math.random() * 360,
+        s: 46 + Math.random() * 34,
+        l: 38 + Math.random() * 26
+      };
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function wrapHue(hue) {
+      return ((hue % 360) + 360) % 360;
+    }
+
+    function colorToCss(color) {
+      return `hsl(${wrapHue(color.h).toFixed(1)}deg ${clamp(color.s, 0, 100).toFixed(1)}% ${clamp(color.l, 0, 100).toFixed(1)}%)`;
+    }
+
+    function hueDelta(a, b) {
+      const delta = Math.abs(wrapHue(a) - wrapHue(b));
+      return Math.min(delta, 360 - delta);
+    }
+
+    function colorDistance(a, b) {
+      const h = hueDelta(a.h, b.h) / 1.8;
+      const s = a.s - b.s;
+      const l = a.l - b.l;
+      return Math.sqrt((h * h) + (s * s) + (l * l));
+    }
+
+    function averageHue(a, b, weightA, weightB) {
+      const aRadians = wrapHue(a) * Math.PI / 180;
+      const bRadians = wrapHue(b) * Math.PI / 180;
+      const x = Math.cos(aRadians) * weightA + Math.cos(bRadians) * weightB;
+      const y = Math.sin(aRadians) * weightA + Math.sin(bRadians) * weightB;
+      return wrapHue(Math.atan2(y, x) * 180 / Math.PI);
+    }
+
+    function mixColors(base, neighbor, weightBase = 0.58, weightNeighbor = 0.42) {
+      const mutation = (Math.random() - 0.5) * 6;
+      return {
+        h: averageHue(base.h, neighbor.h, weightBase, weightNeighbor) + mutation,
+        s: clamp(base.s * weightBase + neighbor.s * weightNeighbor + mutation * 0.35, 24, 96),
+        l: clamp(base.l * weightBase + neighbor.l * weightNeighbor - mutation * 0.18, 18, 84)
+      };
+    }
+
+    function getNeighbors(index) {
+      const x = index % GRID_SIZE;
+      const y = Math.floor(index / GRID_SIZE);
+      const neighbors = [];
+      if (x > 0) neighbors.push(index - 1);
+      if (x < GRID_SIZE - 1) neighbors.push(index + 1);
+      if (y > 0) neighbors.push(index - GRID_SIZE);
+      if (y < GRID_SIZE - 1) neighbors.push(index + GRID_SIZE);
+      return neighbors;
+    }
+
+    function buildGrid() {
+      gridElement.style.setProperty("--grid-size", String(GRID_SIZE));
+      const fragment = document.createDocumentFragment();
+
+      state.grid.forEach((cell, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "cell";
+        button.dataset.index = String(index);
+        button.setAttribute("aria-label", `第 ${index + 1} 格`);
+        button.addEventListener("click", () => injectPrimary(index));
+        cellButtons.push(button);
+        fragment.append(button);
+      });
+
+      gridElement.replaceChildren(fragment);
+    }
+
+    function updatePrimaryButtons() {
+      primaryButtons.forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.primary === selectedPrimary));
+      });
+    }
+
+    function injectPrimary(index) {
+      selectedCellIndex = index;
+      const primary = PRIMARY_COLORS[selectedPrimary];
+      state.grid[index] = { ...primary };
+      saveState();
+      render();
+      checkForSuccess();
+    }
+
+    function render() {
+      const closest = findClosestCell();
+      state.lastClosestIndex = closest.index;
+      targetSwatch.style.background = colorToCss(state.target);
+      targetLabel.textContent = `H ${Math.round(state.target.h)}° · S ${Math.round(state.target.s)}% · L ${Math.round(state.target.l)}%`;
+      distanceOutput.textContent = closest.distance.toFixed(1);
+      roundOutput.textContent = String(state.round);
+
+      state.grid.forEach((cell, index) => {
+        const button = cellButtons[index];
+        button.style.background = colorToCss(cell);
+        button.classList.toggle("selected", index === selectedCellIndex);
+        button.classList.toggle("closest", index === closest.index);
+      });
+
+      updatePrimaryButtons();
+    }
+
+    function findClosestCell() {
+      let bestIndex = 0;
+      let bestDistance = Number.POSITIVE_INFINITY;
+
+      state.grid.forEach((cell, index) => {
+        const distance = colorDistance(cell, state.target);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestIndex = index;
+        }
+      });
+
+      return { index: bestIndex, distance: bestDistance };
+    }
+
+    function runEvolutionStep() {
+      const nextGrid = state.grid.map((cell, index) => {
+        const neighbors = getNeighbors(index);
+        const partnerIndex = neighbors[Math.floor(Math.random() * neighbors.length)];
+        return mixColors(cell, state.grid[partnerIndex]);
+      });
+      state.grid = nextGrid;
+    }
+
+    function simulateSeconds(stepCount) {
+      const safeSteps = clamp(stepCount, 0, MAX_OFFLINE_STEPS);
+      for (let step = 0; step < safeSteps; step += 1) {
+        runEvolutionStep();
+      }
+      return safeSteps;
+    }
+
+    function scheduleNextEvolution() {
+      clearTimeout(evolutionTimer);
+      const delay = EVOLUTION_MIN_MS + Math.random() * (EVOLUTION_MAX_MS - EVOLUTION_MIN_MS);
+      evolutionTimer = window.setTimeout(() => {
+        runEvolutionStep();
+        saveState();
+        render();
+        checkForSuccess();
+        scheduleNextEvolution();
+      }, delay);
+    }
+
+    function saveState() {
+      state.lastSavedAt = Date.now();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function loadState() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        return 0;
+      }
+
+      try {
+        const parsed = JSON.parse(raw);
+        if (!parsed || !Array.isArray(parsed.grid) || parsed.grid.length !== GRID_SIZE * GRID_SIZE || !parsed.target) {
+          return 0;
+        }
+        state = parsed;
+        const elapsed = Math.max(0, Date.now() - (state.lastSavedAt || Date.now()));
+        const offlineSteps = simulateSeconds(Math.floor(elapsed / OFFLINE_STEP_MS));
+        offlineOutput.textContent = `${offlineSteps} 步`;
+        saveState();
+        return offlineSteps;
+      } catch (error) {
+        console.error("Failed to load save", error);
+        return 0;
+      }
+    }
+
+    function showBanner(message) {
+      window.clearTimeout(bannerTimer);
+      successBanner.textContent = message;
+      successBanner.classList.add("show");
+      bannerTimer = window.setTimeout(() => {
+        successBanner.classList.remove("show");
+      }, 2400);
+    }
+
+    function advanceTarget() {
+      state.target = createTargetColor();
+      state.round += 1;
+      saveState();
+      render();
+    }
+
+    function checkForSuccess() {
+      const closest = findClosestCell();
+      if (closest.distance < SUCCESS_THRESHOLD) {
+        showBanner(`成功繁殖出目标邻域，进入第 ${state.round + 1} 轮目标色。`);
+        advanceTarget();
+      }
+    }
+
+    function resetWorld() {
+      state = createNewState();
+      selectedCellIndex = 0;
+      offlineOutput.textContent = "0 步";
+      saveState();
+      render();
+      scheduleNextEvolution();
+    }
+
+    primaryButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        selectedPrimary = button.dataset.primary;
+        updatePrimaryButtons();
+      });
+    });
+
+    resetButton.addEventListener("click", () => {
+      resetWorld();
+      showBanner("世界已重置，新的调色群落开始演化。");
+    });
+
+    window.addEventListener("beforeunload", saveState);
+
+    buildGrid();
+    const offlineSteps = loadState();
+    if (offlineSteps === 0) {
+      offlineOutput.textContent = "0 步";
+      saveState();
+    }
+    render();
+    scheduleNextEvolution();
+  </script>
+</body>
+</html>
