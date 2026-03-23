@@ -250,6 +250,17 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `gravity-golf/index.html` 即可游玩。
 
+## 词语接龙擂台
+
+新增 `word-chain-battle/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的回合制双人派对小游戏，包含：
+
+- 热座双人和单人 vs AI 两种模式，共用同一个输入框轮流提交
+- 中文尾字接首字、英文尾字母接首字母，重复词或违规提交直接判负
+- 每回合倒计时可见，并按 0.5 秒递减直到最低 3 秒
+- 已用词语以大字动态排版形成蜿蜒词链，并在结算页展示最终长度
+
+直接用浏览器打开 `word-chain-battle/index.html` 即可游玩。
+
 ## Gravity Well: Orbital Slingshot Arcade
 
 新增 `gravity-well-slingshot/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的重力弹弓街机游戏，包含：

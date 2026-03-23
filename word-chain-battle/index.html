@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>词语接龙擂台</title>
+  <style>
+    :root {
+      --bg: #f6efe3;
+      --panel: rgba(255, 250, 241, 0.92);
+      --panel-strong: #fffdf8;
+      --line: rgba(82, 60, 36, 0.16);
+      --text: #241a13;
+      --muted: #756556;
+      --accent-a: #bf4f31;
+      --accent-b: #1f6f78;
+      --accent-c: #d99a2b;
+      --p1: #c94d3f;
+      --p2: #2e6fd0;
+      --shadow: 0 24px 70px rgba(60, 44, 28, 0.14);
+      --radius: 26px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 12%, rgba(255, 255, 255, 0.75), transparent 24%),
+        radial-gradient(circle at 85% 10%, rgba(31, 111, 120, 0.15), transparent 22%),
+        radial-gradient(circle at 50% 100%, rgba(217, 154, 43, 0.17), transparent 26%),
+        linear-gradient(180deg, #ead9c4 0%, var(--bg) 40%, #efe7d9 100%);
+      padding: 24px;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      display: grid;
+      gap: 20px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 26px;
+      display: grid;
+      gap: 14px;
+      background:
+        linear-gradient(135deg, rgba(255, 253, 248, 0.98), rgba(247, 237, 224, 0.9)),
+        var(--panel);
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -40px;
+      bottom: -40px;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(191, 79, 49, 0.18), transparent 66%);
+      pointer-events: none;
+    }
+
+    .eyebrow,
+    .muted,
+    .hint,
+    .status-line {
+      color: var(--muted);
+    }
+
+    .eyebrow {
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      font-size: 0.78rem;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      max-width: 8ch;
+      font-size: clamp(2.8rem, 7vw, 5.8rem);
+      line-height: 0.94;
+      letter-spacing: -0.04em;
+    }
+
+    .hero-copy {
+      max-width: 60ch;
+      line-height: 1.65;
+      font-size: 1.03rem;
+    }
+
+    .menu,
+    .play,
+    .gameover {
+      padding: 24px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .menu-grid,
+    .control-grid,
+    .score-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 18px;
+      background: var(--panel-strong);
+      display: grid;
+      gap: 10px;
+    }
+
+    .mode-row,
+    .lang-row,
+    .action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .chip,
+    .btn,
+    .field button {
+      border: 1px solid transparent;
+      border-radius: 999px;
+      padding: 12px 18px;
+      transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
+    }
+
+    .chip {
+      background: #efe5d5;
+      color: var(--text);
+    }
+
+    .chip.active {
+      color: #fffaf2;
+      background: linear-gradient(135deg, var(--accent-a), #a83f25);
+      box-shadow: 0 10px 24px rgba(191, 79, 49, 0.24);
+    }
+
+    .btn,
+    .field button {
+      border: none;
+      color: #fffaf2;
+      background: linear-gradient(135deg, var(--accent-b), #184d54);
+      box-shadow: 0 10px 22px rgba(31, 111, 120, 0.24);
+    }
+
+    .chip:hover,
+    .btn:hover,
+    .field button:hover {
+      transform: translateY(-1px);
+    }
+
+    .screen[hidden] {
+      display: none;
+    }
+
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .player-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.6);
+      border: 1px solid var(--line);
+      font-weight: 700;
+    }
+
+    .player-badge::before {
+      content: "";
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--player-color, var(--p1));
+      box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .score-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .score-value {
+      font-size: clamp(1.4rem, 3vw, 2.4rem);
+      font-weight: 800;
+    }
+
+    .countdown {
+      display: grid;
+      gap: 8px;
+    }
+
+    .bar {
+      width: 100%;
+      height: 16px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(36, 26, 19, 0.08);
+      border: 1px solid rgba(36, 26, 19, 0.08);
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent-c), var(--accent-a));
+      transform-origin: left center;
+      transition: transform 100ms linear, background 180ms ease;
+    }
+
+    .bar-fill.urgent {
+      background: linear-gradient(90deg, #efb23b, #ca3e32);
+    }
+
+    .prompt {
+      display: grid;
+      gap: 14px;
+      align-items: start;
+      grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+    }
+
+    .big-word {
+      min-height: 220px;
+      display: grid;
+      align-content: start;
+      gap: 12px;
+      padding: 20px;
+      background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.8), transparent 28%),
+        linear-gradient(145deg, rgba(255, 251, 246, 0.98), rgba(245, 232, 214, 0.95));
+    }
+
+    .big-word .label {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--muted);
+    }
+
+    .word-stage {
+      font-size: clamp(3.2rem, 9vw, 7.8rem);
+      line-height: 0.92;
+      letter-spacing: -0.05em;
+      word-break: break-word;
+      text-wrap: balance;
+    }
+
+    .target {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-weight: 700;
+    }
+
+    .target-token {
+      display: inline-grid;
+      place-items: center;
+      width: 54px;
+      height: 54px;
+      border-radius: 16px;
+      background: rgba(191, 79, 49, 0.12);
+      color: var(--accent-a);
+      font-size: 1.6rem;
+      font-weight: 800;
+    }
+
+    .field {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 16px 18px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: #fffdf9;
+      color: var(--text);
+      font-size: 1.2rem;
+    }
+
+    .field input:disabled,
+    .field button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .notice {
+      min-height: 1.6em;
+      font-weight: 700;
+    }
+
+    .notice.error {
+      color: #ad342b;
+    }
+
+    .notice.ok {
+      color: #1e6f48;
+    }
+
+    .chain-wrap {
+      display: grid;
+      gap: 10px;
+    }
+
+    .chain {
+      min-height: 220px;
+      padding: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      align-content: flex-start;
+      gap: 14px 10px;
+      background:
+        linear-gradient(180deg, rgba(255, 251, 246, 0.95), rgba(246, 236, 221, 0.96));
+    }
+
+    .chain-word {
+      --word-rotate: 0deg;
+      --word-shift: 0px;
+      transform: translateY(var(--word-shift)) rotate(var(--word-rotate));
+      transform-origin: center;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 16px;
+      border-radius: 999px;
+      font-size: clamp(1rem, 2.8vw, 2rem);
+      font-weight: 800;
+      line-height: 1;
+      color: white;
+      box-shadow: 0 12px 28px rgba(60, 44, 28, 0.15);
+      animation: pop-in 260ms ease both;
+    }
+
+    .chain-word.p1 {
+      background: linear-gradient(135deg, var(--p1), #a53b31);
+    }
+
+    .chain-word.p2 {
+      background: linear-gradient(135deg, var(--p2), #2456a0);
+    }
+
+    .chain-word.ai {
+      box-shadow: 0 0 0 3px rgba(31, 111, 120, 0.15), 0 12px 28px rgba(60, 44, 28, 0.15);
+    }
+
+    .result {
+      font-size: clamp(2rem, 5vw, 4rem);
+      line-height: 1;
+    }
+
+    @keyframes pop-in {
+      0% {
+        opacity: 0;
+        transform: translateY(calc(var(--word-shift) + 24px)) scale(0.8) rotate(var(--word-rotate));
+      }
+
+      100% {
+        opacity: 1;
+        transform: translateY(var(--word-shift)) scale(1) rotate(var(--word-rotate));
+      }
+    }
+
+    @media (max-width: 860px) {
+      .menu-grid,
+      .control-grid,
+      .score-grid,
+      .prompt {
+        grid-template-columns: 1fr;
+      }
+
+      body {
+        padding: 14px;
+      }
+
+      .hero,
+      .menu,
+      .play,
+      .gameover {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel hero">
+      <p class="eyebrow">Party Toy</p>
+      <h1>词语接龙擂台</h1>
+      <p class="hero-copy">
+        两名玩家轮流抢答，必须把新词的首字或首字母接上上一词的尾字或尾字母。每回合时间都会缩短，失误或超时就会当场出局。
+      </p>
+    </section>
+
+    <section class="panel menu screen" id="menu-screen">
+      <div class="menu-grid">
+        <div class="card">
+          <h2>模式</h2>
+          <p class="muted">热座双人共用一个输入框，或挑战本地词库 AI。</p>
+          <div class="mode-row" id="mode-row">
+            <button class="chip active" data-mode="hotseat" type="button">热座双人</button>
+            <button class="chip" data-mode="ai" type="button">单人 vs AI</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>语言</h2>
+          <p class="muted">英文按首尾字母接龙，中文按尾字接首字。</p>
+          <div class="lang-row" id="lang-row">
+            <button class="chip active" data-language="zh" type="button">中文</button>
+            <button class="chip" data-language="en" type="button">English</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="control-grid">
+        <div class="card">
+          <h2>规则速览</h2>
+          <p class="muted">重复词、词库外词、接龙失败都算违规，违规方直接判负。首回合可输入任意词。</p>
+        </div>
+
+        <div class="card">
+          <h2>节奏</h2>
+          <p class="muted">基础回合时间 9 秒，每推进一轮减少 0.5 秒，最低 3 秒。词链会实时弯曲排版铺满屏幕。</p>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button class="btn" id="start-button" type="button">开始擂台</button>
+      </div>
+    </section>
+
+    <section class="panel play screen" id="play-screen" hidden>
+      <div class="topline">
+        <div class="player-badge" id="turn-badge">玩家 1 回合</div>
+        <div class="status-line" id="round-line">第 1 回合</div>
+      </div>
+
+      <div class="score-grid">
+        <div class="card">
+          <div class="muted">模式</div>
+          <div class="score-value" id="mode-label">热座</div>
+        </div>
+        <div class="card">
+          <div class="muted">语言</div>
+          <div class="score-value" id="language-label">中文</div>
+        </div>
+        <div class="card">
+          <div class="muted">词链长度</div>
+          <div class="score-value" id="chain-length">0</div>
+        </div>
+        <div class="card countdown">
+          <div class="muted">剩余时间</div>
+          <div class="score-value" id="time-label">9.0s</div>
+          <div class="bar">
+            <div class="bar-fill" id="time-fill"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="prompt">
+        <div class="card big-word">
+          <div class="label">Current Anchor</div>
+          <div class="word-stage" id="current-word">开场自由出词</div>
+          <div class="target">
+            <span>下一词必须以</span>
+            <span class="target-token" id="target-token">?</span>
+            <span id="target-copy">任意字或字母开局</span>
+          </div>
+        </div>
+
+        <div class="card field">
+          <label for="word-input">输入词语</label>
+          <input id="word-input" type="text" autocomplete="off" spellcheck="false" placeholder="输入后按 Enter 或点击提交">
+          <button id="submit-button" type="button">提交</button>
+          <div class="notice" id="notice"></div>
+          <div class="hint" id="ai-hint">当前为玩家回合。</div>
+        </div>
+      </div>
+
+      <div class="chain-wrap">
+        <div class="topline">
+          <h2>词语链</h2>
+          <div class="muted" id="used-count">已用 0 个词</div>
+        </div>
+        <div class="card chain" id="chain"></div>
+      </div>
+    </section>
+
+    <section class="panel gameover screen" id="gameover-screen" hidden>
+      <p class="eyebrow">Match Over</p>
+      <div class="result" id="result-title">玩家 1 胜利</div>
+      <p class="hero-copy" id="result-copy">对手超时，词链停在第 5 个词。</p>
+      <div class="control-grid">
+        <div class="card">
+          <div class="muted">最终长度</div>
+          <div class="score-value" id="final-length">5</div>
+        </div>
+        <div class="card">
+          <div class="muted">结束原因</div>
+          <div class="score-value" id="final-reason">超时</div>
+        </div>
+      </div>
+      <div class="card chain" id="final-chain"></div>
+      <div class="action-row">
+        <button class="btn" id="restart-button" type="button">再来一局</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const ENGLISH_WORDS = [
+      "apple", "anchor", "arrow", "ant", "angle", "airport", "artist", "atom", "animal", "almond",
+      "banana", "button", "basket", "bridge", "beacon", "butter", "bottle", "bubble", "beetle", "branch",
+      "camera", "candle", "canyon", "circle", "copper", "cabin", "carrot", "comet", "cotton", "castle",
+      "dragon", "dancer", "desert", "dolphin", "dinner", "donut", "daisy", "doctor", "drawer", "dream",
+      "eagle", "engine", "ember", "energy", "evening", "echo", "emerald", "elbow", "estate", "expert",
+      "forest", "feather", "fabric", "future", "finger", "falcon", "flower", "fountain", "friend", "fiddle",
+      "garden", "galaxy", "ginger", "guitar", "golden", "glider", "gentle", "goose", "grape", "goblet",
+      "harbor", "hammer", "hazel", "helmet", "honey", "hunter", "hotel", "horizon", "hybrid", "helium",
+      "island", "icicle", "iron", "insect", "ivory", "image", "idea", "impact", "indigo", "inventor",
+      "jacket", "jungle", "jewel", "juniper", "jasmine", "journey", "jester", "jacketed", "jet", "justice",
+      "kitten", "kernel", "kingdom", "ladder", "lantern", "lemon", "letter", "lilac", "locker", "lunar",
+      "magnet", "meadow", "melon", "meteor", "mirror", "music", "market", "motion", "mystery", "marble",
+      "needle", "nectar", "nickel", "night", "notebook", "number", "nylon", "napkin", "nature", "nebula",
+      "oasis", "ocean", "olive", "omega", "opera", "orange", "orbit", "origin", "otter", "oxygen",
+      "panda", "pepper", "planet", "pocket", "polish", "pumpkin", "puzzle", "petal", "pirate", "prairie",
+      "quartz", "queen", "quiet", "quiver", "radar", "raven", "rocket", "robot", "river", "riddle",
+      "saddle", "sailor", "salad", "school", "silver", "signal", "spirit", "station", "sunset", "sugar",
+      "tablet", "talent", "tavern", "temple", "thunder", "ticket", "timber", "tomato", "tunnel", "turbine",
+      "umbrella", "unicorn", "utopia", "vacuum", "valley", "velvet", "victory", "violet", "voyage", "walnut",
+      "wander", "window", "winter", "wizard", "wooden", "xylophone", "xenon", "yogurt", "yellow", "yonder",
+      "zebra", "zephyr", "zigzag", "zinnia"
+    ];
+
+    const CHINESE_WORDS = [
+      "天空", "空地", "地球", "球门", "门口", "口袋", "袋鼠", "鼠标", "标记", "记忆",
+      "忆苦", "苦茶", "茶杯", "杯子", "子夜", "夜空", "空气", "气球", "球拍", "拍手",
+      "手机", "机会", "会议", "议题", "题目", "目标", "标准", "准备", "备忘", "忘我",
+      "我们", "们口", "口红", "红茶", "茶馆", "馆长", "长夜", "夜灯", "灯塔", "塔楼",
+      "楼梯", "梯田", "田野", "野餐", "餐桌", "桌面", "面包", "包子", "子弹", "弹珠",
+      "珠宝", "宝石", "石桥", "桥洞", "洞口", "口琴", "琴声", "声音", "音乐", "乐园",
+      "园丁", "丁香", "香蕉", "蕉叶", "叶片", "片刻", "刻度", "度假", "假日", "日出",
+      "出口", "口令", "令牌", "牌桌", "桌球", "球衣", "衣柜", "柜门", "门铃", "铃声",
+      "生长", "长城", "城门", "门票", "票房", "房间", "间隔", "隔壁", "壁画", "画笔",
+      "笔记", "记录", "录像", "像素", "素描", "描边", "边框", "框架", "架子", "子集",
+      "集合", "合唱", "唱片", "片段", "段落", "落日", "日记", "记号", "号角", "角落",
+      "落点", "点心", "心跳", "跳板", "板凳", "凳子", "子时", "时钟", "钟楼", "楼道",
+      "道路", "路口", "口味", "味道", "道具", "具象", "象棋", "棋盘", "盘旋", "旋律",
+      "律动", "动作", "作品", "品茶", "茶香", "香气", "气象", "象牙", "牙刷", "刷子",
+      "自然", "然灯", "灯光", "光束", "束带", "带路", "路灯", "灯影", "影子", "子午",
+      "午后", "后门", "门把", "把手", "手势", "势能", "能力", "力量", "量杯", "杯面"
+    ];
+
+    const state = {
+      mode: "hotseat",
+      language: "zh",
+      status: "menu",
+      currentPlayer: 1,
+      round: 1,
+      chain: [],
+      usedWords: new Set(),
+      durationMs: 9000,
+      timeLeftMs: 9000,
+      turnStartedAt: 0,
+      timerFrame: 0,
+      winner: null,
+      loser: null,
+      reason: "",
+      aiTimeout: 0
+    };
+
+    const lexicons = {
+      en: buildLexicon(ENGLISH_WORDS, "en"),
+      zh: buildLexicon(CHINESE_WORDS, "zh")
+    };
+
+    const screens = {
+      menu: document.getElementById("menu-screen"),
+      play: document.getElementById("play-screen"),
+      gameover: document.getElementById("gameover-screen")
+    };
+
+    const elements = {
+      modeRow: document.getElementById("mode-row"),
+      langRow: document.getElementById("lang-row"),
+      startButton: document.getElementById("start-button"),
+      restartButton: document.getElementById("restart-button"),
+      turnBadge: document.getElementById("turn-badge"),
+      roundLine: document.getElementById("round-line"),
+      modeLabel: document.getElementById("mode-label"),
+      languageLabel: document.getElementById("language-label"),
+      chainLength: document.getElementById("chain-length"),
+      timeLabel: document.getElementById("time-label"),
+      timeFill: document.getElementById("time-fill"),
+      currentWord: document.getElementById("current-word"),
+      targetToken: document.getElementById("target-token"),
+      targetCopy: document.getElementById("target-copy"),
+      wordInput: document.getElementById("word-input"),
+      submitButton: document.getElementById("submit-button"),
+      notice: document.getElementById("notice"),
+      aiHint: document.getElementById("ai-hint"),
+      chain: document.getElementById("chain"),
+      usedCount: document.getElementById("used-count"),
+      resultTitle: document.getElementById("result-title"),
+      resultCopy: document.getElementById("result-copy"),
+      finalLength: document.getElementById("final-length"),
+      finalReason: document.getElementById("final-reason"),
+      finalChain: document.getElementById("final-chain")
+    };
+
+    function buildLexicon(words, language) {
+      const normalized = words.map((word) => normalizeWord(word, language));
+      const byHead = new Map();
+      const validSet = new Set(normalized);
+
+      normalized.forEach((word) => {
+        const head = getHeadToken(word, language);
+        const list = byHead.get(head) ?? [];
+        list.push(word);
+        byHead.set(head, list);
+      });
+
+      return { words: normalized, byHead, validSet };
+    }
+
+    function normalizeWord(word, language) {
+      return language === "en" ? word.trim().toLowerCase() : word.trim();
+    }
+
+    function getHeadToken(word, language) {
+      return language === "en" ? word[0] : Array.from(word)[0];
+    }
+
+    function getTailToken(word, language) {
+      if (language === "en") {
+        return word[word.length - 1];
+      }
+      const chars = Array.from(word);
+      return chars[chars.length - 1];
+    }
+
+    function getDisplayToken(token) {
+      return token ? token.toUpperCase() : "?";
+    }
+
+    function setScreen(nextScreen) {
+      Object.entries(screens).forEach(([key, node]) => {
+        node.hidden = key !== nextScreen;
+      });
+      state.status = nextScreen;
+    }
+
+    function updateToggleGroup(container, key, value) {
+      container.querySelectorAll("[data-mode], [data-language]").forEach((button) => {
+        const buttonValue = button.dataset[key];
+        button.classList.toggle("active", buttonValue === value);
+      });
+    }
+
+    function setNotice(message, type = "") {
+      elements.notice.textContent = message;
+      elements.notice.className = `notice${type ? ` ${type}` : ""}`;
+    }
+
+    function updateHud() {
+      const currentLabel = state.mode === "ai" && state.currentPlayer === 2 ? "AI" : `玩家 ${state.currentPlayer}`;
+      const currentColor = state.currentPlayer === 1 ? "var(--p1)" : "var(--p2)";
+      elements.turnBadge.textContent = `${currentLabel} 回合`;
+      elements.turnBadge.style.setProperty("--player-color", currentColor);
+      elements.roundLine.textContent = `第 ${state.round} 回合`;
+      elements.modeLabel.textContent = state.mode === "ai" ? "vs AI" : "热座";
+      elements.languageLabel.textContent = state.language === "zh" ? "中文" : "English";
+      elements.chainLength.textContent = String(state.chain.length);
+      elements.usedCount.textContent = `已用 ${state.usedWords.size} 个词`;
+
+      const currentWord = state.chain[state.chain.length - 1];
+      if (currentWord) {
+        elements.currentWord.textContent = currentWord;
+        const token = getTailToken(currentWord, state.language);
+        elements.targetToken.textContent = getDisplayToken(token);
+        elements.targetCopy.textContent = state.language === "zh"
+          ? "下一词首字必须接上上一词尾字"
+          : "Next word must start with the previous word's last letter";
+      } else {
+        elements.currentWord.textContent = state.language === "zh" ? "开场自由出词" : "Any valid opening word";
+        elements.targetToken.textContent = "?";
+        elements.targetCopy.textContent = state.language === "zh" ? "任意字或字母开局" : "First turn accepts any valid word";
+      }
+
+      const aiTurn = state.mode === "ai" && state.currentPlayer === 2;
+      elements.aiHint.textContent = aiTurn
+        ? "AI 正在本地词库中检索可用词。"
+        : "当前为玩家回合。";
+      elements.wordInput.disabled = aiTurn;
+      elements.submitButton.disabled = aiTurn;
+    }
+
+    function updateTimer() {
+      const ratio = Math.max(0, Math.min(1, state.timeLeftMs / state.durationMs));
+      elements.timeLabel.textContent = `${(state.timeLeftMs / 1000).toFixed(1)}s`;
+      elements.timeFill.style.transform = `scaleX(${ratio})`;
+      elements.timeFill.classList.toggle("urgent", ratio <= 0.35);
+    }
+
+    function renderChain(target, chain) {
+      target.replaceChildren(...chain.map((word, index) => {
+        const chip = document.createElement("span");
+        const owner = index % 2 === 0 ? 1 : 2;
+        chip.className = `chain-word p${owner}${state.mode === "ai" && owner === 2 ? " ai" : ""}`;
+        chip.textContent = word;
+        chip.style.setProperty("--word-rotate", `${((index % 6) - 2.5) * 4}deg`);
+        chip.style.setProperty("--word-shift", `${Math.sin(index * 0.8) * 10}px`);
+        return chip;
+      }));
+    }
+
+    function beginTurn() {
+      cancelAnimationFrame(state.timerFrame);
+      clearTimeout(state.aiTimeout);
+      state.durationMs = Math.max(3000, 9000 - (state.round - 1) * 500);
+      state.timeLeftMs = state.durationMs;
+      state.turnStartedAt = performance.now();
+      updateHud();
+      updateTimer();
+      setNotice("");
+      elements.wordInput.value = "";
+      if (state.mode === "ai" && state.currentPlayer === 2) {
+        scheduleAiMove();
+      } else {
+        elements.wordInput.focus();
+      }
+      state.timerFrame = requestAnimationFrame(tickTimer);
+    }
+
+    function tickTimer(now) {
+      if (state.status !== "play") {
+        return;
+      }
+
+      state.timeLeftMs = Math.max(0, state.durationMs - (now - state.turnStartedAt));
+      updateTimer();
+
+      if (state.timeLeftMs <= 0) {
+        const loserLabel = state.mode === "ai" && state.currentPlayer === 2 ? "AI" : `玩家 ${state.currentPlayer}`;
+        finishGame({
+          winner: state.currentPlayer === 1 ? 2 : 1,
+          loser: state.currentPlayer,
+          reason: `${loserLabel} 超时`
+        });
+        return;
+      }
+
+      state.timerFrame = requestAnimationFrame(tickTimer);
+    }
+
+    function validateWord(rawWord) {
+      const word = normalizeWord(rawWord, state.language);
+      const lexicon = lexicons[state.language];
+
+      if (!word) {
+        return { ok: false, reason: "空词语无效" };
+      }
+
+      if (!lexicon.validSet.has(word)) {
+        return { ok: false, reason: state.language === "zh" ? "词库里没有这个词" : "That word is not in the local lexicon" };
+      }
+
+      if (state.usedWords.has(word)) {
+        return { ok: false, reason: state.language === "zh" ? "重复出词，直接判负" : "Repeated word, immediate loss" };
+      }
+
+      if (state.chain.length > 0) {
+        const previous = state.chain[state.chain.length - 1];
+        const needed = getTailToken(previous, state.language);
+        const head = getHeadToken(word, state.language);
+        if (head !== needed) {
+          return {
+            ok: false,
+            reason: state.language === "zh"
+              ? `必须以“${needed}”开头`
+              : `Word must start with “${needed.toUpperCase()}”`
+          };
+        }
+      }
+
+      return { ok: true, word };
+    }
+
+    function commitWord(word) {
+      state.chain.push(word);
+      state.usedWords.add(word);
+      renderChain(elements.chain, state.chain);
+      updateHud();
+      setNotice(state.language === "zh" ? `“${word}” 成功接上。` : `"${word}" accepted.`, "ok");
+      state.currentPlayer = state.currentPlayer === 1 ? 2 : 1;
+      state.round += 1;
+      beginTurn();
+    }
+
+    function submitWord(rawWord) {
+      if (state.status !== "play") {
+        return;
+      }
+
+      const result = validateWord(rawWord);
+      if (!result.ok) {
+        setNotice(result.reason, "error");
+        finishGame({
+          winner: state.currentPlayer === 1 ? 2 : 1,
+          loser: state.currentPlayer,
+          reason: result.reason
+        });
+        return;
+      }
+
+      commitWord(result.word);
+    }
+
+    function getAiChoices() {
+      const lexicon = lexicons[state.language];
+      if (state.chain.length === 0) {
+        return lexicon.words.filter((word) => !state.usedWords.has(word));
+      }
+      const needed = getTailToken(state.chain[state.chain.length - 1], state.language);
+      return (lexicon.byHead.get(needed) ?? []).filter((word) => !state.usedWords.has(word));
+    }
+
+    function scheduleAiMove() {
+      const options = getAiChoices();
+      if (options.length === 0) {
+        state.aiTimeout = setTimeout(() => {
+          finishGame({
+            winner: 1,
+            loser: 2,
+            reason: state.language === "zh" ? "AI 无词可接" : "AI has no valid reply"
+          });
+        }, 520);
+        return;
+      }
+
+      state.aiTimeout = setTimeout(() => {
+        const scored = options
+          .map((word) => ({
+            word,
+            score: (lexicons[state.language].byHead.get(getTailToken(word, state.language)) ?? []).length
+          }))
+          .sort((a, b) => b.score - a.score || a.word.length - b.word.length);
+        submitWord(scored[0].word);
+      }, 650 + Math.min(900, options.length * 5));
+    }
+
+    function finishGame({ winner, loser, reason }) {
+      cancelAnimationFrame(state.timerFrame);
+      clearTimeout(state.aiTimeout);
+      state.winner = winner;
+      state.loser = loser;
+      state.reason = reason;
+
+      const winnerLabel = state.mode === "ai" && winner === 2 ? "AI" : `玩家 ${winner}`;
+      elements.resultTitle.textContent = `${winnerLabel} 胜利`;
+      elements.resultCopy.textContent = `${reason}，最终词链长度为 ${state.chain.length}。`;
+      elements.finalLength.textContent = String(state.chain.length);
+      elements.finalReason.textContent = reason;
+      renderChain(elements.finalChain, state.chain);
+      setScreen("gameover");
+    }
+
+    function startGame() {
+      cancelAnimationFrame(state.timerFrame);
+      clearTimeout(state.aiTimeout);
+      state.currentPlayer = 1;
+      state.round = 1;
+      state.chain = [];
+      state.usedWords = new Set();
+      state.winner = null;
+      state.loser = null;
+      state.reason = "";
+      renderChain(elements.chain, []);
+      renderChain(elements.finalChain, []);
+      setScreen("play");
+      beginTurn();
+    }
+
+    elements.modeRow.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-mode]");
+      if (!button) {
+        return;
+      }
+      state.mode = button.dataset.mode;
+      updateToggleGroup(elements.modeRow, "mode", state.mode);
+    });
+
+    elements.langRow.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-language]");
+      if (!button) {
+        return;
+      }
+      state.language = button.dataset.language;
+      updateToggleGroup(elements.langRow, "language", state.language);
+    });
+
+    elements.startButton.addEventListener("click", startGame);
+    elements.restartButton.addEventListener("click", () => {
+      setScreen("menu");
+    });
+    elements.submitButton.addEventListener("click", () => submitWord(elements.wordInput.value));
+    elements.wordInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        submitWord(elements.wordInput.value);
+      }
+    });
+
+    updateToggleGroup(elements.modeRow, "mode", state.mode);
+    updateToggleGroup(elements.langRow, "language", state.language);
+    setScreen("menu");
+  </script>
+</body>
+</html>
