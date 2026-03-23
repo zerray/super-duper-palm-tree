@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>磁力弹珠台</title>
+  <style>
+    :root {
+      --bg: #0e1222;
+      --panel: rgba(15, 24, 46, 0.86);
+      --panel-strong: #16284d;
+      --line: rgba(151, 181, 255, 0.18);
+      --text: #eef4ff;
+      --muted: #9ab0d8;
+      --accent: #ffd166;
+      --good: #ff6474;
+      --bad: #5fb0ff;
+      --zone: #89ffb2;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(95, 176, 255, 0.18), transparent 26%),
+        radial-gradient(circle at bottom left, rgba(255, 100, 116, 0.16), transparent 28%),
+        linear-gradient(180deg, #111936 0%, #0b1020 100%);
+    }
+
+    .shell {
+      width: min(1120px, calc(100vw - 24px));
+      margin: 0 auto;
+      padding: 20px 0 28px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(12px);
+    }
+
+    .header {
+      padding: 24px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      line-height: 0.95;
+    }
+
+    .lede,
+    .meta,
+    .instructions {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      padding: 20px;
+    }
+
+    .stat {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .stat-label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .stat strong {
+      font-size: 1.4rem;
+    }
+
+    .controls {
+      display: grid;
+      gap: 14px;
+      padding: 20px;
+    }
+
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    label {
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    input[type="range"],
+    select,
+    button {
+      font: inherit;
+    }
+
+    input[type="range"] {
+      width: min(280px, 100%);
+    }
+
+    select,
+    button {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 10px 14px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    button {
+      cursor: pointer;
+      transition: transform 150ms ease, background 150ms ease, border-color 150ms ease;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      border-color: rgba(255, 209, 102, 0.7);
+      background: rgba(255, 209, 102, 0.12);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .primary {
+      background: rgba(255, 209, 102, 0.16);
+      border-color: rgba(255, 209, 102, 0.42);
+    }
+
+    .stage {
+      position: relative;
+      margin-top: 16px;
+      padding: 14px;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 20px;
+      border: 1px solid rgba(151, 181, 255, 0.14);
+      background:
+        radial-gradient(circle at 50% 20%, rgba(95, 176, 255, 0.1), transparent 35%),
+        linear-gradient(180deg, #112040 0%, #091225 100%);
+      touch-action: none;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 24px;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+    }
+
+    .overlay-card {
+      min-width: min(420px, calc(100% - 24px));
+      padding: 18px 20px;
+      border-radius: 22px;
+      border: 1px solid rgba(255, 209, 102, 0.35);
+      background: rgba(8, 13, 28, 0.84);
+      text-align: center;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .overlay-card.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .overlay-card h2 {
+      margin: 0 0 8px;
+      font-size: 1.5rem;
+    }
+
+    .overlay-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    @media (max-width: 860px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="panel header">
+        <p class="meta">Physics Toy</p>
+        <h1>磁力弹珠台</h1>
+        <p class="lede">
+          发射前先布阵。红色磁铁吸引，蓝色磁铁排斥。把它们拖到合适位置，让弹珠掠过尽可能多的得分区。
+        </p>
+      </div>
+
+      <div class="panel">
+        <div class="hud">
+          <div class="stat">
+            <span class="stat-label">总分</span>
+            <strong id="score">0</strong>
+          </div>
+          <div class="stat">
+            <span class="stat-label">当前关卡</span>
+            <strong id="level-label">1 / 3</strong>
+          </div>
+          <div class="stat">
+            <span class="stat-label">状态</span>
+            <strong id="status">摆放磁铁</strong>
+          </div>
+          <div class="stat">
+            <span class="stat-label">力度</span>
+            <strong id="power-value">62%</strong>
+          </div>
+        </div>
+        <div class="controls">
+          <div class="controls-row">
+            <label for="level-select">关卡</label>
+            <select id="level-select" aria-label="选择关卡"></select>
+            <button id="reset-button" type="button">重置关卡</button>
+          </div>
+          <div class="controls-row">
+            <label for="power-slider">发射力度</label>
+            <input id="power-slider" type="range" min="35" max="100" step="1" value="62">
+            <button id="launch-button" class="primary" type="button">发射</button>
+          </div>
+          <p class="instructions">
+            指针拖拽磁铁即可移动。发射后磁铁会锁定；命中全部 3 个以上得分区后自动解锁下一关。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel stage">
+      <canvas id="magnetic-pinball-canvas" width="960" height="620"></canvas>
+      <div class="overlay" aria-live="polite">
+        <div class="overlay-card" id="overlay-card">
+          <h2 id="overlay-title">关卡完成</h2>
+          <p id="overlay-copy"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const magneticPinball = (() => {
+      const canvas = document.getElementById("magnetic-pinball-canvas");
+      const ctx = canvas.getContext("2d");
+      const scoreEl = document.getElementById("score");
+      const levelLabelEl = document.getElementById("level-label");
+      const statusEl = document.getElementById("status");
+      const powerSlider = document.getElementById("power-slider");
+      const powerValueEl = document.getElementById("power-value");
+      const levelSelect = document.getElementById("level-select");
+      const launchButton = document.getElementById("launch-button");
+      const resetButton = document.getElementById("reset-button");
+      const overlayCard = document.getElementById("overlay-card");
+      const overlayTitle = document.getElementById("overlay-title");
+      const overlayCopy = document.getElementById("overlay-copy");
+
+      const WIDTH = canvas.width;
+      const HEIGHT = canvas.height;
+      const BALL_RADIUS = 10;
+      const MAGNET_RADIUS = 28;
+      const LAUNCH_ANGLE = -1.03;
+      const GRAVITY = 460;
+      const MAGNET_STRENGTH = 200000;
+      const MAX_MAGNET_ACCEL = 1700;
+      const WALL_BOUNCE = 0.84;
+      const PEGS = [
+        { x: WIDTH * 0.36, y: HEIGHT * 0.3, r: 10 },
+        { x: WIDTH * 0.52, y: HEIGHT * 0.42, r: 12 },
+        { x: WIDTH * 0.66, y: HEIGHT * 0.24, r: 11 },
+        { x: WIDTH * 0.74, y: HEIGHT * 0.55, r: 14 }
+      ];
+
+      const levels = [
+        {
+          name: "Level 1",
+          launchPos: { x: 92, y: HEIGHT - 92 },
+          magnets: [
+            { type: "attract", x: 280, y: 170 },
+            { type: "repel", x: 360, y: 360 }
+          ],
+          zones: [
+            { x: 650, y: 135, w: 110, h: 62, points: 150, label: "A" },
+            { x: 770, y: 270, w: 112, h: 62, points: 200, label: "B" },
+            { x: 570, y: 445, w: 120, h: 70, points: 250, label: "C" }
+          ]
+        },
+        {
+          name: "Level 2",
+          launchPos: { x: 92, y: HEIGHT - 88 },
+          magnets: [
+            { type: "attract", x: 255, y: 210 },
+            { type: "repel", x: 430, y: 200 },
+            { type: "attract", x: 380, y: 420 }
+          ],
+          zones: [
+            { x: 655, y: 120, w: 116, h: 66, points: 180, label: "A" },
+            { x: 772, y: 248, w: 106, h: 64, points: 240, label: "B" },
+            { x: 685, y: 452, w: 126, h: 72, points: 320, label: "C" }
+          ]
+        },
+        {
+          name: "Level 3",
+          launchPos: { x: 92, y: HEIGHT - 86 },
+          magnets: [
+            { type: "repel", x: 250, y: 172 },
+            { type: "attract", x: 370, y: 260 },
+            { type: "repel", x: 360, y: 470 },
+            { type: "attract", x: 515, y: 160 }
+          ],
+          zones: [
+            { x: 678, y: 108, w: 106, h: 60, points: 220, label: "A" },
+            { x: 806, y: 245, w: 96, h: 62, points: 280, label: "B" },
+            { x: 625, y: 452, w: 136, h: 76, points: 360, label: "C" }
+          ]
+        }
+      ];
+
+      const state = {
+        score: 0,
+        levelIndex: 0,
+        magnetsLocked: false,
+        ball: null,
+        magnets: [],
+        zones: [],
+        launchPos: { x: 92, y: HEIGHT - 92 },
+        lastTime: 0,
+        dragId: null,
+        dragOffsetX: 0,
+        dragOffsetY: 0,
+        draggingMagnet: null,
+        particles: [],
+        levelCleared: false
+      };
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function updatePowerLabel() {
+        powerValueEl.textContent = `${powerSlider.value}%`;
+      }
+
+      function syncHud() {
+        scoreEl.textContent = String(state.score);
+        levelLabelEl.textContent = `${state.levelIndex + 1} / ${levels.length}`;
+        statusEl.textContent = state.magnetsLocked ? "飞行中" : "摆放磁铁";
+        launchButton.disabled = state.magnetsLocked;
+      }
+
+      function setOverlay(title, copy) {
+        overlayTitle.textContent = title;
+        overlayCopy.textContent = copy;
+        overlayCard.classList.toggle("visible", Boolean(copy));
+      }
+
+      function loadLevel(index, preserveScore = true) {
+        state.levelIndex = index;
+        state.levelCleared = false;
+        state.magnetsLocked = false;
+        state.ball = null;
+        state.particles = [];
+        if (!preserveScore) {
+          state.score = 0;
+        }
+
+        const level = levels[index];
+        state.launchPos = { ...level.launchPos };
+        state.magnets = level.magnets.map((magnet, magnetIndex) => ({
+          ...magnet,
+          id: `magnet-${magnetIndex}`
+        }));
+        state.zones = level.zones.map((zone) => ({
+          ...zone,
+          activeFlash: 0,
+          scored: false
+        }));
+
+        levelSelect.value = String(index);
+        setOverlay("", "");
+        syncHud();
+      }
+
+      function launchBall() {
+        if (state.magnetsLocked) {
+          return;
+        }
+
+        const power = Number(powerSlider.value) / 100;
+        const speed = 600 + power * 520;
+        state.ball = {
+          x: state.launchPos.x,
+          y: state.launchPos.y,
+          vx: Math.cos(LAUNCH_ANGLE) * speed,
+          vy: Math.sin(LAUNCH_ANGLE) * speed,
+          trail: []
+        };
+        state.zones.forEach((zone) => {
+          zone.scored = false;
+          zone.activeFlash = 0;
+        });
+        state.magnetsLocked = true;
+        setOverlay("", "");
+        syncHud();
+      }
+
+      function resetLevel(preserveScore = true) {
+        loadLevel(state.levelIndex, preserveScore);
+      }
+
+      function getMagnetColor(type) {
+        return type === "attract" ? "#ff6474" : "#5fb0ff";
+      }
+
+      function getPoint(event) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = WIDTH / rect.width;
+        const scaleY = HEIGHT / rect.height;
+        return {
+          x: (event.clientX - rect.left) * scaleX,
+          y: (event.clientY - rect.top) * scaleY
+        };
+      }
+
+      function updateLevelOptions() {
+        levels.forEach((level, index) => {
+          const option = document.createElement("option");
+          option.value = String(index);
+          option.textContent = `${index + 1}. ${level.name}`;
+          levelSelect.append(option);
+        });
+      }
+
+      function computeMagnetAcceleration(x, y) {
+        let ax = 0;
+        let ay = GRAVITY;
+
+        for (const magnet of state.magnets) {
+          const dx = magnet.x - x;
+          const dy = magnet.y - y;
+          const distanceSq = Math.max(dx * dx + dy * dy, 1700);
+          const distance = Math.sqrt(distanceSq);
+          const polarity = magnet.type === "attract" ? 1 : -1;
+          const magnitude = Math.min(MAX_MAGNET_ACCEL, MAGNET_STRENGTH / distanceSq);
+          ax += (dx / distance) * magnitude * polarity;
+          ay += (dy / distance) * magnitude * polarity;
+        }
+
+        return { ax, ay };
+      }
+
+      function reflectBallFromPeg(peg) {
+        if (!state.ball) {
+          return;
+        }
+
+        const dx = state.ball.x - peg.x;
+        const dy = state.ball.y - peg.y;
+        const minDistance = BALL_RADIUS + peg.r;
+        const distance = Math.hypot(dx, dy);
+
+        if (distance >= minDistance || distance === 0) {
+          return;
+        }
+
+        const nx = dx / distance;
+        const ny = dy / distance;
+        const overlap = minDistance - distance;
+        state.ball.x += nx * overlap;
+        state.ball.y += ny * overlap;
+
+        const dot = state.ball.vx * nx + state.ball.vy * ny;
+        state.ball.vx -= 2 * dot * nx;
+        state.ball.vy -= 2 * dot * ny;
+        state.ball.vx *= 0.96;
+        state.ball.vy *= 0.96;
+      }
+
+      function awardZone(zone) {
+        zone.scored = true;
+        zone.activeFlash = 1;
+        state.score += zone.points;
+        state.particles.push({
+          x: zone.x + zone.w / 2,
+          y: zone.y + zone.h / 2,
+          text: `+${zone.points}`,
+          life: 1.2
+        });
+        syncHud();
+
+        if (state.zones.every((item) => item.scored)) {
+          state.levelCleared = true;
+          state.magnetsLocked = false;
+          syncHud();
+          if (state.levelIndex < levels.length - 1) {
+            setOverlay("关卡完成", "全部得分区已命中，继续挑战下一关。");
+            window.setTimeout(() => {
+              if (state.levelCleared) {
+                loadLevel(state.levelIndex + 1, true);
+              }
+            }, 1400);
+          } else {
+            setOverlay("全部完成", "你已清空所有关卡，可重玩并继续优化磁铁阵列。");
+          }
+        }
+      }
+
+      function updateBall(dt) {
+        if (!state.ball) {
+          return;
+        }
+
+        const steps = 2;
+        const stepDt = dt / steps;
+
+        for (let i = 0; i < steps; i += 1) {
+          const acceleration = computeMagnetAcceleration(state.ball.x, state.ball.y);
+          state.ball.vx += acceleration.ax * stepDt;
+          state.ball.vy += acceleration.ay * stepDt;
+          state.ball.x += state.ball.vx * stepDt;
+          state.ball.y += state.ball.vy * stepDt;
+
+          if (state.ball.x < BALL_RADIUS + 8) {
+            state.ball.x = BALL_RADIUS + 8;
+            state.ball.vx = Math.abs(state.ball.vx) * WALL_BOUNCE;
+          } else if (state.ball.x > WIDTH - BALL_RADIUS - 8) {
+            state.ball.x = WIDTH - BALL_RADIUS - 8;
+            state.ball.vx = -Math.abs(state.ball.vx) * WALL_BOUNCE;
+          }
+
+          if (state.ball.y < BALL_RADIUS + 8) {
+            state.ball.y = BALL_RADIUS + 8;
+            state.ball.vy = Math.abs(state.ball.vy) * WALL_BOUNCE;
+          } else if (state.ball.y > HEIGHT - BALL_RADIUS - 8) {
+            state.ball.y = HEIGHT - BALL_RADIUS - 8;
+            state.ball.vy = -Math.abs(state.ball.vy) * 0.74;
+            state.ball.vx *= 0.98;
+          }
+
+          for (const peg of PEGS) {
+            reflectBallFromPeg(peg);
+          }
+
+          for (const zone of state.zones) {
+            if (
+              !zone.scored &&
+              state.ball.x >= zone.x &&
+              state.ball.x <= zone.x + zone.w &&
+              state.ball.y >= zone.y &&
+              state.ball.y <= zone.y + zone.h
+            ) {
+              awardZone(zone);
+            }
+          }
+        }
+
+        state.ball.trail.push({ x: state.ball.x, y: state.ball.y });
+        if (state.ball.trail.length > 48) {
+          state.ball.trail.shift();
+        }
+      }
+
+      function updateParticles(dt) {
+        state.particles = state.particles.filter((particle) => {
+          particle.y -= 32 * dt;
+          particle.life -= dt;
+          return particle.life > 0;
+        });
+      }
+
+      function drawBackground() {
+        ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+        ctx.save();
+        ctx.strokeStyle = "rgba(151, 181, 255, 0.08)";
+        ctx.lineWidth = 1;
+        for (let x = 70; x < WIDTH; x += 70) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, HEIGHT);
+          ctx.stroke();
+        }
+        for (let y = 60; y < HEIGHT; y += 60) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(WIDTH, y);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        ctx.save();
+        ctx.fillStyle = "rgba(255, 209, 102, 0.14)";
+        ctx.beginPath();
+        ctx.arc(state.launchPos.x, state.launchPos.y, 26, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.save();
+        ctx.strokeStyle = "rgba(255, 209, 102, 0.7)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(state.launchPos.x - 24, state.launchPos.y + 24);
+        ctx.lineTo(state.launchPos.x + 14, state.launchPos.y - 18);
+        ctx.lineTo(state.launchPos.x + 10, state.launchPos.y + 18);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawZones() {
+        for (const zone of state.zones) {
+          const flash = zone.activeFlash;
+          zone.activeFlash = Math.max(0, zone.activeFlash - 0.03);
+          ctx.save();
+          ctx.fillStyle = zone.scored
+            ? `rgba(137, 255, 178, ${0.2 + flash * 0.2})`
+            : "rgba(137, 255, 178, 0.08)";
+          ctx.strokeStyle = zone.scored ? "rgba(137, 255, 178, 0.95)" : "rgba(137, 255, 178, 0.5)";
+          ctx.lineWidth = zone.scored ? 3 : 2;
+          ctx.fillRect(zone.x, zone.y, zone.w, zone.h);
+          ctx.strokeRect(zone.x, zone.y, zone.w, zone.h);
+          ctx.fillStyle = "#d8ffe7";
+          ctx.font = "600 15px Segoe UI";
+          ctx.fillText(`${zone.label}  ${zone.points}`, zone.x + 12, zone.y + 22);
+          ctx.restore();
+        }
+      }
+
+      function drawPegs() {
+        for (const peg of PEGS) {
+          ctx.save();
+          ctx.fillStyle = "rgba(255, 255, 255, 0.16)";
+          ctx.beginPath();
+          ctx.arc(peg.x, peg.y, peg.r + 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "rgba(255, 209, 102, 0.82)";
+          ctx.beginPath();
+          ctx.arc(peg.x, peg.y, peg.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      function drawMagnets() {
+        for (const magnet of state.magnets) {
+          const color = getMagnetColor(magnet.type);
+          ctx.save();
+          ctx.fillStyle = `${color}25`;
+          ctx.beginPath();
+          ctx.arc(magnet.x, magnet.y, MAGNET_RADIUS * 1.55, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(magnet.x, magnet.y, MAGNET_RADIUS, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineCap = "round";
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.moveTo(magnet.x - 10, magnet.y);
+          ctx.lineTo(magnet.x + 10, magnet.y);
+          if (magnet.type === "attract") {
+            ctx.moveTo(magnet.x, magnet.y - 10);
+            ctx.lineTo(magnet.x, magnet.y + 10);
+          }
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      function drawBall() {
+        if (!state.ball) {
+          return;
+        }
+
+        ctx.save();
+        ctx.strokeStyle = "rgba(255, 247, 214, 0.45)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        state.ball.trail.forEach((point, index) => {
+          if (index === 0) {
+            ctx.moveTo(point.x, point.y);
+          } else {
+            ctx.lineTo(point.x, point.y);
+          }
+        });
+        ctx.stroke();
+
+        ctx.fillStyle = "#fff4d3";
+        ctx.beginPath();
+        ctx.arc(state.ball.x, state.ball.y, BALL_RADIUS, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawParticles() {
+        ctx.save();
+        ctx.textAlign = "center";
+        ctx.font = "700 18px Segoe UI";
+        for (const particle of state.particles) {
+          ctx.fillStyle = `rgba(255, 209, 102, ${particle.life})`;
+          ctx.fillText(particle.text, particle.x, particle.y);
+        }
+        ctx.restore();
+      }
+
+      function drawLockHint() {
+        if (!state.magnetsLocked) {
+          return;
+        }
+
+        ctx.save();
+        ctx.fillStyle = "rgba(8, 13, 28, 0.55)";
+        ctx.fillRect(20, HEIGHT - 58, 224, 34);
+        ctx.fillStyle = "#cfe0ff";
+        ctx.font = "600 15px Segoe UI";
+        ctx.fillText("飞行中：磁铁已锁定", 34, HEIGHT - 36);
+        ctx.restore();
+      }
+
+      function render() {
+        drawBackground();
+        drawZones();
+        drawPegs();
+        drawMagnets();
+        drawBall();
+        drawParticles();
+        drawLockHint();
+      }
+
+      function tick(timestamp) {
+        if (!state.lastTime) {
+          state.lastTime = timestamp;
+        }
+
+        const dt = Math.min(0.02, (timestamp - state.lastTime) / 1000);
+        state.lastTime = timestamp;
+        updateBall(dt);
+        updateParticles(dt);
+        render();
+        requestAnimationFrame(tick);
+      }
+
+      function handlePointerDown(event) {
+        if (state.magnetsLocked) {
+          return;
+        }
+
+        const point = getPoint(event);
+        for (let index = state.magnets.length - 1; index >= 0; index -= 1) {
+          const magnet = state.magnets[index];
+          const distance = Math.hypot(point.x - magnet.x, point.y - magnet.y);
+          if (distance <= MAGNET_RADIUS + 4) {
+            state.dragId = event.pointerId;
+            state.draggingMagnet = magnet;
+            state.dragOffsetX = point.x - magnet.x;
+            state.dragOffsetY = point.y - magnet.y;
+            canvas.setPointerCapture(event.pointerId);
+            break;
+          }
+        }
+      }
+
+      function handlePointerMove(event) {
+        if (state.dragId !== event.pointerId || !state.draggingMagnet) {
+          return;
+        }
+
+        const point = getPoint(event);
+        state.draggingMagnet.x = clamp(point.x - state.dragOffsetX, 70, WIDTH - 70);
+        state.draggingMagnet.y = clamp(point.y - state.dragOffsetY, 70, HEIGHT - 70);
+      }
+
+      function releaseDrag(event) {
+        if (state.dragId !== event.pointerId) {
+          return;
+        }
+
+        state.dragId = null;
+        state.draggingMagnet = null;
+      }
+
+      function bindEvents() {
+        powerSlider.addEventListener("input", updatePowerLabel);
+        launchButton.addEventListener("click", launchBall);
+        resetButton.addEventListener("click", () => resetLevel(true));
+        levelSelect.addEventListener("change", () => {
+          loadLevel(Number(levelSelect.value), false);
+        });
+
+        canvas.addEventListener("pointerdown", handlePointerDown);
+        canvas.addEventListener("pointermove", handlePointerMove);
+        canvas.addEventListener("pointerup", releaseDrag);
+        canvas.addEventListener("pointercancel", releaseDrag);
+      }
+
+      function init() {
+        updateLevelOptions();
+        updatePowerLabel();
+        bindEvents();
+        loadLevel(0, false);
+        requestAnimationFrame(tick);
+      }
+
+      init();
+
+      return { levels, state, launchBall, loadLevel };
+    })();
+  </script>
+</body>
+</html>
