@@ -71,6 +71,16 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `pixel-landscape/index.html` 即可运行。
 
+## 磁力弹珠台：双人同屏对战
+
+新增 `magnetic-pinball-duel/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的双人热座物理对战原型，包含：
+
+- 左右两侧发射区，玩家轮流调整角度与力度发射磁性弹珠
+- 同极相斥、异极相吸的实时磁力演算，以及可见的力场连线效果
+- 对方得分洞检测、被灌入 5 球判负，以及胜负弹层与重新开始按钮
+
+直接用浏览器打开 `magnetic-pinball-duel/index.html` 即可游玩。
+
 ## 合作像素拼图
 
 新增 `pixel-coop-puzzle/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的双人协作像素拼图，包含：
