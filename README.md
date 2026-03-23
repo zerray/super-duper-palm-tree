@@ -104,6 +104,17 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `rhythm-tap/index.html` 即可游玩。
 
+## 节奏色块：合作打碟机
+
+新增 `rhythm-dj-coop/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的双人合作节奏游戏，包含：
+
+- 左玩家 `A/S/D/F` 与右玩家 `J/K/L/;` 分别负责四种颜色
+- 色块从中央向两侧滑出，在判定线提供 `Perfect` / `Good` / `Miss` 三档反馈
+- 共享连击数与至少 3 级舞台视觉强化，并支持单人降级模式
+- 使用 Web Audio API 振荡器程序生成底鼓、命中音与失误音，无外部音频资源
+
+直接用浏览器打开 `rhythm-dj-coop/index.html` 即可游玩。
+
 ## 节奏切水果
 
 新增 `rhythm-slice/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的音乐驱动切割小游戏，包含：

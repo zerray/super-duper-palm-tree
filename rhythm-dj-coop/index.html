@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>节奏色块：合作打碟机</title>
+  <style>
+    :root {
+      --bg-0: #0b1220;
+      --bg-1: #0f1d36;
+      --panel: rgba(10, 17, 31, 0.78);
+      --line: rgba(196, 214, 255, 0.16);
+      --text: #f4f7ff;
+      --muted: #9aabcf;
+      --accent: #ffd166;
+      --perfect: #7cffb6;
+      --good: #8fd3ff;
+      --miss: #ff8e8e;
+      --c0: #ff5d73;
+      --c1: #ffd166;
+      --c2: #35d7a1;
+      --c3: #6aa9ff;
+      --glow: rgba(255, 255, 255, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(61, 111, 255, 0.16), transparent 32%),
+        radial-gradient(circle at 20% 20%, rgba(255, 94, 125, 0.12), transparent 25%),
+        linear-gradient(180deg, var(--bg-1), var(--bg-0));
+    }
+
+    button,
+    select {
+      font: inherit;
+      color: inherit;
+    }
+
+    .app {
+      width: min(1180px, calc(100vw - 24px));
+      margin: 0 auto;
+      padding: 20px 0 28px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(14px);
+    }
+
+    .hero {
+      padding: 24px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .eyebrow {
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.74rem;
+      color: var(--accent);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.4rem, 6vw, 4.4rem);
+      line-height: 0.92;
+      letter-spacing: -0.05em;
+    }
+
+    .lede,
+    .instructions,
+    .footer {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .pill {
+      padding: 14px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .pill strong {
+      display: block;
+      font-size: 0.76rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .pill span {
+      display: block;
+      margin-top: 6px;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .controls label {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+    }
+
+    .controls select,
+    .controls button {
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 10px 16px;
+      cursor: pointer;
+    }
+
+    .controls button:hover,
+    .controls select:hover {
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .arena {
+      position: relative;
+      overflow: hidden;
+      padding: 12px;
+    }
+
+    canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01)),
+        rgba(5, 9, 18, 0.82);
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 12px;
+      display: grid;
+      place-items: center;
+      border-radius: 20px;
+      background: rgba(3, 6, 13, 0.72);
+      text-align: center;
+      padding: 24px;
+    }
+
+    .overlay[hidden] {
+      display: none;
+    }
+
+    .overlay-card {
+      max-width: 640px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .overlay-card h2 {
+      margin: 0;
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      letter-spacing: -0.04em;
+    }
+
+    .key-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      text-align: left;
+    }
+
+    .key-box {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .key-box strong {
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .footer {
+      padding: 0 4px;
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 860px) {
+      .hud {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .key-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .app {
+        width: min(100vw - 16px, 1180px);
+      }
+
+      .hero {
+        padding: 18px;
+      }
+
+      .hud {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel hero">
+      <p class="eyebrow">Arcade / Co-op Rhythm</p>
+      <h1>节奏色块：合作打碟机</h1>
+      <p class="lede">中央传送带持续吐出彩色方块，左右两位玩家各守一边，在判定线按下对应颜色按键。Perfect 与 Good 会叠高共享连击，任何一侧 Miss 都会断连并让舞台冷下来。</p>
+      <div class="hud">
+        <div class="pill"><strong>Combo</strong><span id="combo">0</span></div>
+        <div class="pill"><strong>Stage</strong><span id="stage-level">1</span></div>
+        <div class="pill"><strong>Left Score</strong><span id="left-score">0</span></div>
+        <div class="pill"><strong>Right Score</strong><span id="right-score">0</span></div>
+        <div class="pill"><strong>Mode</strong><span id="mode-display">Auto</span></div>
+        <div class="pill"><strong>Time</strong><span id="time-left">60</span></div>
+      </div>
+      <div class="controls">
+        <label>BPM
+          <select id="bpm-select">
+            <option value="84">84</option>
+            <option value="96" selected>96</option>
+            <option value="112">112</option>
+            <option value="128">128</option>
+          </select>
+        </label>
+        <label>模式
+          <select id="mode-select">
+            <option value="auto" selected>Auto</option>
+            <option value="coop">双人合作</option>
+            <option value="left">左侧单人</option>
+            <option value="right">右侧单人</option>
+          </select>
+        </label>
+        <button id="start-button" type="button">开始</button>
+        <button id="restart-button" type="button">重开</button>
+      </div>
+      <p class="instructions">左玩家使用 A / S / D / F，右玩家使用 J / K / L / ;。Auto 模式下，前几次有效命中只来自一侧时会自动降级为单人模式。</p>
+    </section>
+
+    <section class="panel arena">
+      <canvas id="game" width="1160" height="720" aria-label="Rhythm DJ Co-op game canvas"></canvas>
+      <div class="overlay" id="start-overlay">
+        <div class="overlay-card">
+          <h2>把节拍从中间接住</h2>
+          <p class="lede">每拍生成一块色块，从中央往两侧滑动。按键时机越准，音色和背景越华丽。Perfect / Good 累加共享 Combo，任意一侧 Miss 都会断连。</p>
+          <div class="key-grid">
+            <div class="key-box">
+              <strong>左侧玩家</strong>
+              <span>A / S / D / F</span>
+            </div>
+            <div class="key-box">
+              <strong>右侧玩家</strong>
+              <span>J / K / L / ;</span>
+            </div>
+          </div>
+          <p class="lede">单人练习可选择左侧或右侧单人，或直接用 Auto 让系统根据最初命中自动收窄到一边。</p>
+        </div>
+      </div>
+      <div class="overlay" id="game-over" hidden>
+        <div class="overlay-card">
+          <h2>演出结束</h2>
+          <p class="lede" id="summary-text"></p>
+          <div class="controls" style="justify-content:center;">
+            <button id="overlay-restart" type="button">再来一轮</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <p class="footer">声音全部由 Web Audio API 的振荡器与包络程序生成，不依赖外部音频文件。</p>
+  </main>
+
+  <script>
+    const canvas = document.querySelector("#game");
+    const ctx = canvas.getContext("2d");
+
+    const comboEl = document.querySelector("#combo");
+    const stageLevelEl = document.querySelector("#stage-level");
+    const leftScoreEl = document.querySelector("#left-score");
+    const rightScoreEl = document.querySelector("#right-score");
+    const modeDisplayEl = document.querySelector("#mode-display");
+    const timeLeftEl = document.querySelector("#time-left");
+    const bpmSelect = document.querySelector("#bpm-select");
+    const modeSelect = document.querySelector("#mode-select");
+    const startButton = document.querySelector("#start-button");
+    const restartButton = document.querySelector("#restart-button");
+    const overlayRestartButton = document.querySelector("#overlay-restart");
+    const startOverlay = document.querySelector("#start-overlay");
+    const gameOverOverlay = document.querySelector("#game-over");
+    const summaryText = document.querySelector("#summary-text");
+
+    const colorPalette = ["#ff5d73", "#ffd166", "#35d7a1", "#6aa9ff"];
+    const leftKeys = ["KeyA", "KeyS", "KeyD", "KeyF"];
+    const rightKeys = ["KeyJ", "KeyK", "KeyL", "Semicolon"];
+    const perfectWindowMs = 55;
+    const goodWindowMs = 120;
+    const missWindowMs = 170;
+    const travelMs = 1560;
+    const gameDurationMs = 60000;
+    const feedbackLifetime = 720;
+    const particlesPerPerfect = 10;
+    const stageThresholds = [0, 8, 20, 36];
+    const beatPattern = [
+      { left: [0], right: [0] },
+      { left: [1], right: [2] },
+      { left: [2], right: [1] },
+      { left: [3], right: [3] },
+      { left: [0, 2], right: [1] },
+      { left: [1], right: [0, 3] },
+      { left: [2], right: [2] },
+      { left: [3], right: [1] }
+    ];
+
+    const state = {
+      running: false,
+      audioReady: false,
+      bpm: 96,
+      selectedMode: "auto",
+      activeMode: "auto",
+      autoResolvedSide: null,
+      startTime: 0,
+      lastFrame: 0,
+      lastBeatTime: 0,
+      beatIndex: 0,
+      combo: 0,
+      bestCombo: 0,
+      stage: 1,
+      leftScore: 0,
+      rightScore: 0,
+      notes: [],
+      feedback: [],
+      particles: [],
+      pulse: 0,
+      screenShake: 0,
+      misses: 0
+    };
+
+    let noteId = 1;
+    let audioCtx;
+
+    function modeLabel(mode) {
+      if (mode === "coop") return "Co-op";
+      if (mode === "left") return "Left Solo";
+      if (mode === "right") return "Right Solo";
+      return "Auto";
+    }
+
+    function stageFromCombo(combo) {
+      if (combo >= stageThresholds[3]) return 4;
+      if (combo >= stageThresholds[2]) return 3;
+      if (combo >= stageThresholds[1]) return 2;
+      return 1;
+    }
+
+    function updateHud(now = performance.now()) {
+      comboEl.textContent = String(state.combo);
+      stageLevelEl.textContent = String(state.stage);
+      leftScoreEl.textContent = String(state.leftScore);
+      rightScoreEl.textContent = String(state.rightScore);
+      modeDisplayEl.textContent = modeLabel(state.activeMode);
+      const remaining = state.running ? Math.max(0, Math.ceil((gameDurationMs - (now - state.startTime)) / 1000)) : Math.ceil(gameDurationMs / 1000);
+      timeLeftEl.textContent = String(remaining);
+    }
+
+    async function ensureAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === "suspended") {
+        await audioCtx.resume();
+      }
+      state.audioReady = true;
+    }
+
+    function playTone({ frequency, duration = 0.12, type = "sine", gain = 0.16, attack = 0.005, release = 0.08, detune = 0 }) {
+      if (!state.audioReady || !audioCtx) return;
+      const now = audioCtx.currentTime;
+      const oscillator = audioCtx.createOscillator();
+      const envelope = audioCtx.createGain();
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, now);
+      oscillator.detune.setValueAtTime(detune, now);
+      envelope.gain.setValueAtTime(0.0001, now);
+      envelope.gain.exponentialRampToValueAtTime(gain, now + attack);
+      envelope.gain.exponentialRampToValueAtTime(0.0001, now + duration + release);
+      oscillator.connect(envelope);
+      envelope.connect(audioCtx.destination);
+      oscillator.start(now);
+      oscillator.stop(now + duration + release + 0.02);
+    }
+
+    function playKick() {
+      if (!state.audioReady || !audioCtx) return;
+      const now = audioCtx.currentTime;
+      const oscillator = audioCtx.createOscillator();
+      const envelope = audioCtx.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(132, now);
+      oscillator.frequency.exponentialRampToValueAtTime(48, now + 0.11);
+      envelope.gain.setValueAtTime(0.0001, now);
+      envelope.gain.exponentialRampToValueAtTime(0.28 + state.stage * 0.04, now + 0.01);
+      envelope.gain.exponentialRampToValueAtTime(0.0001, now + 0.19);
+      oscillator.connect(envelope);
+      envelope.connect(audioCtx.destination);
+      oscillator.start(now);
+      oscillator.stop(now + 0.22);
+    }
+
+    function playHitSound(colorIndex, quality) {
+      const baseFreq = [252, 302, 358, 428][colorIndex];
+      if (quality === "Perfect") {
+        playTone({ frequency: baseFreq, gain: 0.14, type: "triangle", duration: 0.08 });
+        playTone({ frequency: baseFreq * 2, gain: 0.08, type: "sine", duration: 0.12, attack: 0.004, release: 0.06 });
+      } else {
+        playTone({ frequency: baseFreq * 0.92, gain: 0.09, type: "square", duration: 0.06, release: 0.04 });
+      }
+    }
+
+    function playMissSound() {
+      playTone({ frequency: 120, gain: 0.1, type: "sawtooth", duration: 0.09, detune: -180 });
+    }
+
+    function createFeedback(text, side, lane, color, createdAt) {
+      state.feedback.push({ text, side, lane, color, createdAt });
+    }
+
+    function emitParticles(note, amount) {
+      const direction = note.side === "left" ? -1 : 1;
+      for (let index = 0; index < amount; index += 1) {
+        state.particles.push({
+          x: note.hitX,
+          y: note.hitY,
+          vx: direction * (1.2 + Math.random() * 3.2),
+          vy: (Math.random() - 0.5) * 3.8,
+          life: 0.5 + Math.random() * 0.35,
+          age: 0,
+          color: note.color
+        });
+      }
+      if (state.particles.length > 240) {
+        state.particles.splice(0, state.particles.length - 240);
+      }
+    }
+
+    function markMiss(note, now) {
+      note.judged = true;
+      state.combo = 0;
+      state.stage = stageFromCombo(state.combo);
+      state.misses += 1;
+      createFeedback("Miss", note.side, note.lane, "#ff8e8e", now);
+      playMissSound();
+    }
+
+    function applyHit(note, timingText, scoreGain, now) {
+      note.judged = true;
+      state.combo += 1;
+      state.bestCombo = Math.max(state.bestCombo, state.combo);
+      state.stage = stageFromCombo(state.combo);
+      if (note.side === "left") {
+        state.leftScore += scoreGain;
+      } else {
+        state.rightScore += scoreGain;
+      }
+      state.pulse = 1;
+      if (timingText === "Perfect") {
+        emitParticles(note, particlesPerPerfect);
+        state.screenShake = Math.min(state.screenShake + 6, 14);
+      }
+      createFeedback(timingText, note.side, note.lane, timingText === "Perfect" ? "#7cffb6" : "#8fd3ff", now);
+      playHitSound(note.colorIndex, timingText);
+    }
+
+    function activeSidesForPattern(pattern) {
+      if (state.activeMode === "left") {
+        return { left: pattern.left, right: [] };
+      }
+      if (state.activeMode === "right") {
+        return { left: [], right: pattern.right };
+      }
+      return pattern;
+    }
+
+    function spawnBlock(side, lane, beatTime, beatNumber) {
+      const centerX = canvas.width * 0.5;
+      const leftTargetX = canvas.width * 0.17;
+      const rightTargetX = canvas.width * 0.83;
+      const laneSpacing = 124;
+      const topY = 172;
+      const hitY = topY + lane * laneSpacing;
+      const colorIndex = lane;
+      const targetX = side === "left" ? leftTargetX : rightTargetX;
+      state.notes.push({
+        id: noteId++,
+        side,
+        lane,
+        color: colorPalette[colorIndex],
+        colorIndex,
+        beatTime,
+        beatNumber,
+        bornAt: beatTime - travelMs,
+        targetX,
+        startX: centerX,
+        hitX: targetX,
+        hitY,
+        judged: false
+      });
+    }
+
+    function spawnBeat(beatTime) {
+      const pattern = beatPattern[state.beatIndex % beatPattern.length];
+      const activePattern = activeSidesForPattern(pattern);
+      activePattern.left.forEach((lane) => spawnBlock("left", lane, beatTime, state.beatIndex));
+      activePattern.right.forEach((lane) => spawnBlock("right", lane, beatTime, state.beatIndex));
+      state.beatIndex += 1;
+      playKick();
+    }
+
+    function spawnNotesUntil(currentTime) {
+      const beatInterval = 60000 / state.bpm;
+      while (state.lastBeatTime <= currentTime + travelMs) {
+        spawnBeat(state.lastBeatTime);
+        state.lastBeatTime += beatInterval;
+      }
+    }
+
+    function evaluatePress(side, lane, keyCode, now) {
+      if (!state.running) return;
+      if (state.selectedMode === "auto" && state.autoResolvedSide === null) {
+        state.autoResolvedSide = side;
+        state.activeMode = side;
+      }
+
+      const candidate = state.notes
+        .filter((note) => !note.judged && note.side === side && note.lane === lane)
+        .sort((a, b) => Math.abs(now - a.beatTime) - Math.abs(now - b.beatTime))[0];
+
+      if (!candidate) {
+        state.combo = 0;
+        state.stage = stageFromCombo(0);
+        createFeedback("Miss", side, lane, "#ff8e8e", now);
+        playMissSound();
+        return;
+      }
+
+      const delta = Math.abs(now - candidate.beatTime);
+      if (delta <= perfectWindowMs) {
+        applyHit(candidate, "Perfect", 160, now);
+      } else if (delta <= goodWindowMs) {
+        applyHit(candidate, "Good", 90, now);
+      } else if (delta <= missWindowMs) {
+        markMiss(candidate, now);
+      } else {
+        state.combo = 0;
+        state.stage = stageFromCombo(0);
+        createFeedback("Miss", side, lane, "#ff8e8e", now);
+        playMissSound();
+      }
+
+      updateHud(now);
+    }
+
+    function laneByCode(code) {
+      const leftIndex = leftKeys.indexOf(code);
+      if (leftIndex !== -1) return { side: "left", lane: leftIndex };
+      const rightIndex = rightKeys.indexOf(code);
+      if (rightIndex !== -1) return { side: "right", lane: rightIndex };
+      return null;
+    }
+
+    function handleKeydown(event) {
+      const mapped = laneByCode(event.code);
+      if (!mapped) return;
+      event.preventDefault();
+      const now = performance.now();
+      if (state.activeMode === "left" && mapped.side === "right") return;
+      if (state.activeMode === "right" && mapped.side === "left") return;
+      evaluatePress(mapped.side, mapped.lane, event.code, now);
+    }
+
+    function resetState() {
+      state.running = false;
+      state.audioReady = state.audioReady && !!audioCtx;
+      state.bpm = Number(bpmSelect.value);
+      state.selectedMode = modeSelect.value;
+      state.activeMode = state.selectedMode === "coop" ? "coop" : state.selectedMode;
+      state.autoResolvedSide = null;
+      state.startTime = 0;
+      state.lastFrame = 0;
+      state.lastBeatTime = 0;
+      state.beatIndex = 0;
+      state.combo = 0;
+      state.bestCombo = 0;
+      state.stage = 1;
+      state.leftScore = 0;
+      state.rightScore = 0;
+      state.notes = [];
+      state.feedback = [];
+      state.particles = [];
+      state.pulse = 0;
+      state.screenShake = 0;
+      state.misses = 0;
+      updateHud();
+    }
+
+    async function startGame() {
+      await ensureAudio();
+      resetState();
+      state.running = true;
+      state.startTime = performance.now();
+      state.lastFrame = state.startTime;
+      state.lastBeatTime = state.startTime;
+      startOverlay.hidden = true;
+      gameOverOverlay.hidden = true;
+      if (state.selectedMode === "auto") {
+        state.activeMode = "auto";
+      }
+      updateHud(state.startTime);
+      requestAnimationFrame(gameLoop);
+    }
+
+    function finishGame() {
+      state.running = false;
+      summaryText.textContent = `最高连击 ${state.bestCombo}，左侧 ${state.leftScore} 分，右侧 ${state.rightScore} 分，共失误 ${state.misses} 次。`;
+      gameOverOverlay.hidden = false;
+    }
+
+    function updateState(now) {
+      const deltaSeconds = Math.min((now - state.lastFrame) / 1000, 0.05);
+      state.lastFrame = now;
+      spawnNotesUntil(now);
+
+      for (const note of state.notes) {
+        if (!note.judged && now - note.beatTime > missWindowMs) {
+          markMiss(note, now);
+        }
+      }
+
+      state.notes = state.notes.filter((note) => now - note.beatTime < 1200);
+
+      state.feedback = state.feedback.filter((entry) => now - entry.createdAt < feedbackLifetime);
+
+      state.particles.forEach((particle) => {
+        particle.age += deltaSeconds;
+        particle.x += particle.vx * 60 * deltaSeconds;
+        particle.y += particle.vy * 60 * deltaSeconds;
+        particle.vy += 0.06;
+      });
+      state.particles = state.particles.filter((particle) => particle.age < particle.life);
+
+      state.pulse = Math.max(0, state.pulse - deltaSeconds * 2.1);
+      state.screenShake = Math.max(0, state.screenShake - deltaSeconds * 18);
+      state.stage = stageFromCombo(state.combo);
+
+      if (now - state.startTime >= gameDurationMs) {
+        finishGame();
+      }
+
+      updateHud(now);
+    }
+
+    function drawBackground() {
+      const stageBoost = state.stage - 1;
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, `rgba(${14 + stageBoost * 14}, ${24 + stageBoost * 10}, ${42 + stageBoost * 8}, 1)`);
+      gradient.addColorStop(1, `rgba(${6 + stageBoost * 6}, ${10 + stageBoost * 4}, ${20 + stageBoost * 4}, 1)`);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.save();
+      ctx.globalAlpha = 0.16 + stageBoost * 0.06 + state.pulse * 0.08;
+      for (let index = 0; index < 20; index += 1) {
+        const y = 82 + index * 30;
+        ctx.fillStyle = index % 2 === 0 ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.02)";
+        ctx.fillRect(0, y, canvas.width, 1);
+      }
+      ctx.restore();
+
+      const radial = ctx.createRadialGradient(canvas.width * 0.5, canvas.height * 0.5, 20, canvas.width * 0.5, canvas.height * 0.5, canvas.width * 0.42);
+      radial.addColorStop(0, `rgba(122, 162, 255, ${0.08 + stageBoost * 0.03 + state.pulse * 0.04})`);
+      radial.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = radial;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      if (state.stage >= 3) {
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = 0.14 + state.pulse * 0.12;
+        for (let index = 0; index < 4; index += 1) {
+          const radius = 80 + index * 70 + Math.sin((performance.now() / 340) + index) * 8;
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(255, 209, 102, ${0.16 - index * 0.03})`;
+          ctx.lineWidth = 12 - index * 2;
+          ctx.arc(canvas.width * 0.5, canvas.height * 0.5, radius, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+    }
+
+    function drawDeck() {
+      const centerX = canvas.width * 0.5;
+      const leftLine = canvas.width * 0.17;
+      const rightLine = canvas.width * 0.83;
+      const topY = 172;
+      const laneSpacing = 124;
+
+      ctx.save();
+      ctx.fillStyle = "rgba(255,255,255,0.05)";
+      ctx.fillRect(centerX - 18, topY - 74, 36, laneSpacing * 4 + 24);
+      ctx.restore();
+
+      for (let lane = 0; lane < 4; lane += 1) {
+        const y = topY + lane * laneSpacing;
+        const color = colorPalette[lane];
+        ctx.strokeStyle = "rgba(255,255,255,0.1)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(40, y);
+        ctx.lineTo(canvas.width - 40, y);
+        ctx.stroke();
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(leftLine, y - 34);
+        ctx.lineTo(leftLine, y + 34);
+        ctx.moveTo(rightLine, y - 34);
+        ctx.lineTo(rightLine, y + 34);
+        ctx.stroke();
+
+        ctx.fillStyle = color;
+        ctx.font = "700 22px Trebuchet MS";
+        ctx.textAlign = "center";
+        ctx.fillText(["A", "S", "D", "F"][lane], leftLine, y - 46);
+        ctx.fillText(["J", "K", "L", ";"][lane], rightLine, y - 46);
+      }
+
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      ctx.beginPath();
+      ctx.roundRect(centerX - 60, 84, 120, 552, 28);
+      ctx.fill();
+    }
+
+    function drawNotes(now) {
+      for (const note of state.notes) {
+        if (note.judged) continue;
+        const progress = Math.max(0, Math.min(1, (now - note.bornAt) / travelMs));
+        const x = note.startX + (note.targetX - note.startX) * progress;
+        const y = note.hitY;
+        const size = 44 + (1 - progress) * 8;
+
+        ctx.save();
+        ctx.shadowBlur = 24 + state.stage * 5;
+        ctx.shadowColor = note.color;
+        ctx.fillStyle = note.color;
+        ctx.strokeStyle = "rgba(255,255,255,0.24)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(x - size / 2, y - size / 2, size, size, 12);
+        ctx.fill();
+        ctx.stroke();
+
+        if (state.stage >= 2) {
+          ctx.globalAlpha = 0.24;
+          ctx.beginPath();
+          const trail = note.side === "left" ? 1 : -1;
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + trail * 42, y - 12);
+          ctx.lineTo(x + trail * 42, y + 12);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
+
+    function drawParticles() {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      for (const particle of state.particles) {
+        const alpha = 1 - particle.age / particle.life;
+        ctx.fillStyle = `${particle.color}${Math.max(0, Math.floor(alpha * 255)).toString(16).padStart(2, "0")}`;
+        ctx.fillRect(particle.x, particle.y, 4, 4);
+      }
+      ctx.restore();
+    }
+
+    function drawFeedback(now) {
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.font = "700 28px Trebuchet MS";
+      for (const entry of state.feedback) {
+        const age = now - entry.createdAt;
+        const t = age / feedbackLifetime;
+        const baseX = entry.side === "left" ? canvas.width * 0.17 : canvas.width * 0.83;
+        const y = 168 + entry.lane * 124 - t * 44;
+        ctx.globalAlpha = 1 - t;
+        ctx.fillStyle = entry.color;
+        ctx.fillText(entry.text, baseX, y);
+      }
+      ctx.restore();
+    }
+
+    function drawScoreLabels() {
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.font = "700 34px Trebuchet MS";
+      ctx.fillText(`${state.leftScore}`, canvas.width * 0.24, 78);
+      ctx.fillText(`${state.rightScore}`, canvas.width * 0.76, 78);
+      ctx.font = "700 18px Trebuchet MS";
+      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.fillText("LEFT", canvas.width * 0.24, 106);
+      ctx.fillText("RIGHT", canvas.width * 0.76, 106);
+      ctx.font = "700 48px Trebuchet MS";
+      ctx.fillStyle = "rgba(255,255,255,0.95)";
+      ctx.fillText(state.combo, canvas.width * 0.5, 86);
+      ctx.font = "700 18px Trebuchet MS";
+      ctx.fillStyle = "rgba(255,255,255,0.6)";
+      ctx.fillText(`COMBO  STAGE ${state.stage}`, canvas.width * 0.5, 114);
+      ctx.restore();
+    }
+
+    function render(now) {
+      ctx.save();
+      if (state.screenShake > 0) {
+        ctx.translate((Math.random() - 0.5) * state.screenShake, (Math.random() - 0.5) * state.screenShake);
+      }
+      drawBackground();
+      drawDeck();
+      drawNotes(now);
+      drawParticles();
+      drawFeedback(now);
+      drawScoreLabels();
+      ctx.restore();
+    }
+
+    function gameLoop(now) {
+      if (!state.running) {
+        render(now);
+        return;
+      }
+      updateState(now);
+      render(now);
+      if (state.running) {
+        requestAnimationFrame(gameLoop);
+      }
+    }
+
+    startButton.addEventListener("click", startGame);
+    restartButton.addEventListener("click", startGame);
+    overlayRestartButton.addEventListener("click", startGame);
+    modeSelect.addEventListener("change", () => {
+      state.selectedMode = modeSelect.value;
+      state.activeMode = state.selectedMode === "coop" ? "coop" : state.selectedMode;
+      updateHud();
+    });
+    bpmSelect.addEventListener("change", () => {
+      state.bpm = Number(bpmSelect.value);
+      updateHud();
+    });
+    window.addEventListener("keydown", handleKeydown);
+
+    resetState();
+    render(performance.now());
+  </script>
+</body>
+</html>
