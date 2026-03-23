@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>节奏涂鸦接力</title>
+  <style>
+    :root {
+      --bg: #f8f0df;
+      --panel: rgba(255, 251, 243, 0.9);
+      --line: rgba(76, 50, 26, 0.18);
+      --text: #26190f;
+      --muted: #715e4f;
+      --accent: #e7613f;
+      --good-gray: rgba(140, 140, 140, 0.35);
+      --shadow: 0 24px 60px rgba(68, 42, 24, 0.14);
+      --radius: 24px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.85), transparent 24%),
+        radial-gradient(circle at top right, rgba(231, 97, 63, 0.15), transparent 28%),
+        linear-gradient(180deg, #f4e6ca 0%, var(--bg) 45%, #efe3d0 100%);
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    .page {
+      width: min(1120px, calc(100vw - 24px));
+      margin: 0 auto;
+      padding: 20px 0 32px;
+    }
+
+    .panel {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: calc(var(--radius) + 6px);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      padding: 24px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .hero h1,
+    .overlay-title {
+      margin: 0;
+      font-family: "Iowan Old Style", "Palatino Linotype", serif;
+      letter-spacing: -0.04em;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.4rem, 6vw, 4.5rem);
+      line-height: 0.92;
+      max-width: 8ch;
+    }
+
+    .lede,
+    .subtle,
+    .player-stat span {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .setup,
+    .results {
+      display: grid;
+      gap: 14px;
+      align-items: start;
+      padding: 20px 24px 24px;
+      border-top: 1px solid var(--line);
+    }
+
+    .setup-row,
+    .hud,
+    .results-actions,
+    .player-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .chip,
+    .metric,
+    .player-stat {
+      padding: 10px 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.7);
+    }
+
+    select,
+    button {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 11px 16px;
+      background: #fffaf4;
+      color: var(--text);
+    }
+
+    button {
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 22px rgba(68, 42, 24, 0.1);
+      border-color: rgba(231, 97, 63, 0.42);
+    }
+
+    button.primary {
+      background: var(--accent);
+      color: #fff8f4;
+      border-color: transparent;
+    }
+
+    .game-shell {
+      position: relative;
+      margin-top: 18px;
+      padding: 0 24px 24px;
+    }
+
+    .hud {
+      justify-content: space-between;
+      padding: 0 0 14px;
+    }
+
+    .hud-left,
+    .hud-right {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .player-color {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      margin-right: 8px;
+      vertical-align: -1px;
+    }
+
+    .pulse-wrap {
+      position: absolute;
+      top: 78px;
+      right: 40px;
+      width: 88px;
+      height: 88px;
+      pointer-events: none;
+    }
+
+    .pulse {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(231, 97, 63, 0.55), rgba(231, 97, 63, 0.08) 65%, transparent 70%);
+      opacity: 0.16;
+      transform: scale(0.72);
+      transition: transform 120ms ease-out, opacity 120ms ease-out;
+    }
+
+    .pulse.active {
+      opacity: 0.9;
+      transform: scale(1.12);
+    }
+
+    .canvas-wrap {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(250, 247, 243, 0.92)),
+        repeating-linear-gradient(90deg, rgba(76, 50, 26, 0.04) 0, rgba(76, 50, 26, 0.04) 1px, transparent 1px, transparent 24px),
+        repeating-linear-gradient(0deg, rgba(76, 50, 26, 0.04) 0, rgba(76, 50, 26, 0.04) 1px, transparent 1px, transparent 24px);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: min(66vw, 640px);
+      touch-action: none;
+      cursor: crosshair;
+    }
+
+    .overlay,
+    .results-overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+    }
+
+    .overlay-card,
+    .results-card {
+      padding: 22px 26px;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      border-radius: 28px;
+      background: rgba(31, 23, 18, 0.78);
+      color: #fff8f2;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 20px 40px rgba(18, 10, 5, 0.18);
+    }
+
+    .overlay[hidden],
+    .results[hidden],
+    .results-overlay[hidden],
+    .setup[hidden] {
+      display: none;
+    }
+
+    .overlay-title {
+      font-size: clamp(2rem, 5vw, 3rem);
+      line-height: 0.92;
+    }
+
+    .overlay-note {
+      margin: 8px 0 0;
+      color: rgba(255, 248, 242, 0.8);
+    }
+
+    .results-card {
+      pointer-events: auto;
+      width: min(92%, 560px);
+      background: rgba(26, 21, 18, 0.86);
+    }
+
+    .player-stats {
+      justify-content: center;
+      margin-top: 14px;
+    }
+
+    .player-stat {
+      display: grid;
+      gap: 2px;
+      min-width: 116px;
+      border-radius: 18px;
+      text-align: left;
+    }
+
+    .player-stat strong {
+      font-size: 1.2rem;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 720px) {
+      .page {
+        width: min(100vw - 12px, 1120px);
+      }
+
+      .hero,
+      .setup,
+      .game-shell {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      .pulse-wrap {
+        top: 98px;
+        right: 26px;
+        width: 68px;
+        height: 68px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="panel">
+      <header class="hero">
+        <div class="chip">Party Toy</div>
+        <h1>节奏涂鸦接力</h1>
+        <p class="lede">2 到 4 人热座轮流在同一张画布上接力作画。只有在节拍窗口内落笔才会留下玩家专属颜色，偏拍则留下灰色痕迹。</p>
+      </header>
+
+      <section class="setup" id="setup-screen">
+        <div class="setup-row">
+          <label for="player-count">玩家人数</label>
+          <select id="player-count">
+            <option value="2">2 人</option>
+            <option value="3">3 人</option>
+            <option value="4">4 人</option>
+          </select>
+          <button class="primary" id="start-button" type="button">开始 32 拍接力</button>
+        </div>
+        <p class="subtle">固定 120 BPM，每 4 拍切换画手。点击、按住拖动都可画线，允许偏拍涂抹，但只会留下半透明灰痕。</p>
+      </section>
+
+      <section class="game-shell">
+        <div class="hud">
+          <div class="hud-left">
+            <div class="metric" id="player-label">当前画手</div>
+            <div class="metric" id="beat-label">第 0 / 32 拍</div>
+          </div>
+          <div class="hud-right">
+            <div class="metric" id="window-label">判定窗口 ±150ms</div>
+            <div class="metric" id="phase-label">等待开始</div>
+          </div>
+        </div>
+
+        <div class="pulse-wrap" aria-hidden="true">
+          <div class="pulse" id="beat-pulse"></div>
+        </div>
+
+        <div class="canvas-wrap">
+          <canvas id="paint-canvas" width="960" height="640" aria-label="合作涂鸦画布"></canvas>
+          <div class="overlay" id="switch-overlay" hidden>
+            <div class="overlay-card">
+              <h2 class="overlay-title" id="overlay-title">准备开始</h2>
+              <p class="overlay-note" id="overlay-note">玩家切换中</p>
+            </div>
+          </div>
+          <div class="results-overlay" id="results-overlay" hidden>
+            <div class="results-card">
+              <h2 class="overlay-title">完成整幅画</h2>
+              <p class="overlay-note">32 拍结束，查看每位玩家的节奏准确率。</p>
+              <div class="player-stats" id="player-stats"></div>
+              <div class="results-actions" style="justify-content:center;margin-top:16px;">
+                <button class="primary" id="save-button" type="button">保存 PNG</button>
+                <button id="restart-button" type="button">重新开始</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const bpm = 120;
+    const totalBeats = 32;
+    const beatsPerTurn = 4;
+    const beatWindowMs = 150;
+    const lookaheadMs = 25;
+    const scheduleAheadTime = 0.18;
+    const switchDurationMs = 600;
+    const playerPalette = ["#ff5a5f", "#3aa8ff", "#44c271", "#ffb038"];
+
+    const setupScreen = document.getElementById("setup-screen");
+    const startButton = document.getElementById("start-button");
+    const playerCountInput = document.getElementById("player-count");
+    const playerLabel = document.getElementById("player-label");
+    const beatLabel = document.getElementById("beat-label");
+    const phaseLabel = document.getElementById("phase-label");
+    const beatPulse = document.getElementById("beat-pulse");
+    const canvas = document.getElementById("paint-canvas");
+    const switchOverlay = document.getElementById("switch-overlay");
+    const overlayTitle = document.getElementById("overlay-title");
+    const overlayNote = document.getElementById("overlay-note");
+    const resultsOverlay = document.getElementById("results-overlay");
+    const playerStats = document.getElementById("player-stats");
+    const saveButton = document.getElementById("save-button");
+    const restartButton = document.getElementById("restart-button");
+    const ctx = canvas.getContext("2d");
+
+    let audioContext;
+    let schedulerId = 0;
+    let animationId = 0;
+    let nextBeatTime = 0;
+    let beatStartTime = 0;
+    let beatDuration = 60 / bpm;
+    let scheduledBeatIndex = 0;
+    let currentBeat = -1;
+    let playerCount = 2;
+    let players = [];
+    let currentPlayerIndex = 0;
+    let gameState = "idle";
+    let overlayUntil = 0;
+    let pulseTimeoutId = 0;
+    let isPointerDown = false;
+    let lastPoint = null;
+    let beatTimes = [];
+
+    function createPlayers(count) {
+      return Array.from({ length: count }, (_, index) => ({
+        id: index,
+        name: `玩家 ${index + 1}`,
+        color: playerPalette[index],
+        onBeatMarks: 0,
+        totalMarks: 0
+      }));
+    }
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#fffaf5";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function resetState() {
+      stopGameLoop();
+      players = createPlayers(playerCount);
+      currentPlayerIndex = 0;
+      scheduledBeatIndex = 0;
+      currentBeat = -1;
+      beatTimes = [];
+      nextBeatTime = 0;
+      beatStartTime = 0;
+      overlayUntil = 0;
+      lastPoint = null;
+      isPointerDown = false;
+      gameState = "idle";
+      switchOverlay.hidden = true;
+      resultsOverlay.hidden = true;
+      clearCanvas();
+      updateHud();
+    }
+
+    function updateHud() {
+      const player = players[currentPlayerIndex];
+      const colorDot = player ? `<span class="player-color" style="background:${player.color}"></span>` : "";
+      playerLabel.innerHTML = `${colorDot}${player ? player.name : "当前画手"}`;
+      beatLabel.textContent = `第 ${Math.max(currentBeat + 1, 0)} / ${totalBeats} 拍`;
+      phaseLabel.textContent =
+        gameState === "playing" ? "跟拍作画中" :
+        gameState === "finished" ? "回合结束" :
+        "等待开始";
+    }
+
+    function showSwitchOverlay(message, note, color) {
+      overlayTitle.textContent = message;
+      overlayNote.textContent = note;
+      switchOverlay.hidden = false;
+      overlayTitle.style.color = color;
+      overlayUntil = performance.now() + switchDurationMs;
+    }
+
+    function hideSwitchOverlayIfNeeded() {
+      if (!switchOverlay.hidden && performance.now() >= overlayUntil) {
+        switchOverlay.hidden = true;
+      }
+    }
+
+    function triggerPulse() {
+      beatPulse.classList.add("active");
+      window.clearTimeout(pulseTimeoutId);
+      pulseTimeoutId = window.setTimeout(() => beatPulse.classList.remove("active"), 120);
+    }
+
+    function playBeatClick(time, emphasis) {
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      osc.type = emphasis ? "square" : "triangle";
+      osc.frequency.setValueAtTime(emphasis ? 920 : 680, time);
+      osc.frequency.exponentialRampToValueAtTime(emphasis ? 540 : 420, time + 0.08);
+      gain.gain.setValueAtTime(0.0001, time);
+      gain.gain.exponentialRampToValueAtTime(emphasis ? 0.18 : 0.1, time + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.09);
+      osc.connect(gain).connect(audioContext.destination);
+      osc.start(time);
+      osc.stop(time + 0.1);
+    }
+
+    function scheduleBeat(beatIndex, time) {
+      beatTimes[beatIndex] = time;
+      playBeatClick(time, beatIndex % beatsPerTurn === 0);
+    }
+
+    function scheduler() {
+      if (gameState !== "playing") {
+        return;
+      }
+
+      while (nextBeatTime < audioContext.currentTime + scheduleAheadTime && scheduledBeatIndex < totalBeats) {
+        scheduleBeat(scheduledBeatIndex, nextBeatTime);
+        nextBeatTime += beatDuration;
+        scheduledBeatIndex += 1;
+      }
+
+      if (scheduledBeatIndex >= totalBeats && audioContext.currentTime > beatStartTime + beatDuration * totalBeats + 0.05) {
+        finishRound();
+        return;
+      }
+
+      schedulerId = window.setTimeout(scheduler, lookaheadMs);
+    }
+
+    function updateActiveBeat() {
+      if (gameState !== "playing") {
+        return;
+      }
+
+      const elapsedBeats = Math.floor((audioContext.currentTime - beatStartTime) / beatDuration);
+      const newBeat = Math.max(-1, Math.min(totalBeats - 1, elapsedBeats));
+      if (newBeat > currentBeat) {
+        currentBeat = newBeat;
+        triggerPulse();
+        const nextPlayerIndex = Math.floor(currentBeat / beatsPerTurn) % playerCount;
+        if (currentBeat >= 0 && nextPlayerIndex !== currentPlayerIndex) {
+          currentPlayerIndex = nextPlayerIndex;
+          const player = players[currentPlayerIndex];
+          showSwitchOverlay(`${player.name} 接力`, `第 ${currentBeat + 1} 拍开始由 ${player.name} 继续`, player.color);
+        }
+        updateHud();
+      }
+    }
+
+    function frame() {
+      hideSwitchOverlayIfNeeded();
+      updateActiveBeat();
+      animationId = window.requestAnimationFrame(frame);
+    }
+
+    function stopGameLoop() {
+      window.clearTimeout(schedulerId);
+      schedulerId = 0;
+      window.cancelAnimationFrame(animationId);
+      animationId = 0;
+      window.clearTimeout(pulseTimeoutId);
+      beatPulse.classList.remove("active");
+    }
+
+    function startRound() {
+      playerCount = Number(playerCountInput.value);
+      resetState();
+      players = createPlayers(playerCount);
+      setupScreen.hidden = true;
+      gameState = "playing";
+      currentPlayerIndex = 0;
+      updateHud();
+
+      if (!audioContext) {
+        audioContext = new AudioContext();
+      }
+
+      audioContext.resume().then(() => {
+        beatDuration = 60 / bpm;
+        beatStartTime = audioContext.currentTime + 0.12;
+        nextBeatTime = beatStartTime;
+        showSwitchOverlay(`${players[0].name} 开始`, "每 4 拍轮换一次，尽量跟着节拍落笔", players[0].color);
+        scheduler();
+        frame();
+      });
+    }
+
+    function nearestBeatDeltaMs(time) {
+      if (!beatStartTime) {
+        return Infinity;
+      }
+      const rawIndex = Math.round((time - beatStartTime) / beatDuration);
+      const beatIndex = Math.max(0, Math.min(totalBeats - 1, rawIndex));
+      const beatTime = beatTimes[beatIndex] ?? (beatStartTime + beatIndex * beatDuration);
+      return Math.abs(time - beatTime) * 1000;
+    }
+
+    function canDraw() {
+      return gameState === "playing" && switchOverlay.hidden;
+    }
+
+    function drawSegment(from, to, strokeStyle) {
+      ctx.strokeStyle = strokeStyle;
+      ctx.lineWidth = 8;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.stroke();
+    }
+
+    function classifyStroke(eventTime) {
+      const deltaMs = nearestBeatDeltaMs(eventTime);
+      const onBeat = deltaMs <= beatWindowMs;
+      const player = players[currentPlayerIndex];
+      player.totalMarks += 1;
+      if (onBeat) {
+        player.onBeatMarks += 1;
+      }
+      return onBeat ? player.color : "rgba(148, 148, 148, 0.34)";
+    }
+
+    function getCanvasPoint(event) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      return {
+        x: (event.clientX - rect.left) * scaleX,
+        y: (event.clientY - rect.top) * scaleY
+      };
+    }
+
+    function handlePointerDown(event) {
+      if (!canDraw()) {
+        return;
+      }
+      isPointerDown = true;
+      lastPoint = getCanvasPoint(event);
+      canvas.setPointerCapture(event.pointerId);
+      const color = classifyStroke(audioContext.currentTime);
+      drawSegment(lastPoint, { x: lastPoint.x + 0.01, y: lastPoint.y + 0.01 }, color);
+    }
+
+    function handlePointerMove(event) {
+      if (!isPointerDown || !canDraw()) {
+        return;
+      }
+      const point = getCanvasPoint(event);
+      const color = classifyStroke(audioContext.currentTime);
+      drawSegment(lastPoint, point, color);
+      lastPoint = point;
+    }
+
+    function handlePointerUp(event) {
+      if (isPointerDown) {
+        isPointerDown = false;
+        lastPoint = null;
+        if (canvas.hasPointerCapture(event.pointerId)) {
+          canvas.releasePointerCapture(event.pointerId);
+        }
+      }
+    }
+
+    function buildResults() {
+      const cards = players.map((player) => {
+        const stat = document.createElement("div");
+        stat.className = "player-stat";
+        const accuracy = player.totalMarks === 0 ? 0 : Math.round((player.onBeatMarks / player.totalMarks) * 100);
+        stat.innerHTML = `<span><span class="player-color" style="background:${player.color}"></span>${player.name}</span><strong>${accuracy}%</strong><span>${player.onBeatMarks} / ${player.totalMarks} 次在窗口内</span>`;
+        return stat;
+      });
+      playerStats.replaceChildren(...cards);
+    }
+
+    function finishRound() {
+      if (gameState === "finished") {
+        return;
+      }
+      stopGameLoop();
+      gameState = "finished";
+      switchOverlay.hidden = true;
+      buildResults();
+      updateHud();
+      resultsOverlay.hidden = false;
+    }
+
+    function saveCanvas() {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = `rhythm-doodle-relay-${Date.now()}.png`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+      }, "image/png");
+    }
+
+    startButton.addEventListener("click", startRound);
+    saveButton.addEventListener("click", saveCanvas);
+    restartButton.addEventListener("click", () => {
+      resetState();
+      setupScreen.hidden = false;
+    });
+
+    canvas.addEventListener("pointerdown", handlePointerDown);
+    canvas.addEventListener("pointermove", handlePointerMove);
+    canvas.addEventListener("pointerup", handlePointerUp);
+    canvas.addEventListener("pointercancel", handlePointerUp);
+    canvas.addEventListener("pointerleave", handlePointerUp);
+
+    resetState();
+  </script>
+</body>
+</html>
