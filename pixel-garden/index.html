@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>像素花园</title>
+  <style>
+    :root {
+      --bg: #f7f2df;
+      --panel: #fffaf0;
+      --panel-strong: #fff4cf;
+      --line: #6a573c;
+      --text: #2f2418;
+      --muted: #6f665c;
+      --accent: #4f8a47;
+      --accent-strong: #356b30;
+      --danger: #8a3f2b;
+      --shadow: 0 20px 48px rgba(63, 47, 28, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.8), transparent 24%),
+        linear-gradient(180deg, #efe3bf 0%, #f7f2df 45%, #f1ebda 100%);
+    }
+
+    .page {
+      width: min(1100px, calc(100vw - 24px));
+      margin: 0 auto;
+      padding: 20px 0 32px;
+    }
+
+    .shell {
+      display: grid;
+      gap: 18px;
+      padding: 18px;
+      border: 2px solid rgba(106, 87, 60, 0.24);
+      border-radius: 24px;
+      background: rgba(255, 250, 240, 0.92);
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px;
+      border: 2px solid rgba(106, 87, 60, 0.16);
+      border-radius: 20px;
+      background:
+        linear-gradient(135deg, rgba(255, 250, 240, 0.92), rgba(242, 234, 198, 0.96));
+    }
+
+    h1, h2, p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      line-height: 0.96;
+      letter-spacing: -0.05em;
+    }
+
+    .subtitle {
+      margin-top: 8px;
+      max-width: 48ch;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(120px, 1fr));
+      gap: 10px;
+      min-width: min(100%, 300px);
+    }
+
+    .stat {
+      padding: 12px;
+      border: 2px solid rgba(106, 87, 60, 0.18);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.55);
+    }
+
+    .stat-label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .stat-value {
+      display: block;
+      margin-top: 4px;
+      font-size: 1.35rem;
+      font-weight: 700;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      display: grid;
+      gap: 14px;
+      padding: 16px;
+      border: 2px solid rgba(106, 87, 60, 0.14);
+      border-radius: 20px;
+      background: var(--panel);
+    }
+
+    .controls {
+      display: grid;
+      gap: 10px;
+    }
+
+    .seed-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .seed-button,
+    .action-button {
+      width: 100%;
+      border: 2px solid rgba(106, 87, 60, 0.22);
+      border-radius: 14px;
+      background: #fffdf6;
+      color: var(--text);
+      font: inherit;
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+      text-align: left;
+    }
+
+    .seed-button:hover,
+    .seed-button.active,
+    .action-button:hover {
+      transform: translateY(-1px);
+      border-color: var(--accent-strong);
+      background: #f6f2dd;
+    }
+
+    .seed-name {
+      display: block;
+      font-weight: 700;
+    }
+
+    .seed-copy,
+    .panel-copy,
+    .status-copy {
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 0.94rem;
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .legend-item {
+      padding: 10px;
+      border-radius: 12px;
+      background: #f5eed6;
+      font-size: 0.92rem;
+    }
+
+    .canvas-wrap {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      border: 2px solid rgba(106, 87, 60, 0.14);
+      border-radius: 20px;
+      background: var(--panel);
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .toolbar-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    canvas {
+      width: min(100%, 640px);
+      aspect-ratio: 1 / 1;
+      image-rendering: pixelated;
+      border: 3px solid rgba(106, 87, 60, 0.36);
+      border-radius: 18px;
+      background: #d8c69b;
+      cursor: crosshair;
+    }
+
+    .status {
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: #f7f0d8;
+      border: 1px solid rgba(106, 87, 60, 0.16);
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 900px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .stats {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="shell">
+      <header class="hero">
+        <div>
+          <p>Idle / Creative Garden</p>
+          <h1>像素花园</h1>
+          <p class="subtitle">点击网格种下植物，观察它们在闲置状态下继续生长。相邻的花会互相鼓励，藤蔓会蔓延，杂草则会掠夺养分。</p>
+        </div>
+        <div class="stats">
+          <div class="stat">
+            <span class="stat-label">阶段</span>
+            <span class="stat-value">种子 → 幼苗 → 成熟 → 开花</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">植物</span>
+            <span class="stat-value">向日葵 / 玫瑰 / 藤蔓 / 杂草</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">互动</span>
+            <span class="stat-value" id="garden-progress">0 开花 / 0 已种植</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">截图</span>
+            <span class="stat-value">导出 PNG</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="workspace">
+        <aside class="panel">
+          <div class="controls">
+            <div>
+              <h2>种子箱</h2>
+              <p class="panel-copy">选中植物后点击空地放置。再次点击已种植格子可查看它当前状态，使用清空按钮重开布局。</p>
+            </div>
+            <div class="seed-grid" id="seed-buttons"></div>
+          </div>
+
+          <div>
+            <h2>规则</h2>
+            <div class="legend">
+              <div class="legend-item">向日葵与玫瑰相邻时，双方都会更快进入开花阶段。</div>
+              <div class="legend-item">藤蔓成熟后会向空格蔓延，形成连续花圃。</div>
+              <div class="legend-item">杂草会拖慢附近植物，并持续削弱它们的健康值。</div>
+              <div class="legend-item">健康值跌到 0 时植物会枯死并腾出格子。</div>
+            </div>
+          </div>
+
+          <div class="status">
+            <strong id="selected-title">当前选择：向日葵</strong>
+            <p class="status-copy" id="selected-copy">善于和玫瑰共生，花期稳定，适合作为花园核心。</p>
+          </div>
+        </aside>
+
+        <section class="canvas-wrap">
+          <div class="toolbar">
+            <div>
+              <h2>花园画布</h2>
+              <p class="panel-copy">16x16 像素单元，空闲时仍持续模拟。</p>
+            </div>
+            <div class="toolbar-actions">
+              <button class="action-button" id="clear-button" type="button">清空花园</button>
+              <button class="action-button" id="export-button" type="button">截图 / 导出</button>
+            </div>
+          </div>
+
+          <canvas id="garden-canvas" width="512" height="512" aria-label="像素花园画布"></canvas>
+
+          <div class="status">
+            <strong id="status-title">花园状态</strong>
+            <p class="status-copy" id="status-copy">点击空地放置种子。生长模拟会自动运行，即使你不做任何操作。</p>
+          </div>
+
+          <p class="footer-note">提示：把向日葵和玫瑰种在一起观察加速开花，再把杂草种在旁边看竞争效果。</p>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("garden-canvas");
+    const ctx = canvas.getContext("2d");
+    const exportButton = document.getElementById("export-button");
+    const clearButton = document.getElementById("clear-button");
+    const seedButtons = document.getElementById("seed-buttons");
+    const selectedTitle = document.getElementById("selected-title");
+    const selectedCopy = document.getElementById("selected-copy");
+    const statusTitle = document.getElementById("status-title");
+    const statusCopy = document.getElementById("status-copy");
+
+    const gridSize = 16;
+    const cellPixels = 16;
+    const stageNames = ["种子", "幼苗", "成熟", "开花"];
+    const stageThresholds = [1.2, 3.2, 6.5];
+    const tickMs = 500;
+    const hoverCell = { x: -1, y: -1 };
+
+    const plantTypes = {
+      sunflower: {
+        name: "向日葵",
+        summary: "善于和玫瑰共生，花期稳定，适合作为花园核心。",
+        growthRate: 0.42,
+        healthDrainResistance: 0.1,
+        colors: ["#8d6032", "#7ab24d", "#5d9a42", "#f2c84d"]
+      },
+      rose: {
+        name: "玫瑰",
+        summary: "成长稍慢，但和向日葵相邻时会显著加快开花。",
+        growthRate: 0.36,
+        healthDrainResistance: 0.05,
+        colors: ["#91524d", "#63a153", "#5c8746", "#d75879"]
+      },
+      vine: {
+        name: "藤蔓",
+        summary: "成熟后会自动向空格蔓延，是最容易铺满地块的植物。",
+        growthRate: 0.34,
+        healthDrainResistance: 0.15,
+        colors: ["#69824a", "#4e914d", "#3e7f44", "#8dc05f"]
+      },
+      weed: {
+        name: "杂草",
+        summary: "扩张欲强，靠近任何植物都会压制其生长并抢夺健康。",
+        growthRate: 0.48,
+        healthDrainResistance: 0.45,
+        colors: ["#6e5a2b", "#5e8a38", "#447031", "#8c9842"]
+      }
+    };
+
+    function createEmptyCell() {
+      return {
+        type: null,
+        stage: -1,
+        growth: 0,
+        health: 0,
+        bloomBoost: 0,
+        crowding: 0
+      };
+    }
+
+    const gardenGrid = Array.from({ length: gridSize }, () =>
+      Array.from({ length: gridSize }, () => createEmptyCell())
+    );
+
+    let selectedPlant = "sunflower";
+    let bloomCount = 0;
+    let occupiedCount = 0;
+
+    function setSelectedPlant(type) {
+      selectedPlant = type;
+      selectedTitle.textContent = `当前选择：${plantTypes[type].name}`;
+      selectedCopy.textContent = plantTypes[type].summary;
+      seedButtons.querySelectorAll(".seed-button").forEach((button) => {
+        button.classList.toggle("active", button.dataset.type === type);
+      });
+    }
+
+    function createSeedButtons() {
+      Object.entries(plantTypes).forEach(([type, plant]) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "seed-button";
+        button.dataset.type = type;
+        button.innerHTML = `<span class="seed-name">${plant.name}</span><span class="seed-copy">${plant.summary}</span>`;
+        button.addEventListener("click", () => setSelectedPlant(type));
+        seedButtons.appendChild(button);
+      });
+      setSelectedPlant(selectedPlant);
+    }
+
+    function getNeighbors(x, y) {
+      const neighbors = [];
+      for (let dy = -1; dy <= 1; dy += 1) {
+        for (let dx = -1; dx <= 1; dx += 1) {
+          if (dx === 0 && dy === 0) {
+            continue;
+          }
+          const nx = x + dx;
+          const ny = y + dy;
+          if (nx >= 0 && nx < gridSize && ny >= 0 && ny < gridSize) {
+            neighbors.push({ x: nx, y: ny, cell: gardenGrid[ny][nx] });
+          }
+        }
+      }
+      return neighbors;
+    }
+
+    function plantSeed(x, y, type) {
+      gardenGrid[y][x] = {
+        type,
+        stage: 0,
+        growth: 0,
+        health: 1,
+        bloomBoost: 0,
+        crowding: 0
+      };
+      setStatus(`已种下${plantTypes[type].name}`, `位置 ${x + 1}, ${y + 1}。它会在后台自动成长。`);
+      updateStats();
+      renderGarden();
+    }
+
+    function clearGarden() {
+      for (let y = 0; y < gridSize; y += 1) {
+        for (let x = 0; x < gridSize; x += 1) {
+          gardenGrid[y][x] = createEmptyCell();
+        }
+      }
+      setStatus("花园已清空", "重新选择种子并点击画布任意格子开始新布局。");
+      updateStats();
+      renderGarden();
+    }
+
+    function witherCell(x, y) {
+      gardenGrid[y][x] = createEmptyCell();
+    }
+
+    function advanceGrowth(cell) {
+      if (!cell.type) {
+        return;
+      }
+      while (cell.stage < stageThresholds.length && cell.growth >= stageThresholds[cell.stage]) {
+        cell.stage += 1;
+      }
+      if (cell.stage > 3) {
+        cell.stage = 3;
+      }
+    }
+
+    function simulateTick() {
+      const spreads = [];
+
+      for (let y = 0; y < gridSize; y += 1) {
+        for (let x = 0; x < gridSize; x += 1) {
+          const cell = gardenGrid[y][x];
+          if (!cell.type) {
+            continue;
+          }
+
+          const plant = plantTypes[cell.type];
+          const neighbors = getNeighbors(x, y);
+          let growthBonus = 0;
+          let healthDelta = 0;
+
+          cell.bloomBoost = 0;
+          cell.crowding = 0;
+
+          neighbors.forEach(({ x: nx, y: ny, cell: neighbor }) => {
+            if (cell.type === "vine" && cell.stage >= 2 && !neighbor.type) {
+              spreads.push({ toX: nx, toY: ny });
+              return;
+            }
+
+            if (!neighbor.type) {
+              return;
+            }
+
+            if (
+              (cell.type === "sunflower" && neighbor.type === "rose") ||
+              (cell.type === "rose" && neighbor.type === "sunflower")
+            ) {
+              growthBonus += 0.18;
+              cell.bloomBoost += 1;
+            }
+
+            if (neighbor.type === "weed" && cell.type !== "weed") {
+              growthBonus -= 0.12;
+              healthDelta -= Math.max(0.02, 0.1 - plant.healthDrainResistance);
+              cell.crowding += 1;
+            }
+          });
+
+          if (cell.type === "weed") {
+            growthBonus += 0.08;
+          }
+
+          cell.growth += Math.max(0.05, plant.growthRate + growthBonus);
+          cell.health = Math.min(1, cell.health + healthDelta);
+          advanceGrowth(cell);
+
+          if (cell.health <= 0) {
+            witherCell(x, y);
+          }
+        }
+      }
+
+      spreads.forEach(({ toX, toY }) => {
+        const target = gardenGrid[toY][toX];
+        if (!target.type && Math.random() < 0.12) {
+          gardenGrid[toY][toX] = {
+            type: "vine",
+            stage: 1,
+            growth: 1.6,
+            health: 0.8,
+            bloomBoost: 0,
+            crowding: 0
+          };
+        }
+      });
+
+      updateStats();
+      renderGarden();
+    }
+
+    function updateStats() {
+      let blooms = 0;
+      let occupied = 0;
+      for (let y = 0; y < gridSize; y += 1) {
+        for (let x = 0; x < gridSize; x += 1) {
+          const cell = gardenGrid[y][x];
+          if (cell.type) {
+            occupied += 1;
+            if (cell.stage >= 3) {
+              blooms += 1;
+            }
+          }
+        }
+      }
+      bloomCount = blooms;
+      occupiedCount = occupied;
+      document.getElementById("garden-progress").textContent = `${bloomCount} 开花 / ${occupiedCount} 已种植`;
+    }
+
+    function setStatus(title, copy) {
+      statusTitle.textContent = title;
+      statusCopy.textContent = copy;
+    }
+
+    function describeCell(x, y) {
+      const cell = gardenGrid[y][x];
+      if (!cell.type) {
+        setStatus("空地", `位置 ${x + 1}, ${y + 1}。点击可种下${plantTypes[selectedPlant].name}。`);
+        return;
+      }
+      const plant = plantTypes[cell.type];
+      const extras = [];
+      if (cell.bloomBoost > 0) {
+        extras.push("受到花卉共生加速");
+      }
+      if (cell.crowding > 0) {
+        extras.push("附近杂草在争夺养分");
+      }
+      const suffix = extras.length ? ` ${extras.join("，")}。` : "";
+      setStatus(
+        `${plant.name} · ${stageNames[cell.stage]}`,
+        `位置 ${x + 1}, ${y + 1}，健康 ${(cell.health * 100).toFixed(0)}%，成长值 ${cell.growth.toFixed(1)}。${suffix}`
+      );
+    }
+
+    function drawPatch(x, y, color) {
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, cellPixels, cellPixels);
+    }
+
+    function drawPlantSprite(x, y, cell) {
+      const plant = plantTypes[cell.type];
+      const baseColor = plant.colors[cell.stage];
+      const px = x * cellPixels;
+      const py = y * cellPixels;
+
+      drawPatch(px, py, "#756542");
+      ctx.fillStyle = "#8fa25c";
+      ctx.fillRect(px, py + 10, cellPixels, 6);
+
+      if (cell.stage === 0) {
+        ctx.fillStyle = baseColor;
+        ctx.fillRect(px + 6, py + 9, 4, 4);
+      } else if (cell.stage === 1) {
+        ctx.fillStyle = "#4d8c4a";
+        ctx.fillRect(px + 7, py + 5, 2, 7);
+        ctx.fillRect(px + 5, py + 8, 2, 2);
+        ctx.fillRect(px + 9, py + 7, 2, 2);
+        ctx.fillStyle = baseColor;
+        ctx.fillRect(px + 6, py + 3, 4, 3);
+      } else if (cell.stage === 2) {
+        ctx.fillStyle = "#43773b";
+        ctx.fillRect(px + 7, py + 3, 2, 9);
+        ctx.fillRect(px + 4, py + 6, 3, 2);
+        ctx.fillRect(px + 9, py + 7, 3, 2);
+        ctx.fillStyle = baseColor;
+        ctx.fillRect(px + 5, py + 1, 6, 4);
+      } else {
+        ctx.fillStyle = "#36652f";
+        ctx.fillRect(px + 7, py + 3, 2, 9);
+        ctx.fillRect(px + 4, py + 7, 3, 2);
+        ctx.fillRect(px + 9, py + 6, 3, 2);
+        ctx.fillStyle = baseColor;
+        ctx.fillRect(px + 4, py + 1, 8, 5);
+
+        if (cell.type === "sunflower") {
+          ctx.fillStyle = "#6d4c2c";
+          ctx.fillRect(px + 6, py + 2, 4, 3);
+        } else if (cell.type === "rose") {
+          ctx.fillStyle = "#ffd8df";
+          ctx.fillRect(px + 6, py + 3, 2, 2);
+          ctx.fillRect(px + 8, py + 2, 2, 2);
+        } else if (cell.type === "vine") {
+          ctx.fillStyle = "#daf1b0";
+          ctx.fillRect(px + 5, py + 2, 2, 2);
+          ctx.fillRect(px + 9, py + 4, 2, 2);
+        } else if (cell.type === "weed") {
+          ctx.fillStyle = "#cab65e";
+          ctx.fillRect(px + 5, py + 2, 6, 2);
+        }
+      }
+
+      if (cell.health < 0.45) {
+        ctx.fillStyle = "rgba(104, 47, 35, 0.45)";
+        ctx.fillRect(px + 1, py + 1, cellPixels - 2, cellPixels - 2);
+      }
+    }
+
+    function drawGrid() {
+      ctx.fillStyle = "#b79b63";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (let y = 0; y < gridSize; y += 1) {
+        for (let x = 0; x < gridSize; x += 1) {
+          const px = x * cellPixels;
+          const py = y * cellPixels;
+          ctx.fillStyle = (x + y) % 2 === 0 ? "#d9c88b" : "#d3bf7b";
+          ctx.fillRect(px, py, cellPixels, cellPixels);
+
+          const cell = gardenGrid[y][x];
+          if (cell.type) {
+            drawPlantSprite(x, y, cell);
+          } else {
+            ctx.fillStyle = "#c9bb83";
+            ctx.fillRect(px + 6, py + 11, 4, 2);
+          }
+        }
+      }
+    }
+
+    function renderGarden() {
+      drawGrid();
+      if (hoverCell.x >= 0 && hoverCell.y >= 0) {
+        ctx.strokeStyle = "#2d2417";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(
+          hoverCell.x * cellPixels + 1,
+          hoverCell.y * cellPixels + 1,
+          cellPixels - 2,
+          cellPixels - 2
+        );
+      }
+    }
+
+    function getCellFromPointer(event) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = Math.floor(((event.clientX - rect.left) * scaleX) / cellPixels);
+      const y = Math.floor(((event.clientY - rect.top) * scaleY) / cellPixels);
+      return { x, y };
+    }
+
+    canvas.addEventListener("mousemove", (event) => {
+      const { x, y } = getCellFromPointer(event);
+      hoverCell.x = x >= 0 && x < gridSize ? x : -1;
+      hoverCell.y = y >= 0 && y < gridSize ? y : -1;
+      renderGarden();
+    });
+
+    canvas.addEventListener("mouseleave", () => {
+      hoverCell.x = -1;
+      hoverCell.y = -1;
+      renderGarden();
+    });
+
+    canvas.addEventListener("click", (event) => {
+      const { x, y } = getCellFromPointer(event);
+      if (x < 0 || x >= gridSize || y < 0 || y >= gridSize) {
+        return;
+      }
+      const cell = gardenGrid[y][x];
+      if (!cell.type) {
+        plantSeed(x, y, selectedPlant);
+      } else {
+        describeCell(x, y);
+      }
+      renderGarden();
+    });
+
+    exportButton.addEventListener("click", () => {
+      const url = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `pixel-garden-${Date.now()}.png`;
+      link.click();
+      setStatus("截图已导出", "当前花园状态已保存为 PNG 图片。");
+    });
+
+    clearButton.addEventListener("click", clearGarden);
+
+    createSeedButtons();
+    updateStats();
+    renderGarden();
+    setInterval(simulateTick, tickMs);
+  </script>
+</body>
+</html>
