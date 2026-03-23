@@ -98,7 +98,7 @@
 
     .scoreboard {
       display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: repeat(6, minmax(0, 1fr));
       gap: 10px;
     }
 
@@ -142,7 +142,7 @@
     }
 
     .actions {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
     .count-button,
@@ -379,6 +379,30 @@
       letter-spacing: -0.04em;
     }
 
+    .celebration {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 220ms ease;
+    }
+
+    .celebration.visible {
+      opacity: 1;
+    }
+
+    .confetti {
+      position: absolute;
+      top: -12%;
+      width: 10px;
+      height: 24px;
+      border-radius: 999px;
+      opacity: 0;
+      transform: translate3d(0, 0, 0) rotate(0deg);
+      animation: confetti-fall 1.8s linear forwards;
+    }
+
     @keyframes pulse {
       0% { transform: scale(1); }
       35% { transform: scale(1.06); }
@@ -389,6 +413,20 @@
       0% { opacity: 0; }
       25% { opacity: 1; }
       100% { opacity: 0; }
+    }
+
+    @keyframes confetti-fall {
+      0% {
+        opacity: 0;
+        transform: translate3d(0, 0, 0) rotate(0deg) scale(0.8);
+      }
+      10% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 1;
+        transform: translate3d(var(--drift, 0px), 118vh, 0) rotate(var(--spin, 540deg)) scale(1.1);
+      }
     }
 
     @media (max-width: 920px) {
@@ -437,6 +475,8 @@
           <div class="stat"><div class="stat-label">Active Players</div><div class="stat-value" id="active-count">0</div></div>
           <div class="stat"><div class="stat-label">Current Round</div><div class="stat-value" id="round-display">0</div></div>
           <div class="stat"><div class="stat-label">Sequence Length</div><div class="stat-value" id="sequence-display">0</div></div>
+          <div class="stat"><div class="stat-label">Mode</div><div class="stat-value" id="mode-display">Party</div></div>
+          <div class="stat"><div class="stat-label">Time Left</div><div class="stat-value" id="timer-display">0.0s</div></div>
           <div class="stat"><div class="stat-label">Best Streak</div><div class="stat-value" id="best-display">0</div></div>
           <div class="stat"><div class="stat-label">Muted</div><div class="stat-value" id="mute-display">Off</div></div>
         </div>
@@ -444,7 +484,7 @@
       <div class="setup">
         <div>
           <p class="tiny">Players</p>
-          <p class="hint">选择 2-4 位玩家，按下开始后由当前玩家先观察节拍序列，再轮流接力输入。</p>
+          <p class="hint">派对模式支持 2-4 位热座轮流淘汰；单人练习模式不淘汰，只记录最高连续正确轮数。</p>
         </div>
         <div class="player-counts">
           <button class="count-button active" type="button" data-player-count="2">2 Players</button>
@@ -453,10 +493,11 @@
         </div>
         <div class="actions">
           <button class="action-button primary" type="button" id="start-button">开始游戏</button>
+          <button class="action-button secondary" type="button" id="mode-button">模式：派对</button>
           <button class="action-button secondary" type="button" id="mute-button">静音：关</button>
           <button class="action-button secondary" type="button" id="restart-button">重新开始</button>
         </div>
-        <p class="subtle">键盘映射：<strong>Q / W / E / A / S / D</strong>。音效使用 Web Audio API 生成不同音高，不依赖外部音频文件。</p>
+        <p class="subtle">键盘映射：<strong>Q / W / A / S</strong>。每轮输入阶段限时 3 秒，音效使用 Web Audio API 生成，不依赖外部音频文件。</p>
       </div>
     </section>
 
@@ -469,7 +510,7 @@
       <div class="key-hints">
         <div class="key-hint">点击色块或使用键盘</div>
         <div class="key-hint">展示序列期间会锁定输入</div>
-        <div class="key-hint">错一格即淘汰，最后存活者胜利</div>
+        <div class="key-hint">派对模式错一格或超时即淘汰</div>
       </div>
       <div class="player-strip" id="player-strip"></div>
       <div class="board-wrap" id="board-wrap">
@@ -478,11 +519,12 @@
           <strong id="status-title">准备开始</strong>
           <p class="status-copy" id="status-text">选择玩家人数后开始游戏。每轮会先播放一次序列，然后由当前玩家复现。</p>
         </div>
+        <div class="celebration" id="celebration" aria-hidden="true"></div>
         <div class="overlay visible" id="overlay">
           <div class="overlay-card">
             <p class="tiny">Hot-Seat Memory Relay</p>
             <h2 id="overlay-title">选择人数并开局</h2>
-            <p class="player-note" id="overlay-text">初始序列长度为 3。正确复现后，序列加 1 并切给下一位仍存活的玩家。</p>
+            <p class="player-note" id="overlay-text">初始序列长度为 3。派对模式下答对后切给下一位玩家，练习模式下持续挑战并记录最高轮数。</p>
             <button class="action-button primary" type="button" id="overlay-button">开始首局</button>
           </div>
         </div>
@@ -494,15 +536,14 @@
     const storageKey = "rhythm-block-relay-best-round";
     const initialSequenceLength = 3;
     const sequenceStep = 1;
-    const tileKeys = ["Q", "W", "E", "A", "S", "D"];
+    const tileKeys = ["Q", "W", "A", "S"];
     const beatStepMs = 520;
+    const inputWindowMs = 3000;
     const tileData = [
       { id: 0, name: "Cyan", key: "Q", frequency: 261.63, start: "#2ef2ff", end: "#1e8bff", glow: "#62f7ff" },
       { id: 1, name: "Magenta", key: "W", frequency: 329.63, start: "#ff52bf", end: "#8e39ff", glow: "#ff88d5" },
-      { id: 2, name: "Amber", key: "E", frequency: 392.0, start: "#ffd54a", end: "#ff8139", glow: "#ffe17b" },
-      { id: 3, name: "Lime", key: "A", frequency: 523.25, start: "#c2ff44", end: "#49c86d", glow: "#d7ff87" },
-      { id: 4, name: "Rose", key: "S", frequency: 659.25, start: "#ff6689", end: "#ff3d58", glow: "#ff99b0" },
-      { id: 5, name: "Violet", key: "D", frequency: 783.99, start: "#8f6dff", end: "#4c6bff", glow: "#b39aff" }
+      { id: 2, name: "Lime", key: "A", frequency: 523.25, start: "#c2ff44", end: "#49c86d", glow: "#d7ff87" },
+      { id: 3, name: "Amber", key: "S", frequency: 392.0, start: "#ffd54a", end: "#ff8139", glow: "#ffe17b" }
     ];
 
     const board = document.querySelector("#board");
@@ -511,6 +552,8 @@
     const activeCountDisplay = document.querySelector("#active-count");
     const roundDisplay = document.querySelector("#round-display");
     const sequenceDisplay = document.querySelector("#sequence-display");
+    const modeDisplay = document.querySelector("#mode-display");
+    const timerDisplay = document.querySelector("#timer-display");
     const bestDisplay = document.querySelector("#best-display");
     const muteDisplay = document.querySelector("#mute-display");
     const turnPill = document.querySelector("#turn-pill");
@@ -519,10 +562,12 @@
     const statusTitle = document.querySelector("#status-title");
     const statusText = document.querySelector("#status-text");
     const overlay = document.querySelector("#overlay");
+    const celebration = document.querySelector("#celebration");
     const overlayTitle = document.querySelector("#overlay-title");
     const overlayText = document.querySelector("#overlay-text");
     const overlayButton = document.querySelector("#overlay-button");
     const startButton = document.querySelector("#start-button");
+    const modeButton = document.querySelector("#mode-button");
     const restartButton = document.querySelector("#restart-button");
     const muteButton = document.querySelector("#mute-button");
     const countButtons = Array.from(document.querySelectorAll("[data-player-count]"));
@@ -530,10 +575,14 @@
     let audioContext = null;
     let selectedPlayerCount = 2;
     let bestRound = Number(localStorage.getItem(storageKey) || 0);
+    let isPracticeMode = false;
     let players = [];
     let state = createInitialState();
     let isMuted = false;
     let roundToken = 0;
+    let inputTimerId = 0;
+    let timerIntervalId = 0;
+    let inputDeadline = 0;
 
     function createInitialState() {
       return {
@@ -543,7 +592,8 @@
         sequence: [],
         expectedIndex: 0,
         acceptingInput: false,
-        showingSequence: false
+        showingSequence: false,
+        timeLeftMs: 0
       };
     }
 
@@ -604,6 +654,8 @@
       activeCountDisplay.textContent = String(activePlayers);
       roundDisplay.textContent = String(state.round);
       sequenceDisplay.textContent = String(state.sequence.length);
+      modeDisplay.textContent = isPracticeMode ? "Practice" : "Party";
+      timerDisplay.textContent = `${Math.max(0, state.timeLeftMs / 1000).toFixed(1)}s`;
       bestDisplay.textContent = String(bestRound);
       muteDisplay.textContent = isMuted ? "On" : "Off";
       inputPill.textContent = `输入：${state.expectedIndex} / ${state.sequence.length}`;
@@ -648,6 +700,11 @@
       overlay.classList.remove("visible");
     }
 
+    function clearCelebration() {
+      celebration.classList.remove("visible");
+      celebration.replaceChildren();
+    }
+
     function randomTileId() {
       return Math.floor(Math.random() * tileData.length);
     }
@@ -658,6 +715,41 @@
 
     function advanceSequence() {
       state.sequence.push(randomTileId());
+    }
+
+    function clearInputTimer() {
+      if (inputTimerId) {
+        window.clearTimeout(inputTimerId);
+        inputTimerId = 0;
+      }
+      if (timerIntervalId) {
+        window.clearInterval(timerIntervalId);
+        timerIntervalId = 0;
+      }
+      inputDeadline = 0;
+      state.timeLeftMs = 0;
+      updateScoreboard();
+    }
+
+    function startInputTimer(token) {
+      clearInputTimer();
+      inputDeadline = performance.now() + inputWindowMs;
+      state.timeLeftMs = inputWindowMs;
+      updateScoreboard();
+      timerIntervalId = window.setInterval(() => {
+        if (token !== roundToken || !state.acceptingInput) {
+          clearInputTimer();
+          return;
+        }
+        state.timeLeftMs = Math.max(0, inputDeadline - performance.now());
+        updateScoreboard();
+      }, 100);
+      inputTimerId = window.setTimeout(() => {
+        if (token !== roundToken || !state.acceptingInput) {
+          return;
+        }
+        handleTimeout();
+      }, inputWindowMs);
     }
 
     async function ensureAudioContext() {
@@ -768,6 +860,7 @@
       state.acceptingInput = true;
       updateScoreboard();
       setStatus("开始复现", `${players[state.currentPlayerIndex].name}，现在按顺序输入 ${state.sequence.length} 个色块。`);
+      startInputTimer(token);
     }
 
     function getCurrentPlayer() {
@@ -793,6 +886,8 @@
 
     async function startRound() {
       roundToken += 1;
+      clearInputTimer();
+      clearCelebration();
       state.expectedIndex = 0;
       state.acceptingInput = false;
       updateScoreboard();
@@ -808,16 +903,21 @@
 
     async function handleSuccessfulTurn() {
       const player = getCurrentPlayer();
+      clearInputTimer();
       player.turnsSurvived += 1;
       persistBestRound();
       markFlash("success-flash");
-      setStatus("接力成功", `${player.name} 完整复现了序列，下一轮将增加 1 格并传给下一位玩家。`);
+      setStatus("接力成功", isPracticeMode
+        ? `连续挑战成功，下一轮序列会再增加 1 格。`
+        : `${player.name} 完整复现了序列，下一轮将增加 1 格并传给下一位玩家。`);
 
       await sleep(460);
 
       state.round += 1;
       advanceSequence();
-      state.currentPlayerIndex = getNextActivePlayerIndex(state.currentPlayerIndex);
+      if (!isPracticeMode) {
+        state.currentPlayerIndex = getNextActivePlayerIndex(state.currentPlayerIndex);
+      }
       updateScoreboard();
       await startRound();
     }
@@ -829,6 +929,7 @@
     async function handleElimination(player) {
       state.phase = "failed";
       state.acceptingInput = false;
+      clearInputTimer();
       player.eliminated = true;
       markFlash("elimination-flash");
       updateScoreboard();
@@ -852,14 +953,94 @@
       await startRound();
     }
 
+    async function finishPracticeRun(reasonText) {
+      state.phase = "failed";
+      state.acceptingInput = false;
+      clearInputTimer();
+      markFlash("elimination-flash");
+      updateScoreboard();
+      playFailureTone();
+      setStatus("练习结束", reasonText);
+      if (navigator.vibrate) {
+        navigator.vibrate([60, 60, 100]);
+      }
+      await sleep(520);
+      finishGame(getCurrentPlayer());
+    }
+
+    async function handleTimeout() {
+      if (!state.acceptingInput) {
+        return;
+      }
+
+      if (isPracticeMode) {
+        await finishPracticeRun(`超时未输入，本次练习在第 ${state.round} 轮结束。`);
+        return;
+      }
+
+      await handleElimination(getCurrentPlayer());
+    }
+
+    function launchCelebration() {
+      clearCelebration();
+      const colors = ["#62f7ff", "#ff88d5", "#d7ff87", "#ffe17b"];
+      const fragment = document.createDocumentFragment();
+
+      for (let index = 0; index < 28; index += 1) {
+        const piece = document.createElement("span");
+        piece.className = "confetti";
+        piece.style.left = `${4 + Math.random() * 92}%`;
+        piece.style.background = colors[index % colors.length];
+        piece.style.setProperty("--drift", `${-140 + Math.random() * 280}px`);
+        piece.style.setProperty("--spin", `${360 + Math.random() * 720}deg`);
+        piece.style.animationDelay = `${Math.random() * 0.25}s`;
+        fragment.appendChild(piece);
+      }
+
+      celebration.replaceChildren(fragment);
+      celebration.classList.add("visible");
+    }
+
+    async function playVictoryTone() {
+      if (isMuted) {
+        return;
+      }
+
+      const context = await ensureAudioContext();
+      if (!context) {
+        return;
+      }
+
+      [523.25, 659.25, 783.99].forEach((frequency, index) => {
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        const start = context.currentTime + index * 0.12;
+        oscillator.type = "triangle";
+        oscillator.frequency.setValueAtTime(frequency, start);
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(0.08, start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.26);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start(start);
+        oscillator.stop(start + 0.28);
+      });
+    }
+
     function finishGame(winner) {
       state.phase = "won";
       state.acceptingInput = false;
+      clearInputTimer();
       updateScoreboard();
 
-      if (winner) {
+      if (winner && !isPracticeMode) {
+        launchCelebration();
+        playVictoryTone();
         setStatus("游戏结束", `${winner.name} 是最后存活者，赢得本局记忆接力。`);
         showOverlay(`${winner.name} 获胜`, `最高连续轮数已记录为 ${bestRound}。点击下方可按当前人数快速再来一局。`, "再来一局");
+      } else if (isPracticeMode) {
+        showOverlay("练习结束", `本次最高连续正确轮数为 ${state.round}，历史最佳为 ${bestRound}。点击下方继续练习。`, "继续练习");
+        setStatus("练习结束", `单人练习结束，本次连续正确 ${state.round} 轮。`);
       } else {
         setStatus("游戏结束", "没有存活玩家。点击重新开始发起新一局。");
         showOverlay("全员淘汰", "本局没有胜者，点击下方重新发起热座挑战。", "重新开始");
@@ -873,10 +1054,15 @@
 
       await ensureAudioContext();
       state.acceptingInput = false;
+      clearInputTimer();
       await flashTile(tileId, true);
 
       const expectedTileId = state.sequence[state.expectedIndex];
       if (tileId !== expectedTileId) {
+        if (isPracticeMode) {
+          await finishPracticeRun(`输入错误，本次练习在第 ${state.round} 轮结束。`);
+          return;
+        }
         await handleElimination(getCurrentPlayer());
         return;
       }
@@ -890,11 +1076,12 @@
       }
 
       state.acceptingInput = true;
+      startInputTimer(roundToken);
       setStatus("继续输入", `${getCurrentPlayer().name} 还需要输入 ${state.sequence.length - state.expectedIndex} 格。`);
     }
 
     function initializeGameState() {
-      players = createPlayers(selectedPlayerCount);
+      players = createPlayers(isPracticeMode ? 1 : selectedPlayerCount);
       state = createInitialState();
       state.round = 1;
       state.sequence = createStartingSequence();
@@ -910,13 +1097,21 @@
 
     function resetGame(copyOnly = false) {
       roundToken += 1;
+      clearInputTimer();
+      clearCelebration();
       state = createInitialState();
       if (!copyOnly) {
-        players = createPlayers(selectedPlayerCount);
+        players = createPlayers(isPracticeMode ? 1 : selectedPlayerCount);
       }
       updateScoreboard();
       setStatus("准备开始", "选择玩家人数后开始游戏。每轮会先播放一次序列，然后由当前玩家复现。");
-      showOverlay("选择人数并开局", "初始序列长度为 3。正确复现后，序列加 1 并切给下一位仍存活的玩家。", "开始首局");
+      showOverlay(
+        isPracticeMode ? "单人练习模式" : "选择人数并开局",
+        isPracticeMode
+          ? "初始序列长度为 3。练习模式不淘汰，答错或超时后结算本次连续正确轮数。"
+          : "初始序列长度为 3。正确复现后，序列加 1 并切给下一位仍存活的玩家。",
+        isPracticeMode ? "开始练习" : "开始首局"
+      );
     }
 
     countButtons.forEach((button) => {
@@ -925,6 +1120,12 @@
         countButtons.forEach((item) => item.classList.toggle("active", item === button));
         resetGame(false);
       });
+    });
+
+    modeButton.addEventListener("click", () => {
+      isPracticeMode = !isPracticeMode;
+      modeButton.textContent = `模式：${isPracticeMode ? "练习" : "派对"}`;
+      resetGame(false);
     });
 
     muteButton.addEventListener("click", async () => {
