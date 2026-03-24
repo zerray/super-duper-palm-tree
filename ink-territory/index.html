@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>墨水领地</title>
+  <style>
+    :root {
+      --bg: #f4efe7;
+      --panel: rgba(255, 250, 242, 0.92);
+      --line: rgba(72, 54, 37, 0.14);
+      --text: #241a14;
+      --muted: #695b4f;
+      --p1: #2d6cdf;
+      --p1-soft: #d9e8ff;
+      --p2: #d6584f;
+      --p2-soft: #ffd9d3;
+      --gold: #f4c85d;
+      --gold-edge: #ad7a00;
+      --empty: #f3ead8;
+      --empty-edge: #c5b59e;
+      --highlight: #2f8f63;
+      --shadow: 0 18px 40px rgba(58, 39, 18, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 24px;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.8), transparent 28%),
+        radial-gradient(circle at top right, rgba(214, 88, 79, 0.12), transparent 24%),
+        linear-gradient(180deg, #f8f4ec 0%, var(--bg) 100%);
+    }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(300px, 360px);
+      gap: 20px;
+    }
+
+    .surface,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+
+    .surface {
+      padding: 24px;
+    }
+
+    .panel {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.2rem, 4.8vw, 4.2rem);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+    }
+
+    .lede {
+      margin-top: 14px;
+      max-width: 58ch;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .chip {
+      padding: 10px 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .chip strong {
+      color: var(--text);
+    }
+
+    .chip.p1 strong {
+      color: var(--p1);
+    }
+
+    .chip.p2 strong {
+      color: var(--p2);
+    }
+
+    .board-shell {
+      margin-top: 18px;
+      padding: 16px;
+      border-radius: 22px;
+      border: 1px solid rgba(72, 54, 37, 0.08);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(246, 239, 227, 0.92)),
+        repeating-linear-gradient(135deg, rgba(72, 54, 37, 0.025) 0 16px, transparent 16px 32px);
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      gap: 6px;
+      aspect-ratio: 1;
+    }
+
+    .cell {
+      position: relative;
+      border: 1px solid var(--empty-edge);
+      border-radius: 16px;
+      background: var(--empty);
+      transition: transform 140ms ease, background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .cell::after {
+      content: "";
+      position: absolute;
+      inset: 16%;
+      border-radius: 12px;
+      background: transparent;
+      transition: background-color 180ms ease, transform 200ms ease, opacity 200ms ease;
+      opacity: 0;
+      transform: scale(0.72);
+    }
+
+    .cell.player-1 {
+      background: var(--p1-soft);
+      border-color: rgba(45, 108, 223, 0.42);
+    }
+
+    .cell.player-1::after {
+      background: radial-gradient(circle at 35% 35%, #7eb1ff, var(--p1));
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .cell.player-2 {
+      background: var(--p2-soft);
+      border-color: rgba(214, 88, 79, 0.42);
+    }
+
+    .cell.player-2::after {
+      background: radial-gradient(circle at 35% 35%, #ff9f92, var(--p2));
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .cell.gold::before {
+      content: "★";
+      position: absolute;
+      top: 6px;
+      right: 7px;
+      color: var(--gold-edge);
+      font-size: 0.9rem;
+      line-height: 1;
+      z-index: 2;
+    }
+
+    .cell.preview {
+      box-shadow: inset 0 0 0 2px rgba(47, 143, 99, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .cell.preview.player-1::after,
+    .cell.preview.player-2::after {
+      opacity: 0.5;
+    }
+
+    .cell.preview.invalid {
+      box-shadow: inset 0 0 0 2px rgba(185, 40, 40, 0.4);
+      transform: none;
+    }
+
+    .cell.spreading::after {
+      animation: inkSpread 360ms ease-out;
+    }
+
+    @keyframes inkSpread {
+      0% {
+        opacity: 0;
+        transform: scale(0.22);
+      }
+      65% {
+        opacity: 1;
+        transform: scale(1.08);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .card {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(72, 54, 37, 0.08);
+      background: rgba(255, 255, 255, 0.7);
+      display: grid;
+      gap: 10px;
+    }
+
+    .muted {
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 0.94rem;
+    }
+
+    .shape-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .shape-card {
+      display: grid;
+      grid-template-columns: 68px 1fr;
+      gap: 12px;
+      align-items: center;
+      width: 100%;
+      padding: 10px;
+      border: 1px solid rgba(72, 54, 37, 0.1);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.84);
+      text-align: left;
+    }
+
+    .shape-card.selected {
+      border-color: rgba(47, 143, 99, 0.5);
+      box-shadow: inset 0 0 0 1px rgba(47, 143, 99, 0.22);
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 3px;
+      width: 56px;
+      height: 56px;
+    }
+
+    .mini-cell {
+      border-radius: 5px;
+      background: rgba(72, 54, 37, 0.08);
+    }
+
+    .mini-cell.filled.player-1 {
+      background: linear-gradient(180deg, #7eb1ff, var(--p1));
+    }
+
+    .mini-cell.filled.player-2 {
+      background: linear-gradient(180deg, #ff9f92, var(--p2));
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .button {
+      min-height: 42px;
+      padding: 0 16px;
+      border: 0;
+      border-radius: 999px;
+      color: #fdf8f2;
+      background: linear-gradient(180deg, #3d8d68, #2b6d52);
+      box-shadow: 0 10px 18px rgba(43, 109, 82, 0.2);
+    }
+
+    .button.secondary {
+      color: var(--text);
+      background: linear-gradient(180deg, #f7efe1, #eadcc5);
+      box-shadow: none;
+      border: 1px solid rgba(72, 54, 37, 0.12);
+    }
+
+    .button:disabled {
+      opacity: 0.55;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    .turn-banner {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(247, 239, 226, 0.92));
+      border: 1px solid rgba(72, 54, 37, 0.08);
+      font-weight: 600;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 20px;
+      background: rgba(21, 14, 9, 0.5);
+    }
+
+    .overlay.open {
+      display: grid;
+    }
+
+    .modal {
+      width: min(460px, 100%);
+      padding: 24px;
+      border-radius: 24px;
+      background: #fff9f1;
+      border: 1px solid rgba(72, 54, 37, 0.12);
+      box-shadow: 0 24px 60px rgba(21, 14, 9, 0.28);
+      display: grid;
+      gap: 12px;
+    }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .score-box {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(72, 54, 37, 0.08);
+    }
+
+    .score-box strong {
+      display: block;
+      font-size: 1.3rem;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 920px) {
+      body {
+        padding: 16px;
+      }
+
+      .app {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="surface">
+      <h1>墨水领地</h1>
+      <p class="lede">双人热座策略棋。两位玩家轮流把俄罗斯方块式墨块放进 8×8 棋盘，随后触发 BFS ink spread 向四邻渗透 1 格。金色格价值更高，20 回合后总分更高者获胜。</p>
+      <div class="stats">
+        <div class="chip"><strong id="turn-label">回合 1 / 20</strong></div>
+        <div class="chip p1"><strong id="player1-area">蓝方领地 0</strong></div>
+        <div class="chip p1"><strong id="player1-score">蓝方得分 0</strong></div>
+        <div class="chip p2"><strong id="player2-area">红方领地 0</strong></div>
+        <div class="chip p2"><strong id="player2-score">红方得分 0</strong></div>
+      </div>
+      <div class="board-shell">
+        <div class="board" id="board" aria-label="墨水领地棋盘"></div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="turn-banner" id="turn-banner">蓝方回合：先选一个形状，再点击棋盘放置。</div>
+
+      <section class="card">
+        <h2>当前候选形状</h2>
+        <p class="muted">每回合从 3 个随机形状中选 1 个。点击“旋转形状”或按 <kbd>R</kbd> 调整朝向。</p>
+        <div class="shape-list" id="shape-list"></div>
+        <div class="actions">
+          <button class="button" id="rotate-button" type="button">旋转形状</button>
+          <button class="button secondary" id="undo-button" type="button">悔棋</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>规则摘要</h2>
+        <p class="muted">放置的每个格子必须落在空位上，且不会越界。放置完成后，墨水只会向上下左右空格扩散一层，不会覆盖对手已有墨水。普通格计 1 分，金色格计 3 分。</p>
+      </section>
+
+      <section class="card">
+        <h2>操作提示</h2>
+        <p class="muted" id="status-text">悬停棋盘可以预览当前形状的落点。绿色表示可以落子，红色表示无效位置。</p>
+      </section>
+    </aside>
+  </main>
+
+  <div class="overlay" id="game-over-overlay" aria-live="polite">
+    <div class="modal">
+      <h2>对局结束</h2>
+      <p id="final-result" class="muted"></p>
+      <div class="score-grid">
+        <div class="score-box">
+          蓝方
+          <strong id="final-p1">0 分</strong>
+        </div>
+        <div class="score-box">
+          红方
+          <strong id="final-p2">0 分</strong>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="button" id="restart-button" type="button">再来一局</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const BOARD_SIZE = 8;
+    const MAX_TURNS = 20;
+    const SHAPE_OFFER_COUNT = 3;
+    const GOLD_CELL_MIN = 4;
+    const GOLD_CELL_MAX = 6;
+    const SPREAD_DELAY_MS = 220;
+    const PLAYERS = {
+      1: { name: "蓝方", className: "player-1" },
+      2: { name: "红方", className: "player-2" }
+    };
+    const SHAPES = [
+      { name: "短线", cells: [[0, 0], [1, 0], [2, 0]] },
+      { name: "长线", cells: [[0, 0], [1, 0], [2, 0], [3, 0]] },
+      { name: "方块", cells: [[0, 0], [1, 0], [0, 1], [1, 1]] },
+      { name: "L", cells: [[0, 0], [0, 1], [0, 2], [1, 2]] },
+      { name: "J", cells: [[1, 0], [1, 1], [1, 2], [0, 2]] },
+      { name: "T", cells: [[0, 0], [1, 0], [2, 0], [1, 1]] },
+      { name: "S", cells: [[1, 0], [2, 0], [0, 1], [1, 1]] },
+      { name: "Z", cells: [[0, 0], [1, 0], [1, 1], [2, 1]] },
+      { name: "拐角", cells: [[0, 0], [1, 0], [0, 1]] },
+      { name: "阶梯", cells: [[0, 0], [1, 0], [1, 1]] }
+    ];
+
+    const boardElement = document.querySelector("#board");
+    const shapeListElement = document.querySelector("#shape-list");
+    const rotateButton = document.querySelector("#rotate-button");
+    const undoButton = document.querySelector("#undo-button");
+    const restartButton = document.querySelector("#restart-button");
+    const overlayElement = document.querySelector("#game-over-overlay");
+    const turnLabel = document.querySelector("#turn-label");
+    const turnBanner = document.querySelector("#turn-banner");
+    const statusText = document.querySelector("#status-text");
+    const player1Area = document.querySelector("#player1-area");
+    const player2Area = document.querySelector("#player2-area");
+    const player1Score = document.querySelector("#player1-score");
+    const player2Score = document.querySelector("#player2-score");
+    const finalResult = document.querySelector("#final-result");
+    const finalP1 = document.querySelector("#final-p1");
+    const finalP2 = document.querySelector("#final-p2");
+
+    const cellElements = [];
+    let hoverAnchor = null;
+    let spreadTimeoutId = 0;
+    let pendingAnimation = false;
+    let state = null;
+
+    function createEmptyBoard() {
+      return Array.from({ length: BOARD_SIZE }, () => Array(BOARD_SIZE).fill(0));
+    }
+
+    function cloneBoard(board) {
+      return board.map((row) => row.slice());
+    }
+
+    function cloneOffers(offers) {
+      return offers.map((offer) => ({
+        name: offer.name,
+        cells: offer.cells.map(([x, y]) => [x, y])
+      }));
+    }
+
+    function normalizeCells(cells) {
+      const minX = Math.min(...cells.map(([x]) => x));
+      const minY = Math.min(...cells.map(([, y]) => y));
+      return cells
+        .map(([x, y]) => [x - minX, y - minY])
+        .sort((a, b) => (a[1] - b[1]) || (a[0] - b[0]));
+    }
+
+    function rotateShapeCells(cells, steps) {
+      let rotated = cells.map(([x, y]) => [x, y]);
+      for (let i = 0; i < steps; i += 1) {
+        rotated = rotated.map(([x, y]) => [-y, x]);
+        rotated = normalizeCells(rotated);
+      }
+      return rotated;
+    }
+
+    function drawBoardSkeleton() {
+      boardElement.innerHTML = "";
+      cellElements.length = 0;
+      for (let y = 0; y < BOARD_SIZE; y += 1) {
+        const row = [];
+        for (let x = 0; x < BOARD_SIZE; x += 1) {
+          const cell = document.createElement("button");
+          cell.type = "button";
+          cell.className = "cell";
+          cell.dataset.x = String(x);
+          cell.dataset.y = String(y);
+          cell.addEventListener("mouseenter", handleCellEnter);
+          cell.addEventListener("focus", handleCellEnter);
+          cell.addEventListener("click", handleBoardClick);
+          boardElement.appendChild(cell);
+          row.push(cell);
+        }
+        cellElements.push(row);
+      }
+      boardElement.addEventListener("mouseleave", () => {
+        hoverAnchor = null;
+        renderBoard();
+      });
+    }
+
+    function getRandomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function pickGoldCells() {
+      const target = getRandomInt(GOLD_CELL_MIN, GOLD_CELL_MAX);
+      const picks = [];
+      let attempts = 0;
+      while (picks.length < target && attempts < 400) {
+        attempts += 1;
+        const x = getRandomInt(0, BOARD_SIZE - 1);
+        const y = getRandomInt(0, BOARD_SIZE - 1);
+        if (picks.some((cell) => cell.x === x && cell.y === y)) {
+          continue;
+        }
+        const tooClose = picks.some((cell) => Math.abs(cell.x - x) + Math.abs(cell.y - y) < 3);
+        if (tooClose) {
+          continue;
+        }
+        picks.push({ x, y });
+      }
+      return new Set(picks.map((cell) => `${cell.x},${cell.y}`));
+    }
+
+    function shapeHasAnyValidPlacement(board, shape) {
+      for (let rotation = 0; rotation < 4; rotation += 1) {
+        const cells = rotateShapeCells(shape.cells, rotation);
+        for (let y = 0; y < BOARD_SIZE; y += 1) {
+          for (let x = 0; x < BOARD_SIZE; x += 1) {
+            const canPlace = cells.every(([dx, dy]) => {
+              const px = x + dx;
+              const py = y + dy;
+              return px >= 0 && px < BOARD_SIZE && py >= 0 && py < BOARD_SIZE && board[py][px] === 0;
+            });
+            if (canPlace) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    }
+
+    function randomOffers(board) {
+      const validShapes = SHAPES.filter((shape) => shapeHasAnyValidPlacement(board, shape));
+      if (validShapes.length === 0) {
+        return [];
+      }
+      const pool = validShapes.slice();
+      const offers = [];
+      while (offers.length < SHAPE_OFFER_COUNT) {
+        if (pool.length === 0) {
+          offers.push(validShapes[getRandomInt(0, validShapes.length - 1)]);
+          continue;
+        }
+        const index = getRandomInt(0, pool.length - 1);
+        offers.push(pool.splice(index, 1)[0]);
+      }
+      return offers;
+    }
+
+    function makeInitialState() {
+      return {
+        board: createEmptyBoard(),
+        goldCells: pickGoldCells(),
+        currentPlayer: 1,
+        turn: 1,
+        offers: randomOffers(createEmptyBoard()),
+        selectedOfferIndex: 0,
+        rotation: 0,
+        history: [],
+        gameOver: false
+      };
+    }
+
+    function resetGame() {
+      window.clearTimeout(spreadTimeoutId);
+      hoverAnchor = null;
+      pendingAnimation = false;
+      state = makeInitialState();
+      overlayElement.classList.remove("open");
+      renderShapeList();
+      renderBoard();
+      updateStatus();
+    }
+
+    function getSelectedShapeCells() {
+      const offer = state.offers[state.selectedOfferIndex];
+      return rotateShapeCells(offer.cells, state.rotation);
+    }
+
+    function getPlacementCells(anchorX, anchorY) {
+      return getSelectedShapeCells().map(([dx, dy]) => ({ x: anchorX + dx, y: anchorY + dy }));
+    }
+
+    function isValidPlacement(cells) {
+      if (cells.length === 0) {
+        return false;
+      }
+      return cells.every(({ x, y }) => (
+        x >= 0 &&
+        x < BOARD_SIZE &&
+        y >= 0 &&
+        y < BOARD_SIZE &&
+        state.board[y][x] === 0
+      ));
+    }
+
+    function getSpreadTargets(placedCells, player) {
+      const spreadMap = new Map();
+      for (const { x, y } of placedCells) {
+        const neighbors = [
+          [x + 1, y],
+          [x - 1, y],
+          [x, y + 1],
+          [x, y - 1]
+        ];
+        for (const [nx, ny] of neighbors) {
+          if (nx < 0 || nx >= BOARD_SIZE || ny < 0 || ny >= BOARD_SIZE) {
+            continue;
+          }
+          if (state.board[ny][nx] !== 0) {
+            continue;
+          }
+          spreadMap.set(`${nx},${ny}`, { x: nx, y: ny, player });
+        }
+      }
+      return Array.from(spreadMap.values());
+    }
+
+    function scoreForBoard(board, goldCells) {
+      const result = {
+        1: { area: 0, score: 0 },
+        2: { area: 0, score: 0 }
+      };
+      for (let y = 0; y < BOARD_SIZE; y += 1) {
+        for (let x = 0; x < BOARD_SIZE; x += 1) {
+          const owner = board[y][x];
+          if (!owner) {
+            continue;
+          }
+          result[owner].area += 1;
+          result[owner].score += goldCells.has(`${x},${y}`) ? 3 : 1;
+        }
+      }
+      return result;
+    }
+
+    function saveHistorySnapshot() {
+      state.history.push({
+        board: cloneBoard(state.board),
+        currentPlayer: state.currentPlayer,
+        turn: state.turn,
+        offers: cloneOffers(state.offers),
+        selectedOfferIndex: state.selectedOfferIndex,
+        rotation: state.rotation,
+        gameOver: state.gameOver
+      });
+    }
+
+    function consumeTurn() {
+      if (state.turn >= MAX_TURNS) {
+        state.gameOver = true;
+      } else {
+        state.turn += 1;
+        state.currentPlayer = state.currentPlayer === 1 ? 2 : 1;
+        state.offers = randomOffers(state.board);
+        state.selectedOfferIndex = 0;
+        state.rotation = 0;
+        if (state.offers.length === 0) {
+          state.gameOver = true;
+        }
+      }
+    }
+
+    function handleSuccessfulPlacement(anchorX, anchorY) {
+      if (pendingAnimation || state.gameOver) {
+        return;
+      }
+      const player = state.currentPlayer;
+      const placedCells = getPlacementCells(anchorX, anchorY);
+      if (!isValidPlacement(placedCells)) {
+        statusText.textContent = "这个位置放不下当前形状，请换一个位置或先旋转。";
+        renderBoard();
+        return;
+      }
+
+      saveHistorySnapshot();
+      for (const { x, y } of placedCells) {
+        state.board[y][x] = player;
+      }
+
+      const spreadTargets = getSpreadTargets(placedCells, player);
+      pendingAnimation = true;
+      hoverAnchor = null;
+      renderBoard({ placedCells, spreadTargets: [] });
+      updateStatus("墨水正在渗透...");
+
+      spreadTimeoutId = window.setTimeout(() => {
+        for (const { x, y } of spreadTargets) {
+          if (state.board[y][x] === 0) {
+            state.board[y][x] = player;
+          }
+        }
+        consumeTurn();
+        pendingAnimation = false;
+        renderShapeList();
+        renderBoard({ placedCells: [], spreadTargets });
+        updateStatus();
+        if (state.gameOver) {
+          showGameOver();
+        }
+      }, SPREAD_DELAY_MS);
+    }
+
+    function handleCellEnter(event) {
+      if (state.gameOver || pendingAnimation) {
+        return;
+      }
+      hoverAnchor = {
+        x: Number(event.currentTarget.dataset.x),
+        y: Number(event.currentTarget.dataset.y)
+      };
+      renderBoard();
+    }
+
+    function handleBoardClick(event) {
+      const anchorX = Number(event.currentTarget.dataset.x);
+      const anchorY = Number(event.currentTarget.dataset.y);
+      handleSuccessfulPlacement(anchorX, anchorY);
+    }
+
+    function renderShapePreview(container, cells, player) {
+      const normalized = normalizeCells(cells);
+      const occupied = new Set(normalized.map(([x, y]) => `${x},${y}`));
+      container.innerHTML = "";
+      for (let y = 0; y < 4; y += 1) {
+        for (let x = 0; x < 4; x += 1) {
+          const miniCell = document.createElement("div");
+          miniCell.className = "mini-cell";
+          if (occupied.has(`${x},${y}`)) {
+            miniCell.classList.add("filled", PLAYERS[player].className);
+          }
+          container.appendChild(miniCell);
+        }
+      }
+    }
+
+    function renderShapeList() {
+      shapeListElement.innerHTML = "";
+      const player = state.currentPlayer;
+      state.offers.forEach((offer, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "shape-card";
+        if (index === state.selectedOfferIndex) {
+          button.classList.add("selected");
+        }
+        button.addEventListener("click", () => {
+          if (pendingAnimation || state.gameOver) {
+            return;
+          }
+          state.selectedOfferIndex = index;
+          state.rotation = 0;
+          renderShapeList();
+          renderBoard();
+          updateStatus();
+        });
+
+        const miniGrid = document.createElement("div");
+        miniGrid.className = "mini-grid";
+        renderShapePreview(miniGrid, offer.cells, player);
+
+        const info = document.createElement("div");
+        const title = document.createElement("h3");
+        title.textContent = offer.name;
+        const desc = document.createElement("p");
+        desc.className = "muted";
+        desc.textContent = `${offer.cells.length} 格墨块`;
+        info.append(title, desc);
+
+        button.append(miniGrid, info);
+        shapeListElement.appendChild(button);
+      });
+    }
+
+    function renderBoard(animation = { placedCells: [], spreadTargets: [] }) {
+      const previewCells = hoverAnchor ? getPlacementCells(hoverAnchor.x, hoverAnchor.y) : [];
+      const previewValid = hoverAnchor ? isValidPlacement(previewCells) : false;
+      const placedSet = new Set(animation.placedCells.map((cell) => `${cell.x},${cell.y}`));
+      const spreadSet = new Set(animation.spreadTargets.map((cell) => `${cell.x},${cell.y}`));
+
+      for (let y = 0; y < BOARD_SIZE; y += 1) {
+        for (let x = 0; x < BOARD_SIZE; x += 1) {
+          const cell = cellElements[y][x];
+          const owner = state.board[y][x];
+          cell.className = "cell";
+          if (state.goldCells.has(`${x},${y}`)) {
+            cell.classList.add("gold");
+          }
+          if (owner) {
+            cell.classList.add(PLAYERS[owner].className);
+          }
+          if (hoverAnchor && previewCells.some((preview) => preview.x === x && preview.y === y)) {
+            cell.classList.add("preview");
+            if (!previewValid) {
+              cell.classList.add("invalid");
+            }
+          }
+          if (placedSet.has(`${x},${y}`) || spreadSet.has(`${x},${y}`)) {
+            cell.classList.add("spreading");
+          }
+          cell.disabled = state.gameOver || pendingAnimation;
+        }
+      }
+    }
+
+    function updateStatus(customMessage = "") {
+      const scores = scoreForBoard(state.board, state.goldCells);
+      const current = PLAYERS[state.currentPlayer];
+      turnLabel.textContent = `回合 ${state.turn} / ${MAX_TURNS}`;
+      player1Area.textContent = `蓝方领地 ${scores[1].area}`;
+      player2Area.textContent = `红方领地 ${scores[2].area}`;
+      player1Score.textContent = `蓝方得分 ${scores[1].score}`;
+      player2Score.textContent = `红方得分 ${scores[2].score}`;
+      turnBanner.textContent = state.gameOver
+        ? "对局已结束。"
+        : `${current.name}回合：选择一个形状并落到空位。`;
+      statusText.textContent = customMessage || `当前选中「${state.offers[state.selectedOfferIndex].name}」，朝向 ${state.rotation * 90}°。`;
+      undoButton.disabled = pendingAnimation || state.history.length === 0;
+      rotateButton.disabled = pendingAnimation || state.gameOver;
+    }
+
+    function showGameOver() {
+      const scores = scoreForBoard(state.board, state.goldCells);
+      finalP1.textContent = `${scores[1].score} 分`;
+      finalP2.textContent = `${scores[2].score} 分`;
+      if (scores[1].score === scores[2].score) {
+        finalResult.textContent = `双方同分 ${scores[1].score} : ${scores[2].score}，本局平手。`;
+      } else {
+        const winner = scores[1].score > scores[2].score ? "蓝方" : "红方";
+        finalResult.textContent = `${winner}以 ${scores[1].score} : ${scores[2].score} 获胜。`;
+      }
+      overlayElement.classList.add("open");
+    }
+
+    function undoLastTurn() {
+      if (pendingAnimation || state.history.length === 0) {
+        return;
+      }
+      window.clearTimeout(spreadTimeoutId);
+      const snapshot = state.history.pop();
+      state.board = cloneBoard(snapshot.board);
+      state.currentPlayer = snapshot.currentPlayer;
+      state.turn = snapshot.turn;
+      state.offers = cloneOffers(snapshot.offers);
+      state.selectedOfferIndex = snapshot.selectedOfferIndex;
+      state.rotation = snapshot.rotation;
+      state.gameOver = snapshot.gameOver;
+      hoverAnchor = null;
+      overlayElement.classList.remove("open");
+      renderShapeList();
+      renderBoard();
+      updateStatus("已悔棋，返回上一步。");
+    }
+
+    rotateButton.addEventListener("click", () => {
+      if (pendingAnimation || state.gameOver) {
+        return;
+      }
+      state.rotation = (state.rotation + 1) % 4;
+      renderBoard();
+      updateStatus();
+    });
+
+    undoButton.addEventListener("click", undoLastTurn);
+    restartButton.addEventListener("click", resetGame);
+
+    window.addEventListener("keydown", (event) => {
+      if (event.key.toLowerCase() === "r") {
+        event.preventDefault();
+        rotateButton.click();
+      }
+    });
+
+    drawBoardSkeleton();
+    resetGame();
+  </script>
+</body>
+</html>
