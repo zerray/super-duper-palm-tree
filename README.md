@@ -481,3 +481,15 @@ This repository contains a simple agent-factory workflow for planning and comple
 - 清除整行后会为对方底部腾出可见空行，并实时更新分数、连击与最终成绩
 
 直接用浏览器打开 `rhythm-block-clear/index.html` 即可游玩。
+
+## 节奏色块：合作打碟小游戏
+
+新增 `rhythm-dj-coop/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的四轨节奏小游戏，包含：
+
+- 色块从上方匀速落到底线判定区，使用 `D / F / J / K` 命中对应轨道
+- 支持单人模式与双人合作模式切换；双人模式下左两轨归玩家 1、右两轨归玩家 2
+- 使用时间差计算 `Perfect / Good / Miss`，分别对应 ±50ms、±120ms 与超窗 Miss
+- 连击达到 10 / 25 / 50 时触发全屏闪光、背景变色和粒子爆发
+- 使用 Web Audio API `OscillatorNode` 实时生成节拍音与命中反馈，回合结束显示总分与最高连击
+
+直接用浏览器打开 `rhythm-dj-coop/index.html` 即可游玩。
