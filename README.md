@@ -458,3 +458,14 @@ This repository contains a simple agent-factory workflow for planning and comple
 - 清除整行后会为对方底部腾出可见空行，并实时更新分数、连击与最终成绩
 
 直接用浏览器打开 `rhythm-block-clear/index.html` 即可游玩。
+
+## 节奏色块记忆挑战
+
+新增 `rhythm-memory-grid/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的节奏记忆小游戏，包含：
+
+- 单人模式：色块按节拍依次亮起后，玩家需要在节拍时限内按顺序点击复现，失败即结算并记录本地最高轮数
+- 热座双人模式：两位玩家轮流挑战同一序列，分别记录最高轮数并比较胜负
+- 难度会随轮数提升：序列逐轮变长、节拍间隔缩短，并且每 3 轮增加 1 个可用色块，上限 9 个
+- 纯前端实现，使用 Web Audio API 生成节拍音效，并支持触屏与鼠标点击输入
+
+直接用浏览器打开 `rhythm-memory-grid/index.html` 即可游玩。
