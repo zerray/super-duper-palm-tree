@@ -73,11 +73,11 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 ## 磁力弹珠台：双人同屏对战
 
-新增 `magnetic-pinball-duel/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的双人热座物理对战原型，包含：
+新增 `magnetic-pinball-duel/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的双人同屏物理弹球对战原型，包含：
 
-- 左右两侧发射区，玩家轮流调整角度与力度发射磁性弹珠
-- 同极相斥、异极相吸的实时磁力演算，以及可见的力场连线效果
-- 对方得分洞检测、被灌入 5 球判负，以及胜负弹层与重新开始按钮
+- 玩家 1 用 `W / S`、玩家 2 用 `↑ / ↓` 调整各自发射器角度，并分别用空格 / `Enter` 发射
+- 弹珠受重力、弹性碰撞与摩擦衰减影响，场内带有至少 3 个固定障碍物与弹板
+- 两侧磁力按钮可在 3 秒冷却后触发 0.8 秒吸引 / 排斥区域，弹珠触及对方底线计分，先到 7 分获胜
 
 直接用浏览器打开 `magnetic-pinball-duel/index.html` 即可游玩。
 
