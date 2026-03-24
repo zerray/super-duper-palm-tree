@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>磁力弹球对战：同屏双人磁铁弹球竞技</title>
+  <style>
+    :root {
+      --bg: #06111a;
+      --panel: rgba(8, 19, 30, 0.88);
+      --line: rgba(145, 197, 255, 0.16);
+      --text: #eef7ff;
+      --muted: #97afc2;
+      --left: #54c7ff;
+      --right: #ff6b93;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(84, 199, 255, 0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(255, 107, 147, 0.16), transparent 26%),
+        linear-gradient(180deg, #0a1722 0%, #04080d 100%);
+    }
+
+    .shell {
+      width: min(1180px, calc(100vw - 24px));
+      margin: 0 auto;
+      padding: 20px 0 28px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: 0 18px 56px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(10px);
+    }
+
+    .copy,
+    .hud {
+      padding: 22px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(2.5rem, 5vw, 4.5rem);
+      line-height: 0.92;
+      letter-spacing: -0.04em;
+    }
+
+    .lede,
+    .meta,
+    .legend {
+      margin: 0;
+      line-height: 1.65;
+      color: var(--muted);
+    }
+
+    .badge-row,
+    .legend-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .badge,
+    .legend-chip {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 0.95rem;
+    }
+
+    .scoreboard {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .score {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      text-align: center;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .score strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 2rem;
+    }
+
+    .center-stat {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .polarity-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .polarity-card {
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .polarity-card strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .status-text {
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .stage {
+      position: relative;
+      margin-top: 16px;
+      padding: 14px;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 22px;
+      border: 1px solid rgba(145, 197, 255, 0.14);
+      background:
+        radial-gradient(circle at center, rgba(84, 199, 255, 0.08), transparent 20%),
+        linear-gradient(180deg, #0f1f30 0%, #06111a 100%);
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 28px;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+    }
+
+    .overlay-card {
+      max-width: 460px;
+      padding: 18px 22px;
+      border: 1px solid rgba(145, 197, 255, 0.3);
+      border-radius: 22px;
+      background: rgba(5, 10, 16, 0.84);
+      text-align: center;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 160ms ease, transform 160ms ease;
+    }
+
+    .overlay-card.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .overlay-card h2 {
+      margin: 0 0 8px;
+      font-size: 1.55rem;
+    }
+
+    .overlay-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    @media (max-width: 900px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <article class="panel copy">
+        <h1>磁力弹球对战</h1>
+        <p class="lede">两名玩家各守一侧磁力挡板，靠吸引或排斥把弹球扭出刁钻角度。中央会刷新磁极切换道具，抢到之后最近一次击球的挡板磁极立即翻转。</p>
+        <div class="badge-row">
+          <div class="badge">玩家 1: W / S</div>
+          <div class="badge">玩家 2: ↑ / ↓</div>
+          <div class="badge">先让对方漏球 5 次获胜</div>
+        </div>
+        <p class="meta" style="margin-top:16px;">
+          左侧挡板靠近时会根据当前磁极吸引或排斥弹球，右侧同理。粒子拖尾和磁力线会直接显示当前作用状态，结束后按 Space 或 Enter 可重新开始。
+        </p>
+      </article>
+
+      <aside class="panel hud">
+        <div class="scoreboard">
+          <div class="score">
+            玩家 1
+            <strong id="left-score">0</strong>
+          </div>
+          <div class="center-stat">
+            <div>目标 5 分</div>
+            <div id="status-label">发球准备</div>
+          </div>
+          <div class="score">
+            玩家 2
+            <strong id="right-score">0</strong>
+          </div>
+        </div>
+
+        <div class="polarity-row">
+          <div class="polarity-card">
+            <strong>左挡板磁极</strong>
+            <div class="status-text" id="left-polarity">吸引态</div>
+          </div>
+          <div class="polarity-card">
+            <strong>右挡板磁极</strong>
+            <div class="status-text" id="right-polarity">排斥态</div>
+          </div>
+        </div>
+
+        <p class="legend">玩家1用 W / S 控制左挡板，玩家2用 ↑ / ↓ 控制右挡板。球碰到挡板时根据当前磁极产生偏转，道具被球拾取后会翻转最近一次触球挡板的磁极。</p>
+        <div class="legend-stack">
+          <div class="legend-chip">青色磁力线 = 吸引</div>
+          <div class="legend-chip">橙色磁力线 = 排斥</div>
+          <div class="legend-chip">白色方块 = 磁极切换道具</div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="panel stage">
+      <canvas id="game" width="1000" height="600" aria-label="磁力弹球对战游戏画布"></canvas>
+      <div class="overlay">
+        <div class="overlay-card visible" id="overlay-card">
+          <h2 id="overlay-title">磁力弹球对战</h2>
+          <p id="overlay-copy">让对方漏球 5 次即可获胜。按任意移动键开球，结算后按 Space 或 Enter 重新开始。</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const magneticPinballVersus = (() => {
+      const canvas = document.querySelector("#game");
+      const ctx = canvas.getContext("2d");
+      const overlayCard = document.querySelector("#overlay-card");
+      const overlayTitle = document.querySelector("#overlay-title");
+      const overlayCopy = document.querySelector("#overlay-copy");
+      const leftScoreEl = document.querySelector("#left-score");
+      const rightScoreEl = document.querySelector("#right-score");
+      const statusLabel = document.querySelector("#status-label");
+      const leftPolarityEl = document.querySelector("#left-polarity");
+      const rightPolarityEl = document.querySelector("#right-polarity");
+
+      const WIDTH = canvas.width;
+      const HEIGHT = canvas.height;
+      const TARGET_SCORE = 5;
+      const PADDLE_WIDTH = 18;
+      const PADDLE_HEIGHT = 118;
+      const PADDLE_SPEED = 430;
+      const BALL_RADIUS = 12;
+      const BALL_SPEED = 420;
+      const MAX_BALL_SPEED = 910;
+      const MAGNET_RANGE = 160;
+      const MAGNET_FORCE = 760;
+      const HIT_PUSH = 55;
+      const TRAIL_LIMIT = 140;
+      const POWERUP_SIZE = 18;
+      const POWERUP_INTERVAL = 6.5;
+      const RESPAWN_DELAY = 1.1;
+
+      const keys = new Set();
+      const particles = [];
+      const activeFieldLinks = [];
+
+      const state = {
+        scores: [0, 0],
+        gameOver: false,
+        roundPause: 0.55,
+        powerupTimer: 2.4,
+        powerup: null,
+        lastHitter: 0,
+        winner: null
+      };
+
+      const paddles = [
+        { x: 44, y: HEIGHT / 2 - PADDLE_HEIGHT / 2, width: PADDLE_WIDTH, height: PADDLE_HEIGHT, up: "KeyW", down: "KeyS", polarity: 1, tint: "#54c7ff" },
+        { x: WIDTH - 44 - PADDLE_WIDTH, y: HEIGHT / 2 - PADDLE_HEIGHT / 2, width: PADDLE_WIDTH, height: PADDLE_HEIGHT, up: "ArrowUp", down: "ArrowDown", polarity: -1, tint: "#ff6b93" }
+      ];
+
+      const ball = {
+        x: WIDTH / 2,
+        y: HEIGHT / 2,
+        vx: BALL_SPEED,
+        vy: BALL_SPEED * 0.3
+      };
+
+      function setOverlay(title, copy, visible) {
+        overlayTitle.textContent = title;
+        overlayCopy.textContent = copy;
+        overlayCard.classList.toggle("visible", visible);
+      }
+
+      function resetBall(direction = 1) {
+        ball.x = WIDTH / 2;
+        ball.y = HEIGHT / 2;
+        ball.vx = direction * BALL_SPEED;
+        ball.vy = (Math.random() * 2 - 1) * BALL_SPEED * 0.42;
+        state.roundPause = RESPAWN_DELAY;
+      }
+
+      function restartGame() {
+        state.scores = [0, 0];
+        state.gameOver = false;
+        state.winner = null;
+        state.powerup = null;
+        state.powerupTimer = 2.4;
+        state.lastHitter = 0;
+        paddles[0].y = HEIGHT / 2 - PADDLE_HEIGHT / 2;
+        paddles[1].y = HEIGHT / 2 - PADDLE_HEIGHT / 2;
+        paddles[0].polarity = 1;
+        paddles[1].polarity = -1;
+        particles.length = 0;
+        resetBall(Math.random() > 0.5 ? 1 : -1);
+        updateHud();
+        setOverlay("磁力弹球对战", "让对方漏球 5 次即可获胜。按任意移动键开球，结算后按 Space 或 Enter 重新开始。", true);
+      }
+
+      function spawnPowerup() {
+        const marginX = 180;
+        const marginY = 90;
+        state.powerup = {
+          x: marginX + Math.random() * (WIDTH - marginX * 2),
+          y: marginY + Math.random() * (HEIGHT - marginY * 2),
+          size: POWERUP_SIZE
+        };
+      }
+
+      function flipPolarity(playerIndex) {
+        paddles[playerIndex].polarity *= -1;
+      }
+
+      function updateHud() {
+        leftScoreEl.textContent = String(state.scores[0]);
+        rightScoreEl.textContent = String(state.scores[1]);
+        leftPolarityEl.textContent = paddles[0].polarity > 0 ? "吸引态" : "排斥态";
+        rightPolarityEl.textContent = paddles[1].polarity > 0 ? "吸引态" : "排斥态";
+
+        if (state.gameOver) {
+          statusLabel.textContent = `玩家 ${state.winner + 1} 获胜`;
+        } else if (state.roundPause > 0) {
+          statusLabel.textContent = "发球准备";
+        } else {
+          statusLabel.textContent = state.powerup ? "磁极道具已刷新" : "对战进行中";
+        }
+      }
+
+      function endGame(winnerIndex) {
+        state.gameOver = true;
+        state.winner = winnerIndex;
+        setOverlay(`玩家 ${winnerIndex + 1} 获胜`, `比分 ${state.scores[0]} : ${state.scores[1]}。按 Space 或 Enter 重新开始新一局。`, true);
+        updateHud();
+      }
+
+      function addTrailParticle() {
+        particles.push({
+          x: ball.x,
+          y: ball.y,
+          radius: 3 + Math.random() * 3,
+          alpha: 0.6,
+          vx: -ball.vx * 0.015 + (Math.random() - 0.5) * 0.7,
+          vy: -ball.vy * 0.015 + (Math.random() - 0.5) * 0.7
+        });
+
+        if (particles.length > TRAIL_LIMIT) {
+          particles.splice(0, particles.length - TRAIL_LIMIT);
+        }
+      }
+
+      function updateParticles(dt) {
+        for (let i = particles.length - 1; i >= 0; i -= 1) {
+          const particle = particles[i];
+          particle.x += particle.vx;
+          particle.y += particle.vy;
+          particle.alpha -= dt * 1.25;
+          particle.radius *= 0.992;
+          if (particle.alpha <= 0.02 || particle.radius <= 0.4) {
+            particles.splice(i, 1);
+          }
+        }
+      }
+
+      function updatePaddles(dt) {
+        paddles.forEach((paddle) => {
+          const move = (keys.has(paddle.down) ? 1 : 0) - (keys.has(paddle.up) ? 1 : 0);
+          paddle.y += move * PADDLE_SPEED * dt;
+          paddle.y = Math.max(18, Math.min(HEIGHT - paddle.height - 18, paddle.y));
+        });
+      }
+
+      function applyMagneticForce(dt) {
+        activeFieldLinks.length = 0;
+        paddles.forEach((paddle, index) => {
+          const centerX = paddle.x + paddle.width / 2;
+          const centerY = paddle.y + paddle.height / 2;
+          const dx = centerX - ball.x;
+          const dy = centerY - ball.y;
+          const distance = Math.hypot(dx, dy);
+          if (distance >= MAGNET_RANGE) {
+            return;
+          }
+
+          const falloff = 1 - distance / MAGNET_RANGE;
+          const direction = paddle.polarity > 0 ? 1 : -1;
+          const force = MAGNET_FORCE * falloff * falloff * direction * dt;
+          ball.vx += (dx / Math.max(distance, 1)) * force;
+          ball.vy += (dy / Math.max(distance, 1)) * force;
+          activeFieldLinks.push({
+            paddleIndex: index,
+            x1: centerX,
+            y1: centerY,
+            x2: ball.x,
+            y2: ball.y,
+            attract: paddle.polarity > 0
+          });
+        });
+      }
+
+      function clampBallSpeed() {
+        const speed = Math.hypot(ball.vx, ball.vy);
+        if (speed > MAX_BALL_SPEED) {
+          const scale = MAX_BALL_SPEED / speed;
+          ball.vx *= scale;
+          ball.vy *= scale;
+        }
+      }
+
+      function resolveWallBounce() {
+        if (ball.y - BALL_RADIUS <= 0 && ball.vy < 0) {
+          ball.y = BALL_RADIUS;
+          ball.vy *= -1;
+        }
+        if (ball.y + BALL_RADIUS >= HEIGHT && ball.vy > 0) {
+          ball.y = HEIGHT - BALL_RADIUS;
+          ball.vy *= -1;
+        }
+      }
+
+      function handlePaddleCollisions() {
+        paddles.forEach((paddle, index) => {
+          const overlapX = ball.x + BALL_RADIUS > paddle.x && ball.x - BALL_RADIUS < paddle.x + paddle.width;
+          const overlapY = ball.y + BALL_RADIUS > paddle.y && ball.y - BALL_RADIUS < paddle.y + paddle.height;
+          const movingTowardPaddle = index === 0 ? ball.vx < 0 : ball.vx > 0;
+
+          if (!(overlapX && overlapY && movingTowardPaddle)) {
+            return;
+          }
+
+          const relative = ((ball.y - paddle.y) / paddle.height) * 2 - 1;
+          const angleMix = relative * 250;
+          const direction = index === 0 ? 1 : -1;
+          ball.x = index === 0 ? paddle.x + paddle.width + BALL_RADIUS : paddle.x - BALL_RADIUS;
+          ball.vx = Math.abs(ball.vx) * direction + direction * 55;
+          ball.vy += angleMix + (paddle.polarity > 0 ? -relative * 50 : relative * 50);
+          state.lastHitter = index;
+          clampBallSpeed();
+        });
+      }
+
+      function handlePowerup() {
+        if (!state.powerup) {
+          return;
+        }
+        const dx = ball.x - state.powerup.x;
+        const dy = ball.y - state.powerup.y;
+        if (Math.hypot(dx, dy) <= BALL_RADIUS + state.powerup.size) {
+          flipPolarity(state.lastHitter);
+          state.powerup = null;
+          state.powerupTimer = POWERUP_INTERVAL;
+          updateHud();
+        }
+      }
+
+      function handleScoring() {
+        if (ball.x < -BALL_RADIUS) {
+          state.scores[1] += 1;
+          if (state.scores[1] >= TARGET_SCORE) {
+            endGame(1);
+          } else {
+            resetBall(-1);
+            setOverlay("玩家 2 得分", "挡板磁极仍会保留，下一球会从中场重新发出。", true);
+            updateHud();
+          }
+        } else if (ball.x > WIDTH + BALL_RADIUS) {
+          state.scores[0] += 1;
+          if (state.scores[0] >= TARGET_SCORE) {
+            endGame(0);
+          } else {
+            resetBall(1);
+            setOverlay("玩家 1 得分", "挡板磁极仍会保留，下一球会从中场重新发出。", true);
+            updateHud();
+          }
+        }
+      }
+
+      function updateGame(dt) {
+        if (state.gameOver) {
+          return;
+        }
+
+        updatePaddles(dt);
+        updateParticles(dt);
+
+        if (state.roundPause > 0) {
+          state.roundPause -= dt;
+          if (state.roundPause <= 0) {
+            state.roundPause = 0;
+            setOverlay("", "", false);
+            updateHud();
+          }
+          return;
+        }
+
+        state.powerupTimer -= dt;
+        if (!state.powerup && state.powerupTimer <= 0) {
+          spawnPowerup();
+          state.powerupTimer = POWERUP_INTERVAL + Math.random() * 2.5;
+          updateHud();
+        }
+
+        applyMagneticForce(dt);
+        ball.x += ball.vx * dt;
+        ball.y += ball.vy * dt;
+        resolveWallBounce();
+        handlePaddleCollisions();
+        handlePowerup();
+        handleScoring();
+        clampBallSpeed();
+        addTrailParticle();
+      }
+
+      function drawBackground() {
+        ctx.clearRect(0, 0, WIDTH, HEIGHT);
+        const gradient = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+        gradient.addColorStop(0, "#11263a");
+        gradient.addColorStop(1, "#06111a");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+        ctx.strokeStyle = "rgba(255,255,255,0.08)";
+        ctx.setLineDash([8, 12]);
+        ctx.beginPath();
+        ctx.moveTo(WIDTH / 2, 20);
+        ctx.lineTo(WIDTH / 2, HEIGHT - 20);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      function drawTrails() {
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        particles.forEach((particle) => {
+          ctx.fillStyle = `rgba(160, 225, 255, ${particle.alpha})`;
+          ctx.beginPath();
+          ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.restore();
+      }
+
+      function drawFieldLinks() {
+        activeFieldLinks.forEach((link) => {
+          const ctrlX = (link.x1 + link.x2) * 0.5 + (link.paddleIndex === 0 ? 34 : -34);
+          const ctrlY = (link.y1 + link.y2) * 0.5 + Math.sin((link.x2 + link.y2) * 0.02) * 20;
+          ctx.strokeStyle = link.attract ? "rgba(113, 247, 212, 0.7)" : "rgba(255, 179, 71, 0.75)";
+          ctx.lineWidth = 2.4;
+          ctx.beginPath();
+          ctx.moveTo(link.x1, link.y1);
+          ctx.quadraticCurveTo(ctrlX, ctrlY, link.x2, link.y2);
+          ctx.stroke();
+
+          ctx.strokeStyle = link.attract ? "rgba(113, 247, 212, 0.28)" : "rgba(255, 179, 71, 0.28)";
+          ctx.lineWidth = 9;
+          ctx.beginPath();
+          ctx.moveTo(link.x1, link.y1);
+          ctx.quadraticCurveTo(ctrlX, ctrlY, link.x2, link.y2);
+          ctx.stroke();
+        });
+      }
+
+      function drawPowerup() {
+        if (!state.powerup) {
+          return;
+        }
+
+        ctx.save();
+        ctx.translate(state.powerup.x, state.powerup.y);
+        ctx.rotate(performance.now() * 0.0014);
+        ctx.strokeStyle = "rgba(255,255,255,0.95)";
+        ctx.lineWidth = 2.5;
+        ctx.strokeRect(-state.powerup.size, -state.powerup.size, state.powerup.size * 2, state.powerup.size * 2);
+        ctx.beginPath();
+        ctx.moveTo(-8, 0);
+        ctx.lineTo(8, 0);
+        ctx.moveTo(0, -8);
+        ctx.lineTo(0, 8);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawPaddles() {
+        paddles.forEach((paddle) => {
+          const centerY = paddle.y + paddle.height / 2;
+          const glow = paddle.polarity > 0 ? "rgba(113, 247, 212, 0.33)" : "rgba(255, 179, 71, 0.33)";
+
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.ellipse(paddle.x + paddle.width / 2, centerY, MAGNET_RANGE * 0.45, paddle.height * 0.8, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = paddle.tint;
+          ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+          ctx.fillStyle = paddle.polarity > 0 ? "#71f7d4" : "#ffb347";
+          ctx.fillRect(paddle.x - 3, paddle.y + 14, paddle.width + 6, 12);
+          ctx.fillRect(paddle.x - 3, paddle.y + paddle.height - 26, paddle.width + 6, 12);
+        });
+      }
+
+      function drawBall() {
+        const radial = ctx.createRadialGradient(ball.x - 4, ball.y - 4, 2, ball.x, ball.y, BALL_RADIUS + 4);
+        radial.addColorStop(0, "#ffffff");
+        radial.addColorStop(0.45, "#b8f2ff");
+        radial.addColorStop(1, "#5acbff");
+        ctx.fillStyle = radial;
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, BALL_RADIUS, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawUiFrame() {
+        ctx.strokeStyle = "rgba(255,255,255,0.09)";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(14, 14, WIDTH - 28, HEIGHT - 28);
+      }
+
+      function draw() {
+        drawBackground();
+        drawTrails();
+        drawFieldLinks();
+        drawPowerup();
+        drawPaddles();
+        drawBall();
+        drawUiFrame();
+      }
+
+      let lastTime = performance.now();
+      function frame(now) {
+        const dt = Math.min((now - lastTime) / 1000, 0.02);
+        lastTime = now;
+        updateGame(dt);
+        draw();
+        requestAnimationFrame(frame);
+      }
+
+      window.addEventListener("keydown", (event) => {
+        if (["Space", "ArrowUp", "ArrowDown"].includes(event.code)) {
+          event.preventDefault();
+        }
+
+        if (state.gameOver && (event.code === "Space" || event.code === "Enter")) {
+          restartGame();
+          return;
+        }
+
+        keys.add(event.code);
+      });
+
+      window.addEventListener("keyup", (event) => {
+        keys.delete(event.code);
+      });
+
+      restartGame();
+      requestAnimationFrame(frame);
+
+      return { restartGame };
+    })();
+  </script>
+</body>
+</html>
