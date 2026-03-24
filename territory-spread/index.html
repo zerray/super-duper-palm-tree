@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>领地蔓延</title>
+  <style>
+    :root {
+      --bg: #f2eadf;
+      --panel: rgba(255, 249, 240, 0.92);
+      --line: rgba(84, 63, 36, 0.14);
+      --text: #2f241a;
+      --muted: #6d6056;
+      --empty: #e7d8bb;
+      --empty-stroke: #b3956e;
+      --p1: #4c9a57;
+      --p1-soft: #b7dfbb;
+      --p2: #7f5bd8;
+      --p2-soft: #d7caf8;
+      --gold: #c48b2b;
+      --danger: #a04f37;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.85), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(127, 91, 216, 0.14), transparent 26%),
+        linear-gradient(180deg, #f7f2e8 0%, var(--bg) 100%);
+    }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(1240px, calc(100vw - 28px));
+      margin: 0 auto;
+      padding: 24px 0 36px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) minmax(290px, 360px);
+      gap: 18px;
+    }
+
+    .panel,
+    .sidebar {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: 0 18px 42px rgba(69, 48, 26, 0.12);
+      backdrop-filter: blur(10px);
+    }
+
+    .panel {
+      padding: 22px;
+    }
+
+    .sidebar {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      line-height: 0.94;
+      letter-spacing: -0.05em;
+    }
+
+    .lede {
+      margin-top: 10px;
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 60ch;
+    }
+
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .stat {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.7);
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .board-wrap {
+      position: relative;
+      margin-top: 18px;
+      border-radius: 22px;
+      border: 1px solid rgba(84, 63, 36, 0.12);
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.72), transparent 36%),
+        linear-gradient(180deg, rgba(246, 236, 218, 0.96), rgba(240, 228, 205, 0.98));
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      touch-action: manipulation;
+    }
+
+    .turn-banner {
+      position: absolute;
+      inset: 18px 18px auto;
+      padding: 12px 16px;
+      border-radius: 16px;
+      background: rgba(255, 252, 247, 0.94);
+      border: 1px solid rgba(84, 63, 36, 0.12);
+      box-shadow: 0 14px 30px rgba(69, 48, 26, 0.12);
+      pointer-events: none;
+    }
+
+    .turn-banner strong {
+      display: block;
+      font-size: 1.05rem;
+    }
+
+    .turn-banner span {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .card {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(84, 63, 36, 0.1);
+      background: rgba(255, 255, 255, 0.72);
+      display: grid;
+      gap: 10px;
+    }
+
+    .progress-shell {
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(122, 102, 73, 0.14);
+      height: 20px;
+    }
+
+    .progress-bar {
+      display: flex;
+      height: 100%;
+    }
+
+    .progress-player {
+      transition: width 220ms ease;
+    }
+
+    .progress-player.p1 {
+      background: linear-gradient(90deg, #76c67d, var(--p1));
+    }
+
+    .progress-player.p2 {
+      background: linear-gradient(90deg, #a98bef, var(--p2));
+    }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .score-box {
+      padding: 12px;
+      border-radius: 16px;
+      color: #fffaf4;
+    }
+
+    .score-box.p1 {
+      background: linear-gradient(180deg, #63b76c, var(--p1));
+    }
+
+    .score-box.p2 {
+      background: linear-gradient(180deg, #9a7fed, var(--p2));
+    }
+
+    .score-box strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 1.55rem;
+    }
+
+    .seed-buttons {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .seed-button {
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(84, 63, 36, 0.12);
+      background: rgba(255, 255, 255, 0.86);
+      text-align: left;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    .seed-button:hover,
+    .seed-button.active {
+      transform: translateY(-1px);
+      border-color: rgba(84, 63, 36, 0.28);
+      background: rgba(255, 253, 249, 1);
+    }
+
+    .seed-button small,
+    .hint,
+    .rules li,
+    .status {
+      color: var(--muted);
+    }
+
+    .status {
+      min-height: 4.5em;
+      line-height: 1.55;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .controls button,
+    .overlay button {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 16px;
+      background: linear-gradient(180deg, #5f9e49, #456f35);
+      color: #fffaf4;
+      font-weight: 700;
+    }
+
+    .controls button.secondary,
+    .overlay button.secondary {
+      background: linear-gradient(180deg, #8d7152, #6d5843);
+    }
+
+    .rules {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .legend {
+      display: grid;
+      gap: 8px;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+    }
+
+    .swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1px solid rgba(47, 36, 26, 0.18);
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(29, 22, 15, 0.46);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+    }
+
+    .overlay[hidden] {
+      display: none;
+    }
+
+    .overlay-card {
+      width: min(460px, 100%);
+      padding: 22px;
+      border-radius: 24px;
+      border: 1px solid rgba(84, 63, 36, 0.12);
+      background: rgba(255, 250, 242, 0.96);
+      box-shadow: 0 24px 50px rgba(29, 22, 15, 0.24);
+      display: grid;
+      gap: 12px;
+    }
+
+    .overlay-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        width: min(100vw - 20px, 1240px);
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel">
+      <h1>领地蔓延</h1>
+      <p class="lede">
+        热座双人六边形策略对战。每回合点击空格种下普通种子或藤蔓炸弹，回合结算后双方领地会同时蔓延，先占据超过 60% 或在棋盘填满时领先的一方获胜。
+      </p>
+      <div class="stats">
+        <div class="stat">棋盘: <strong>7 × 7 hex grid</strong></div>
+        <div class="stat">模式: <strong>双人热座</strong></div>
+        <div class="stat">Bomb lifecycle: <strong>2 回合爆发 + 枯萎</strong></div>
+      </div>
+
+      <div class="board-wrap">
+        <canvas id="game-canvas" width="980" height="760" aria-label="六边形领地棋盘"></canvas>
+        <div class="turn-banner" id="turn-banner">
+          <strong>玩家 1 回合</strong>
+          <span>点击空白六边形放置种子</span>
+        </div>
+      </div>
+    </section>
+
+    <aside class="sidebar">
+      <section class="card">
+        <h2>占领比例</h2>
+        <div class="progress-shell" aria-hidden="true">
+          <div class="progress-bar">
+            <div class="progress-player p1" id="progress-p1" style="width: 0%"></div>
+            <div class="progress-player p2" id="progress-p2" style="width: 0%"></div>
+          </div>
+        </div>
+        <div class="score-grid">
+          <div class="score-box p1">
+            玩家 1
+            <strong id="score-p1">0%</strong>
+            <span id="energy-p1">能量 3</span>
+          </div>
+          <div class="score-box p2">
+            玩家 2
+            <strong id="score-p2">0%</strong>
+            <span id="energy-p2">能量 3</span>
+          </div>
+        </div>
+        <p class="hint" id="cell-count">0 / 49 格已占领</p>
+      </section>
+
+      <section class="card">
+        <h2>当前行动</h2>
+        <div class="seed-buttons">
+          <button class="seed-button active" id="normal-seed" type="button">
+            <strong>普通种子</strong><br>
+            <small>免费。每回合向相邻空格稳定蔓延。</small>
+          </button>
+          <button class="seed-button" id="bomb-seed" type="button">
+            <strong>藤蔓炸弹</strong><br>
+            <small>消耗 1 能量。连续 2 回合半径 2 爆发，第 3 回合枯萎。</small>
+          </button>
+        </div>
+        <p class="status" id="status-text"></p>
+        <div class="controls">
+          <button id="continue-button" type="button">继续下一位</button>
+          <button class="secondary" id="restart-button" type="button">重新开始</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>图例</h3>
+        <div class="legend">
+          <div class="legend-row"><span class="swatch" style="background: var(--p1)"></span> 玩家 1 领地</div>
+          <div class="legend-row"><span class="swatch" style="background: var(--p2)"></span> 玩家 2 领地</div>
+          <div class="legend-row"><span class="swatch" style="background: var(--gold)"></span> 藤蔓炸弹核心</div>
+          <div class="legend-row"><span class="swatch" style="background: var(--empty)"></span> 空白六边形</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>规则摘要</h3>
+        <ul class="rules">
+          <li>点击空格放置种子，双方轮流进行。</li>
+          <li>回合结束后双方所有已占据格都会自动 spread 到相邻空格。</li>
+          <li>vine bomb 在前 2 次结算会做 2 层扩张，第 3 次结算后枯萎变回空格。</li>
+          <li>当某方占据超过 60% 或棋盘填满时，立即结算胜负。</li>
+        </ul>
+      </section>
+    </aside>
+  </main>
+
+  <div class="overlay" id="turn-overlay">
+    <div class="overlay-card">
+      <h2 id="overlay-title">玩家 1 请接手</h2>
+      <p id="overlay-copy">查看刚刚的蔓延结果，然后继续下一回合。</p>
+      <div class="overlay-actions">
+        <button id="overlay-confirm" type="button">开始回合</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="result-overlay" hidden>
+    <div class="overlay-card">
+      <h2 id="result-title">胜负已定</h2>
+      <p id="result-copy"></p>
+      <div class="overlay-actions">
+        <button id="play-again" type="button">再来一局</button>
+        <button class="secondary" id="result-close" type="button">查看棋盘</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ROWS = 7;
+    const COLS = 7;
+    const TOTAL_CELLS = ROWS * COLS;
+    const WIN_RATIO = 0.6;
+    const STARTING_ENERGY = 3;
+    const HEX_SIZE = 44;
+    const H_SPACING = Math.sqrt(3) * HEX_SIZE;
+    const V_SPACING = HEX_SIZE * 1.5;
+    const BOARD_OFFSET_X = 120;
+    const BOARD_OFFSET_Y = 110;
+    const GROWTH_ANIMATION_MS = 320;
+    const PLAYER_COLORS = {
+      1: { fill: "#6ec678", soft: "#b7dfbb", glow: "rgba(76, 154, 87, 0.26)" },
+      2: { fill: "#9d7cf0", soft: "#d7caf8", glow: "rgba(127, 91, 216, 0.26)" }
+    };
+    const SEED_TYPES = {
+      normal: { label: "普通种子", energyCost: 0 },
+      bomb: { label: "藤蔓炸弹", energyCost: 1 }
+    };
+    const NEIGHBOR_DELTAS = {
+      even: [[-1, -1], [-1, 0], [0, -1], [0, 1], [1, -1], [1, 0]],
+      odd: [[-1, 0], [-1, 1], [0, -1], [0, 1], [1, 0], [1, 1]]
+    };
+
+    const canvas = document.querySelector("#game-canvas");
+    const ctx = canvas.getContext("2d");
+    const turnBanner = document.querySelector("#turn-banner");
+    const statusText = document.querySelector("#status-text");
+    const continueButton = document.querySelector("#continue-button");
+    const restartButton = document.querySelector("#restart-button");
+    const normalSeedButton = document.querySelector("#normal-seed");
+    const bombSeedButton = document.querySelector("#bomb-seed");
+    const progressP1 = document.querySelector("#progress-p1");
+    const progressP2 = document.querySelector("#progress-p2");
+    const scoreP1 = document.querySelector("#score-p1");
+    const scoreP2 = document.querySelector("#score-p2");
+    const energyP1 = document.querySelector("#energy-p1");
+    const energyP2 = document.querySelector("#energy-p2");
+    const cellCount = document.querySelector("#cell-count");
+    const turnOverlay = document.querySelector("#turn-overlay");
+    const overlayTitle = document.querySelector("#overlay-title");
+    const overlayCopy = document.querySelector("#overlay-copy");
+    const overlayConfirm = document.querySelector("#overlay-confirm");
+    const resultOverlay = document.querySelector("#result-overlay");
+    const resultTitle = document.querySelector("#result-title");
+    const resultCopy = document.querySelector("#result-copy");
+    const resultClose = document.querySelector("#result-close");
+    const playAgain = document.querySelector("#play-again");
+
+    const cellPaths = [];
+    let board = [];
+    let players = [];
+    let activePlayer = 1;
+    let selectedSeedType = "normal";
+    let animations = [];
+    let awaitingNextTurn = true;
+    let gameOver = false;
+
+    function createCell(row, col) {
+      return {
+        row,
+        col,
+        owner: 0,
+        seedType: null,
+        bombAge: null
+      };
+    }
+
+    function createBoard() {
+      return Array.from({ length: ROWS }, (_, row) =>
+        Array.from({ length: COLS }, (_, col) => createCell(row, col))
+      );
+    }
+
+    function createPlayers() {
+      return {
+        1: { energy: STARTING_ENERGY, label: "玩家 1" },
+        2: { energy: STARTING_ENERGY, label: "玩家 2" }
+      };
+    }
+
+    function getCellCenter(row, col) {
+      const x = BOARD_OFFSET_X + col * H_SPACING + (row % 2 ? H_SPACING / 2 : 0);
+      const y = BOARD_OFFSET_Y + row * V_SPACING;
+      return { x, y };
+    }
+
+    function createHexPath(centerX, centerY) {
+      const path = new Path2D();
+      for (let side = 0; side < 6; side += 1) {
+        const angle = (Math.PI / 180) * (60 * side - 30);
+        const x = centerX + HEX_SIZE * Math.cos(angle);
+        const y = centerY + HEX_SIZE * Math.sin(angle);
+        if (side === 0) {
+          path.moveTo(x, y);
+        } else {
+          path.lineTo(x, y);
+        }
+      }
+      path.closePath();
+      return path;
+    }
+
+    function rebuildPaths() {
+      cellPaths.length = 0;
+      for (let row = 0; row < ROWS; row += 1) {
+        for (let col = 0; col < COLS; col += 1) {
+          const center = getCellCenter(row, col);
+          cellPaths.push({
+            row,
+            col,
+            center,
+            path: createHexPath(center.x, center.y)
+          });
+        }
+      }
+    }
+
+    function getNeighbors(row, col) {
+      const deltas = row % 2 === 0 ? NEIGHBOR_DELTAS.even : NEIGHBOR_DELTAS.odd;
+      return deltas
+        .map(([dr, dc]) => ({ row: row + dr, col: col + dc }))
+        .filter(({ row: nextRow, col: nextCol }) => nextRow >= 0 && nextRow < ROWS && nextCol >= 0 && nextCol < COLS);
+    }
+
+    function getDistance(start, target) {
+      if (start.row === target.row && start.col === target.col) {
+        return 0;
+      }
+
+      const seen = new Set([`${start.row},${start.col}`]);
+      const queue = [{ row: start.row, col: start.col, dist: 0 }];
+
+      while (queue.length) {
+        const current = queue.shift();
+        for (const next of getNeighbors(current.row, current.col)) {
+          const key = `${next.row},${next.col}`;
+          if (seen.has(key)) {
+            continue;
+          }
+          if (next.row === target.row && next.col === target.col) {
+            return current.dist + 1;
+          }
+          seen.add(key);
+          queue.push({ ...next, dist: current.dist + 1 });
+        }
+      }
+
+      return Infinity;
+    }
+
+    function isEmpty(cell) {
+      return cell.owner === 0;
+    }
+
+    function occupyCell(cell, owner, seedType, bombAge) {
+      cell.owner = owner;
+      cell.seedType = seedType;
+      cell.bombAge = seedType === "bomb" ? bombAge : null;
+    }
+
+    function getSeedCost(type) {
+      return SEED_TYPES[type].energyCost;
+    }
+
+    function setSelectedSeedType(type) {
+      selectedSeedType = type;
+      normalSeedButton.classList.toggle("active", type === "normal");
+      bombSeedButton.classList.toggle("active", type === "bomb");
+      updateStatus();
+    }
+
+    function getAnimationAlpha(cell) {
+      const animation = animations.find((entry) => entry.row === cell.row && entry.col === cell.col);
+      if (!animation) {
+        return 1;
+      }
+      const elapsed = performance.now() - animation.startedAt;
+      return Math.max(0, Math.min(1, elapsed / GROWTH_ANIMATION_MS));
+    }
+
+    function cleanupAnimations() {
+      const now = performance.now();
+      animations = animations.filter((entry) => now - entry.startedAt < GROWTH_ANIMATION_MS);
+    }
+
+    function drawBoard() {
+      cleanupAnimations();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "#f3ead8";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (const item of cellPaths) {
+        const cell = board[item.row][item.col];
+        const alpha = getAnimationAlpha(cell);
+
+        let fill = getComputedStyle(document.documentElement).getPropertyValue("--empty").trim();
+        let stroke = getComputedStyle(document.documentElement).getPropertyValue("--empty-stroke").trim();
+
+        if (cell.owner) {
+          const palette = PLAYER_COLORS[cell.owner];
+          fill = cell.seedType === "bomb" ? "#f0c56f" : palette.soft;
+          stroke = cell.seedType === "bomb" ? "#b97d1c" : palette.fill;
+
+          ctx.save();
+          ctx.shadowColor = palette.glow;
+          ctx.shadowBlur = 18;
+          ctx.globalAlpha = 0.25 + alpha * 0.75;
+          ctx.fillStyle = fill;
+          ctx.fill(item.path);
+          ctx.restore();
+        }
+
+        ctx.save();
+        ctx.globalAlpha = cell.owner ? 0.35 + alpha * 0.65 : 1;
+        ctx.fillStyle = fill;
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 2;
+        ctx.fill(item.path);
+        ctx.stroke(item.path);
+        ctx.restore();
+
+        if (cell.owner) {
+          ctx.save();
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillStyle = "rgba(47, 36, 26, 0.78)";
+          ctx.font = "bold 17px Segoe UI";
+          ctx.fillText(`P${cell.owner}`, item.center.x, item.center.y - 4);
+          ctx.font = "12px Segoe UI";
+          const marker = cell.seedType === "bomb" ? `炸弹 ${Math.min(cell.bombAge + 1, 3)}` : "种子";
+          ctx.fillText(marker, item.center.x, item.center.y + 14);
+          ctx.restore();
+        }
+      }
+
+      if (awaitingNextTurn && !gameOver) {
+        ctx.save();
+        ctx.fillStyle = "rgba(47, 36, 26, 0.12)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+      }
+    }
+
+    function animationLoop() {
+      drawBoard();
+      requestAnimationFrame(animationLoop);
+    }
+
+    function chooseSpreadTargets() {
+      const claims = new Map();
+
+      function addClaim(row, col, owner) {
+        const key = `${row},${col}`;
+        if (!claims.has(key)) {
+          claims.set(key, new Set());
+        }
+        claims.get(key).add(owner);
+      }
+
+      for (let row = 0; row < ROWS; row += 1) {
+        for (let col = 0; col < COLS; col += 1) {
+          const cell = board[row][col];
+          if (!cell.owner) {
+            continue;
+          }
+
+          if (cell.seedType === "bomb") {
+            for (let targetRow = 0; targetRow < ROWS; targetRow += 1) {
+              for (let targetCol = 0; targetCol < COLS; targetCol += 1) {
+                const target = board[targetRow][targetCol];
+                if (!isEmpty(target)) {
+                  continue;
+                }
+                if (getDistance(cell, target) <= 2) {
+                  addClaim(targetRow, targetCol, cell.owner);
+                }
+              }
+            }
+            continue;
+          }
+
+          const empties = getNeighbors(row, col)
+            .filter(({ row: nextRow, col: nextCol }) => isEmpty(board[nextRow][nextCol]));
+
+          if (!empties.length) {
+            continue;
+          }
+
+          const pick = empties[Math.floor(Math.random() * empties.length)];
+          addClaim(pick.row, pick.col, cell.owner);
+        }
+      }
+
+      return claims;
+    }
+
+    function resolveGrowth() {
+      const changes = [];
+      const claims = chooseSpreadTargets();
+
+      for (const [key, owners] of claims.entries()) {
+        if (owners.size !== 1) {
+          continue;
+        }
+        const [row, col] = key.split(",").map(Number);
+        const owner = [...owners][0];
+        const cell = board[row][col];
+        if (!isEmpty(cell)) {
+          continue;
+        }
+        occupyCell(cell, owner, "normal", null);
+        changes.push({ row, col, owner });
+      }
+
+      const withered = [];
+      for (let row = 0; row < ROWS; row += 1) {
+        for (let col = 0; col < COLS; col += 1) {
+          const cell = board[row][col];
+          if (cell.seedType !== "bomb") {
+            continue;
+          }
+          cell.bombAge += 1;
+          if (cell.bombAge >= 2) {
+            cell.owner = 0;
+            cell.seedType = null;
+            cell.bombAge = null;
+            withered.push({ row, col });
+          }
+        }
+      }
+
+      animations = changes.map((change) => ({ ...change, startedAt: performance.now() }));
+      return { changes, withered };
+    }
+
+    function getScores() {
+      const counts = { 1: 0, 2: 0, occupied: 0 };
+      for (let row = 0; row < ROWS; row += 1) {
+        for (let col = 0; col < COLS; col += 1) {
+          const owner = board[row][col].owner;
+          if (owner) {
+            counts[owner] += 1;
+            counts.occupied += 1;
+          }
+        }
+      }
+      return counts;
+    }
+
+    function updateHud() {
+      const counts = getScores();
+      const p1Ratio = (counts[1] / TOTAL_CELLS) * 100;
+      const p2Ratio = (counts[2] / TOTAL_CELLS) * 100;
+
+      progressP1.style.width = `${p1Ratio}%`;
+      progressP2.style.width = `${p2Ratio}%`;
+      scoreP1.textContent = `${Math.round(p1Ratio)}%`;
+      scoreP2.textContent = `${Math.round(p2Ratio)}%`;
+      energyP1.textContent = `能量 ${players[1].energy}`;
+      energyP2.textContent = `能量 ${players[2].energy}`;
+      cellCount.textContent = `${counts.occupied} / ${TOTAL_CELLS} 格已占领`;
+
+      turnBanner.innerHTML = `<strong>${players[activePlayer].label} 回合</strong><span>${SEED_TYPES[selectedSeedType].label} 已选中，点击空白六边形放置</span>`;
+    }
+
+    function updateStatus(extra = "") {
+      const player = players[activePlayer];
+      const selected = SEED_TYPES[selectedSeedType];
+      const canUseBomb = player.energy >= SEED_TYPES.bomb.energyCost;
+      const base = `${player.label} 请选择要放置的种子。当前选中 ${selected.label}，剩余能量 ${player.energy}。`;
+      const bombHint = canUseBomb
+        ? "藤蔓炸弹会做 2 次半径 2 的爆发扩张。"
+        : "当前能量不足，无法放置藤蔓炸弹。";
+      statusText.textContent = extra || `${base} ${bombHint}`;
+    }
+
+    function showTurnOverlay() {
+      if (gameOver) {
+        return;
+      }
+      awaitingNextTurn = true;
+      overlayTitle.textContent = `${players[activePlayer].label} 请接手`;
+      overlayCopy.textContent = "观察上一回合蔓延结果后，点击开始本回合。";
+      turnOverlay.hidden = false;
+    }
+
+    function hideTurnOverlay() {
+      awaitingNextTurn = false;
+      turnOverlay.hidden = true;
+    }
+
+    function evaluateGameState() {
+      const counts = getScores();
+      const p1Ratio = counts[1] / TOTAL_CELLS;
+      const p2Ratio = counts[2] / TOTAL_CELLS;
+      const full = counts.occupied === TOTAL_CELLS;
+
+      if (p1Ratio > WIN_RATIO || p2Ratio > WIN_RATIO || full) {
+        gameOver = true;
+        let title = "平局";
+        if (counts[1] !== counts[2]) {
+          const winner = counts[1] > counts[2] ? 1 : 2;
+          title = `${players[winner].label} 获胜`;
+        }
+        resultTitle.textContent = title;
+        resultCopy.textContent = `玩家 1 占据 ${counts[1]} 格，玩家 2 占据 ${counts[2]} 格。${full ? "棋盘已经填满。" : "已有一方超过 60% 占比。"}`;
+        resultOverlay.hidden = false;
+      }
+    }
+
+    function finishTurn(seedType) {
+      const { changes, withered } = resolveGrowth();
+      updateHud();
+
+      const growthText = changes.length
+        ? `本轮新增 ${changes.length} 格蔓延。`
+        : "本轮没有新的蔓延。";
+      const witherText = withered.length
+        ? ` ${withered.length} 个藤蔓炸弹已经枯萎。`
+        : "";
+      updateStatus(`${players[activePlayer].label} 放置了${SEED_TYPES[seedType].label}。${growthText}${witherText}`);
+
+      evaluateGameState();
+      if (gameOver) {
+        return;
+      }
+
+      activePlayer = activePlayer === 1 ? 2 : 1;
+      updateHud();
+      showTurnOverlay();
+    }
+
+    function placeSeed(row, col) {
+      if (gameOver || awaitingNextTurn) {
+        return;
+      }
+
+      const cell = board[row][col];
+      if (!isEmpty(cell)) {
+        updateStatus("只能在空白六边形上放置种子。");
+        return;
+      }
+
+      const cost = getSeedCost(selectedSeedType);
+      if (players[activePlayer].energy < cost) {
+        updateStatus("能量不足，无法放置藤蔓炸弹。");
+        return;
+      }
+
+      players[activePlayer].energy -= cost;
+      occupyCell(cell, activePlayer, selectedSeedType, selectedSeedType === "bomb" ? 0 : null);
+      animations = [{ row, col, owner: activePlayer, startedAt: performance.now() }];
+      finishTurn(selectedSeedType);
+    }
+
+    function findCellAtPoint(x, y) {
+      for (const item of cellPaths) {
+        if (ctx.isPointInPath(item.path, x, y)) {
+          return { row: item.row, col: item.col };
+        }
+      }
+      return null;
+    }
+
+    function handleCanvasClick(event) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = (event.clientX - rect.left) * scaleX;
+      const y = (event.clientY - rect.top) * scaleY;
+      const hit = findCellAtPoint(x, y);
+      if (hit) {
+        placeSeed(hit.row, hit.col);
+      }
+    }
+
+    function resetGame() {
+      board = createBoard();
+      players = createPlayers();
+      activePlayer = 1;
+      selectedSeedType = "normal";
+      animations = [];
+      awaitingNextTurn = true;
+      gameOver = false;
+      resultOverlay.hidden = true;
+      setSelectedSeedType("normal");
+      updateHud();
+      updateStatus("玩家 1 先手。点击开始回合后，在空白六边形落下第一枚种子。");
+      showTurnOverlay();
+    }
+
+    normalSeedButton.addEventListener("click", () => setSelectedSeedType("normal"));
+    bombSeedButton.addEventListener("click", () => setSelectedSeedType("bomb"));
+    continueButton.addEventListener("click", () => {
+      if (gameOver) {
+        return;
+      }
+      showTurnOverlay();
+    });
+    restartButton.addEventListener("click", resetGame);
+    overlayConfirm.addEventListener("click", () => {
+      hideTurnOverlay();
+      updateHud();
+      updateStatus();
+    });
+    resultClose.addEventListener("click", () => {
+      resultOverlay.hidden = true;
+    });
+    playAgain.addEventListener("click", resetGame);
+    canvas.addEventListener("click", handleCanvasClick);
+
+    rebuildPaths();
+    resetGame();
+    animationLoop();
+  </script>
+</body>
+</html>
