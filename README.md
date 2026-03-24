@@ -71,14 +71,14 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `pixel-landscape/index.html` 即可运行。
 
-## 磁力弹珠台：双人同屏对战
+## 磁力弹珠台：双人同屏对撞
 
 新增 `magnetic-pinball-duel/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的双人同屏物理弹球对战原型，包含：
 
-- 玩家 1 使用 `W / A / S / D / 空格`，玩家 2 使用方向键与 `Enter` 控制各自一侧的发射器移动、瞄准与蓄力发射
+- 玩家 1 使用 `A / D / W`，玩家 2 使用 `← / → / ↑` 控制屏幕底部与顶部的发射器瞄准和发射
 - 场上包含正极、负极、中性三种弹珠，正负极会吸引或排斥，中性弹珠只参与碰撞
 - 弹珠之间与固定磁性障碍之间会显示可见的磁力线与粒子效果
-- 将自己的弹珠送进对方底线得分区即可得分，先达到目标分数的一方获胜，并支持一键重开
+- 将自己的弹珠送过对方底线即可得分，单局 60 秒倒计时结束后按比分判定胜负，并支持一键重开
 
 直接用浏览器打开 `magnetic-pinball-duel/index.html` 即可游玩。
 
