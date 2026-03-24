@@ -3,33 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>粒子烟花工坊</title>
+  <title>烟花合成器</title>
   <style>
     :root {
       color-scheme: dark;
-      --bg: #04070f;
-      --panel: rgba(7, 11, 24, 0.82);
-      --panel-strong: rgba(11, 17, 34, 0.95);
-      --line: rgba(171, 208, 255, 0.16);
-      --text: #eef4ff;
-      --muted: #9aabca;
-      --accent: #7ce7ff;
-      --accent-strong: #ff9f68;
+      --bg-top: #071120;
+      --bg-bottom: #02050d;
+      --panel: rgba(7, 12, 24, 0.82);
+      --line: rgba(149, 180, 255, 0.18);
+      --text: #eef5ff;
+      --muted: #93a7cc;
+      --accent: #ff7f6b;
+      --accent-soft: #5ad9ff;
+      --danger: #ff6b88;
     }
 
     * {
       box-sizing: border-box;
     }
 
-    html, body {
+    html,
+    body {
       margin: 0;
-      min-height: 100%;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
-      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
       background:
-        radial-gradient(circle at top, rgba(37, 69, 130, 0.35), transparent 30%),
-        radial-gradient(circle at 20% 80%, rgba(255, 106, 74, 0.14), transparent 22%),
-        linear-gradient(180deg, #050813 0%, #02040a 100%);
+        radial-gradient(circle at top, rgba(48, 84, 180, 0.18), transparent 34%),
+        radial-gradient(circle at 70% 18%, rgba(255, 134, 98, 0.12), transparent 20%),
+        linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+      font-family: Georgia, "Times New Roman", serif;
       color: var(--text);
     }
 
@@ -38,287 +41,196 @@
     }
 
     canvas {
+      display: block;
       width: 100vw;
       height: 100vh;
-      display: block;
       touch-action: none;
       cursor: crosshair;
     }
 
     .hud {
       position: fixed;
-      inset: 16px 16px auto auto;
-      width: min(340px, calc(100vw - 24px));
-      max-height: calc(100vh - 32px);
-      overflow: auto;
-      padding: 16px;
+      top: 18px;
+      left: 18px;
+      width: min(360px, calc(100vw - 36px));
+      padding: 16px 18px;
       border: 1px solid var(--line);
       border-radius: 20px;
-      background: linear-gradient(180deg, rgba(12, 18, 36, 0.94), rgba(6, 11, 24, 0.88));
-      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+      background: linear-gradient(180deg, rgba(10, 15, 30, 0.94), rgba(6, 10, 21, 0.86));
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
       backdrop-filter: blur(12px);
     }
 
-    .hud h1,
-    .hud p,
-    .hud h2 {
+    h1,
+    p {
       margin: 0;
     }
 
-    .hud h1 {
-      font-size: 1.45rem;
+    h1 {
+      font-size: 1.5rem;
+      letter-spacing: 0.03em;
     }
 
     .lede,
     .hint,
-    .stat-label {
+    .meta-label {
       color: var(--muted);
     }
 
     .lede {
       margin-top: 8px;
       line-height: 1.5;
-      font-size: 0.94rem;
+      font-size: 0.95rem;
     }
 
-    .section {
-      margin-top: 16px;
+    .controls,
+    .stats {
       display: grid;
-      gap: 12px;
-    }
-
-    .row {
-      display: grid;
-      gap: 8px;
-    }
-
-    .row-inline {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
+      margin-top: 16px;
     }
 
-    label,
-    .toggle {
-      display: grid;
-      gap: 7px;
-      font-size: 0.9rem;
+    .controls-row,
+    .stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    input,
-    select,
     button {
-      width: 100%;
-      border: 1px solid rgba(124, 231, 255, 0.18);
-      border-radius: 12px;
-      background: rgba(10, 15, 28, 0.92);
-      color: var(--text);
+      border: 1px solid rgba(122, 158, 255, 0.25);
+      border-radius: 14px;
+      padding: 11px 14px;
       font: inherit;
-    }
-
-    input[type="color"] {
-      min-height: 42px;
-      padding: 4px;
+      color: var(--text);
+      background: rgba(11, 17, 32, 0.95);
       cursor: pointer;
-    }
-
-    input[type="range"] {
-      accent-color: var(--accent);
-    }
-
-    select,
-    button {
-      padding: 10px 12px;
-    }
-
-    button {
-      cursor: pointer;
-      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
     }
 
     button:hover,
-    button:focus-visible,
-    select:hover {
-      border-color: rgba(124, 231, 255, 0.46);
+    button:focus-visible {
       transform: translateY(-1px);
+      border-color: rgba(122, 158, 255, 0.5);
     }
 
-    button.primary {
-      background: linear-gradient(135deg, rgba(124, 231, 255, 0.18), rgba(255, 159, 104, 0.2));
+    .recording {
+      background: rgba(58, 11, 25, 0.95);
+      border-color: rgba(255, 107, 136, 0.65);
+      box-shadow: inset 0 0 0 1px rgba(255, 107, 136, 0.18);
     }
 
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
+    .playing {
+      background: rgba(11, 33, 58, 0.95);
+      border-color: rgba(90, 217, 255, 0.65);
     }
 
-    .stat {
-      padding: 10px;
+    .meta {
+      padding: 11px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
       border-radius: 14px;
       background: rgba(255, 255, 255, 0.04);
-      min-height: 72px;
     }
 
-    .stat strong {
+    .meta strong {
       display: block;
       margin-top: 6px;
-      font-size: 1.1rem;
+      font-size: 1.05rem;
     }
 
     .hint {
-      font-size: 0.82rem;
+      margin-top: 14px;
       line-height: 1.45;
-    }
-
-    .record-active {
-      border-color: rgba(255, 122, 122, 0.65);
-      background: rgba(70, 16, 22, 0.92);
+      font-size: 0.84rem;
     }
 
     @media (max-width: 720px) {
       .hud {
-        inset: auto 12px 12px 12px;
-        width: auto;
-        max-height: min(54vh, 420px);
-        border-radius: 18px;
+        top: auto;
+        bottom: 12px;
+        left: 12px;
+        width: calc(100vw - 24px);
+        padding: 14px;
       }
 
-      .row-inline,
+      .controls-row,
       .stats {
         grid-template-columns: 1fr;
-      }
-
-      .hud h1 {
-        font-size: 1.25rem;
       }
     }
   </style>
 </head>
 <body>
-  <canvas id="fireworks-canvas"></canvas>
+  <canvas id="fireworks-canvas" aria-label="烟花画布"></canvas>
 
-  <aside class="hud">
-    <h1>粒子烟花工坊</h1>
-    <p class="lede">点击或触摸任意位置发射烟花，调整形态与物理参数，录下最近 10 秒并让它循环表演。</p>
+  <section class="hud">
+    <h1>烟花合成器</h1>
+    <p class="lede">按住任意位置发射，松手时爆炸。X 坐标决定色相，Y 坐标决定扩散半径，按压时长决定升空高度，录制按钮会保存最近 10 秒烟花秀并循环回放。</p>
 
-    <section class="section">
-      <div class="row-inline">
-        <label>
-          颜色
-          <input id="color-input" type="color" value="#ff7b72">
-        </label>
-        <label>
-          爆炸形态
-          <select id="shape-select">
-            <option value="sphere">球形</option>
-            <option value="heart">心形</option>
-            <option value="spiral">螺旋</option>
-          </select>
-        </label>
-      </div>
-
-      <label>
-        粒子数量 <span id="count-value">180</span>
-        <input id="count-input" type="range" min="60" max="360" value="180">
-      </label>
-
-      <label>
-        重力强度 <span id="gravity-value">0.080</span>
-        <input id="gravity-input" type="range" min="0.02" max="0.16" step="0.005" value="0.08">
-      </label>
-
-      <label>
-        拖尾长度 <span id="trail-value">0.14</span>
-        <input id="trail-input" type="range" min="0.05" max="0.32" step="0.01" value="0.14">
-      </label>
-    </section>
-
-    <section class="section">
-      <div class="row-inline">
-        <button id="random-button" class="primary" type="button">随机惊喜</button>
+    <div class="controls">
+      <div class="controls-row">
         <button id="record-button" type="button">开始录制</button>
+        <button id="playback-button" type="button">开始回放</button>
       </div>
-      <button id="playback-button" type="button">回放最近 10 秒</button>
-    </section>
+    </div>
 
-    <section class="section stats">
-      <div class="stat">
-        <span class="stat-label">当前粒子</span>
-        <strong id="particle-stat">0</strong>
+    <div class="stats">
+      <div class="meta">
+        <span class="meta-label">录制事件</span>
+        <strong id="record-count">0</strong>
       </div>
-      <div class="stat">
-        <span class="stat-label">录制事件</span>
-        <strong id="recording-stat">0</strong>
+      <div class="meta">
+        <span class="meta-label">活跃粒子</span>
+        <strong id="particle-count">0</strong>
       </div>
-      <div class="stat">
-        <span class="stat-label">帧率</span>
-        <strong id="fps-stat">0</strong>
-      </div>
-    </section>
+    </div>
 
-    <p class="hint">录制始终只保留最近 10 秒。回放开启后会按原时间间隔循环触发烟花。移动端使用 Pointer 事件，无需额外交互模式。</p>
-  </aside>
+    <p class="hint">桌面端点击，移动端触摸都可用。长按越久升得越高；越靠上越集中且二次爆炸更少，越靠下越松散且更容易出现二次爆炸。</p>
+  </section>
 
   <script>
     const canvas = document.getElementById("fireworks-canvas");
     const ctx = canvas.getContext("2d");
-    const colorInput = document.getElementById("color-input");
-    const shapeSelect = document.getElementById("shape-select");
-    const countInput = document.getElementById("count-input");
-    const gravityInput = document.getElementById("gravity-input");
-    const trailInput = document.getElementById("trail-input");
-    const randomButton = document.getElementById("random-button");
     const recordButton = document.getElementById("record-button");
     const playbackButton = document.getElementById("playback-button");
-    const countValue = document.getElementById("count-value");
-    const gravityValue = document.getElementById("gravity-value");
-    const trailValue = document.getElementById("trail-value");
-    const particleStat = document.getElementById("particle-stat");
-    const recordingStat = document.getElementById("recording-stat");
-    const fpsStat = document.getElementById("fps-stat");
+    const recordCount = document.getElementById("record-count");
+    const particleCount = document.getElementById("particle-count");
 
-    const MAX_PARTICLES = 2400;
-    const TRAIL_STEPS = 3;
-    const replayDurationMs = 10000;
-    const shapeOptions = ["sphere", "heart", "spiral"];
-    const palette = ["#ff7b72", "#ffd166", "#7ce7ff", "#b692ff", "#84f08b", "#ff8fab"];
-    const particles = [];
+    const MAX_PARTICLES = 2000;
+    const RECORDING_LIMIT_MS = 10000;
+    const ROCKET_TRAIL_INTERVAL = 18;
+    const particles = new Array(MAX_PARTICLES);
     const rockets = [];
-    const recordingEvents = [];
+    const recordedBursts = [];
+    const activePointer = {
+      id: null,
+      downAt: 0,
+      x: 0,
+      y: 0,
+      rocket: null
+    };
 
-    let particleCursor = 0;
-    let activeParticleCount = 0;
     let width = 0;
     let height = 0;
     let scale = 1;
+    let particleCursor = 0;
+    let activeParticles = 0;
     let isRecording = false;
-    let isPlaybackActive = false;
+    let isPlayback = false;
     let playbackStartTime = 0;
+    let playbackLoopOffset = 0;
+    let playbackWindowStart = 0;
     let playbackCursor = 0;
     let lastFrameTime = performance.now();
-    let lastFpsSample = performance.now();
-    let frameCounter = 0;
-    let currentFps = 0;
 
-    function createParticleSlot() {
-      return {
-        active: false,
-        x: 0,
-        y: 0,
-        px: 0,
-        py: 0,
-        vx: 0,
-        vy: 0,
-        life: 0,
-        maxLife: 0,
-        size: 0,
-        color: "#ffffff"
-      };
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
     }
 
-    for (let index = 0; index < MAX_PARTICLES; index += 1) {
-      particles.push(createParticleSlot());
+    function lerp(start, end, t) {
+      return start + (end - start) * t;
+    }
+
+    function rand(min, max) {
+      return min + Math.random() * (max - min);
     }
 
     function resizeCanvas() {
@@ -332,245 +244,356 @@
       ctx.lineJoin = "round";
     }
 
-    function getCurrentParams() {
+    function createParticleSlot() {
       return {
-        color: colorInput.value,
-        shape: shapeSelect.value,
-        particleCount: Number(countInput.value),
-        gravity: Number(gravityInput.value),
-        trail: Number(trailInput.value)
+        active: false,
+        x: 0,
+        y: 0,
+        px: 0,
+        py: 0,
+        vx: 0,
+        vy: 0,
+        age: 0,
+        life: 1,
+        drag: 0.985,
+        gravity: 0,
+        size: 2,
+        alpha: 1,
+        color: "hsla(0, 100%, 70%, 1)",
+        trail: 0.2,
+        secondary: false,
+        secondaryChance: 0,
+        burst: null
       };
     }
 
-    function setControlValues(params) {
-      colorInput.value = params.color;
-      shapeSelect.value = params.shape;
-      countInput.value = String(params.particleCount);
-      gravityInput.value = String(params.gravity);
-      trailInput.value = String(params.trail);
-      updateLabels();
+    for (let index = 0; index < MAX_PARTICLES; index += 1) {
+      particles[index] = createParticleSlot();
     }
 
-    function updateLabels() {
-      countValue.textContent = countInput.value;
-      gravityValue.textContent = Number(gravityInput.value).toFixed(3);
-      trailValue.textContent = Number(trailInput.value).toFixed(2);
-    }
-
-    function makeGlowColor(hex, alpha) {
-      const red = Number.parseInt(hex.slice(1, 3), 16);
-      const green = Number.parseInt(hex.slice(3, 5), 16);
-      const blue = Number.parseInt(hex.slice(5, 7), 16);
-      return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
-    }
-
-    function randomBetween(min, max) {
-      return min + Math.random() * (max - min);
-    }
-
-    function emitParticle(x, y, vx, vy, color, life, size) {
+    function allocateParticle() {
       const particle = particles[particleCursor];
       particleCursor = (particleCursor + 1) % MAX_PARTICLES;
-
       if (!particle.active) {
-        activeParticleCount += 1;
+        activeParticles += 1;
       }
-
-      particle.active = true;
-      particle.x = x;
-      particle.y = y;
-      particle.px = x;
-      particle.py = y;
-      particle.vx = vx;
-      particle.vy = vy;
-      particle.life = life;
-      particle.maxLife = life;
-      particle.size = size;
-      particle.color = color;
+      return particle;
     }
 
-    function computeVelocity(shape, index, total, speedScale) {
-      if (shape === "heart") {
-        const theta = (index / total) * Math.PI * 2;
-        const x = 16 * Math.sin(theta) ** 3;
-        const y = 13 * Math.cos(theta) - 5 * Math.cos(2 * theta) - 2 * Math.cos(3 * theta) - Math.cos(4 * theta);
-        const wobble = randomBetween(0.82, 1.12);
-        return {
-          vx: x * 0.11 * speedScale * wobble,
-          vy: -y * 0.11 * speedScale * wobble
-        };
-      }
+    function emitParticle(config) {
+      const particle = allocateParticle();
+      particle.active = true;
+      particle.x = config.x;
+      particle.y = config.y;
+      particle.px = config.x;
+      particle.py = config.y;
+      particle.vx = config.vx;
+      particle.vy = config.vy;
+      particle.age = 0;
+      particle.life = config.life;
+      particle.drag = config.drag;
+      particle.gravity = config.gravity;
+      particle.size = config.size;
+      particle.alpha = config.alpha;
+      particle.color = config.color;
+      particle.trail = config.trail;
+      particle.secondary = Boolean(config.secondary);
+      particle.secondaryChance = config.secondaryChance || 0;
+      particle.burst = config.burst || null;
+      return particle;
+    }
 
-      if (shape === "spiral") {
-        const turn = index * 0.34;
-        const radius = 0.18 + index / total;
-        const velocity = speedScale * (0.6 + radius * 1.4);
-        return {
-          vx: Math.cos(turn) * velocity,
-          vy: Math.sin(turn) * velocity
-        };
+    function deactivateParticle(particle) {
+      if (!particle.active) {
+        return;
       }
+      particle.active = false;
+      activeParticles = Math.max(0, activeParticles - 1);
+      if (particle.secondary && particle.burst && Math.random() < particle.secondaryChance) {
+        spawnBurst(particle.x, particle.y, {
+          ...particle.burst,
+          amount: Math.max(20, Math.floor(particle.burst.amount * 0.35)),
+          spread: particle.burst.spread * 0.45,
+          sizeScale: particle.burst.sizeScale * 0.75,
+          secondaryChance: 0
+        });
+      }
+    }
 
-      const angle = Math.random() * Math.PI * 2;
-      const velocity = speedScale * Math.sqrt(Math.random());
+    function mapBurstProfile(x, y, holdDuration) {
+      const nx = clamp(x / width, 0, 1);
+      const ny = clamp(y / height, 0, 1);
+      const holdRatio = clamp(holdDuration / 1200, 0, 1);
       return {
-        vx: Math.cos(angle) * velocity,
-        vy: Math.sin(angle) * velocity
+        hue: Math.round(nx * 360),
+        spread: lerp(1.7, 4.8, ny),
+        amount: Math.round(70 + (1 - ny) * 40 + holdRatio * 60),
+        trail: lerp(0.12, 0.32, nx),
+        sizeScale: lerp(1.1, 2.6, 1 - ny),
+        secondaryChance: lerp(0.05, 0.32, ny),
+        glowHue: (Math.round(nx * 360) + 30) % 360
       };
     }
 
-    function createExplosion(x, y, params) {
-      const speedScale = Math.max(1.8, 4.6 - params.gravity * 7);
-      for (let index = 0; index < params.particleCount; index += 1) {
-        const velocity = computeVelocity(params.shape, index, params.particleCount, speedScale);
-        const tint = Math.random() < 0.24 ? palette[index % palette.length] : params.color;
-        emitParticle(
+    function spawnBurst(x, y, burst) {
+      const amount = Math.min(220, burst.amount);
+      for (let index = 0; index < amount; index += 1) {
+        const angle = (index / amount) * Math.PI * 2 + rand(-0.08, 0.08);
+        const speed = burst.spread * Math.sqrt(Math.random()) * rand(0.7, 1.18);
+        const lightness = 62 + Math.random() * 18;
+        emitParticle({
           x,
           y,
-          velocity.vx,
-          velocity.vy,
-          tint,
-          randomBetween(0.85, 1.45),
-          randomBetween(1.4, 3.4)
-        );
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: rand(0.8, 1.35),
+          drag: 0.985,
+          gravity: 0.05,
+          size: rand(1.3, 2.8) * burst.sizeScale,
+          alpha: 1,
+          color: `hsla(${(burst.hue + rand(-18, 18) + 360) % 360}, 100%, ${lightness}%, 1)`,
+          trail: burst.trail,
+          secondary: index < amount * 0.16,
+          secondaryChance: burst.secondaryChance,
+          burst
+        });
       }
 
-      for (let spark = 0; spark < 24; spark += 1) {
-        const angle = (spark / 24) * Math.PI * 2;
-        const speed = randomBetween(0.8, 2.1);
-        emitParticle(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, "#ffffff", 0.35, 1.1);
+      for (let spark = 0; spark < 18; spark += 1) {
+        const angle = (spark / 18) * Math.PI * 2;
+        emitParticle({
+          x,
+          y,
+          vx: Math.cos(angle) * rand(0.8, 1.8),
+          vy: Math.sin(angle) * rand(0.8, 1.8),
+          life: rand(0.24, 0.4),
+          drag: 0.94,
+          gravity: 0.015,
+          size: rand(0.9, 1.5),
+          alpha: 0.85,
+          color: `hsla(${burst.glowHue}, 100%, 88%, 1)`,
+          trail: 0.06,
+          secondary: false
+        });
       }
     }
 
-    function launchFirework(x, y, params, shouldRecord = true) {
-      const targetY = Math.max(80, Math.min(y, height - 120));
-      rockets.push({
+    function createRocket(x, y, holdDuration, startTime) {
+      const holdRatio = clamp(holdDuration / 1200, 0, 1);
+      const burstY = lerp(height * 0.68, height * 0.16, holdRatio);
+      const profile = mapBurstProfile(x, y, holdDuration);
+      return {
         x,
-        y: height + randomBetween(24, 90),
+        y: height + 30,
         px: x,
-        py: height,
-        vx: randomBetween(-0.28, 0.28),
-        vy: -randomBetween(5.8, 7.5),
-        burstY: targetY,
-        color: params.color,
-        params: { ...params }
-      });
-
-      if (shouldRecord && isRecording) {
-        recordFireworkEvent(x, targetY, params);
-      }
-    }
-
-    function recordFireworkEvent(x, y, params) {
-      const now = performance.now();
-      recordingEvents.push({
-        timestamp: now,
-        x,
-        y,
-        params: { ...params }
-      });
-      trimRecordingEvents(now);
-      recordingStat.textContent = String(recordingEvents.length);
-    }
-
-    function trimRecordingEvents(now) {
-      while (recordingEvents.length && now - recordingEvents[0].timestamp > replayDurationMs) {
-        recordingEvents.shift();
-      }
-    }
-
-    function randomizeSurprise(launchNow = true) {
-      const randomParams = {
-        color: palette[Math.floor(Math.random() * palette.length)],
-        shape: shapeOptions[Math.floor(Math.random() * shapeOptions.length)],
-        particleCount: Math.floor(randomBetween(90, 320)),
-        gravity: Number(randomBetween(0.03, 0.14).toFixed(3)),
-        trail: Number(randomBetween(0.06, 0.24).toFixed(2))
+        py: height + 30,
+        vx: rand(-0.22, 0.22),
+        vy: lerp(-4.2, -9.4, holdRatio),
+        burstY,
+        holdDuration,
+        launchTime: startTime,
+        profile,
+        trailHue: profile.glowHue,
+        trailTimer: 0,
+        exploded: false
       };
-      setControlValues(randomParams);
+    }
 
-      if (launchNow) {
-        launchFirework(
-          randomBetween(width * 0.18, width * 0.82),
-          randomBetween(height * 0.16, height * 0.62),
-          randomParams
-        );
+    function launchFirework(x, y, holdDuration, startedAt, shouldRecord) {
+      const rocket = createRocket(x, y, holdDuration, startedAt);
+      rockets.push(rocket);
+      if (shouldRecord && isRecording) {
+        recordFireworkEvent(startedAt, x, y, holdDuration);
       }
+      return rocket;
+    }
+
+    function recordFireworkEvent(startedAt, x, y, holdDuration) {
+      recordedBursts.push({ time: startedAt, x, y, holdDuration });
+      trimRecordedBursts(startedAt);
+      recordCount.textContent = String(recordedBursts.length);
+    }
+
+    function trimRecordedBursts(latestTime) {
+      while (recordedBursts.length && latestTime - recordedBursts[0].time > RECORDING_LIMIT_MS) {
+        recordedBursts.shift();
+      }
+    }
+
+    function triggerBurst(rocket) {
+      if (rocket.exploded) {
+        return;
+      }
+      rocket.exploded = true;
+      spawnBurst(rocket.x, rocket.y, rocket.profile);
     }
 
     function toggleRecording() {
       isRecording = !isRecording;
-      recordButton.textContent = isRecording ? "停止录制" : "开始录制";
-      recordButton.classList.toggle("record-active", isRecording);
       if (isRecording) {
-        trimRecordingEvents(performance.now());
+        recordedBursts.length = 0;
+        recordCount.textContent = "0";
+        recordButton.textContent = "停止录制";
+        recordButton.classList.add("recording");
+      } else {
+        recordButton.textContent = "开始录制";
+        recordButton.classList.remove("recording");
       }
     }
 
     function togglePlayback() {
-      isPlaybackActive = !isPlaybackActive;
-      playbackButton.textContent = isPlaybackActive ? "停止回放" : "回放最近 10 秒";
-
-      if (isPlaybackActive) {
+      if (!recordedBursts.length) {
+        return;
+      }
+      isPlayback = !isPlayback;
+      playbackButton.textContent = isPlayback ? "停止回放" : "开始回放";
+      playbackButton.classList.toggle("playing", isPlayback);
+      if (isPlayback) {
         playbackStartTime = performance.now();
+        playbackLoopOffset = 0;
+        playbackWindowStart = recordedBursts[0].time;
         playbackCursor = 0;
       }
     }
 
     function updatePlayback(now) {
-      if (!isPlaybackActive || recordingEvents.length === 0) {
+      if (!isPlayback || !recordedBursts.length) {
         return;
       }
 
-      const firstTimestamp = recordingEvents[0].timestamp;
-      const loopDuration = Math.max(recordingEvents[recordingEvents.length - 1].timestamp - firstTimestamp, 400);
-      const elapsed = (now - playbackStartTime) % loopDuration;
+      const loopDuration = Math.max(
+        800,
+        recordedBursts[recordedBursts.length - 1].time - playbackWindowStart + 250
+      );
+      let elapsed = now - playbackStartTime - playbackLoopOffset;
 
-      while (playbackCursor < recordingEvents.length) {
-        const event = recordingEvents[playbackCursor];
-        const offset = event.timestamp - firstTimestamp;
-        if (offset > elapsed) {
-          break;
-        }
-        launchFirework(event.x, event.y, event.params, false);
-        playbackCursor += 1;
+      while (elapsed >= loopDuration) {
+        playbackLoopOffset += loopDuration;
+        elapsed -= loopDuration;
+        playbackCursor = 0;
       }
 
-      if (elapsed < 24 && playbackCursor >= recordingEvents.length) {
-        playbackCursor = 0;
+      while (
+        playbackCursor < recordedBursts.length &&
+        recordedBursts[playbackCursor].time - playbackWindowStart <= elapsed
+      ) {
+        const event = recordedBursts[playbackCursor];
+        launchFirework(event.x, event.y, event.holdDuration, now - event.holdDuration, false);
+        playbackCursor += 1;
       }
     }
 
-    function updateRockets(deltaSeconds) {
+    function beginPointer(pointerId, x, y) {
+      if (activePointer.id !== null) {
+        return;
+      }
+      const now = performance.now();
+      const rocket = createRocket(x, y, 0, now);
+      rockets.push(rocket);
+      activePointer.id = pointerId;
+      activePointer.downAt = now;
+      activePointer.x = x;
+      activePointer.y = y;
+      activePointer.rocket = rocket;
+    }
+
+    function endPointer(pointerId) {
+      if (activePointer.id !== pointerId || !activePointer.rocket) {
+        return;
+      }
+
+      const now = performance.now();
+      const holdDuration = clamp(now - activePointer.downAt, 50, 1500);
+      const rocket = activePointer.rocket;
+      rocket.holdDuration = holdDuration;
+      rocket.launchTime = activePointer.downAt;
+      rocket.burstY = lerp(height * 0.68, height * 0.16, clamp(holdDuration / 1200, 0, 1));
+      rocket.profile = mapBurstProfile(activePointer.x, activePointer.y, holdDuration);
+      rocket.trailHue = rocket.profile.glowHue;
+      if (isRecording) {
+        recordFireworkEvent(activePointer.downAt, activePointer.x, activePointer.y, holdDuration);
+      }
+      activePointer.id = null;
+      activePointer.downAt = 0;
+      activePointer.rocket = null;
+    }
+
+    function cancelPointer(pointerId) {
+      if (activePointer.id !== pointerId || !activePointer.rocket) {
+        return;
+      }
+      const rocketIndex = rockets.indexOf(activePointer.rocket);
+      if (rocketIndex >= 0) {
+        rockets.splice(rocketIndex, 1);
+      }
+      activePointer.id = null;
+      activePointer.downAt = 0;
+      activePointer.rocket = null;
+    }
+
+    function drawRocket(rocket) {
+      ctx.strokeStyle = `hsla(${rocket.trailHue}, 100%, 78%, 0.9)`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(rocket.px, rocket.py);
+      ctx.lineTo(rocket.x, rocket.y);
+      ctx.stroke();
+
+      ctx.fillStyle = `hsla(${rocket.trailHue}, 100%, 82%, 1)`;
+      ctx.beginPath();
+      ctx.arc(rocket.x, rocket.y, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function updateRockets(dt, now) {
       for (let index = rockets.length - 1; index >= 0; index -= 1) {
         const rocket = rockets[index];
         rocket.px = rocket.x;
         rocket.py = rocket.y;
-        rocket.x += rocket.vx * deltaSeconds * 60;
-        rocket.y += rocket.vy * deltaSeconds * 60;
-        rocket.vy += 0.03 * deltaSeconds * 60;
 
-        emitParticle(
-          rocket.x,
-          rocket.y,
-          randomBetween(-0.12, 0.12),
-          randomBetween(0.18, 0.65),
-          rocket.color,
-          0.22,
-          randomBetween(1, 1.8)
-        );
+        if (activePointer.rocket === rocket && activePointer.id !== null) {
+          const holdDuration = clamp(now - activePointer.downAt, 0, 1500);
+          const holdRatio = clamp(holdDuration / 1200, 0, 1);
+          rocket.vx *= 0.98;
+          rocket.vy = lerp(-4.2, -9.4, holdRatio);
+          rocket.burstY = lerp(height * 0.68, height * 0.16, holdRatio);
+          rocket.profile = mapBurstProfile(activePointer.x, activePointer.y, holdDuration);
+          rocket.trailHue = rocket.profile.glowHue;
+        }
 
-        if (rocket.vy >= -0.2 || rocket.y <= rocket.burstY) {
-          createExplosion(rocket.x, rocket.y, rocket.params);
+        rocket.x += rocket.vx * dt * 60;
+        rocket.y += rocket.vy * dt * 60;
+        rocket.vy += 0.012 * dt * 60;
+        rocket.trailTimer += dt * 1000;
+
+        while (rocket.trailTimer >= ROCKET_TRAIL_INTERVAL) {
+          rocket.trailTimer -= ROCKET_TRAIL_INTERVAL;
+          emitParticle({
+            x: rocket.x,
+            y: rocket.y,
+            vx: rand(-0.18, 0.18),
+            vy: rand(0.4, 1.2),
+            life: rand(0.2, 0.5),
+            drag: 0.92,
+            gravity: -0.008,
+            size: rand(1.1, 1.9),
+            alpha: 0.55,
+            color: `hsla(${rocket.trailHue}, 100%, 72%, 1)`,
+            trail: 0.04,
+            secondary: false
+          });
+        }
+
+        drawRocket(rocket);
+
+        if (rocket.y <= rocket.burstY || rocket.vy >= 0.2) {
+          triggerBurst(rocket);
           rockets.splice(index, 1);
         }
       }
     }
 
-    function updateParticles(deltaSeconds) {
-      const gravity = Number(gravityInput.value) * deltaSeconds * 60;
-      const drag = 0.992 ** (deltaSeconds * 60);
-
+    function updateParticles(dt) {
       for (const particle of particles) {
         if (!particle.active) {
           continue;
@@ -578,100 +601,80 @@
 
         particle.px = particle.x;
         particle.py = particle.y;
-        particle.vx *= drag;
-        particle.vy = particle.vy * drag + gravity;
-        particle.x += particle.vx * deltaSeconds * 60;
-        particle.y += particle.vy * deltaSeconds * 60;
-        particle.life -= deltaSeconds;
+        particle.x += particle.vx * dt * 60;
+        particle.y += particle.vy * dt * 60;
+        particle.vx *= particle.drag;
+        particle.vy = particle.vy * particle.drag + particle.gravity * dt * 60;
+        particle.age += dt;
 
-        if (particle.life <= 0 || particle.y > height + 30) {
-          particle.active = false;
-          activeParticleCount -= 1;
-        }
-      }
-    }
-
-    function drawScene() {
-      ctx.fillStyle = `rgba(2, 4, 10, ${Number(trailInput.value)})`;
-      ctx.fillRect(0, 0, width, height);
-
-      for (const particle of particles) {
-        if (!particle.active) {
+        const lifeT = particle.age / particle.life;
+        if (lifeT >= 1 || particle.y > height + 40) {
+          deactivateParticle(particle);
           continue;
         }
 
-        const alpha = Math.max(0, particle.life / particle.maxLife);
-        ctx.strokeStyle = makeGlowColor(particle.color, alpha * 0.45);
-        ctx.lineWidth = Math.max(1, particle.size * 0.9);
+        const alpha = (1 - lifeT) * particle.alpha;
+        ctx.strokeStyle = particle.color.replace(", 1)", `, ${alpha * particle.trail})`);
+        ctx.lineWidth = Math.max(1, particle.size * 0.55);
         ctx.beginPath();
         ctx.moveTo(particle.px, particle.py);
         ctx.lineTo(particle.x, particle.y);
         ctx.stroke();
 
-        ctx.fillStyle = makeGlowColor(particle.color, alpha);
+        ctx.fillStyle = particle.color.replace(", 1)", `, ${alpha})`);
         ctx.beginPath();
-        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        ctx.arc(particle.x, particle.y, particle.size * (0.2 + (1 - lifeT) * 0.8), 0, Math.PI * 2);
         ctx.fill();
-      }
-
-      for (const rocket of rockets) {
-        for (let step = 0; step < TRAIL_STEPS; step += 1) {
-          const mix = step / TRAIL_STEPS;
-          const px = rocket.x * (1 - mix) + rocket.px * mix;
-          const py = rocket.y * (1 - mix) + rocket.py * mix;
-          ctx.fillStyle = makeGlowColor(rocket.color, 0.9 - mix * 0.28);
-          ctx.beginPath();
-          ctx.arc(px, py, 2.2 - mix * 0.4, 0, Math.PI * 2);
-          ctx.fill();
-        }
       }
     }
 
-    function syncStats(now) {
-      particleStat.textContent = String(activeParticleCount);
-      recordingStat.textContent = String(recordingEvents.length);
-
-      frameCounter += 1;
-      if (now - lastFpsSample >= 400) {
-        currentFps = Math.round((frameCounter * 1000) / (now - lastFpsSample));
-        frameCounter = 0;
-        lastFpsSample = now;
-        fpsStat.textContent = String(currentFps);
+    function renderBackground() {
+      ctx.fillStyle = "rgba(2, 4, 10, 0.22)";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "rgba(8, 12, 28, 0.06)";
+      for (let index = 0; index < 8; index += 1) {
+        const y = (index / 8) * height;
+        ctx.fillRect(0, y, width, 1);
       }
     }
 
     function animate(now) {
-      const deltaSeconds = Math.min(0.032, (now - lastFrameTime) / 1000 || 0.016);
+      const dt = Math.min(0.033, (now - lastFrameTime) / 1000);
       lastFrameTime = now;
+
+      renderBackground();
       updatePlayback(now);
-      updateRockets(deltaSeconds);
-      updateParticles(deltaSeconds);
-      drawScene();
-      syncStats(now);
+      updateRockets(dt, now);
+      updateParticles(dt);
+      particleCount.textContent = String(activeParticles);
       requestAnimationFrame(animate);
     }
 
-    function handlePointerLaunch(event) {
-      const params = getCurrentParams();
-      launchFirework(event.clientX, event.clientY, params);
-    }
+    canvas.addEventListener("pointerdown", (event) => {
+      canvas.setPointerCapture(event.pointerId);
+      beginPointer(event.pointerId, event.clientX, event.clientY);
+    });
 
-    function bindControls() {
-      countInput.addEventListener("input", updateLabels);
-      gravityInput.addEventListener("input", updateLabels);
-      trailInput.addEventListener("input", updateLabels);
-      randomButton.addEventListener("click", () => randomizeSurprise(true));
-      recordButton.addEventListener("click", toggleRecording);
-      playbackButton.addEventListener("click", togglePlayback);
-      canvas.addEventListener("pointerdown", handlePointerLaunch);
-      window.addEventListener("resize", resizeCanvas);
-    }
+    canvas.addEventListener("pointerup", (event) => {
+      endPointer(event.pointerId);
+    });
 
-    updateLabels();
+    canvas.addEventListener("pointercancel", (event) => {
+      cancelPointer(event.pointerId);
+    });
+
+    recordButton.addEventListener("click", () => {
+      toggleRecording();
+    });
+
+    playbackButton.addEventListener("click", () => {
+      togglePlayback();
+    });
+
+    window.addEventListener("resize", resizeCanvas);
+
     resizeCanvas();
-    bindControls();
-    randomizeSurprise(false);
-    ctx.fillStyle = "rgba(2, 4, 10, 1)";
+    ctx.fillStyle = "rgb(2, 4, 10)";
     ctx.fillRect(0, 0, width, height);
     requestAnimationFrame(animate);
   </script>
