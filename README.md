@@ -402,3 +402,15 @@ This repository contains a simple agent-factory workflow for planning and comple
 - 控制 50 格获胜；若 blight 吞没中心 settlement 则失败
 
 直接用浏览器打开 `hex-colony/index.html` 即可游玩。
+
+## 节奏方块消除
+
+新增 `rhythm-block-clear/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的音乐驱动方块消除原型，包含：
+
+- 使用 Web Audio API 实时合成拍点 click 与 downbeat bass，无需外部音频文件
+- 单人模式独立可玩，双人模式支持同屏分区操作：左侧 `WASD / Q / E`，右侧 `IJKL / U / O`
+- 所有移动、旋转、放置都必须踩在节拍窗口内，实时显示 Perfect / Good / Miss 判定
+- 方块按 BPM 节拍下落，画面边框与底部连通区域会随拍点脉动
+- 清除整行后会为对方底部腾出可见空行，并实时更新分数、连击与最终成绩
+
+直接用浏览器打开 `rhythm-block-clear/index.html` 即可游玩。
