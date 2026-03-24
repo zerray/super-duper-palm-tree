@@ -246,8 +246,8 @@
         <div>
           <div class="eyebrow">Physics Toy</div>
           <h1>磁力弹珠台 - 双人同屏对战</h1>
-          <p>两名玩家各守一侧的磁力发射器，把带磁性的霓虹弹珠轰进对手得分洞。相同颜色互斥、不同颜色互吸，60 秒内分数更高的一方获胜，并且每人都能发动一次磁极翻转来搅乱轨迹。</p>
-          <div class="status" id="status">按住发射键蓄力，松开时发射弹珠。</div>
+          <p>两名玩家各守一侧的磁力发射器，用三种磁性弹珠争夺共享弹珠台。正负极彼此吸引、同极互斥，中性弹珠只参与碰撞；率先把弹珠送进对手底线得分区达到目标分数的一方获胜。</p>
+          <div class="status" id="status">WASD 与方向键可移动并瞄准发射器，按住发射键蓄力，松开时发射下一颗磁性弹珠。</div>
         </div>
         <div class="actions">
           <button id="restart" type="button">重新开始</button>
@@ -267,8 +267,8 @@
           <strong class="p2" id="score-p2">玩家 2: 0</strong>
         </div>
         <div class="card">
-          <div class="meta">倒计时</div>
-          <strong id="timer">60.0s</strong>
+          <div class="meta">胜利条件</div>
+          <strong id="target-score">先到 5 分</strong>
         </div>
         <div class="card">
           <div class="meta">玩家 1 蓄力</div>
@@ -287,18 +287,18 @@
       <div class="controls" id="help-panel">
         <div class="card">
           <div class="meta p1">玩家 1 控制</div>
-          <strong class="p1">W / S 调角度，按住空格蓄力，松开发射</strong>
-          <p>按 <span class="p1">Q</span> 或点击按钮，发动一次 4 秒磁极翻转。</p>
+          <strong class="p1">W / S 上下移动，A / D 调角度，按住空格蓄力</strong>
+          <p>按 <span class="p1">Q</span> 或点击按钮发动 4 秒磁极翻转；每次发射会轮换正极、负极、中性弹珠。</p>
         </div>
         <div class="card">
           <div class="meta p2">玩家 2 控制</div>
-          <strong class="p2">↑ / ↓ 调角度，按住 Enter 蓄力，松开发射</strong>
-          <p>按 <span class="p2">/</span> 或点击按钮，发动一次 4 秒磁极翻转。</p>
+          <strong class="p2">↑ / ↓ 上下移动，← / → 调角度，按住 Enter 蓄力</strong>
+          <p>按 <span class="p2">/</span> 或点击按钮发动 4 秒磁极翻转；正负极会以力线与粒子显示吸引或排斥。</p>
         </div>
         <div class="card">
           <div class="meta">规则</div>
-          <strong>让自己的弹珠滚入对方一侧的得分洞即可得分</strong>
-          <p>同色排斥，异色吸引；中央挡板和弹板会不断改变反弹线路。</p>
+          <strong>让自己的弹珠击中对方底线得分区即可得分，先到目标分数获胜</strong>
+          <p>中央固定磁极障碍会改变轨迹，中性弹珠不会产生磁力但会把局势撞乱。</p>
         </div>
         <div class="card">
           <div class="meta">实现</div>
@@ -335,7 +335,7 @@
       const statusLabel = document.querySelector("#status");
       const scoreP1 = document.querySelector("#score-p1");
       const scoreP2 = document.querySelector("#score-p2");
-      const timerLabel = document.querySelector("#timer");
+      const targetScoreLabel = document.querySelector("#target-score");
       const chargeP1 = document.querySelector("#charge-p1");
       const chargeP2 = document.querySelector("#charge-p2");
       const marbleCount = document.querySelector("#marble-count");
@@ -362,18 +362,28 @@
       const CENTER_X = WIDTH / 2;
       const CENTER_Y = HEIGHT / 2;
       const MARBLE_RADIUS = 13;
-      const GAME_SECONDS = 60;
+      const TARGET_SCORE = 5;
       const MAX_POWER = 1.6;
       const MIN_POWER = 0.22;
       const POWER_RATE = 0.82;
       const ANGLE_SPEED = 1.75;
+      const MOVE_SPEED = 220;
       const MAX_ACTIVE_MARBLES = 6;
       const MAGNET_RANGE = 260;
       const MAGNET_STRENGTH = 0.00058;
       const MAX_MAGNET_FORCE = 0.0008;
+      const OBSTACLE_MAGNET_RANGE = 210;
+      const OBSTACLE_MAGNET_STRENGTH = 0.00048;
       const FLIP_DURATION = 4;
       const TRAIL_POINTS = 20;
       const MAX_DT = 1 / 30;
+      const LAUNCHER_MARGIN = 96;
+
+      const marbleTypes = [
+        { key: "positive", label: "正极", short: "+", charge: 1, color: "#ff8e65" },
+        { key: "negative", label: "负极", short: "-", charge: -1, color: "#74c0ff" },
+        { key: "neutral", label: "中性", short: "0", charge: 0, color: "#d6dde8" }
+      ];
 
       const engine = Engine.create({
         gravity: { x: 0, y: 0.34 }
@@ -395,7 +405,8 @@
           score: 0,
           skillUsed: false,
           flipUntil: 0,
-          keys: { up: "KeyW", down: "KeyS", fire: "Space", skill: "KeyQ" }
+          shotIndex: 0,
+          keys: { moveUp: "KeyW", moveDown: "KeyS", aimLeft: "KeyA", aimRight: "KeyD", fire: "Space", skill: "KeyQ" }
         },
         p2: {
           id: "p2",
@@ -412,7 +423,8 @@
           score: 0,
           skillUsed: false,
           flipUntil: 0,
-          keys: { up: "ArrowUp", down: "ArrowDown", fire: "Enter", skill: "Slash" }
+          shotIndex: 0,
+          keys: { moveUp: "ArrowUp", moveDown: "ArrowDown", aimLeft: "ArrowLeft", aimRight: "ArrowRight", fire: "Enter", skill: "Slash" }
         }
       };
 
@@ -420,9 +432,9 @@
         keys: new Set(),
         marbles: [],
         particles: [],
+        fieldLinks: [],
         lastTime: 0,
         gameOver: false,
-        timeLeft: GAME_SECONDS,
         helpVisible: true
       };
 
@@ -441,6 +453,13 @@
         { x: CENTER_X + 168, y: CENTER_Y - 54, w: 146, h: 16, angle: 0.18 },
         { x: CENTER_X - 12, y: CENTER_Y + 186, w: 188, h: 16, angle: -0.1 }
       ];
+
+      const fieldMagnets = [
+        { x: CENTER_X - 118, y: CENTER_Y - 58, r: 24, charge: 1, label: "正极障碍", color: "#ff8e65" },
+        { x: CENTER_X + 126, y: CENTER_Y - 12, r: 24, charge: -1, label: "负极障碍", color: "#74c0ff" },
+        { x: CENTER_X, y: CENTER_Y + 134, r: 28, charge: 0, label: "中性障碍", color: "#d6dde8" }
+      ];
+      const fieldMagnetBodies = [];
 
       function clamp(value, min, max) {
         return Math.max(min, Math.min(max, value));
@@ -487,7 +506,17 @@
           player.score = 0;
           player.skillUsed = false;
           player.flipUntil = 0;
+          player.shotIndex = 0;
+          player.launcher.y = CENTER_Y;
         }
+      }
+
+      function nextMarbleType(player) {
+        return marbleTypes[player.shotIndex % marbleTypes.length];
+      }
+
+      function advanceMarbleType(player) {
+        player.shotIndex = (player.shotIndex + 1) % marbleTypes.length;
       }
 
       function destroyMarble(marble) {
@@ -557,7 +586,17 @@
           blockerBodies.push(body);
         }
 
-        World.add(engine.world, [...walls, goalLeft, goalRight, ...bumperBodies, ...blockerBodies]);
+        for (const magnet of fieldMagnets) {
+          const body = Bodies.circle(magnet.x, magnet.y, magnet.r, {
+            isStatic: true,
+            label: "field-magnet",
+            restitution: 1.02,
+            renderData: magnet
+          });
+          fieldMagnetBodies.push(body);
+        }
+
+        World.add(engine.world, [...walls, goalLeft, goalRight, ...bumperBodies, ...blockerBodies, ...fieldMagnetBodies]);
       }
 
       function resetWorld() {
@@ -568,7 +607,7 @@
         state.keys.clear();
         state.lastTime = 0;
         state.gameOver = false;
-        state.timeLeft = GAME_SECONDS;
+        state.fieldLinks = [];
         resetPlayers();
         setOverlay(false, "", "", "");
         syncHud();
@@ -580,6 +619,7 @@
 
       function createMarble(playerId, launchForce) {
         const player = players[playerId];
+        const type = nextMarbleType(player);
         const muzzleDistance = 36;
         const startX = player.launcher.x + Math.cos(player.angle) * muzzleDistance;
         const startY = player.launcher.y + Math.sin(player.angle) * muzzleDistance;
@@ -592,7 +632,10 @@
         });
         const marble = {
           owner: playerId,
-          color: player.color,
+          color: type.color,
+          ownerColor: player.color,
+          type,
+          charge: type.charge,
           body,
           trail: [],
           glow: player.accent
@@ -604,7 +647,9 @@
         });
         World.add(engine.world, body);
         state.marbles.push(marble);
-        spawnBurst(startX, startY, player.color, 12, 130);
+        spawnBurst(startX, startY, type.color, 12, 130);
+        statusLabel.textContent = `${player.name} 发射 ${type.label} 弹珠。`;
+        advanceMarbleType(player);
       }
 
       function releaseShot(playerId) {
@@ -641,10 +686,10 @@
       function syncHud() {
         scoreP1.textContent = `玩家 1: ${players.p1.score}`;
         scoreP2.textContent = `玩家 2: ${players.p2.score}`;
-        timerLabel.textContent = `${state.timeLeft.toFixed(1)}s`;
+        targetScoreLabel.textContent = `先到 ${TARGET_SCORE} 分`;
         chargeP1.textContent = `${Math.round((players.p1.power / MAX_POWER) * 100)}%`;
         chargeP2.textContent = `${Math.round((players.p2.power / MAX_POWER) * 100)}%`;
-        marbleCount.textContent = String(state.marbles.length);
+        marbleCount.textContent = `${state.marbles.length} | P1:${nextMarbleType(players.p1).short} P2:${nextMarbleType(players.p2).short}`;
         flipP1Button.disabled = players.p1.skillUsed || state.gameOver;
         flipP2Button.disabled = players.p2.skillUsed || state.gameOver;
         flipP1Button.textContent = players.p1.skillUsed ? "玩家 1 已用翻转" : "玩家 1 磁极翻转";
@@ -659,17 +704,20 @@
         const { x, y } = marble.body.position;
         spawnBurst(x, y, players[playerId].color, 24, 180);
         destroyMarble(marble);
-        statusLabel.textContent = `${players[playerId].name} 得分。目标是把弹珠送进对方得分洞。`;
+        statusLabel.textContent = `${players[playerId].name} 得分。继续把弹珠送进对方底线得分区。`;
         syncHud();
+        if (players[playerId].score >= TARGET_SCORE) {
+          endMatch(playerId);
+        }
       }
 
-      function endMatch() {
+      function endMatch(winnerId) {
         state.gameOver = true;
         const left = players.p1.score;
         const right = players.p2.score;
-        const result = left === right ? "平局" : left > right ? "玩家 1 获胜" : "玩家 2 获胜";
-        setOverlay(true, result, `60 秒结束，最终比分 ${left} : ${right}。`, "再来一局");
-        statusLabel.textContent = "对局结束，点击重新开始。";
+        const winner = players[winnerId];
+        setOverlay(true, `${winner.name} 获胜`, `比分 ${left} : ${right}。按 Space / Enter 或点击按钮立即重开。`, "再来一局");
+        statusLabel.textContent = "对局结束，按 Space / Enter 可一键重开。";
         syncHud();
       }
 
@@ -690,13 +738,19 @@
         if (state.gameOver) {
           return;
         }
-        const p1Direction = (state.keys.has(players.p1.keys.down) ? 1 : 0) - (state.keys.has(players.p1.keys.up) ? 1 : 0);
-        const p2Direction = (state.keys.has(players.p2.keys.down) ? 1 : 0) - (state.keys.has(players.p2.keys.up) ? 1 : 0);
-        players.p1.angle = clamp(players.p1.angle + p1Direction * ANGLE_SPEED * dt, players.p1.minAngle, players.p1.maxAngle);
-        players.p2.angle = clamp(players.p2.angle + p2Direction * ANGLE_SPEED * dt, players.p2.minAngle, players.p2.maxAngle);
+        const p1Move = (state.keys.has(players.p1.keys.moveDown) ? 1 : 0) - (state.keys.has(players.p1.keys.moveUp) ? 1 : 0);
+        const p2Move = (state.keys.has(players.p2.keys.moveDown) ? 1 : 0) - (state.keys.has(players.p2.keys.moveUp) ? 1 : 0);
+        const p1Aim = (state.keys.has(players.p1.keys.aimRight) ? 1 : 0) - (state.keys.has(players.p1.keys.aimLeft) ? 1 : 0);
+        const p2Aim = (state.keys.has(players.p2.keys.aimRight) ? 1 : 0) - (state.keys.has(players.p2.keys.aimLeft) ? 1 : 0);
+
+        players.p1.launcher.y = clamp(players.p1.launcher.y + p1Move * MOVE_SPEED * dt, TABLE.y + LAUNCHER_MARGIN, TABLE.y + TABLE.height - LAUNCHER_MARGIN);
+        players.p2.launcher.y = clamp(players.p2.launcher.y + p2Move * MOVE_SPEED * dt, TABLE.y + LAUNCHER_MARGIN, TABLE.y + TABLE.height - LAUNCHER_MARGIN);
+        players.p1.angle = clamp(players.p1.angle + p1Aim * ANGLE_SPEED * dt, players.p1.minAngle, players.p1.maxAngle);
+        players.p2.angle = clamp(players.p2.angle + p2Aim * ANGLE_SPEED * dt, players.p2.minAngle, players.p2.maxAngle);
       }
 
       function applyMagneticForces() {
+        state.fieldLinks = [];
         for (let i = 0; i < state.marbles.length; i += 1) {
           for (let j = i + 1; j < state.marbles.length; j += 1) {
             const a = state.marbles[i];
@@ -706,16 +760,49 @@
             if (distance >= MAGNET_RANGE) {
               continue;
             }
+            const effectiveChargeA = a.charge * currentPolarity(a.owner);
+            const effectiveChargeB = b.charge * currentPolarity(b.owner);
+            if (!effectiveChargeA || !effectiveChargeB) {
+              continue;
+            }
             const normal = Vector.normalise(offset);
-            const sameOwner = a.owner === b.owner;
-            const polarityA = currentPolarity(a.owner);
-            const polarityB = currentPolarity(b.owner);
-            const magneticSign = sameOwner ? -1 : 1;
-            const flippedSign = polarityA * polarityB;
-            const forceMagnitude = clamp((MAGNET_STRENGTH * magneticSign * flippedSign) / (distance * distance), -MAX_MAGNET_FORCE, MAX_MAGNET_FORCE);
+            const forceMagnitude = clamp((-MAGNET_STRENGTH * effectiveChargeA * effectiveChargeB) / (distance * distance), -MAX_MAGNET_FORCE, MAX_MAGNET_FORCE);
             const force = Vector.mult(normal, forceMagnitude);
             Body.applyForce(a.body, a.body.position, force);
             Body.applyForce(b.body, b.body.position, Vector.neg(force));
+            state.fieldLinks.push({
+              from: { x: a.body.position.x, y: a.body.position.y },
+              to: { x: b.body.position.x, y: b.body.position.y },
+              attract: effectiveChargeA * effectiveChargeB < 0,
+              strength: Math.abs(forceMagnitude) / MAX_MAGNET_FORCE
+            });
+          }
+        }
+
+        for (const marble of state.marbles) {
+          const effectiveCharge = marble.charge * currentPolarity(marble.owner);
+          if (!effectiveCharge) {
+            continue;
+          }
+          for (const magnet of fieldMagnets) {
+            if (!magnet.charge) {
+              continue;
+            }
+            const offset = Vector.sub({ x: magnet.x, y: magnet.y }, marble.body.position);
+            const distance = clamp(Vector.magnitude(offset), 32, OBSTACLE_MAGNET_RANGE);
+            if (distance >= OBSTACLE_MAGNET_RANGE) {
+              continue;
+            }
+            const normal = Vector.normalise(offset);
+            const forceMagnitude = clamp((-OBSTACLE_MAGNET_STRENGTH * effectiveCharge * magnet.charge) / (distance * distance), -MAX_MAGNET_FORCE, MAX_MAGNET_FORCE);
+            Body.applyForce(marble.body, marble.body.position, Vector.mult(normal, forceMagnitude));
+            state.fieldLinks.push({
+              from: { x: marble.body.position.x, y: marble.body.position.y },
+              to: { x: magnet.x, y: magnet.y },
+              attract: effectiveCharge * magnet.charge < 0,
+              strength: Math.abs(forceMagnitude) / MAX_MAGNET_FORCE,
+              obstacle: true
+            });
           }
         }
       }
@@ -801,6 +888,25 @@
           ctx.strokeRect(-blocker.w / 2, -blocker.h / 2, blocker.w, blocker.h);
           ctx.restore();
         }
+
+        for (const magnet of fieldMagnets) {
+          ctx.shadowBlur = 18;
+          ctx.shadowColor = magnet.color;
+          ctx.fillStyle = colorWithAlpha(magnet.color, 0.2);
+          ctx.beginPath();
+          ctx.arc(magnet.x, magnet.y, magnet.r + 8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = colorWithAlpha(magnet.color, 0.9);
+          ctx.beginPath();
+          ctx.arc(magnet.x, magnet.y, magnet.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = "#06101c";
+          ctx.font = "bold 18px Segoe UI";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(magnet.charge > 0 ? "+" : magnet.charge < 0 ? "-" : "0", magnet.x, magnet.y + 1);
+        }
         ctx.restore();
       }
 
@@ -840,6 +946,15 @@
         ctx.fillStyle = player.color;
         ctx.fillRect(player.launcher.x - 30, player.launcher.y + 34, 60 * powerRatio, 8);
 
+        const upcoming = nextMarbleType(player);
+        ctx.font = "bold 14px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = colorWithAlpha(upcoming.color, 0.9);
+        ctx.fillRect(player.launcher.x - 18, player.launcher.y - 48, 36, 22);
+        ctx.fillStyle = "#04101b";
+        ctx.fillText(upcoming.short, player.launcher.x, player.launcher.y - 37);
+
         if (polarityFlipped) {
           ctx.globalCompositeOperation = "lighter";
           ctx.strokeStyle = player.color;
@@ -858,14 +973,13 @@
           for (let i = 0; i < marble.trail.length; i += 1) {
             const point = marble.trail[i];
             const alpha = (i + 1) / marble.trail.length;
-            const rgb = marble.owner === "p1" ? "255, 108, 159" : "105, 215, 255";
-            ctx.fillStyle = `rgba(${rgb}, ${alpha * 0.12})`;
+            ctx.fillStyle = colorWithAlpha(marble.ownerColor, alpha * 0.12);
             ctx.beginPath();
             ctx.arc(point.x, point.y, MARBLE_RADIUS * alpha * 0.84, 0, Math.PI * 2);
             ctx.fill();
           }
 
-          const polarityFlipped = currentPolarity(marble.owner) < 0;
+          const effectiveCharge = marble.charge * currentPolarity(marble.owner);
           ctx.shadowBlur = 16;
           ctx.shadowColor = marble.color;
           ctx.fillStyle = marble.color;
@@ -874,11 +988,39 @@
           ctx.fill();
 
           ctx.shadowBlur = 0;
-          ctx.strokeStyle = polarityFlipped ? "#ffe980" : "rgba(255,255,255,0.75)";
+          ctx.strokeStyle = marble.ownerColor;
           ctx.lineWidth = 2;
           ctx.beginPath();
           ctx.arc(marble.body.position.x, marble.body.position.y, MARBLE_RADIUS + 3, 0, Math.PI * 2);
           ctx.stroke();
+
+          ctx.fillStyle = effectiveCharge > 0 ? "#1c0900" : effectiveCharge < 0 ? "#06111e" : "#18232d";
+          ctx.font = "bold 14px Segoe UI";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(effectiveCharge > 0 ? "+" : effectiveCharge < 0 ? "-" : "0", marble.body.position.x, marble.body.position.y + 1);
+        }
+        ctx.restore();
+      }
+
+      function drawMagneticLinks() {
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        for (const link of state.fieldLinks) {
+          const alpha = 0.08 + link.strength * (link.obstacle ? 0.22 : 0.32);
+          ctx.strokeStyle = link.attract ? `rgba(122, 227, 255, ${alpha})` : `rgba(255, 130, 167, ${alpha})`;
+          ctx.lineWidth = 1.5 + link.strength * 2.5;
+          ctx.beginPath();
+          ctx.moveTo(link.from.x, link.from.y);
+          ctx.lineTo(link.to.x, link.to.y);
+          ctx.stroke();
+
+          const midX = (link.from.x + link.to.x) / 2;
+          const midY = (link.from.y + link.to.y) / 2;
+          ctx.fillStyle = link.attract ? `rgba(154, 255, 199, ${alpha})` : `rgba(255, 233, 128, ${alpha})`;
+          ctx.beginPath();
+          ctx.arc(midX, midY, 2 + link.strength * 3, 0, Math.PI * 2);
+          ctx.fill();
         }
         ctx.restore();
       }
@@ -917,6 +1059,7 @@
         drawArena();
         drawLauncher(players.p1);
         drawLauncher(players.p2);
+        drawMagneticLinks();
         drawMarbles();
         drawParticles();
         drawLabels();
@@ -924,15 +1067,11 @@
 
       function step(dt) {
         if (!state.gameOver) {
-          state.timeLeft = Math.max(0, state.timeLeft - dt);
           updateAim(dt);
           updateCharges(dt);
           applyMagneticForces();
           Engine.update(engine, dt * 1000);
           updateTrails();
-          if (state.timeLeft <= 0) {
-            endMatch();
-          }
         }
         updateParticles(dt);
         syncHud();
@@ -969,12 +1108,20 @@
           if (other.label === "bumper") {
             spawnBurst(marbleBody.position.x, marbleBody.position.y, "rgb(255, 233, 128)", 6, 80);
           }
+
+          if (other.label === "field-magnet") {
+            spawnBurst(marbleBody.position.x, marbleBody.position.y, marbleBody.marbleRef?.color || "#ffffff", 4, 70);
+          }
         }
       });
 
       window.addEventListener("keydown", (event) => {
-        if (["Space", "ArrowUp", "ArrowDown", "Enter", "Slash"].includes(event.code)) {
+        if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter", "Slash"].includes(event.code)) {
           event.preventDefault();
+        }
+        if (state.gameOver && ["Space", "Enter"].includes(event.code) && !event.repeat) {
+          resetWorld();
+          return;
         }
         if (event.repeat) {
           state.keys.add(event.code);
