@@ -131,10 +131,11 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 新增 `pixel-garden/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的放置生长模拟，包含：
 
-- 点击网格放置 4 种植物种子
+- 点击网格放置 5 种植物种子
 - 植物自动经历种子、幼苗、成熟、开花 4 个可视阶段
-- 向日葵与玫瑰共生加速，藤蔓会蔓延，杂草会竞争并导致邻居枯萎
-- 使用 Canvas 像素风渲染，并支持将当前花园截图导出为 PNG
+- 向日葵与玫瑰共生加速，藤蔓会蔓延，蘑菇会从邻居植物获益，杂草会竞争并导致邻居枯萎
+- 提供 1x / 2x / 4x 时间加速、本地自动保存恢复，以及导出 PNG 截图
+- 使用 Canvas 像素风渲染，并通过 `requestAnimationFrame` 维持平滑的生长摆动动画
 
 直接用浏览器打开 `pixel-garden/index.html` 即可游玩。
 

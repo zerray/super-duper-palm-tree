@@ -203,6 +203,41 @@
       gap: 10px;
     }
 
+    .speed-controls {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      padding: 8px;
+      border-radius: 14px;
+      background: #f5eed6;
+      border: 1px solid rgba(106, 87, 60, 0.16);
+    }
+
+    .speed-label {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .speed-button {
+      min-width: 52px;
+      border: 2px solid rgba(106, 87, 60, 0.2);
+      border-radius: 999px;
+      background: #fffdf6;
+      color: var(--text);
+      font: inherit;
+      padding: 8px 10px;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+
+    .speed-button:hover,
+    .speed-button.active {
+      transform: translateY(-1px);
+      border-color: var(--accent-strong);
+      background: #edf7dc;
+    }
+
     canvas {
       width: min(100%, 640px);
       aspect-ratio: 1 / 1;
@@ -244,7 +279,7 @@
         <div>
           <p>Idle / Creative Garden</p>
           <h1>像素花园</h1>
-          <p class="subtitle">点击网格种下植物，观察它们在闲置状态下继续生长。相邻的花会互相鼓励，藤蔓会蔓延，杂草则会掠夺养分。</p>
+          <p class="subtitle">点击网格种下植物，观察它们在闲置状态下继续生长。花朵会互相鼓励，藤蔓会蔓延，蘑菇偏爱湿润阴影，杂草则会掠夺养分。</p>
         </div>
         <div class="stats">
           <div class="stat">
@@ -253,7 +288,7 @@
           </div>
           <div class="stat">
             <span class="stat-label">植物</span>
-            <span class="stat-value">向日葵 / 玫瑰 / 藤蔓 / 杂草</span>
+            <span class="stat-value">向日葵 / 玫瑰 / 藤蔓 / 蘑菇 / 杂草</span>
           </div>
           <div class="stat">
             <span class="stat-label">互动</span>
@@ -281,8 +316,9 @@
             <div class="legend">
               <div class="legend-item">向日葵与玫瑰相邻时，双方都会更快进入开花阶段。</div>
               <div class="legend-item">藤蔓成熟后会向空格蔓延，形成连续花圃。</div>
+              <div class="legend-item">蘑菇喜欢靠近藤蔓与花丛，在阴影里会更稳定地结果。</div>
               <div class="legend-item">杂草会拖慢附近植物，并持续削弱它们的健康值。</div>
-              <div class="legend-item">健康值跌到 0 时植物会枯死并腾出格子。</div>
+              <div class="legend-item">健康值跌到 0 时植物会枯死并腾出格子，花园会自动存档。</div>
             </div>
           </div>
 
@@ -299,6 +335,12 @@
               <p class="panel-copy">16x16 像素单元，空闲时仍持续模拟。</p>
             </div>
             <div class="toolbar-actions">
+              <div class="speed-controls" id="speed-controls" aria-label="时间加速控制">
+                <span class="speed-label">时间</span>
+                <button class="speed-button active" data-speed="1" type="button">1x</button>
+                <button class="speed-button" data-speed="2" type="button">2x</button>
+                <button class="speed-button" data-speed="4" type="button">4x</button>
+              </div>
               <button class="action-button" id="clear-button" type="button">清空花园</button>
               <button class="action-button" id="export-button" type="button">截图 / 导出</button>
             </div>
@@ -323,6 +365,7 @@
     const exportButton = document.getElementById("export-button");
     const clearButton = document.getElementById("clear-button");
     const seedButtons = document.getElementById("seed-buttons");
+    const speedControls = document.getElementById("speed-controls");
     const selectedTitle = document.getElementById("selected-title");
     const selectedCopy = document.getElementById("selected-copy");
     const statusTitle = document.getElementById("status-title");
@@ -332,7 +375,8 @@
     const cellPixels = 16;
     const stageNames = ["种子", "幼苗", "成熟", "开花"];
     const stageThresholds = [1.2, 3.2, 6.5];
-    const tickMs = 500;
+    const baseTickMs = 500;
+    const storageKey = "pixel-garden-save-v2";
     const hoverCell = { x: -1, y: -1 };
 
     const plantTypes = {
@@ -357,6 +401,13 @@
         healthDrainResistance: 0.15,
         colors: ["#69824a", "#4e914d", "#3e7f44", "#8dc05f"]
       },
+      mushroom: {
+        name: "蘑菇",
+        summary: "喜欢待在花丛和藤蔓旁边，成熟后会长出明亮的小菌盖。",
+        growthRate: 0.29,
+        healthDrainResistance: 0.25,
+        colors: ["#826744", "#a37b57", "#d58970", "#f4d3bf"]
+      },
       weed: {
         name: "杂草",
         summary: "扩张欲强，靠近任何植物都会压制其生长并抢夺健康。",
@@ -373,7 +424,9 @@
         growth: 0,
         health: 0,
         bloomBoost: 0,
-        crowding: 0
+        crowding: 0,
+        animationOffset: 0,
+        lastGrowthDelta: 0
       };
     }
 
@@ -384,6 +437,8 @@
     let selectedPlant = "sunflower";
     let bloomCount = 0;
     let occupiedCount = 0;
+    let simulationSpeed = 1;
+    let simulationInterval = null;
 
     function setSelectedPlant(type) {
       selectedPlant = type;
@@ -424,18 +479,25 @@
       return neighbors;
     }
 
-    function plantSeed(x, y, type) {
-      gardenGrid[y][x] = {
+    function createPlantedCell(type, overrides = {}) {
+      return {
         type,
         stage: 0,
         growth: 0,
         health: 1,
         bloomBoost: 0,
-        crowding: 0
+        crowding: 0,
+        animationOffset: Math.random() * Math.PI * 2,
+        lastGrowthDelta: 0,
+        ...overrides
       };
+    }
+
+    function plantSeed(x, y, type) {
+      gardenGrid[y][x] = createPlantedCell(type);
       setStatus(`已种下${plantTypes[type].name}`, `位置 ${x + 1}, ${y + 1}。它会在后台自动成长。`);
       updateStats();
-      renderGarden();
+      saveGarden();
     }
 
     function clearGarden() {
@@ -446,7 +508,7 @@
       }
       setStatus("花园已清空", "重新选择种子并点击画布任意格子开始新布局。");
       updateStats();
-      renderGarden();
+      saveGarden();
     }
 
     function witherCell(x, y) {
@@ -479,6 +541,7 @@
           const neighbors = getNeighbors(x, y);
           let growthBonus = 0;
           let healthDelta = 0;
+          let supportCount = 0;
 
           cell.bloomBoost = 0;
           cell.crowding = 0;
@@ -499,6 +562,23 @@
             ) {
               growthBonus += 0.18;
               cell.bloomBoost += 1;
+              supportCount += 1;
+            }
+
+            if (
+              cell.type === "mushroom" &&
+              (neighbor.type === "vine" || neighbor.type === "rose" || neighbor.type === "sunflower")
+            ) {
+              growthBonus += 0.12;
+              healthDelta += 0.02;
+              supportCount += 1;
+            }
+
+            if (
+              (cell.type === "rose" || cell.type === "sunflower") &&
+              neighbor.type === "mushroom"
+            ) {
+              growthBonus += 0.05;
             }
 
             if (neighbor.type === "weed" && cell.type !== "weed") {
@@ -512,7 +592,13 @@
             growthBonus += 0.08;
           }
 
-          cell.growth += Math.max(0.05, plant.growthRate + growthBonus);
+          if (cell.type === "mushroom" && supportCount === 0) {
+            growthBonus -= 0.06;
+          }
+
+          const growthDelta = Math.max(0.05, plant.growthRate + growthBonus);
+          cell.lastGrowthDelta = growthDelta;
+          cell.growth += growthDelta;
           cell.health = Math.min(1, cell.health + healthDelta);
           advanceGrowth(cell);
 
@@ -525,19 +611,16 @@
       spreads.forEach(({ toX, toY }) => {
         const target = gardenGrid[toY][toX];
         if (!target.type && Math.random() < 0.12) {
-          gardenGrid[toY][toX] = {
-            type: "vine",
+          gardenGrid[toY][toX] = createPlantedCell("vine", {
             stage: 1,
             growth: 1.6,
-            health: 0.8,
-            bloomBoost: 0,
-            crowding: 0
-          };
+            health: 0.8
+          });
         }
       });
 
       updateStats();
-      renderGarden();
+      saveGarden();
     }
 
     function updateStats() {
@@ -590,11 +673,13 @@
       ctx.fillRect(x, y, cellPixels, cellPixels);
     }
 
-    function drawPlantSprite(x, y, cell) {
+    function drawPlantSprite(x, y, cell, time) {
       const plant = plantTypes[cell.type];
       const baseColor = plant.colors[cell.stage];
       const px = x * cellPixels;
       const py = y * cellPixels;
+      const bob = Math.sin(time * 0.004 + cell.animationOffset) * 0.9;
+      const lift = cell.stage > 0 ? Math.round(bob) : 0;
 
       drawPatch(px, py, "#756542");
       ctx.fillStyle = "#8fa25c";
@@ -602,43 +687,50 @@
 
       if (cell.stage === 0) {
         ctx.fillStyle = baseColor;
-        ctx.fillRect(px + 6, py + 9, 4, 4);
+        ctx.fillRect(px + 6, py + 9 + lift, 4, 4);
       } else if (cell.stage === 1) {
         ctx.fillStyle = "#4d8c4a";
-        ctx.fillRect(px + 7, py + 5, 2, 7);
-        ctx.fillRect(px + 5, py + 8, 2, 2);
-        ctx.fillRect(px + 9, py + 7, 2, 2);
+        ctx.fillRect(px + 7, py + 5 + lift, 2, 7);
+        ctx.fillRect(px + 5, py + 8 + lift, 2, 2);
+        ctx.fillRect(px + 9, py + 7 + lift, 2, 2);
         ctx.fillStyle = baseColor;
-        ctx.fillRect(px + 6, py + 3, 4, 3);
+        ctx.fillRect(px + 6, py + 3 + lift, 4, 3);
       } else if (cell.stage === 2) {
         ctx.fillStyle = "#43773b";
-        ctx.fillRect(px + 7, py + 3, 2, 9);
-        ctx.fillRect(px + 4, py + 6, 3, 2);
-        ctx.fillRect(px + 9, py + 7, 3, 2);
+        ctx.fillRect(px + 7, py + 3 + lift, 2, 9);
+        ctx.fillRect(px + 4, py + 6 + lift, 3, 2);
+        ctx.fillRect(px + 9, py + 7 + lift, 3, 2);
         ctx.fillStyle = baseColor;
-        ctx.fillRect(px + 5, py + 1, 6, 4);
+        ctx.fillRect(px + 5, py + 1 + lift, 6, 4);
       } else {
         ctx.fillStyle = "#36652f";
-        ctx.fillRect(px + 7, py + 3, 2, 9);
-        ctx.fillRect(px + 4, py + 7, 3, 2);
-        ctx.fillRect(px + 9, py + 6, 3, 2);
+        ctx.fillRect(px + 7, py + 3 + lift, 2, 9);
+        ctx.fillRect(px + 4, py + 7 + lift, 3, 2);
+        ctx.fillRect(px + 9, py + 6 + lift, 3, 2);
         ctx.fillStyle = baseColor;
-        ctx.fillRect(px + 4, py + 1, 8, 5);
+        ctx.fillRect(px + 4, py + 1 + lift, 8, 5);
 
         if (cell.type === "sunflower") {
           ctx.fillStyle = "#6d4c2c";
-          ctx.fillRect(px + 6, py + 2, 4, 3);
+          ctx.fillRect(px + 6, py + 2 + lift, 4, 3);
         } else if (cell.type === "rose") {
           ctx.fillStyle = "#ffd8df";
-          ctx.fillRect(px + 6, py + 3, 2, 2);
-          ctx.fillRect(px + 8, py + 2, 2, 2);
+          ctx.fillRect(px + 6, py + 3 + lift, 2, 2);
+          ctx.fillRect(px + 8, py + 2 + lift, 2, 2);
         } else if (cell.type === "vine") {
           ctx.fillStyle = "#daf1b0";
-          ctx.fillRect(px + 5, py + 2, 2, 2);
-          ctx.fillRect(px + 9, py + 4, 2, 2);
+          ctx.fillRect(px + 5, py + 2 + lift, 2, 2);
+          ctx.fillRect(px + 9, py + 4 + lift, 2, 2);
+        } else if (cell.type === "mushroom") {
+          ctx.fillStyle = "#fff3e3";
+          ctx.fillRect(px + 6, py + 4 + lift, 1, 4);
+          ctx.fillRect(px + 9, py + 4 + lift, 1, 4);
+          ctx.fillStyle = "#d97e67";
+          ctx.fillRect(px + 5, py + 2 + lift, 3, 2);
+          ctx.fillRect(px + 8, py + 1 + lift, 3, 2);
         } else if (cell.type === "weed") {
           ctx.fillStyle = "#cab65e";
-          ctx.fillRect(px + 5, py + 2, 6, 2);
+          ctx.fillRect(px + 5, py + 2 + lift, 6, 2);
         }
       }
 
@@ -648,7 +740,7 @@
       }
     }
 
-    function drawGrid() {
+    function drawGrid(time) {
       ctx.fillStyle = "#b79b63";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -661,7 +753,7 @@
 
           const cell = gardenGrid[y][x];
           if (cell.type) {
-            drawPlantSprite(x, y, cell);
+            drawPlantSprite(x, y, cell, time);
           } else {
             ctx.fillStyle = "#c9bb83";
             ctx.fillRect(px + 6, py + 11, 4, 2);
@@ -670,8 +762,8 @@
       }
     }
 
-    function renderGarden() {
-      drawGrid();
+    function renderGarden(time = 0) {
+      drawGrid(time);
       if (hoverCell.x >= 0 && hoverCell.y >= 0) {
         ctx.strokeStyle = "#2d2417";
         ctx.lineWidth = 2;
@@ -682,6 +774,81 @@
           cellPixels - 2
         );
       }
+    }
+
+    function animationLoop(time) {
+      renderGarden(time);
+      requestAnimationFrame(animationLoop);
+    }
+
+    function saveGarden() {
+      const payload = {
+        simulationSpeed,
+        cells: gardenGrid
+      };
+      localStorage.setItem(storageKey, JSON.stringify(payload));
+    }
+
+    function loadGarden() {
+      const saved = localStorage.getItem(storageKey);
+      if (!saved) {
+        return;
+      }
+      try {
+        const parsed = JSON.parse(saved);
+        const cells = parsed.cells;
+        if (!Array.isArray(cells) || cells.length !== gridSize) {
+          return;
+        }
+        for (let y = 0; y < gridSize; y += 1) {
+          for (let x = 0; x < gridSize; x += 1) {
+            const savedCell = cells[y][x];
+            if (!savedCell || !savedCell.type || !plantTypes[savedCell.type]) {
+              gardenGrid[y][x] = createEmptyCell();
+              continue;
+            }
+            gardenGrid[y][x] = createPlantedCell(savedCell.type, {
+              stage: Math.max(0, Math.min(3, Number(savedCell.stage) || 0)),
+              growth: Math.max(0, Number(savedCell.growth) || 0),
+              health: Math.max(0, Math.min(1, Number(savedCell.health) || 0)),
+              bloomBoost: Number(savedCell.bloomBoost) || 0,
+              crowding: Number(savedCell.crowding) || 0,
+              animationOffset: Number(savedCell.animationOffset) || Math.random() * Math.PI * 2,
+              lastGrowthDelta: Number(savedCell.lastGrowthDelta) || 0
+            });
+          }
+        }
+        if ([1, 2, 4].includes(parsed.simulationSpeed)) {
+          simulationSpeed = parsed.simulationSpeed;
+        }
+        setStatus("已恢复花园", "从本地存档载入上次的布局与时间速度。");
+      } catch (_error) {
+        localStorage.removeItem(storageKey);
+      }
+    }
+
+    function syncSpeedButtons() {
+      speedControls.querySelectorAll(".speed-button").forEach((button) => {
+        button.classList.toggle("active", Number(button.dataset.speed) === simulationSpeed);
+      });
+    }
+
+    function restartSimulationLoop() {
+      if (simulationInterval) {
+        clearInterval(simulationInterval);
+      }
+      simulationInterval = setInterval(simulateTick, baseTickMs / simulationSpeed);
+      syncSpeedButtons();
+      saveGarden();
+    }
+
+    function setSimulationSpeed(nextSpeed) {
+      if (![1, 2, 4].includes(nextSpeed)) {
+        return;
+      }
+      simulationSpeed = nextSpeed;
+      restartSimulationLoop();
+      setStatus("时间流速已调整", `当前为 ${simulationSpeed}x，花园会以新的节奏继续生长。`);
     }
 
     function getCellFromPointer(event) {
@@ -717,7 +884,6 @@
       } else {
         describeCell(x, y);
       }
-      renderGarden();
     });
 
     exportButton.addEventListener("click", () => {
@@ -730,11 +896,20 @@
     });
 
     clearButton.addEventListener("click", clearGarden);
+    speedControls.addEventListener("click", (event) => {
+      const button = event.target.closest(".speed-button");
+      if (!button) {
+        return;
+      }
+      setSimulationSpeed(Number(button.dataset.speed));
+    });
 
     createSeedButtons();
+    loadGarden();
     updateStats();
-    renderGarden();
-    setInterval(simulateTick, tickMs);
+    syncSpeedButtons();
+    requestAnimationFrame(animationLoop);
+    restartSimulationLoop();
   </script>
 </body>
 </html>
