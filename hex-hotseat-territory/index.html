@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>领地争夺 - 热座回合制策略</title>
+  <style>
+    :root {
+      --bg: #efe6d8;
+      --panel: rgba(255, 251, 244, 0.92);
+      --line: rgba(76, 56, 29, 0.14);
+      --text: #231b14;
+      --muted: #6f6252;
+      --blue: #2e78bf;
+      --blue-soft: #d8eafc;
+      --red: #bf5a3b;
+      --red-soft: #f8dccf;
+      --neutral: #e8d7ba;
+      --resource: #d8ac43;
+      --action: #2f6b47;
+      --action-dark: #204a31;
+      --warn: #9a3d24;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "PingFang SC", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.86), transparent 28%),
+        linear-gradient(180deg, #f5efe4 0%, var(--bg) 100%);
+    }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(1180px, calc(100vw - 28px));
+      margin: 0 auto;
+      padding: 20px 0 28px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) minmax(300px, 360px);
+      gap: 18px;
+    }
+
+    .surface,
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: 0 18px 42px rgba(69, 49, 25, 0.1);
+    }
+
+    .surface {
+      padding: 20px;
+    }
+
+    .panel {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.2rem, 5vw, 4.2rem);
+      line-height: 0.92;
+      letter-spacing: -0.05em;
+      max-width: 8ch;
+    }
+
+    .lede,
+    .muted,
+    .status {
+      color: var(--muted);
+      line-height: 1.58;
+    }
+
+    .hud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .chip {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+      font-size: 0.94rem;
+    }
+
+    .chip strong {
+      color: var(--text);
+    }
+
+    .chip.player-1 strong {
+      color: var(--blue);
+    }
+
+    .chip.player-2 strong {
+      color: var(--red);
+    }
+
+    .board-shell {
+      position: relative;
+      margin-top: 18px;
+      padding: 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(76, 56, 29, 0.1);
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.92), transparent 34%),
+        linear-gradient(180deg, rgba(245, 238, 226, 0.98), rgba(233, 221, 202, 0.98));
+      overflow: hidden;
+    }
+
+    #hex-board {
+      display: block;
+      width: 100%;
+      height: auto;
+      min-height: 620px;
+    }
+
+    .cell polygon,
+    .cell circle,
+    .cell text {
+      transition: transform 140ms ease, opacity 140ms ease, fill 140ms ease, stroke 140ms ease;
+    }
+
+    .cell polygon {
+      fill: var(--neutral);
+      stroke: #b89d6d;
+      stroke-width: 2;
+      cursor: pointer;
+    }
+
+    .cell.owner-1 polygon {
+      fill: var(--blue-soft);
+      stroke: var(--blue);
+    }
+
+    .cell.owner-2 polygon {
+      fill: var(--red-soft);
+      stroke: var(--red);
+    }
+
+    .cell.legal polygon {
+      stroke: var(--resource);
+      stroke-width: 4;
+      filter: drop-shadow(0 0 8px rgba(216, 172, 67, 0.45));
+    }
+
+    .cell:hover polygon {
+      transform: translateY(-2px);
+    }
+
+    .strength {
+      font-size: 18px;
+      font-weight: 800;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      pointer-events: none;
+      fill: rgba(35, 27, 20, 0.88);
+    }
+
+    .resource-mark {
+      fill: #f5d77a;
+      stroke: #ac7c1a;
+      stroke-width: 2;
+      pointer-events: none;
+    }
+
+    .owner-mark {
+      pointer-events: none;
+      opacity: 0.94;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 14px;
+      display: none;
+      place-items: center;
+      border-radius: 18px;
+      background: rgba(33, 24, 17, 0.56);
+    }
+
+    .overlay.show {
+      display: grid;
+    }
+
+    .overlay-card,
+    .card {
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(76, 56, 29, 0.1);
+      background: rgba(255, 255, 255, 0.86);
+      display: grid;
+      gap: 10px;
+    }
+
+    .overlay-card {
+      width: min(360px, 100%);
+      text-align: center;
+      padding: 22px;
+    }
+
+    .button-row,
+    .action-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .button-row {
+      grid-template-columns: 1fr;
+    }
+
+    .action-button,
+    .control-button {
+      min-height: 46px;
+      border: 0;
+      border-radius: 14px;
+      color: #fff9f1;
+      background: linear-gradient(180deg, var(--action), var(--action-dark));
+      box-shadow: 0 10px 18px rgba(32, 74, 49, 0.18);
+    }
+
+    .action-button.secondary,
+    .control-button.secondary {
+      background: linear-gradient(180deg, #8b6d45, #6b5233);
+      box-shadow: 0 10px 18px rgba(107, 82, 51, 0.18);
+    }
+
+    .action-button.active {
+      outline: 3px solid rgba(216, 172, 67, 0.52);
+      outline-offset: 2px;
+    }
+
+    .status {
+      min-height: 4.8em;
+    }
+
+    .score-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 0.95rem;
+    }
+
+    .key {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(76, 56, 29, 0.18);
+    }
+
+    .dot.blue { background: var(--blue-soft); border-color: var(--blue); }
+    .dot.red { background: var(--red-soft); border-color: var(--red); }
+    .dot.gold { background: #f5d77a; border-color: #ac7c1a; }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="surface">
+      <h1>领地争夺</h1>
+      <p class="lede">双人热座回合制策略。每回合扩张一格或强化一块己方领地，占下资源点可在下回合多 1 次行动。30 回合结束后按占领格数判定胜负。</p>
+      <div class="hud">
+        <div class="chip"><strong id="round-label">回合 1 / 30</strong></div>
+        <div class="chip" id="turn-chip"><strong id="player-label">当前玩家：蓝方</strong></div>
+        <div class="chip"><strong id="action-label">行动：1 / 1</strong></div>
+        <div class="chip player-1"><strong id="score-p1">蓝方 1 格</strong></div>
+        <div class="chip player-2"><strong id="score-p2">红方 1 格</strong></div>
+      </div>
+      <div class="board-shell">
+        <svg id="hex-board" viewBox="0 0 940 660" aria-label="六边形领地地图"></svg>
+        <div class="overlay" id="result-overlay">
+          <div class="overlay-card">
+            <h2 id="result-title">对局结束</h2>
+            <p class="muted" id="result-copy">30 回合结束后按占领格数判定胜负。</p>
+            <button class="control-button" id="restart-button" type="button">重新开局</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <section class="card">
+        <h2>操作</h2>
+        <div class="action-grid">
+          <button class="action-button active" id="expand-button" type="button">扩张</button>
+          <button class="action-button secondary" id="fortify-button" type="button">强化</button>
+        </div>
+        <div class="button-row">
+          <button class="control-button secondary" id="end-turn-button" type="button">结束当前回合</button>
+        </div>
+        <p class="status" id="status-text">点击与己方相邻的空格扩张，或点击己方格子强化。资源点每回合额外提供 1 次行动。</p>
+      </section>
+
+      <section class="card">
+        <h2>比分</h2>
+        <div class="score-line"><span class="key"><i class="dot blue"></i>蓝方</span><strong id="detail-p1">1 格 / 0 资源</strong></div>
+        <div class="score-line"><span class="key"><i class="dot red"></i>红方</span><strong id="detail-p2">1 格 / 0 资源</strong></div>
+      </section>
+
+      <section class="card">
+        <h2>规则</h2>
+        <p class="muted">地图为 6×8 六边形网格，开局随机生成 3-5 个资源点。</p>
+        <p class="muted">扩张到与敌方相邻的位置时自动战斗，比较攻方数值与守方数值 +1 防御加成，胜者保住目标格。</p>
+        <p class="muted">强化会让该格数值 +1，最高 4。30 回合结束后按占领格数判定胜负。</p>
+      </section>
+
+      <section class="card">
+        <h2>图例</h2>
+        <div class="score-line"><span class="key"><i class="dot gold"></i>资源点</span><span class="muted">占领后下回合 +1 行动</span></div>
+        <div class="score-line"><span class="key"><i class="dot blue"></i>蓝方</span><span class="muted">先手</span></div>
+        <div class="score-line"><span class="key"><i class="dot red"></i>红方</span><span class="muted">后手</span></div>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    const GRID_ROWS = 6;
+    const GRID_COLS = 8;
+    const MAX_ROUNDS = 30;
+    const MIN_RESOURCES = 3;
+    const MAX_RESOURCES = 5;
+    const BASE_ACTIONS = 1;
+    const MAX_STRENGTH = 4;
+    const DEFENSE_BONUS = 1;
+    const PLAYERS = {
+      1: { name: "蓝方", className: "player-1", accent: "#2e78bf" },
+      2: { name: "红方", className: "player-2", accent: "#bf5a3b" }
+    };
+
+    const boardSvg = document.querySelector("#hex-board");
+    const roundLabel = document.querySelector("#round-label");
+    const playerLabel = document.querySelector("#player-label");
+    const actionLabel = document.querySelector("#action-label");
+    const scoreP1 = document.querySelector("#score-p1");
+    const scoreP2 = document.querySelector("#score-p2");
+    const detailP1 = document.querySelector("#detail-p1");
+    const detailP2 = document.querySelector("#detail-p2");
+    const statusText = document.querySelector("#status-text");
+    const turnChip = document.querySelector("#turn-chip");
+    const expandButton = document.querySelector("#expand-button");
+    const fortifyButton = document.querySelector("#fortify-button");
+    const endTurnButton = document.querySelector("#end-turn-button");
+    const restartButton = document.querySelector("#restart-button");
+    const resultOverlay = document.querySelector("#result-overlay");
+    const resultTitle = document.querySelector("#result-title");
+    const resultCopy = document.querySelector("#result-copy");
+
+    let state = null;
+
+    function randomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function getNeighbors(row, col) {
+      const evenOffsets = [
+        [-1, -1], [-1, 0], [0, -1],
+        [0, 1], [1, -1], [1, 0]
+      ];
+      const oddOffsets = [
+        [-1, 0], [-1, 1], [0, -1],
+        [0, 1], [1, 0], [1, 1]
+      ];
+      const offsets = row % 2 === 0 ? evenOffsets : oddOffsets;
+      return offsets
+        .map(([dr, dc]) => ({ row: row + dr, col: col + dc }))
+        .filter((cell) => cell.row >= 0 && cell.row < GRID_ROWS && cell.col >= 0 && cell.col < GRID_COLS);
+    }
+
+    function cellKey(row, col) {
+      return `${row},${col}`;
+    }
+
+    function createPolygonPoints(centerX, centerY, size) {
+      const points = [];
+      for (let side = 0; side < 6; side += 1) {
+        const angle = (Math.PI / 180) * (60 * side - 30);
+        const x = centerX + size * Math.cos(angle);
+        const y = centerY + size * Math.sin(angle);
+        points.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+      }
+      return points.join(" ");
+    }
+
+    function createCell(row, col) {
+      const size = 36;
+      const width = Math.sqrt(3) * size;
+      const centerX = 84 + col * width + (row % 2 ? width / 2 : 0);
+      const centerY = 78 + row * size * 1.5;
+      return {
+        row,
+        col,
+        owner: 0,
+        strength: 0,
+        isResource: false,
+        centerX,
+        centerY,
+        points: createPolygonPoints(centerX, centerY, size)
+      };
+    }
+
+    function createBoard() {
+      const board = [];
+      for (let row = 0; row < GRID_ROWS; row += 1) {
+        const line = [];
+        for (let col = 0; col < GRID_COLS; col += 1) {
+          line.push(createCell(row, col));
+        }
+        board.push(line);
+      }
+      return board;
+    }
+
+    function forEachCell(callback) {
+      for (const row of state.board) {
+        for (const cell of row) {
+          callback(cell);
+        }
+      }
+    }
+
+    function getCell(row, col) {
+      return state.board[row][col];
+    }
+
+    function getOwnedResources(player) {
+      let count = 0;
+      forEachCell((cell) => {
+        if (cell.owner === player && cell.isResource) {
+          count += 1;
+        }
+      });
+      return count;
+    }
+
+    function getPlayerActions(player) {
+      return BASE_ACTIONS + getOwnedResources(player);
+    }
+
+    function countTerritory(player) {
+      let total = 0;
+      forEachCell((cell) => {
+        if (cell.owner === player) {
+          total += 1;
+        }
+      });
+      return total;
+    }
+
+    function placeResources() {
+      const resourceCount = randomInt(MIN_RESOURCES, MAX_RESOURCES);
+      const blocked = new Set();
+      const starts = [
+        { row: 0, col: 1 },
+        { row: GRID_ROWS - 1, col: GRID_COLS - 2 }
+      ];
+
+      for (const start of starts) {
+        blocked.add(cellKey(start.row, start.col));
+        for (const neighbor of getNeighbors(start.row, start.col)) {
+          blocked.add(cellKey(neighbor.row, neighbor.col));
+        }
+      }
+
+      const pool = [];
+      forEachCell((cell) => {
+        if (!blocked.has(cellKey(cell.row, cell.col))) {
+          pool.push(cell);
+        }
+      });
+
+      for (let index = pool.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [pool[index], pool[swapIndex]] = [pool[swapIndex], pool[index]];
+      }
+
+      pool.slice(0, resourceCount).forEach((cell) => {
+        cell.isResource = true;
+      });
+    }
+
+    function setupGame() {
+      state = {
+        board: createBoard(),
+        currentPlayer: 1,
+        currentRound: 1,
+        actionsRemaining: BASE_ACTIONS,
+        maxActions: BASE_ACTIONS,
+        mode: "expand",
+        gameOver: false
+      };
+
+      getCell(0, 1).owner = 1;
+      getCell(0, 1).strength = 2;
+      getCell(GRID_ROWS - 1, GRID_COLS - 2).owner = 2;
+      getCell(GRID_ROWS - 1, GRID_COLS - 2).strength = 2;
+      placeResources();
+      state.maxActions = getPlayerActions(1);
+      state.actionsRemaining = state.maxActions;
+      resultOverlay.classList.remove("show");
+      buildBoard();
+      updateActionButtons();
+      updateHud();
+      setStatus("蓝方先手。优先争夺资源点，才能在后续回合获得额外行动。");
+    }
+
+    function setStatus(message) {
+      statusText.textContent = message;
+    }
+
+    function getAdjacentFriendlies(row, col, player) {
+      return getNeighbors(row, col)
+        .map((neighbor) => getCell(neighbor.row, neighbor.col))
+        .filter((cell) => cell.owner === player);
+    }
+
+    function getAdjacentEnemies(row, col, player) {
+      return getNeighbors(row, col)
+        .map((neighbor) => getCell(neighbor.row, neighbor.col))
+        .filter((cell) => cell.owner && cell.owner !== player);
+    }
+
+    function isLegalExpand(cell) {
+      return cell.owner === 0 && getAdjacentFriendlies(cell.row, cell.col, state.currentPlayer).length > 0;
+    }
+
+    function isLegalFortify(cell) {
+      return cell.owner === state.currentPlayer && cell.strength < MAX_STRENGTH;
+    }
+
+    function isLegalMove(cell) {
+      if (!cell || state.gameOver || state.actionsRemaining <= 0) {
+        return false;
+      }
+      return state.mode === "expand" ? isLegalExpand(cell) : isLegalFortify(cell);
+    }
+
+    function resolveBattle(cell) {
+      const friendlyNeighbors = getAdjacentFriendlies(cell.row, cell.col, state.currentPlayer);
+      const enemyNeighbors = getAdjacentEnemies(cell.row, cell.col, state.currentPlayer);
+      const attackerValue = Math.max(...friendlyNeighbors.map((neighbor) => neighbor.strength));
+
+      if (enemyNeighbors.length === 0) {
+        return {
+          success: true,
+          message: `${PLAYERS[state.currentPlayer].name} 扩张成功，占领空地。`,
+          strength: Math.max(1, attackerValue - 1)
+        };
+      }
+
+      const defender = enemyNeighbors.reduce((best, current) => current.strength > best.strength ? current : best);
+      const defenseValue = defender.strength + DEFENSE_BONUS;
+      if (attackerValue > defenseValue) {
+        return {
+          success: true,
+          message: `${PLAYERS[state.currentPlayer].name} 发起战斗，${attackerValue} 对 ${defenseValue} 获胜，占住前线。`,
+          strength: Math.max(1, attackerValue - 1)
+        };
+      }
+      return {
+        success: false,
+        message: `${PLAYERS[state.currentPlayer].name} 发起战斗，${attackerValue} 对 ${defenseValue} 失利，扩张失败。`,
+        strength: 0
+      };
+    }
+
+    function consumeAction() {
+      state.actionsRemaining -= 1;
+      updateHud();
+      if (state.actionsRemaining <= 0) {
+        endTurn();
+      } else {
+        refreshBoardClasses();
+      }
+    }
+
+    function endTurn() {
+      if (state.gameOver) {
+        return;
+      }
+
+      if (state.currentPlayer === 1) {
+        state.currentPlayer = 2;
+      } else if (state.currentRound >= MAX_ROUNDS) {
+        finishGame();
+        return;
+      } else {
+        state.currentPlayer = 1;
+        state.currentRound += 1;
+      }
+
+      state.maxActions = getPlayerActions(state.currentPlayer);
+      state.actionsRemaining = state.maxActions;
+      updateHud();
+      refreshBoardClasses();
+      setStatus(`${PLAYERS[state.currentPlayer].name} 回合开始。当前可行动 ${state.actionsRemaining} 次。`);
+    }
+
+    function finishGame() {
+      state.gameOver = true;
+      refreshBoardClasses();
+      const p1 = countTerritory(1);
+      const p2 = countTerritory(2);
+      let title = "30 回合结束，平局";
+      if (p1 > p2) {
+        title = "30 回合结束，蓝方获胜";
+      } else if (p2 > p1) {
+        title = "30 回合结束，红方获胜";
+      }
+      resultTitle.textContent = title;
+      resultCopy.textContent = `最终比分：蓝方 ${p1} 格，红方 ${p2} 格。`;
+      resultOverlay.classList.add("show");
+      setStatus(`对局结束。蓝方 ${p1} 格，红方 ${p2} 格。`);
+      updateHud();
+    }
+
+    function handleCellClick(row, col) {
+      const cell = getCell(row, col);
+      if (!isLegalMove(cell)) {
+        setStatus(state.mode === "expand"
+          ? "扩张只能点击与己方相邻的空格。"
+          : "强化只能点击己方且未满级的格子。");
+        return;
+      }
+
+      if (state.mode === "fortify") {
+        cell.strength = Math.min(MAX_STRENGTH, cell.strength + 1);
+        setStatus(`${PLAYERS[state.currentPlayer].name} 将该格强化到 ${cell.strength}。`);
+        patchCell(cell);
+        consumeAction();
+        return;
+      }
+
+      const result = resolveBattle(cell);
+      setStatus(result.message);
+      if (result.success) {
+        cell.owner = state.currentPlayer;
+        cell.strength = result.strength;
+        patchCell(cell);
+      }
+      consumeAction();
+    }
+
+    function updateActionButtons() {
+      expandButton.classList.toggle("active", state.mode === "expand");
+      fortifyButton.classList.toggle("active", state.mode === "fortify");
+      expandButton.classList.toggle("secondary", state.mode !== "expand");
+      fortifyButton.classList.toggle("secondary", state.mode !== "fortify");
+    }
+
+    function updateHud() {
+      const p1Cells = countTerritory(1);
+      const p2Cells = countTerritory(2);
+      const p1Resources = getOwnedResources(1);
+      const p2Resources = getOwnedResources(2);
+      const player = PLAYERS[state.currentPlayer];
+
+      roundLabel.textContent = `回合 ${state.currentRound} / ${MAX_ROUNDS}`;
+      playerLabel.textContent = `当前玩家：${player.name}`;
+      actionLabel.textContent = `行动：${state.actionsRemaining} / ${state.maxActions}`;
+      scoreP1.textContent = `蓝方 ${p1Cells} 格`;
+      scoreP2.textContent = `红方 ${p2Cells} 格`;
+      detailP1.textContent = `${p1Cells} 格 / ${p1Resources} 资源`;
+      detailP2.textContent = `${p2Cells} 格 / ${p2Resources} 资源`;
+      turnChip.className = `chip ${player.className}`;
+    }
+
+    function createSvgElement(tagName, attributes) {
+      const node = document.createElementNS("http://www.w3.org/2000/svg", tagName);
+      for (const [key, value] of Object.entries(attributes)) {
+        node.setAttribute(key, value);
+      }
+      return node;
+    }
+
+    function buildBoard() {
+      boardSvg.replaceChildren();
+      forEachCell((cell) => {
+        const group = createSvgElement("g", {
+          class: "cell",
+          "data-row": String(cell.row),
+          "data-col": String(cell.col)
+        });
+        const polygon = createSvgElement("polygon", { points: cell.points });
+        const ownerMark = createSvgElement("circle", {
+          cx: String(cell.centerX),
+          cy: String(cell.centerY + 12),
+          r: "14",
+          class: "owner-mark"
+        });
+        const resourceMark = createSvgElement("polygon", {
+          class: "resource-mark",
+          points: `${cell.centerX},${cell.centerY - 14} ${cell.centerX + 8},${cell.centerY - 2} ${cell.centerX},${cell.centerY + 10} ${cell.centerX - 8},${cell.centerY - 2}`
+        });
+        const strength = createSvgElement("text", {
+          x: String(cell.centerX),
+          y: String(cell.centerY + 12),
+          class: "strength"
+        });
+
+        group.append(polygon, resourceMark, ownerMark, strength);
+        group.addEventListener("click", () => handleCellClick(cell.row, cell.col));
+        boardSvg.append(group);
+      });
+      refreshBoardClasses();
+    }
+
+    function patchCell(cell) {
+      const selector = `.cell[data-row="${cell.row}"][data-col="${cell.col}"]`;
+      const group = boardSvg.querySelector(selector);
+      if (!group) {
+        return;
+      }
+      const ownerMark = group.querySelector(".owner-mark");
+      const strength = group.querySelector(".strength");
+      const resourceMark = group.querySelector(".resource-mark");
+
+      group.classList.toggle("owner-1", cell.owner === 1);
+      group.classList.toggle("owner-2", cell.owner === 2);
+      group.classList.toggle("legal", isLegalMove(cell));
+
+      ownerMark.setAttribute("fill", cell.owner === 1 ? "#2e78bf" : cell.owner === 2 ? "#bf5a3b" : "transparent");
+      strength.textContent = cell.owner ? String(cell.strength) : "";
+      resourceMark.setAttribute("opacity", cell.isResource ? "1" : "0");
+    }
+
+    function refreshBoardClasses() {
+      forEachCell((cell) => patchCell(cell));
+    }
+
+    expandButton.addEventListener("click", () => {
+      state.mode = "expand";
+      updateActionButtons();
+      refreshBoardClasses();
+      setStatus("扩张模式：点击与己方相邻的空格前压。");
+    });
+
+    fortifyButton.addEventListener("click", () => {
+      state.mode = "fortify";
+      updateActionButtons();
+      refreshBoardClasses();
+      setStatus("强化模式：点击己方格子提升数值。");
+    });
+
+    endTurnButton.addEventListener("click", () => {
+      setStatus(`${PLAYERS[state.currentPlayer].name} 提前结束当前回合。`);
+      endTurn();
+    });
+
+    restartButton.addEventListener("click", setupGame);
+
+    setupGame();
+  </script>
+</body>
+</html>
