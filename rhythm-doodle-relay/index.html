@@ -6,14 +6,17 @@
   <title>节奏涂鸦接力</title>
   <style>
     :root {
-      --bg: #f7eedc;
-      --panel: rgba(255, 251, 245, 0.92);
-      --line: rgba(83, 57, 32, 0.14);
-      --text: #2d2017;
-      --muted: #6e5c4c;
-      --accent: #e56a45;
-      --accent-soft: rgba(229, 106, 69, 0.14);
-      --shadow: 0 24px 56px rgba(59, 39, 21, 0.14);
+      --bg: #101522;
+      --panel: rgba(15, 22, 35, 0.86);
+      --panel-strong: rgba(12, 17, 28, 0.96);
+      --line: rgba(255, 255, 255, 0.12);
+      --text: #f4f7ff;
+      --muted: #a8b2cb;
+      --accent: #7cf6d5;
+      --player-one: #7cf6d5;
+      --player-two: #ff6ba8;
+      --scan: rgba(255, 232, 140, 0.26);
+      --shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
       --radius: 24px;
     }
 
@@ -24,46 +27,64 @@
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at top left, rgba(255, 255, 255, 0.85), transparent 26%),
-        radial-gradient(circle at top right, rgba(229, 106, 69, 0.16), transparent 28%),
-        linear-gradient(180deg, #f5e8cf 0%, var(--bg) 42%, #efe1cf 100%);
+        radial-gradient(circle at top left, rgba(124, 246, 213, 0.18), transparent 24%),
+        radial-gradient(circle at top right, rgba(255, 107, 168, 0.18), transparent 26%),
+        linear-gradient(180deg, #131a2b 0%, #0b101b 48%, #060910 100%);
     }
 
     button,
-    select {
+    input {
       font: inherit;
+      color: inherit;
     }
 
     button {
       cursor: pointer;
     }
 
-    .page {
-      width: min(1120px, calc(100vw - 24px));
+    .app {
+      width: min(1100px, calc(100vw - 24px));
       margin: 0 auto;
       padding: 20px 0 32px;
+      display: grid;
+      gap: 18px;
     }
 
     .panel {
       border: 1px solid var(--line);
-      border-radius: 32px;
+      border-radius: var(--radius);
       background: var(--panel);
       box-shadow: var(--shadow);
-      overflow: hidden;
+      backdrop-filter: blur(16px);
     }
 
     .hero,
-    .setup,
-    .shell {
-      padding: 24px;
+    .controls,
+    .stage {
+      padding: 20px;
     }
 
     .hero {
       display: grid;
-      gap: 14px;
+      gap: 12px;
+    }
+
+    .hero h1,
+    .hero p,
+    .status,
+    .legend,
+    .hint {
+      margin: 0;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.4rem, 5vw, 4rem);
+      line-height: 0.92;
+      max-width: 7ch;
+      letter-spacing: -0.04em;
     }
 
     .chip,
@@ -73,516 +94,219 @@
       align-items: center;
       gap: 8px;
       padding: 10px 14px;
-      border: 1px solid var(--line);
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.06);
     }
 
-    h1,
-    h2 {
-      margin: 0;
-      font-family: "Iowan Old Style", "Palatino Linotype", serif;
-      letter-spacing: -0.04em;
-    }
-
-    h1 {
-      font-size: clamp(2.6rem, 6vw, 4.6rem);
-      line-height: 0.92;
-      max-width: 8ch;
-    }
-
-    p {
-      margin: 0;
-    }
-
-    .lede,
-    .subtle,
-    .results-note {
+    .hero-copy,
+    .hint {
       color: var(--muted);
       line-height: 1.6;
     }
 
-    .setup {
+    .controls {
       display: grid;
       gap: 14px;
       border-top: 1px solid var(--line);
     }
 
-    .setup-row,
-    .hud,
+    .row,
     .legend,
-    .actions,
-    .result-actions {
+    .status {
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
       align-items: center;
     }
 
-    select,
-    button {
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      padding: 11px 16px;
-      color: var(--text);
-      background: #fffaf4;
-      transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
-    }
-
-    button:hover,
-    select:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 10px 18px rgba(59, 39, 21, 0.08);
-      border-color: rgba(229, 106, 69, 0.35);
-    }
-
-    .primary {
-      background: var(--accent);
-      color: #fff9f4;
-      border-color: transparent;
-      font-weight: 700;
-    }
-
-    .shell {
-      display: grid;
-      gap: 16px;
-      border-top: 1px solid var(--line);
-    }
-
-    .hud {
+    .row {
       justify-content: space-between;
     }
 
-    .hud-group {
+    .buttons,
+    .tempo-wrap {
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    button,
+    input[type="range"] {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    button {
+      padding: 11px 16px;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255, 255, 255, 0.28);
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .primary {
+      background: linear-gradient(135deg, rgba(124, 246, 213, 0.3), rgba(77, 167, 255, 0.32));
+      font-weight: 700;
+    }
+
+    .secondary {
+      background: linear-gradient(135deg, rgba(255, 107, 168, 0.24), rgba(255, 170, 98, 0.24));
+    }
+
+    .status {
+      justify-content: space-between;
     }
 
     .swatch {
       width: 14px;
       height: 14px;
       border-radius: 50%;
-      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
     }
 
-    .beat-board {
+    .stage {
+      border-top: 1px solid var(--line);
       display: grid;
-      gap: 16px;
-      align-items: center;
-      grid-template-columns: minmax(0, 1fr) 100px;
+      gap: 12px;
     }
 
-    .beat-strip {
-      display: grid;
-      grid-template-columns: repeat(16, minmax(0, 1fr));
-      gap: 8px;
-    }
-
-    .beat-cell {
-      height: 18px;
-      border-radius: 999px;
-      background: rgba(104, 80, 53, 0.12);
-      transition: transform 140ms ease, background 140ms ease, opacity 140ms ease;
-      opacity: 0.5;
-    }
-
-    .beat-cell.current {
-      background: var(--beat-color, var(--accent));
-      opacity: 1;
-      transform: scaleY(1.35);
-    }
-
-    .beat-cell.done {
-      background: rgba(104, 80, 53, 0.28);
-      opacity: 0.9;
-    }
-
-    .pulse-shell {
-      display: grid;
-      place-items: center;
-      width: 100px;
-      height: 100px;
-      justify-self: end;
-    }
-
-    .pulse-core {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      background: radial-gradient(circle, var(--beat-color, rgba(229, 106, 69, 0.9)) 0%, rgba(229, 106, 69, 0.14) 68%, transparent 74%);
-      transform: scale(0.76);
-      opacity: 0.28;
-      transition: transform 140ms ease, opacity 140ms ease, background 140ms ease;
-    }
-
-    .pulse-core.active {
-      opacity: 1;
-      transform: scale(1.2);
-    }
-
-    .legend {
-      color: var(--muted);
-    }
-
-    .canvas-wrap {
+    .canvas-shell {
       position: relative;
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
       overflow: hidden;
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(250, 246, 241, 0.94)),
-        repeating-linear-gradient(90deg, rgba(83, 57, 32, 0.04) 0, rgba(83, 57, 32, 0.04) 1px, transparent 1px, transparent 28px),
-        repeating-linear-gradient(0deg, rgba(83, 57, 32, 0.04) 0, rgba(83, 57, 32, 0.04) 1px, transparent 1px, transparent 28px);
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background: var(--panel-strong);
     }
 
     canvas {
       display: block;
       width: 100%;
-      height: min(68vw, 640px);
+      height: min(78vw, 720px);
       touch-action: none;
       cursor: crosshair;
     }
 
-    .overlay,
-    .results {
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      padding: 20px;
-      background: rgba(31, 22, 16, 0.2);
+    .tempo-wrap label {
+      color: var(--muted);
     }
 
-    .overlay[hidden],
-    .results[hidden] {
-      display: none;
+    .tempo-value {
+      min-width: 66px;
+      text-align: right;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
     }
 
-    .overlay-card,
-    .results-card {
-      width: min(92%, 560px);
-      padding: 24px 26px;
-      border-radius: 28px;
-      text-align: center;
-      color: #fff8f3;
-      background: rgba(33, 24, 19, 0.84);
-      box-shadow: 0 24px 48px rgba(18, 10, 6, 0.22);
-      backdrop-filter: blur(8px);
-    }
-
-    .overlay-card h2,
-    .results-card h2 {
-      font-size: clamp(2rem, 5vw, 3.1rem);
-      line-height: 0.92;
-    }
-
-    .overlay-card p,
-    .results-card p {
-      margin-top: 10px;
-      color: rgba(255, 248, 243, 0.82);
-      line-height: 1.6;
-    }
-
-    .results-stats {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 12px;
-      margin-top: 18px;
-    }
-
-    .results-stat {
-      min-width: 132px;
-      padding: 12px 14px;
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-    }
-
-    .results-stat strong {
-      display: block;
-      font-size: 1.2rem;
-    }
-
-    @media (max-width: 720px) {
-      .page {
-        width: min(100vw - 12px, 1120px);
+    @media (max-width: 760px) {
+      .app {
+        width: min(100vw - 12px, 1100px);
       }
 
       .hero,
-      .setup,
-      .shell {
-        padding-left: 16px;
-        padding-right: 16px;
+      .controls,
+      .stage {
+        padding: 16px;
       }
 
-      .beat-board {
-        grid-template-columns: 1fr;
-      }
-
-      .pulse-shell {
-        justify-self: start;
+      .row,
+      .status {
+        justify-content: flex-start;
       }
     }
   </style>
 </head>
 <body>
-  <main class="page">
+  <main class="app">
     <section class="panel">
       <header class="hero">
         <div class="chip">Creative Toy</div>
         <h1>节奏涂鸦接力</h1>
-        <p class="lede">跟着 16 拍节奏点击或按键，在画布上盖出一串节拍笔触。单人可独自完成整幅涂鸦，双人模式会在第 8 拍后自动切换画手，并分别负责上下半区。</p>
+        <p class="hero-copy">在 16×16 网格上画线，把颜色与位置直接变成音符。播放时扫描线会从左到右逐列经过，双人热座模式下两位玩家共用一张画布，用不同颜色与音色一起完成合奏。</p>
       </header>
 
-      <section class="setup" id="setup-screen">
-        <div class="setup-row">
-          <label for="mode-select">模式</label>
-          <select id="mode-select">
-            <option value="1">单人 16 拍</option>
-            <option value="2">双人热座 8 + 8 拍</option>
-          </select>
-
-          <label for="speed-select">速度</label>
-          <select id="speed-select">
-            <option value="84">慢</option>
-            <option value="112" selected>中</option>
-            <option value="144">快</option>
-          </select>
-
-          <button class="primary" id="start-button" type="button">开始创作</button>
-        </div>
-        <p class="subtle">点击、触屏点按或按下空格 / Enter 都能落笔。命中越准，笔触越大、颜色越鲜艳；双人模式下玩家 1 只画上半区，玩家 2 只画下半区。</p>
-      </section>
-
-      <section class="shell">
-        <div class="hud">
-          <div class="hud-group">
-            <div class="metric" id="mode-label">模式：未开始</div>
-            <div class="metric" id="player-label">当前画手：玩家 1</div>
+      <section class="controls">
+        <div class="row">
+          <div class="buttons">
+            <button class="primary" id="play-button" type="button">播放</button>
+            <button id="replay-button" type="button">重新播放</button>
+            <button class="secondary" id="switch-player-button" type="button">切换到玩家 2</button>
+            <button id="clear-button" type="button">清除画布</button>
           </div>
-          <div class="hud-group">
-            <div class="metric" id="beat-label">第 0 / 16 拍</div>
-            <div class="metric" id="brush-label">笔触：0 px</div>
+
+          <div class="tempo-wrap">
+            <label for="tempo-control">速度</label>
+            <input id="tempo-control" type="range" min="72" max="180" value="108" step="6">
+            <span class="tempo-value" id="tempo-value">108 BPM</span>
           </div>
         </div>
 
-        <div class="beat-board">
-          <div class="beat-strip" id="beat-strip" aria-label="节拍条"></div>
-          <div class="pulse-shell" aria-hidden="true">
-            <div class="pulse-core" id="pulse-core"></div>
-          </div>
+        <div class="status">
+          <div class="metric" id="player-indicator">当前玩家：玩家 1</div>
+          <div class="metric" id="playback-indicator">状态：待机</div>
+          <div class="metric" id="scan-indicator">扫描列：-</div>
         </div>
 
         <div class="legend">
-          <div class="legend-item"><span class="swatch" id="color-swatch"></span><span id="color-label">当前颜色：等待开始</span></div>
-          <div class="legend-item" id="status-label">状态：选择模式与速度后开始</div>
+          <div class="legend-item"><span class="swatch" style="background: var(--player-one);"></span>玩家 1：青绿色 / 正弦波</div>
+          <div class="legend-item"><span class="swatch" style="background: var(--player-two);"></span>玩家 2：洋红色 / 方波</div>
         </div>
 
-        <div class="canvas-wrap">
-          <canvas id="paint-canvas" width="960" height="640" aria-label="节奏涂鸦画布"></canvas>
+        <p class="hint">按住鼠标或触摸拖拽即可绘制。再次划过已点亮的格子不会抹除，清空请用“清除画布”。</p>
+      </section>
 
-          <div class="overlay" id="turn-overlay">
-            <div class="overlay-card">
-              <h2 id="overlay-title">准备好开始</h2>
-              <p id="overlay-note">选择单人或双人模式，再按下开始创作。</p>
-            </div>
-          </div>
-
-          <div class="results" id="results-overlay" hidden>
-            <div class="results-card">
-              <h2>作品完成</h2>
-              <p class="results-note" id="results-note">16 拍结束，这张节奏涂鸦已经可以保存。</p>
-              <div class="results-stats" id="results-stats"></div>
-              <div class="result-actions" style="justify-content:center;margin-top:18px;">
-                <button class="primary" id="download-button" type="button">下载 PNG</button>
-                <button id="restart-button" type="button">重新开始</button>
-              </div>
-            </div>
-          </div>
+      <section class="stage">
+        <div class="canvas-shell">
+          <canvas id="grid-canvas" width="800" height="800" aria-label="16乘16节奏网格画布"></canvas>
         </div>
       </section>
     </section>
   </main>
 
   <script>
-    const totalBeats = 16;
-    const beatsPerPlayer = 8;
-    const perfectWindowMs = 70;
-    const goodWindowMs = 150;
-    const switchDelayMs = 1200;
-    const beatPalette = [
-      { hue: 8, accent: "#f05c52" },
-      { hue: 32, accent: "#f59d2f" },
-      { hue: 52, accent: "#f1d54d" },
-      { hue: 120, accent: "#6ecb63" },
-      { hue: 186, accent: "#2dbecf" },
-      { hue: 224, accent: "#4d78ff" },
-      { hue: 262, accent: "#8257e6" },
-      { hue: 328, accent: "#f25cb1" }
-    ];
-    const bpmOptions = {
-      slow: 84,
-      medium: 112,
-      fast: 144
+    const gridSize = 16;
+    const steps = 16;
+    const playerStyles = {
+      1: { color: "#7cf6d5", wave: "sine" },
+      2: { color: "#ff6ba8", wave: "square" }
     };
+    const pentatonicSemitones = [0, 2, 4, 7, 9];
+    const grid = Array.from({ length: gridSize }, () => Array.from({ length: steps }, () => 0));
 
-    const beatStrip = document.getElementById("beat-strip");
-    const canvas = document.getElementById("paint-canvas");
-    const ctx = canvas.getContext("2d");
-    const modeSelect = document.getElementById("mode-select");
-    const speedSelect = document.getElementById("speed-select");
-    const startButton = document.getElementById("start-button");
-    const modeLabel = document.getElementById("mode-label");
-    const playerLabel = document.getElementById("player-label");
-    const beatLabel = document.getElementById("beat-label");
-    const brushLabel = document.getElementById("brush-label");
-    const colorSwatch = document.getElementById("color-swatch");
-    const colorLabel = document.getElementById("color-label");
-    const statusLabel = document.getElementById("status-label");
-    const pulseCore = document.getElementById("pulse-core");
-    const turnOverlay = document.getElementById("turn-overlay");
-    const overlayTitle = document.getElementById("overlay-title");
-    const overlayNote = document.getElementById("overlay-note");
-    const resultsOverlay = document.getElementById("results-overlay");
-    const resultsStats = document.getElementById("results-stats");
-    const resultsNote = document.getElementById("results-note");
-    const downloadButton = document.getElementById("download-button");
-    const restartButton = document.getElementById("restart-button");
+    const canvas = document.getElementById("grid-canvas");
+    const context = canvas.getContext("2d");
+    const playButton = document.getElementById("play-button");
+    const replayButton = document.getElementById("replay-button");
+    const switchPlayerButton = document.getElementById("switch-player-button");
+    const clearButton = document.getElementById("clear-button");
+    const tempoControl = document.getElementById("tempo-control");
+    const tempoValue = document.getElementById("tempo-value");
+    const playerIndicator = document.getElementById("player-indicator");
+    const playbackIndicator = document.getElementById("playback-indicator");
+    const scanIndicator = document.getElementById("scan-indicator");
 
-    let intervalId = 0;
-    let pulseTimeoutId = 0;
-    let switchTimeoutId = 0;
-    let gameMode = 1;
-    let bpm = 112;
-    let beatMs = Math.round(60000 / bpm);
-    let currentBeat = -1;
     let currentPlayer = 1;
-    let currentColor = beatPalette[0].accent;
-    let currentBrushSize = 10;
-    let currentJudgementLabel = "等待开始";
-    let phase = "idle";
-    let beatTimeline = [];
-    let beatJudgements = [];
-    let playerMarks = [0, 0];
-    let accuracyTotals = { perfect: 0, good: 0, miss: 0 };
+    let isPointerDown = false;
+    let isPlaying = false;
+    let currentScanColumn = -1;
+    let playbackTimer = 0;
     let audioContext = null;
-    let pointerTarget = { x: canvas.width / 2, y: canvas.height / 2 };
 
-    function createBeatCells() {
-      beatStrip.innerHTML = "";
-      for (let index = 0; index < totalBeats; index += 1) {
-        const cell = document.createElement("div");
-        cell.className = "beat-cell";
-        cell.dataset.index = String(index);
-        beatStrip.appendChild(cell);
-      }
+    function getCellSize() {
+      return canvas.width / gridSize;
     }
 
-    function getActiveBand() {
-      if (gameMode !== 2) {
-        return { top: 0, bottom: canvas.height };
-      }
-      return currentPlayer === 1
-        ? { top: 0, bottom: canvas.height / 2 }
-        : { top: canvas.height / 2, bottom: canvas.height };
-    }
-
-    function clampPointToBand(point) {
-      const band = getActiveBand();
-      return {
-        x: Math.max(28, Math.min(canvas.width - 28, point.x)),
-        y: Math.max(band.top + 28, Math.min(band.bottom - 28, point.y))
-      };
-    }
-
-    function clearCanvas() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#fffaf5";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.save();
-      ctx.strokeStyle = "rgba(83, 57, 32, 0.12)";
-      ctx.lineWidth = 1;
-      for (let x = 28; x < canvas.width; x += 28) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
-        ctx.stroke();
-      }
-      for (let y = 28; y < canvas.height; y += 28) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
-        ctx.stroke();
-      }
-      if (gameMode === 2) {
-        ctx.setLineDash([12, 10]);
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = "rgba(83, 57, 32, 0.22)";
-        ctx.beginPath();
-        ctx.moveTo(0, canvas.height / 2);
-        ctx.lineTo(canvas.width, canvas.height / 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = "rgba(83, 57, 32, 0.45)";
-        ctx.font = "600 20px Avenir Next, Segoe UI, sans-serif";
-        ctx.fillText("玩家 1 区域", 24, 34);
-        ctx.fillText("玩家 2 区域", 24, canvas.height / 2 + 34);
-      }
-      ctx.restore();
-    }
-
-    function getCurrentAccent(beatIndex) {
-      return beatPalette[beatIndex % beatPalette.length].accent;
-    }
-
-    function getCurrentHue(beatIndex) {
-      return beatPalette[beatIndex % beatPalette.length].hue;
-    }
-
-    function updateBeatStrip() {
-      const cells = beatStrip.children;
-      for (let index = 0; index < cells.length; index += 1) {
-        const cell = cells[index];
-        cell.classList.toggle("done", index < currentBeat);
-        cell.classList.toggle("current", index === currentBeat);
-        if (index === currentBeat) {
-          cell.style.setProperty("--beat-color", currentColor);
-        }
-      }
-    }
-
-    function updateHud() {
-      const modeText = gameMode === 2 ? "双人热座" : "单人创作";
-      modeLabel.textContent = `模式：${modeText}`;
-      playerLabel.textContent = gameMode === 2
-        ? `当前画手：玩家 ${currentPlayer}`
-        : "当前画手：Solo";
-      beatLabel.textContent = `第 ${Math.max(currentBeat + 1, 0)} / ${totalBeats} 拍`;
-      brushLabel.textContent = `笔触：${Math.round(currentBrushSize)} px / ${currentJudgementLabel}`;
-      colorSwatch.style.background = currentColor;
-      colorLabel.textContent = `当前颜色：${currentColor}`;
-      const statusText =
-        phase === "playing" ? "状态：跟拍点击或按键落笔" :
-        phase === "switching" ? "状态：切换画手中" :
-        phase === "finished" ? "状态：作品完成" :
-        "状态：选择模式与速度后开始";
-      statusLabel.textContent = statusText;
-    }
-
-    function setOverlay(title, note, hidden) {
-      overlayTitle.textContent = title;
-      overlayNote.textContent = note;
-      turnOverlay.hidden = hidden;
-    }
-
-    function triggerPulse() {
-      pulseCore.style.setProperty("--beat-color", currentColor);
-      pulseCore.classList.add("active");
-      window.clearTimeout(pulseTimeoutId);
-      pulseTimeoutId = window.setTimeout(() => pulseCore.classList.remove("active"), Math.min(220, beatMs * 0.45));
+    function getFrequencyForRow(row) {
+      const noteIndex = gridSize - 1 - row;
+      const octave = Math.floor(noteIndex / pentatonicSemitones.length);
+      const scaleIndex = noteIndex % pentatonicSemitones.length;
+      const midi = 48 + octave * 12 + pentatonicSemitones[scaleIndex];
+      return 440 * Math.pow(2, (midi - 69) / 12);
     }
 
     function ensureAudioContext() {
@@ -598,320 +322,216 @@
     }
 
     async function unlockAudio() {
-      const context = ensureAudioContext();
-      if (!context) {
+      const instance = ensureAudioContext();
+      if (!instance) {
         return null;
       }
-      if (context.state === "suspended") {
-        await context.resume();
+      if (instance.state === "suspended") {
+        await instance.resume();
       }
-      return context;
+      return instance;
     }
 
-    function playBeatClick(accent = false) {
-      const context = audioContext;
-      if (!context) {
-        return;
+    function paintCell(row, column, player) {
+      if (row < 0 || row >= gridSize || column < 0 || column >= steps) {
+        return false;
       }
-      const now = context.currentTime;
-      const oscillator = context.createOscillator();
-      const gainNode = context.createGain();
-      oscillator.type = accent ? "square" : "triangle";
-      oscillator.frequency.setValueAtTime(accent ? 980 : 720, now);
-      gainNode.gain.setValueAtTime(0.0001, now);
-      gainNode.gain.exponentialRampToValueAtTime(accent ? 0.16 : 0.08, now + 0.01);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
-      oscillator.connect(gainNode);
-      gainNode.connect(context.destination);
-      oscillator.start(now);
-      oscillator.stop(now + 0.13);
-    }
-
-    function stopLoop() {
-      window.clearInterval(intervalId);
-      intervalId = 0;
-      window.clearTimeout(pulseTimeoutId);
-      window.clearTimeout(switchTimeoutId);
-      pulseCore.classList.remove("active");
-    }
-
-    function resetGame() {
-      stopLoop();
-      gameMode = Number(modeSelect.value);
-      bpm = Number(speedSelect.value);
-      beatMs = Math.round(60000 / bpm);
-      currentBeat = -1;
-      currentPlayer = 1;
-      currentColor = beatPalette[0].accent;
-      currentBrushSize = 10;
-      currentJudgementLabel = "等待开始";
-      phase = "idle";
-      beatTimeline = [];
-      beatJudgements = Array.from({ length: totalBeats }, () => null);
-      playerMarks = [0, 0];
-      accuracyTotals = { perfect: 0, good: 0, miss: 0 };
-      pointerTarget = clampPointToBand({ x: canvas.width / 2, y: canvas.height / 2 });
-      resultsOverlay.hidden = true;
-      setOverlay("准备好开始", "选择模式并开始；每拍点一下，越准越鲜艳。", false);
-      updateBeatStrip();
-      updateHud();
-      clearCanvas();
-    }
-
-    function pauseForPlayerSwitch() {
-      window.clearInterval(intervalId);
-      intervalId = 0;
-      phase = "switching";
-      currentPlayer = 2;
-      for (let index = beatsPerPlayer; index < beatTimeline.length; index += 1) {
-        beatTimeline[index] += switchDelayMs;
+      if (grid[row][column] === player) {
+        return false;
       }
-      pointerTarget = clampPointToBand({ x: canvas.width / 2, y: canvas.height * 0.75 });
-      updateHud();
-      setOverlay("玩家 2 接棒", "后 8 拍只在下半区作画，1.2 秒后继续。", false);
-      switchTimeoutId = window.setTimeout(() => {
-        if (phase !== "switching") {
-          return;
-        }
-        phase = "playing";
-        setOverlay("", "", true);
-        updateHud();
-        advanceBeat();
-        intervalId = window.setInterval(advanceBeat, beatMs);
-      }, switchDelayMs);
+      grid[row][column] = player;
+      drawGrid();
+      return true;
     }
 
-    function getAccuracyPercent() {
-      const score = accuracyTotals.perfect + accuracyTotals.good * 0.65;
-      return Math.round((score / totalBeats) * 100);
-    }
-
-    function renderResults() {
-      resultsStats.innerHTML = "";
-      const statCards = [
-        { label: "准确率", value: `${getAccuracyPercent()}%` },
-        { label: "Perfect", value: String(accuracyTotals.perfect) },
-        { label: "Good", value: String(accuracyTotals.good) },
-        { label: "Miss", value: String(accuracyTotals.miss) }
-      ];
-      if (gameMode === 2) {
-        statCards.push({ label: "玩家 1 笔触", value: String(playerMarks[0]) });
-        statCards.push({ label: "玩家 2 笔触", value: String(playerMarks[1]) });
-      } else {
-        statCards.push({ label: "总笔触", value: String(playerMarks[0]) });
-      }
-      for (const entry of statCards) {
-        const card = document.createElement("div");
-        card.className = "results-stat";
-        card.innerHTML = `<strong>${entry.value}</strong><span>${entry.label}</span>`;
-        resultsStats.appendChild(card);
-      }
-      resultsNote.textContent = gameMode === 2
-        ? "上下半区已经合成为一张合作涂鸦，节拍越准的笔触会更饱和、更醒目。"
-        : "单人 16 拍创作完成，节拍越准的落笔会留下更鲜艳、更大的痕迹。";
-    }
-
-    function finishGame() {
-      stopLoop();
-      for (let index = 0; index < beatJudgements.length; index += 1) {
-        if (!beatJudgements[index]) {
-          beatJudgements[index] = "miss";
-          accuracyTotals.miss += 1;
-        }
-      }
-      phase = "finished";
-      currentJudgementLabel = `准确率 ${getAccuracyPercent()}%`;
-      updateHud();
-      setOverlay("16 拍完成", "最终作品已经固定，可以下载 PNG 或重新开始。", false);
-      renderResults();
-      resultsOverlay.hidden = false;
-    }
-
-    function advanceBeat() {
-      currentBeat += 1;
-      if (currentBeat >= totalBeats) {
-        finishGame();
-        return;
-      }
-
-      currentColor = getCurrentAccent(currentBeat);
-      currentBrushSize = 12;
-      currentJudgementLabel = "等待落笔";
-      if (gameMode === 2 && currentBeat >= beatsPerPlayer) {
-        currentPlayer = 2;
-      }
-
-      updateBeatStrip();
-      updateHud();
-      triggerPulse();
-      playBeatClick(currentBeat % 4 === 0);
-
-      if (gameMode === 2 && currentBeat === beatsPerPlayer - 1) {
-        pauseForPlayerSwitch();
-      }
-    }
-
-    async function startGame() {
-      await unlockAudio();
-      resetGame();
-      const speedName =
-        bpm === bpmOptions.slow ? "慢" :
-        bpm === bpmOptions.fast ? "快" :
-        "中";
-      beatTimeline = Array.from({ length: totalBeats }, (_, index) => performance.now() + 900 + index * beatMs);
-      phase = "playing";
-      setOverlay(
-        gameMode === 2 ? "玩家 1 先画" : "单人开始",
-        `${speedName}速 ${bpm} BPM，跟着节拍点击或按空格 / Enter 落笔。`,
-        false
-      );
-      updateHud();
-      window.setTimeout(() => {
-        if (phase !== "playing") {
-          return;
-        }
-        setOverlay("", "", true);
-        advanceBeat();
-        intervalId = window.setInterval(advanceBeat, beatMs);
-      }, 900);
-    }
-
-    function canPaint() {
-      return phase === "playing";
-    }
-
-    function getCanvasPoint(event) {
-      const rect = canvas.getBoundingClientRect();
+    function getGridPosition(clientX, clientY) {
+      const bounds = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / bounds.width;
+      const scaleY = canvas.height / bounds.height;
+      const x = (clientX - bounds.left) * scaleX;
+      const y = (clientY - bounds.top) * scaleY;
+      const size = getCellSize();
       return {
-        x: (event.clientX - rect.left) * (canvas.width / rect.width),
-        y: (event.clientY - rect.top) * (canvas.height / rect.height)
+        column: Math.max(0, Math.min(steps - 1, Math.floor(x / size))),
+        row: Math.max(0, Math.min(gridSize - 1, Math.floor(y / size)))
       };
     }
 
-    function judgeBeat(nowMs) {
-      let closestIndex = -1;
-      let closestDelta = Number.POSITIVE_INFINITY;
-      for (let index = 0; index < beatTimeline.length; index += 1) {
-        const delta = Math.abs(nowMs - beatTimeline[index]);
-        if (delta < closestDelta) {
-          closestDelta = delta;
-          closestIndex = index;
+    function drawGrid() {
+      const cellSize = getCellSize();
+      context.clearRect(0, 0, canvas.width, canvas.height);
+
+      context.fillStyle = "#0b1120";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+
+      if (currentScanColumn >= 0) {
+        context.fillStyle = "rgba(255, 232, 140, 0.26)";
+        context.fillRect(currentScanColumn * cellSize, 0, cellSize, canvas.height);
+      }
+
+      for (let row = 0; row < gridSize; row += 1) {
+        for (let column = 0; column < steps; column += 1) {
+          const owner = grid[row][column];
+          const x = column * cellSize;
+          const y = row * cellSize;
+
+          context.fillStyle = owner ? "rgba(255, 255, 255, 0.06)" : "rgba(255, 255, 255, 0.03)";
+          context.fillRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
+
+          if (owner) {
+            context.fillStyle = playerStyles[owner].color;
+            context.fillRect(x + 4, y + 4, cellSize - 8, cellSize - 8);
+          }
         }
       }
 
-      if (closestIndex === -1) {
-        return { beatIndex: 0, rating: "miss", accuracy: 0, delta: closestDelta };
-      }
+      context.strokeStyle = "rgba(255, 255, 255, 0.12)";
+      context.lineWidth = 1;
+      for (let index = 0; index <= gridSize; index += 1) {
+        const offset = Math.round(index * cellSize) + 0.5;
+        context.beginPath();
+        context.moveTo(0, offset);
+        context.lineTo(canvas.width, offset);
+        context.stroke();
 
-      const existing = beatJudgements[closestIndex];
-      let rating = "miss";
-      let accuracy = 0.18;
-      if (closestDelta <= perfectWindowMs) {
-        rating = "perfect";
-        accuracy = 1;
-      } else if (closestDelta <= goodWindowMs) {
-        rating = "good";
-        accuracy = 0.72;
+        context.beginPath();
+        context.moveTo(offset, 0);
+        context.lineTo(offset, canvas.height);
+        context.stroke();
       }
-
-      if (existing === "perfect") {
-        return { beatIndex: closestIndex, rating: "ignored", accuracy: 0, delta: closestDelta };
-      }
-      if (existing === "good" && rating === "miss") {
-        return { beatIndex: closestIndex, rating: "ignored", accuracy: 0, delta: closestDelta };
-      }
-
-      if (!existing) {
-        accuracyTotals[rating] += 1;
-      } else {
-        accuracyTotals[existing] -= 1;
-        accuracyTotals[rating] += 1;
-      }
-      beatJudgements[closestIndex] = rating;
-      return { beatIndex: closestIndex, rating, accuracy, delta: closestDelta };
     }
 
-    function drawBrushMark(point, judgement) {
-      const clampedPoint = clampPointToBand(point);
-      const hue = getCurrentHue(Math.max(judgement.beatIndex, 0));
-      const saturation = 35 + Math.round(judgement.accuracy * 60);
-      const lightness = 68 - Math.round(judgement.accuracy * 20);
-      const brushSize = 10 + judgement.accuracy * 24;
+    function updateHud() {
+      playerIndicator.textContent = `当前玩家：玩家 ${currentPlayer}`;
+      playbackIndicator.textContent = isPlaying ? "状态：播放中" : "状态：待机";
+      scanIndicator.textContent = currentScanColumn >= 0 ? `扫描列：${currentScanColumn + 1} / ${steps}` : "扫描列：-";
+      switchPlayerButton.textContent = currentPlayer === 1 ? "切换到玩家 2" : "切换到玩家 1";
+      tempoValue.textContent = `${tempoControl.value} BPM`;
+    }
 
-      ctx.save();
-      ctx.fillStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, 0.78)`;
-      ctx.beginPath();
-      ctx.arc(clampedPoint.x, clampedPoint.y, brushSize, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = `hsla(${(hue + 18) % 360}, ${Math.min(100, saturation + 8)}%, ${Math.max(20, lightness - 12)}%, 0.42)`;
-      ctx.beginPath();
-      ctx.arc(clampedPoint.x + brushSize * 0.22, clampedPoint.y - brushSize * 0.18, brushSize * 0.44, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+    function triggerColumn(column) {
+      const instance = audioContext;
+      if (!instance) {
+        return;
+      }
 
-      currentColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-      currentBrushSize = brushSize;
-      currentJudgementLabel = judgement.rating === "perfect"
-        ? `Perfect ${Math.round(judgement.delta)}ms`
-        : judgement.rating === "good"
-          ? `Good ${Math.round(judgement.delta)}ms`
-          : `Miss ${Math.round(judgement.delta)}ms`;
+      const now = instance.currentTime;
+      const duration = 60 / Number(tempoControl.value) * 0.75;
+
+      for (let row = 0; row < gridSize; row += 1) {
+        const owner = grid[row][column];
+        if (!owner) {
+          continue;
+        }
+
+        const oscillator = instance.createOscillator();
+        const gainNode = instance.createGain();
+        oscillator.type = playerStyles[owner].wave;
+        oscillator.frequency.setValueAtTime(getFrequencyForRow(row), now);
+
+        const velocity = owner === 1 ? 0.16 : 0.12;
+        gainNode.gain.setValueAtTime(0.0001, now);
+        gainNode.gain.exponentialRampToValueAtTime(velocity, now + 0.02);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(instance.destination);
+        oscillator.start(now);
+        oscillator.stop(now + duration + 0.03);
+      }
+    }
+
+    function stopPlayback(resetColumn) {
+      if (playbackTimer) {
+        window.clearInterval(playbackTimer);
+        playbackTimer = 0;
+      }
+      isPlaying = false;
+      currentScanColumn = resetColumn ? -1 : currentScanColumn;
+      drawGrid();
       updateHud();
     }
 
-    function registerHit(point) {
-      if (!canPaint()) {
+    async function startPlayback(fromBeginning) {
+      const instance = await unlockAudio();
+      if (!instance) {
+        playbackIndicator.textContent = "状态：当前浏览器不支持 Web Audio";
         return;
       }
-      const judgement = judgeBeat(performance.now());
-      if (judgement.rating === "ignored") {
+
+      stopPlayback(false);
+      isPlaying = true;
+      currentScanColumn = fromBeginning ? 0 : Math.max(0, currentScanColumn);
+      drawGrid();
+      updateHud();
+      triggerColumn(currentScanColumn);
+
+      const stepMs = Math.round(60000 / Number(tempoControl.value));
+      playbackTimer = window.setInterval(() => {
+        currentScanColumn += 1;
+        if (currentScanColumn >= steps) {
+          stopPlayback(true);
+          return;
+        }
+        drawGrid();
+        updateHud();
+        triggerColumn(currentScanColumn);
+      }, stepMs);
+    }
+
+    function clearGrid() {
+      for (let row = 0; row < gridSize; row += 1) {
+        for (let column = 0; column < steps; column += 1) {
+          grid[row][column] = 0;
+        }
+      }
+      stopPlayback(true);
+      drawGrid();
+    }
+
+    function handlePointer(event) {
+      const position = getGridPosition(event.clientX, event.clientY);
+      paintCell(position.row, position.column, currentPlayer);
+    }
+
+    canvas.addEventListener("pointerdown", (event) => {
+      isPointerDown = true;
+      canvas.setPointerCapture(event.pointerId);
+      handlePointer(event);
+    });
+
+    canvas.addEventListener("pointermove", (event) => {
+      if (!isPointerDown) {
         return;
       }
-      drawBrushMark(point, judgement);
-      playerMarks[currentPlayer - 1] += 1;
-    }
+      handlePointer(event);
+    });
 
-    function handlePointerDown(event) {
-      if (!canPaint()) {
-        return;
+    function endPointer(event) {
+      isPointerDown = false;
+      if (canvas.hasPointerCapture(event.pointerId)) {
+        canvas.releasePointerCapture(event.pointerId);
       }
-      event.preventDefault();
-      pointerTarget = clampPointToBand(getCanvasPoint(event));
-      registerHit(pointerTarget);
     }
 
-    function handlePointerMove(event) {
-      const point = clampPointToBand(getCanvasPoint(event));
-      pointerTarget = point;
-    }
+    canvas.addEventListener("pointerup", endPointer);
+    canvas.addEventListener("pointercancel", endPointer);
+    canvas.addEventListener("pointerleave", () => {
+      isPointerDown = false;
+    });
 
-    function handleKeyDown(event) {
-      if (!canPaint()) {
-        return;
-      }
-      if (event.code !== "Space" && event.code !== "Enter") {
-        return;
-      }
-      event.preventDefault();
-      registerHit(pointerTarget);
-    }
+    switchPlayerButton.addEventListener("click", () => {
+      currentPlayer = currentPlayer === 1 ? 2 : 1;
+      updateHud();
+    });
 
-    function downloadImage() {
-      const link = document.createElement("a");
-      link.href = canvas.toDataURL("image/png");
-      link.download = "rhythm-doodle-relay.png";
-      link.click();
-    }
+    clearButton.addEventListener("click", clearGrid);
+    playButton.addEventListener("click", () => startPlayback(true));
+    replayButton.addEventListener("click", () => startPlayback(true));
+    tempoControl.addEventListener("input", updateHud);
 
-    createBeatCells();
-    resetGame();
-
-    startButton.addEventListener("click", startGame);
-    restartButton.addEventListener("click", resetGame);
-    downloadButton.addEventListener("click", downloadImage);
-    canvas.addEventListener("pointerdown", handlePointerDown);
-    canvas.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("keydown", handleKeyDown);
+    drawGrid();
+    updateHud();
   </script>
 </body>
 </html>
