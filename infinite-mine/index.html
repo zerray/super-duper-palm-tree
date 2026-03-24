@@ -3,21 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>无限矿脉挖掘器</title>
+  <title>无限矿脉</title>
   <style>
     :root {
-      --bg-top: #f5d9aa;
-      --bg-mid: #8c5d43;
-      --bg-deep: #18131d;
-      --panel: rgba(20, 16, 28, 0.88);
-      --panel-soft: rgba(255, 255, 255, 0.08);
-      --line: rgba(255, 255, 255, 0.12);
-      --text: #f9f4ef;
-      --muted: #ccbfb5;
-      --accent: #f3c969;
-      --accent-2: #76d6ff;
-      --danger: #ff8c7a;
-      --good: #86f2a4;
+      --bg: #130f18;
+      --panel: rgba(23, 18, 31, 0.92);
+      --panel-soft: rgba(255, 255, 255, 0.06);
+      --line: rgba(255, 255, 255, 0.1);
+      --text: #f8f1e5;
+      --muted: #c1b2a3;
+      --accent: #f4bf5a;
+      --good: #8cf0af;
+      --danger: #ff8e74;
       --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
     }
 
@@ -31,8 +28,8 @@
       font-family: "Trebuchet MS", "Segoe UI", sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at top, rgba(255, 236, 183, 0.38), transparent 24%),
-        linear-gradient(180deg, var(--bg-top) 0%, #d19465 16%, var(--bg-mid) 30%, #3c2a34 54%, var(--bg-deep) 100%);
+        radial-gradient(circle at top, rgba(247, 215, 143, 0.32), transparent 22%),
+        linear-gradient(180deg, #f3c98a 0%, #b56e45 15%, #48303a 36%, #181420 100%);
     }
 
     button {
@@ -40,11 +37,11 @@
     }
 
     .app {
-      width: min(1220px, calc(100vw - 24px));
+      width: min(1240px, calc(100vw - 24px));
       margin: 0 auto;
       padding: 18px 0 28px;
       display: grid;
-      grid-template-columns: minmax(0, 1.2fr) minmax(300px, 390px);
+      grid-template-columns: minmax(0, 1.25fr) minmax(290px, 380px);
       gap: 18px;
     }
 
@@ -53,11 +50,25 @@
       border-radius: 24px;
       background: var(--panel);
       box-shadow: var(--shadow);
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(8px);
     }
 
     .main-panel {
       padding: 20px;
+    }
+
+    .side {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
     }
 
     .hero {
@@ -68,31 +79,37 @@
       align-items: end;
     }
 
-    h1,
-    h2,
-    h3,
-    p {
-      margin: 0;
+    .eyebrow,
+    .label {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 0.78rem;
     }
 
     h1 {
-      font-size: clamp(2.3rem, 5vw, 4.5rem);
-      line-height: 0.92;
+      font-size: clamp(2.4rem, 5vw, 4.7rem);
+      line-height: 0.9;
       letter-spacing: -0.06em;
-      max-width: 8ch;
+      max-width: 7ch;
+    }
+
+    .lede,
+    .section-copy,
+    .meta {
+      color: var(--muted);
+      line-height: 1.55;
     }
 
     .lede {
       margin-top: 10px;
-      max-width: 56ch;
-      line-height: 1.55;
-      color: var(--muted);
+      max-width: 58ch;
     }
 
     .stats {
       margin-top: 18px;
       display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 12px;
     }
 
@@ -103,16 +120,9 @@
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
-    .label {
-      font-size: 0.76rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-    }
-
     .value {
       margin-top: 8px;
-      font-size: 1.38rem;
+      font-size: 1.3rem;
       font-weight: 700;
     }
 
@@ -121,8 +131,8 @@
       padding: 16px;
       border-radius: 22px;
       background:
-        linear-gradient(180deg, rgba(255, 227, 173, 0.1), transparent 18%),
-        linear-gradient(180deg, rgba(7, 8, 15, 0.25), rgba(4, 4, 9, 0.55));
+        linear-gradient(180deg, rgba(255, 223, 162, 0.12), transparent 20%),
+        linear-gradient(180deg, rgba(4, 4, 8, 0.22), rgba(5, 5, 10, 0.56));
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
@@ -131,8 +141,9 @@
       width: 100%;
       height: auto;
       border-radius: 18px;
-      background: linear-gradient(180deg, rgba(255, 216, 148, 0.34), rgba(13, 15, 24, 0.95) 20%);
-      cursor: pointer;
+      background: linear-gradient(180deg, rgba(248, 218, 156, 0.34), rgba(11, 12, 21, 0.98) 20%);
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
     }
 
     .tips {
@@ -140,57 +151,32 @@
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      color: var(--muted);
-      font-size: 0.92rem;
+    }
+
+    .chip,
+    .section,
+    .upgrade,
+    .ore-row {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
     }
 
     .chip {
-      padding: 8px 10px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .side {
-      padding: 18px;
-      display: grid;
-      gap: 14px;
-      align-content: start;
+      padding: 8px 10px;
+      color: var(--muted);
+      font-size: 0.92rem;
     }
 
     .section {
       padding: 16px;
       border-radius: 20px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .section h2 {
       font-size: 1rem;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.05em;
       text-transform: uppercase;
-    }
-
-    .section-copy {
-      margin-top: 8px;
-      color: var(--muted);
-      line-height: 1.5;
-      font-size: 0.95rem;
-    }
-
-    .meter {
-      margin-top: 12px;
-      height: 12px;
-      border-radius: 999px;
-      overflow: hidden;
-      background: rgba(255, 255, 255, 0.08);
-    }
-
-    .meter-fill {
-      height: 100%;
-      width: 0;
-      background: linear-gradient(90deg, var(--accent), #ff9b55);
-      transition: width 120ms ease;
     }
 
     .upgrade-list,
@@ -206,8 +192,6 @@
       gap: 10px;
       padding: 12px;
       border-radius: 16px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .upgrade-top,
@@ -216,27 +200,13 @@
       align-items: center;
     }
 
-    .ore-name {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .swatch {
-      width: 12px;
-      height: 12px;
-      border-radius: 3px;
-      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22);
-    }
-
     .upgrade button,
-    .controls button,
-    .modal button {
+    .controls button {
       border: 0;
       border-radius: 14px;
       padding: 10px 14px;
-      background: linear-gradient(180deg, #ffd783, #d5914d);
-      color: #21160b;
+      background: linear-gradient(180deg, #ffd988, #d7914d);
+      color: #24170a;
       font-weight: 800;
       cursor: pointer;
     }
@@ -259,6 +229,25 @@
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
+    .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
+    }
+
+    .ore-name {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .big {
+      font-size: 1.55rem;
+      font-weight: 700;
+      margin-top: 10px;
+    }
+
     .log {
       min-height: 88px;
       margin-top: 12px;
@@ -270,41 +259,7 @@
       font-size: 0.94rem;
     }
 
-    .footer-note {
-      margin-top: 10px;
-      color: var(--muted);
-      font-size: 0.88rem;
-    }
-
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      display: none;
-      place-items: center;
-      background: rgba(5, 5, 8, 0.64);
-      padding: 18px;
-    }
-
-    .modal-backdrop.show {
-      display: grid;
-    }
-
-    .modal {
-      width: min(440px, 100%);
-      padding: 20px;
-      border-radius: 24px;
-      background: #19131f;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: var(--shadow);
-    }
-
-    .modal p {
-      margin-top: 12px;
-      color: var(--muted);
-      line-height: 1.55;
-    }
-
-    @media (max-width: 980px) {
+    @media (max-width: 960px) {
       .app {
         grid-template-columns: 1fr;
       }
@@ -315,22 +270,14 @@
     }
 
     @media (max-width: 640px) {
-      body {
-        padding-bottom: 18px;
-      }
-
       .app {
-        width: min(100vw - 14px, 1220px);
+        width: min(100vw - 14px, 1240px);
         padding-top: 8px;
       }
 
       .main-panel,
       .side {
         padding: 14px;
-      }
-
-      .stats {
-        grid-template-columns: 1fr 1fr;
       }
     }
   </style>
@@ -340,138 +287,154 @@
     <section class="panel main-panel">
       <div class="hero">
         <div>
-          <p class="label">Idle Incremental Mining</p>
-          <h1>无限矿脉挖掘器</h1>
-          <p class="lede">
-            方向键或点击相邻方块挖掘，越往下地层越硬，矿石越值钱。升级钻头、背包和探灯，让小矿工一路向更深处推进。
-          </p>
+          <p class="eyebrow">Idle Mining Visualization</p>
+          <h1>无限矿脉</h1>
+          <p class="lede">矿机会自动向下开采，矿脉剖面会持续展开。随着深度增加，铜、铁、金、钻石与神秘矿会陆续出现，用收益购买升级，直接提升钻探速度、挖掘宽度和收集效率。</p>
         </div>
       </div>
 
       <div class="stats">
         <div class="stat">
           <div class="label">深度</div>
-          <div class="value" id="depth-value">0m</div>
+          <div class="value" id="depth-value">0 m</div>
         </div>
         <div class="stat">
-          <div class="label">金币</div>
+          <div class="label">总收益</div>
           <div class="value" id="credits-value">0</div>
         </div>
         <div class="stat">
-          <div class="label">钻头</div>
-          <div class="value" id="drill-value">Lv.1</div>
+          <div class="label">挖掘速度</div>
+          <div class="value" id="speed-value">1.0x</div>
         </div>
         <div class="stat">
-          <div class="label">探灯</div>
-          <div class="value" id="lantern-value">Lv.1</div>
-        </div>
-        <div class="stat">
-          <div class="label">自动产出</div>
-          <div class="value" id="idle-value">0/s</div>
+          <div class="label">挖掘宽度</div>
+          <div class="value" id="width-value">1 格</div>
         </div>
       </div>
 
       <div class="mine-wrap">
-        <canvas id="mine-canvas" width="880" height="560" aria-label="挖矿地图"></canvas>
+        <canvas id="mine-canvas" width="960" height="720" aria-label="矿脉剖面视图"></canvas>
         <div class="tips">
-          <div class="chip">点击相邻格子挖掘或移动</div>
-          <div class="chip">方向键 / WASD 控制</div>
-          <div class="chip">`U` 卸货换钱</div>
+          <div class="chip">打开页面后自动开采</div>
+          <div class="chip">像素 Canvas 剖面滚动显示</div>
+          <div class="chip">刷新后从 localStorage 恢复进度</div>
         </div>
       </div>
     </section>
 
     <aside class="panel side">
       <section class="section">
-        <h2>背包</h2>
-        <p class="section-copy" id="cargo-copy">背包会限制连续挖掘次数，扩容后可以更久不回收。</p>
-        <div class="meter" aria-hidden="true">
-          <div class="meter-fill" id="cargo-fill"></div>
-        </div>
-        <div class="controls">
-          <button id="unload-button">卸货卖出</button>
-          <button class="ghost" id="reset-button">重开存档</button>
-        </div>
-        <div class="footer-note" id="cargo-value">0 / 10</div>
-      </section>
-
-      <section class="section">
-        <h2>升级站</h2>
-        <p class="section-copy">成本按指数增长，购买后效果立即生效。</p>
+        <h2>升级面板</h2>
+        <p class="section-copy">购买后立刻影响自动矿机表现，范围与速度变化会直接体现在剖面图上。</p>
         <div class="upgrade-list" id="upgrade-list"></div>
       </section>
 
       <section class="section">
-        <h2>矿石库存</h2>
-        <p class="section-copy">至少五档稀有度，深层会逐步出现更高价值矿脉。</p>
+        <h2>资源面板</h2>
+        <p class="section-copy">矿石会自动转成收益，同时累计开采数量。</p>
+        <div class="big" id="income-rate">0 / 秒</div>
         <div class="ore-list" id="ore-list"></div>
       </section>
 
       <section class="section">
-        <h2>矿工日志</h2>
-        <p class="section-copy">在线时会自动慢速挖掘；离线回来也会结算一部分收益。</p>
-        <div class="log" id="event-log">准备下井。</div>
+        <h2>扫描仪</h2>
+        <p class="section-copy" id="scanner-copy">当前只能看见钻头下方 6 层矿脉。</p>
+      </section>
+
+      <section class="section">
+        <h2>矿机日志</h2>
+        <p class="section-copy">会按固定间隔自动保存，并在下次打开时恢复。</p>
+        <div class="log" id="event-log">矿机准备下钻。</div>
+        <div class="controls">
+          <button id="reset-button" class="ghost">重开存档</button>
+        </div>
       </section>
     </aside>
   </main>
 
-  <div class="modal-backdrop" id="offline-modal">
-    <div class="modal">
-      <h2>离线收益</h2>
-      <p id="offline-copy">矿工回来报到了。</p>
-      <button id="offline-close">继续挖掘</button>
-    </div>
-  </div>
-
   <script>
-    const STORAGE_KEY = "infinite-mine-save-v1";
-    const WORLD_WIDTH = 13;
-    const SURFACE_Y = 1;
+    const STORAGE_KEY = "infinite-mine-save-v2";
+    const WORLD_WIDTH = 17;
+    const TILE_SIZE = 14;
+    const VISIBLE_ROWS = 40;
+    const SAVE_INTERVAL = 4;
+    const DIG_BASE_INTERVAL = 1.15;
     const ORES = [
-      { key: "coal", name: "煤矿", color: "#48454d", rarity: "普通", minDepth: 1, value: 6, bonus: 0.1 },
-      { key: "iron", name: "铁矿", color: "#a66b4b", rarity: "常见", minDepth: 4, value: 12, bonus: 0.2 },
-      { key: "silver", name: "银矿", color: "#c8d4db", rarity: "稀有", minDepth: 10, value: 26, bonus: 0.35 },
-      { key: "gold", name: "金矿", color: "#ffd45c", rarity: "珍贵", minDepth: 16, value: 46, bonus: 0.55 },
-      { key: "ruby", name: "红宝石", color: "#ff5574", rarity: "史诗", minDepth: 24, value: 88, bonus: 0.8 },
-      { key: "diamond", name: "钻石", color: "#8be9ff", rarity: "传说", minDepth: 34, value: 160, bonus: 1.1 }
+      { key: "copper", name: "铜矿", color: "#d18448", minDepth: 0, maxDepth: 70, value: 6, chances: [0.2, 0.14, 0.08, 0.03, 0.01] },
+      { key: "iron", name: "铁矿", color: "#8d9aa7", minDepth: 18, maxDepth: 150, value: 15, chances: [0.03, 0.18, 0.14, 0.08, 0.02] },
+      { key: "gold", name: "金矿", color: "#f0c74a", minDepth: 52, maxDepth: 260, value: 38, chances: [0.01, 0.04, 0.16, 0.14, 0.06] },
+      { key: "diamond", name: "钻石", color: "#73deff", minDepth: 110, maxDepth: 9999, value: 95, chances: [0, 0.01, 0.04, 0.14, 0.12] },
+      { key: "mystic", name: "神秘矿", color: "#ff69d1", minDepth: 180, maxDepth: 9999, value: 220, chances: [0, 0, 0.01, 0.05, 0.12] }
     ];
     const UPGRADE_DEFS = [
-      { key: "drill", name: "钻头", baseCost: 22, desc: "提高每次挖掘伤害和自动挖掘速度。", effect: (level) => `挖掘力 ${formatNumber(getDigPower(level))}` },
-      { key: "backpack", name: "背包", baseCost: 26, desc: "提升一次下井可携带的矿石数量。", effect: (level) => `容量 ${getCargoCapacity(level)}` },
-      { key: "lantern", name: "探灯", baseCost: 18, desc: "扩大视野半径，方便点挖更深处。", effect: (level) => `视野 +${level}` }
+      { key: "drillSpeed", name: "更快的钻头", baseCost: 35, desc: "缩短每次下钻间隔。", effect: (level) => `${getDigsPerSecond(level).toFixed(2)} 次/秒` },
+      { key: "drillWidth", name: "更宽的挖掘范围", baseCost: 70, desc: "每次向下清出更宽的一排。", effect: (level) => `${getMiningWidth(level)} 格` },
+      { key: "collector", name: "自动收集器", baseCost: 60, desc: "提高每块矿石折算的收益。", effect: (level) => `${getCollectorMultiplier(level).toFixed(2)}x 收益` },
+      { key: "scanner", name: "地层扫描仪", baseCost: 85, desc: "提前显露更深处的矿石分布。", effect: (level) => `预览 ${getScannerDepth(level)} 层` }
     ];
 
     const canvas = document.getElementById("mine-canvas");
     const ctx = canvas.getContext("2d");
+    const depthValue = document.getElementById("depth-value");
+    const creditsValue = document.getElementById("credits-value");
+    const speedValue = document.getElementById("speed-value");
+    const widthValue = document.getElementById("width-value");
+    const incomeRate = document.getElementById("income-rate");
+    const scannerCopy = document.getElementById("scanner-copy");
     const upgradeList = document.getElementById("upgrade-list");
     const oreList = document.getElementById("ore-list");
     const eventLog = document.getElementById("event-log");
-    const cargoFill = document.getElementById("cargo-fill");
-    const cargoValue = document.getElementById("cargo-value");
-    const cargoCopy = document.getElementById("cargo-copy");
-    const depthValue = document.getElementById("depth-value");
-    const creditsValue = document.getElementById("credits-value");
-    const drillValue = document.getElementById("drill-value");
-    const lanternValue = document.getElementById("lantern-value");
-    const idleValue = document.getElementById("idle-value");
-    const unloadButton = document.getElementById("unload-button");
     const resetButton = document.getElementById("reset-button");
-    const offlineModal = document.getElementById("offline-modal");
-    const offlineCopy = document.getElementById("offline-copy");
-    const offlineClose = document.getElementById("offline-close");
 
-    const oreMeta = Object.fromEntries(ORES.map((ore) => [ore.key, ore]));
+    let state = loadState();
     let lastFrame = performance.now();
+    let digAccumulator = 0;
     let saveTimer = 0;
-    let logTimer = 0;
+    let uiDirty = true;
+    let drawDirty = true;
+    const particles = [];
+    const popups = [];
 
-    function mulberry32(seed) {
-      return function () {
-        let t = seed += 0x6d2b79f5;
-        t = Math.imul(t ^ t >>> 15, t | 1);
-        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    function createInitialState() {
+      return {
+        seed: Math.floor(Math.random() * 1e9),
+        depth: 0,
+        credits: 0,
+        lifetimeCredits: 0,
+        upgrades: {
+          drillSpeed: 1,
+          drillWidth: 1,
+          collector: 1,
+          scanner: 1
+        },
+        inventory: Object.fromEntries(ORES.map((ore) => [ore.key, 0])),
+        lastSavedAt: Date.now()
       };
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          return createInitialState();
+        }
+        const parsed = JSON.parse(raw);
+        const fresh = createInitialState();
+        return {
+          ...fresh,
+          ...parsed,
+          upgrades: { ...fresh.upgrades, ...(parsed.upgrades || {}) },
+          inventory: { ...fresh.inventory, ...(parsed.inventory || {}) }
+        };
+      } catch (error) {
+        console.warn("Failed to load save", error);
+        return createInitialState();
+      }
+    }
+
+    function saveState() {
+      state.lastSavedAt = Date.now();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
 
     function hash2d(seed, x, y) {
@@ -485,268 +448,176 @@
     }
 
     function formatNumber(value) {
+      if (value >= 1000000) {
+        return `${(value / 1000000).toFixed(2)}M`;
+      }
       if (value >= 1000) {
         return value.toLocaleString("en-US", { maximumFractionDigits: 1 });
       }
-      return value.toLocaleString("en-US", { maximumFractionDigits: 2 });
+      return value.toLocaleString("en-US", { maximumFractionDigits: 0 });
+    }
+
+    function getDepthBand(depth) {
+      if (depth < 40) return { soil: "#835638", stone: "#6a564e" };
+      if (depth < 90) return { soil: "#745040", stone: "#59636d" };
+      if (depth < 150) return { soil: "#5e4450", stone: "#44556b" };
+      if (depth < 220) return { soil: "#3f3251", stone: "#384562" };
+      return { soil: "#282546", stone: "#304056" };
+    }
+
+    function getMiningWidth(level = state.upgrades.drillWidth) {
+      return 1 + (level - 1) * 2;
+    }
+
+    function getDigsPerSecond(level = state.upgrades.drillSpeed) {
+      return 1 / Math.max(0.18, DIG_BASE_INTERVAL * Math.pow(0.82, level - 1));
+    }
+
+    function getCollectorMultiplier(level = state.upgrades.collector) {
+      return 1 + (level - 1) * 0.35;
+    }
+
+    function getScannerDepth(level = state.upgrades.scanner) {
+      return 6 + (level - 1) * 4;
     }
 
     function getUpgradeCost(key, level) {
       const def = UPGRADE_DEFS.find((item) => item.key === key);
-      return Math.floor(def.baseCost * Math.pow(1.7, level - 1));
+      return Math.floor(def.baseCost * Math.pow(1.65, level - 1));
     }
 
-    function getDigPower(level = state.upgrades.drill) {
-      return 1 + (level - 1) * 0.65;
+    function getLayerIndex(depth) {
+      if (depth < 40) return 0;
+      if (depth < 90) return 1;
+      if (depth < 150) return 2;
+      if (depth < 220) return 3;
+      return 4;
     }
 
-    function getCargoCapacity(level = state.upgrades.backpack) {
-      return 10 + (level - 1) * 8;
-    }
-
-    function getLanternRadius(level = state.upgrades.lantern) {
-      return 4 + level;
-    }
-
-    function getPassiveDigsPerSecond() {
-      return 0.28 + state.upgrades.drill * 0.22 + Math.max(0, state.depth - 1) * 0.008;
-    }
-
-    function getOfflineRate() {
-      return getPassiveDigsPerSecond() * getAverageOreValueAtDepth(state.depth) * 0.22;
-    }
-
-    function getAverageOreValueAtDepth(depth) {
-      if (depth >= 34) return 34;
-      if (depth >= 24) return 24;
-      if (depth >= 16) return 17;
-      if (depth >= 10) return 12;
-      if (depth >= 4) return 8;
-      return 5;
-    }
-
-    function getDepthBand(depth) {
-      if (depth < 6) return { soil: "#7a5137", stone: "#8c6040", hardness: 1.1 };
-      if (depth < 14) return { soil: "#6c4d3d", stone: "#756268", hardness: 1.5 };
-      if (depth < 24) return { soil: "#58403f", stone: "#617078", hardness: 2.05 };
-      if (depth < 36) return { soil: "#463347", stone: "#505665", hardness: 2.7 };
-      return { soil: "#2c2540", stone: "#4f5662", hardness: 3.35 };
-    }
-
-    function createInitialState() {
-      const seed = Math.floor(Math.random() * 1e9);
-      const resources = Object.fromEntries(ORES.map((ore) => [ore.key, 0]));
-      return {
-        seed,
-        credits: 0,
-        depth: 1,
-        miner: { x: Math.floor(WORLD_WIDTH / 2), y: SURFACE_Y },
-        upgrades: { drill: 1, backpack: 1, lantern: 1 },
-        cargo: { used: 0, items: { ...resources } },
-        resources,
-        rows: {},
-        lastPlayedAt: Date.now(),
-        totalClicks: 0
-      };
-    }
-
-    let state = loadState();
-
-    function loadState() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) {
-          return createInitialState();
-        }
-        const parsed = JSON.parse(raw);
-        const fresh = createInitialState();
-        return {
-          ...fresh,
-          ...parsed,
-          miner: { ...fresh.miner, ...(parsed.miner || {}) },
-          upgrades: { ...fresh.upgrades, ...(parsed.upgrades || {}) },
-          cargo: {
-            used: parsed.cargo?.used || 0,
-            items: { ...fresh.cargo.items, ...(parsed.cargo?.items || {}) }
-          },
-          resources: { ...fresh.resources, ...(parsed.resources || {}) },
-          rows: parsed.rows || {}
-        };
-      } catch (error) {
-        console.warn("Failed to load save", error);
-        return createInitialState();
-      }
-    }
-
-    function saveState() {
-      state.lastPlayedAt = Date.now();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    }
-
-    function makeRow(y) {
-      const row = [];
-      for (let x = 0; x < WORLD_WIDTH; x += 1) {
-        if (y < SURFACE_Y) {
-          row.push({ kind: "air", broken: true, hardness: 0, hp: 0 });
-          continue;
-        }
-        if (y === SURFACE_Y && x === Math.floor(WORLD_WIDTH / 2)) {
-          row.push({ kind: "air", broken: true, hardness: 0, hp: 0 });
-          continue;
-        }
-        const tile = generateTile(x, y);
-        row.push(tile);
-      }
-      return row;
-    }
-
-    function getRow(y) {
-      if (!state.rows[y]) {
-        state.rows[y] = makeRow(y);
-      }
-      return state.rows[y];
-    }
-
-    function getTile(x, y) {
-      if (x < 0 || x >= WORLD_WIDTH || y < 0) {
+    function pickOre(depth, x) {
+      const layerIndex = getLayerIndex(depth);
+      const oreRoll = hash2d(state.seed ^ 0x9e3779b9, x * 11, depth * 7);
+      const emptyRoll = hash2d(state.seed ^ 0x85ebca6b, x * 17, depth * 3);
+      if (emptyRoll > 0.3 + layerIndex * 0.05) {
         return null;
       }
-      return getRow(y)[x];
-    }
-
-    function setTile(x, y, tile) {
-      getRow(y)[x] = tile;
-    }
-
-    function generateTile(x, y) {
-      const band = getDepthBand(y);
-      const noise = hash2d(state.seed, x, y);
-      const oreNoise = hash2d(state.seed ^ 0x9e3779b9, x * 3, y * 7);
-      const ore = pickOre(y, oreNoise);
-      const baseKind = noise > 0.64 ? "stone" : "soil";
-      const oreBonus = ore ? ore.bonus : 0;
-      const hardness = Number((band.hardness + oreBonus + (baseKind === "stone" ? 0.3 : 0)).toFixed(2));
-      return {
-        kind: baseKind,
-        ore: ore?.key || null,
-        broken: false,
-        hardness,
-        hp: hardness
-      };
-    }
-
-    function pickOre(depth, noise) {
-      const pool = [];
+      let pool = 0;
+      const candidates = [];
       for (const ore of ORES) {
-        if (depth < ore.minDepth) {
+        if (depth < ore.minDepth || depth > ore.maxDepth) {
           continue;
         }
-        let weight = 0;
-        const distance = depth - ore.minDepth;
-        if (ore.key === "coal") weight = 0.28 + depth * 0.001;
-        if (ore.key === "iron") weight = 0.18 + distance * 0.004;
-        if (ore.key === "silver") weight = 0.1 + distance * 0.0034;
-        if (ore.key === "gold") weight = 0.07 + distance * 0.0028;
-        if (ore.key === "ruby") weight = 0.04 + distance * 0.0022;
-        if (ore.key === "diamond") weight = 0.02 + distance * 0.0019;
-        pool.push({ ore, weight });
+        const weight = ore.chances[layerIndex] || 0;
+        if (weight <= 0) {
+          continue;
+        }
+        pool += weight;
+        candidates.push({ ore, weight });
       }
-      const totalWeight = pool.reduce((sum, item) => sum + item.weight, 0);
-      const spawnChance = clamp(0.17 + depth * 0.0055, 0.17, 0.54);
-      if (noise > spawnChance || totalWeight <= 0) {
+      if (!pool) {
         return null;
       }
-      let cursor = noise * totalWeight * 0.97;
-      for (const item of pool) {
+      let cursor = oreRoll * pool;
+      for (const item of candidates) {
         cursor -= item.weight;
         if (cursor <= 0) {
           return item.ore;
         }
       }
-      return pool[pool.length - 1]?.ore || null;
+      return candidates[candidates.length - 1].ore;
     }
 
-    function moveMiner(dx, dy) {
-      const targetX = clamp(state.miner.x + dx, 0, WORLD_WIDTH - 1);
-      const targetY = Math.max(0, state.miner.y + dy);
-      if (targetX === state.miner.x && targetY === state.miner.y) {
-        return;
+    function getTile(x, depth) {
+      if (depth <= state.depth) {
+        return { kind: "empty" };
       }
-      const tile = getTile(targetX, targetY);
-      if (!tile) {
-        return;
-      }
-      if (tile.broken) {
-        state.miner.x = targetX;
-        state.miner.y = targetY;
-        state.depth = Math.max(state.depth, state.miner.y);
-        return;
-      }
-      digTile(targetX, targetY, "manual");
+      const noise = hash2d(state.seed, x, depth);
+      const band = getDepthBand(depth);
+      return {
+        kind: noise > 0.56 ? "stone" : "soil",
+        color: noise > 0.56 ? band.stone : band.soil,
+        ore: pickOre(depth, x)
+      };
     }
 
-    function getCargoCapacityRemaining() {
-      return getCargoCapacity() - state.cargo.used;
-    }
-
-    function digTile(x, y, source) {
-      const tile = getTile(x, y);
-      if (!tile || tile.broken) {
-        return;
-      }
-      if (getCargoCapacityRemaining() <= 0) {
-        logEvent("背包已满，先卸货。");
-        return;
-      }
-      const digPower = getDigPower();
-      tile.hp = Math.max(0, Number((tile.hp - digPower).toFixed(2)));
-      state.totalClicks += source === "manual" ? 1 : 0;
-      if (tile.hp > 0) {
-        logEvent(`${source === "manual" ? "敲击" : "自动钻探"} ${describeTile(tile)}，还需 ${formatNumber(tile.hp)}。`);
-        return;
-      }
-
-      tile.broken = true;
-      tile.kind = "air";
-      collectTile(tile);
-      state.miner.x = x;
-      state.miner.y = y;
-      state.depth = Math.max(state.depth, state.miner.y);
-      logEvent(`挖开 ${describeTile(tile)}，到达 ${state.depth}m。`);
-    }
-
-    function collectTile(tile) {
-      const key = tile.ore || "coal";
-      state.cargo.items[key] += 1;
-      state.cargo.used += 1;
-    }
-
-    function describeTile(tile) {
-      if (tile.ore) {
-        return oreMeta[tile.ore].name;
-      }
-      return tile.hardness >= 2.3 ? "硬岩" : "土层";
-    }
-
-    function unloadCargo(includeLog = true) {
-      if (state.cargo.used <= 0) {
-        if (includeLog) {
-          logEvent("背包是空的。");
+    function getIncomePerSecond() {
+      const upcomingDepth = state.depth + 1;
+      const width = getMiningWidth();
+      let projected = 1.3;
+      for (let x = 0; x < WORLD_WIDTH; x += 1) {
+        const ore = pickOre(upcomingDepth, x);
+        if (ore) {
+          projected += ore.value * 0.08;
         }
-        return;
       }
-      let earned = 0;
-      for (const [key, amount] of Object.entries(state.cargo.items)) {
-        if (!amount) continue;
-        const ore = oreMeta[key];
-        state.resources[key] += amount;
-        earned += amount * ore.value;
-        state.cargo.items[key] = 0;
+      return projected * getCollectorMultiplier() * getDigsPerSecond() * (width / 2.2);
+    }
+
+    function logEvent(message) {
+      eventLog.textContent = message;
+    }
+
+    function spawnCollectionVfx(screenX, screenY, amount, color) {
+      popups.push({
+        x: screenX,
+        y: screenY,
+        value: `+${formatNumber(amount)}`,
+        color,
+        life: 0.9
+      });
+      for (let i = 0; i < 8; i += 1) {
+        const angle = (Math.PI * 2 * i) / 8 + hash2d(state.seed, i + Math.floor(screenX), Math.floor(screenY));
+        const speed = 18 + i * 2;
+        particles.push({
+          x: screenX,
+          y: screenY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 12,
+          color,
+          life: 0.55
+        });
       }
-      state.credits += earned;
-      state.cargo.used = 0;
-      if (includeLog) {
-        logEvent(`已卖出本轮矿石，获得 ${earned} 金币。`);
+    }
+
+    function getMiningColumns() {
+      const width = getMiningWidth();
+      const center = Math.floor(WORLD_WIDTH / 2);
+      const half = Math.floor(width / 2);
+      const columns = [];
+      for (let x = center - half; x <= center + half; x += 1) {
+        columns.push(x);
+      }
+      return columns;
+    }
+
+    function mineStep() {
+      const targetDepth = state.depth + 1;
+      const columns = getMiningColumns();
+      const cameraTop = Math.max(0, state.depth - VISIBLE_ROWS + 8);
+      let totalValue = 2;
+      let headlineOre = null;
+      for (const x of columns) {
+        const tile = getTile(x, targetDepth);
+        if (tile.ore) {
+          state.inventory[tile.ore.key] += 1;
+          const oreValue = Math.round(tile.ore.value * getCollectorMultiplier());
+          totalValue += oreValue;
+          headlineOre = tile.ore;
+          const screenX = x * TILE_SIZE + TILE_SIZE / 2;
+          const screenY = (targetDepth - cameraTop) * TILE_SIZE + TILE_SIZE / 2;
+          spawnCollectionVfx(screenX, screenY, oreValue, tile.ore.color);
+        }
+      }
+      state.depth = targetDepth;
+      state.credits += totalValue;
+      state.lifetimeCredits += totalValue;
+      uiDirty = true;
+      drawDirty = true;
+      saveState();
+      if (headlineOre) {
+        logEvent(`挖到 ${headlineOre.name}，深度来到 ${state.depth} m。`);
+      } else {
+        logEvent(`矿机下钻到 ${state.depth} m。`);
       }
     }
 
@@ -754,12 +625,16 @@
       const level = state.upgrades[key];
       const cost = getUpgradeCost(key, level);
       if (state.credits < cost) {
-        logEvent("金币不足。");
+        logEvent("收益不足，继续向下挖。");
         return;
       }
       state.credits -= cost;
       state.upgrades[key] += 1;
-      logEvent(`已升级${UPGRADE_DEFS.find((item) => item.key === key).name}到 Lv.${state.upgrades[key]}。`);
+      uiDirty = true;
+      drawDirty = true;
+      saveState();
+      const upgrade = UPGRADE_DEFS.find((item) => item.key === key);
+      logEvent(`${upgrade.name} 升到 Lv.${state.upgrades[key]}。`);
       renderUpgradeButtons();
     }
 
@@ -774,11 +649,11 @@
         top.className = "upgrade-top";
 
         const copy = document.createElement("div");
-        copy.innerHTML = `<strong>${upgrade.name} Lv.${level}</strong><div class="section-copy">${upgrade.desc}</div><div class="footer-note">${upgrade.effect(level)}</div>`;
+        copy.innerHTML = `<strong>${upgrade.name} Lv.${level}</strong><div class="section-copy">${upgrade.desc}</div><div class="meta">${upgrade.effect(level)}</div>`;
 
         const button = document.createElement("button");
         button.type = "button";
-        button.textContent = `${cost} 金币`;
+        button.textContent = `${cost}`;
         button.disabled = state.credits < cost;
         button.addEventListener("click", () => buyUpgrade(upgrade.key));
 
@@ -786,276 +661,179 @@
         wrapper.append(top);
         return wrapper;
       });
-
       upgradeList.replaceChildren(...nodes);
     }
 
     function renderOres() {
-      const rows = ORES.map((ore) => {
+      const nodes = ORES.map((ore) => {
         const row = document.createElement("div");
         row.className = "ore-row";
         row.innerHTML = `
           <div class="ore-name">
             <span class="swatch" style="background:${ore.color}"></span>
-            <span>${ore.name} · ${ore.rarity}</span>
+            <span>${ore.name}</span>
           </div>
-          <strong>${state.resources[ore.key]}</strong>
+          <strong>${state.inventory[ore.key]}</strong>
         `;
         return row;
       });
-      oreList.replaceChildren(...rows);
+      oreList.replaceChildren(...nodes);
     }
 
-    function logEvent(message) {
-      eventLog.textContent = message;
-      logTimer = 2.2;
+    function renderHud() {
+      depthValue.textContent = `${state.depth} m`;
+      creditsValue.textContent = formatNumber(state.credits);
+      speedValue.textContent = `${getDigsPerSecond().toFixed(1)}x`;
+      widthValue.textContent = `${getMiningWidth()} 格`;
+      incomeRate.textContent = `${formatNumber(getIncomePerSecond())} / 秒`;
+      scannerCopy.textContent = `当前可提前看见钻头下方 ${getScannerDepth()} 层矿脉。`;
+      renderUpgradeButtons();
+      renderOres();
+      uiDirty = false;
     }
 
-    function tryAutoDig() {
-      if (getCargoCapacityRemaining() <= 0) {
-        unloadCargo(false);
-        return;
-      }
-
-      const targets = [
-        [0, 1],
-        [-1, 0],
-        [1, 0],
-        [0, -1]
-      ];
-
-      for (const [dx, dy] of targets) {
-        const tile = getTile(state.miner.x + dx, state.miner.y + dy);
-        if (tile && !tile.broken) {
-          digTile(state.miner.x + dx, state.miner.y + dy, "idle");
-          return;
-        }
-      }
+    function drawMiner(screenX, screenY, width) {
+      const bodyWidth = width * TILE_SIZE;
+      ctx.fillStyle = "#f2c85a";
+      ctx.fillRect(screenX - bodyWidth / 2, screenY - 10, bodyWidth, 8);
+      ctx.fillStyle = "#6fd8ff";
+      ctx.fillRect(screenX - 10, screenY - 20, 20, 12);
+      ctx.fillStyle = "#e7e2d6";
+      ctx.fillRect(screenX - 4, screenY - 6, 8, 12);
     }
 
-    function applyOfflineProgress() {
-      const now = Date.now();
-      const elapsedSeconds = Math.max(0, Math.floor((now - (state.lastPlayedAt || now)) / 1000));
-      if (elapsedSeconds < 15) {
+    function drawTile(tile, x, y, depth, revealLimit) {
+      const screenX = x * TILE_SIZE;
+      const screenY = y * TILE_SIZE;
+      if (tile.kind === "empty") {
+        ctx.fillStyle = "rgba(10, 10, 18, 0.98)";
+        ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
         return;
       }
-      const offlineReward = Math.floor(elapsedSeconds * getOfflineRate() * 0.5);
-      if (offlineReward <= 0) {
-        return;
+      ctx.fillStyle = tile.color;
+      ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
+      ctx.fillStyle = "rgba(0, 0, 0, 0.12)";
+      ctx.fillRect(screenX, screenY + TILE_SIZE - 3, TILE_SIZE, 3);
+      const scannerVisible = depth <= revealLimit;
+      if (tile.ore && scannerVisible) {
+        ctx.fillStyle = tile.ore.color;
+        ctx.fillRect(screenX + 3, screenY + 3, 4, 4);
+        ctx.fillRect(screenX + 7, screenY + 6, 4, 4);
       }
-      state.credits += offlineReward;
-      const oreBundles = [
-        ["coal", Math.max(1, Math.floor(elapsedSeconds / 40))],
-        ["iron", state.depth >= 4 ? Math.floor(elapsedSeconds / 80) : 0],
-        ["silver", state.depth >= 10 ? Math.floor(elapsedSeconds / 160) : 0],
-        ["gold", state.depth >= 16 ? Math.floor(elapsedSeconds / 240) : 0],
-        ["ruby", state.depth >= 24 ? Math.floor(elapsedSeconds / 360) : 0],
-        ["diamond", state.depth >= 34 ? Math.floor(elapsedSeconds / 520) : 0]
-      ];
-      for (const [key, amount] of oreBundles) {
-        if (amount > 0) {
-          state.resources[key] += amount;
-        }
+      if (!scannerVisible) {
+        ctx.fillStyle = "rgba(6, 6, 10, 0.24)";
+        ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
       }
-      offlineCopy.textContent = `你离线了 ${elapsedSeconds} 秒，矿工按 50% 效率自动工作，带回 ${offlineReward} 金币。`;
-      offlineModal.classList.add("show");
-      logEvent(`结算离线收益 ${offlineReward} 金币。`);
     }
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const cameraTop = Math.max(0, state.depth - VISIBLE_ROWS + 8);
+      const revealLimit = state.depth + getScannerDepth();
 
-      const radiusX = 5;
-      const radiusY = getLanternRadius();
-      const visibleCols = radiusX * 2 + 1;
-      const visibleRows = radiusY * 2 + 1;
-      const tileSize = Math.min(canvas.width / visibleCols, canvas.height / visibleRows);
-      const startX = state.miner.x - radiusX;
-      const startY = state.miner.y - radiusY;
-      const offsetX = (canvas.width - visibleCols * tileSize) / 2;
-      const offsetY = (canvas.height - visibleRows * tileSize) / 2;
-
-      for (let vy = 0; vy < visibleRows; vy += 1) {
-        const worldY = startY + vy;
-        for (let vx = 0; vx < visibleCols; vx += 1) {
-          const worldX = startX + vx;
-          const screenX = offsetX + vx * tileSize;
-          const screenY = offsetY + vy * tileSize;
-
-          ctx.fillStyle = worldY <= SURFACE_Y ? "rgba(255, 205, 146, 0.35)" : "rgba(8, 10, 18, 0.32)";
-          ctx.fillRect(screenX, screenY, tileSize, tileSize);
-
-          if (worldX < 0 || worldX >= WORLD_WIDTH || worldY < 0) {
-            continue;
-          }
-
-          const tile = getTile(worldX, worldY);
-          if (!tile || tile.broken) {
-            ctx.fillStyle = worldY <= SURFACE_Y ? "rgba(255, 224, 171, 0.28)" : "rgba(20, 18, 30, 0.95)";
-            ctx.fillRect(screenX, screenY, tileSize, tileSize);
-          } else {
-            const band = getDepthBand(worldY);
-            const color = tile.kind === "stone" ? band.stone : band.soil;
-            ctx.fillStyle = color;
-            ctx.fillRect(screenX, screenY, tileSize, tileSize);
-
-            ctx.fillStyle = "rgba(0, 0, 0, 0.14)";
-            ctx.fillRect(screenX, screenY + tileSize - 4, tileSize, 4);
-
-            if (tile.ore) {
-              ctx.fillStyle = oreMeta[tile.ore].color;
-              ctx.beginPath();
-              ctx.arc(screenX + tileSize * 0.33, screenY + tileSize * 0.42, tileSize * 0.14, 0, Math.PI * 2);
-              ctx.arc(screenX + tileSize * 0.63, screenY + tileSize * 0.56, tileSize * 0.12, 0, Math.PI * 2);
-              ctx.fill();
-            }
-
-            if (tile.hp < tile.hardness) {
-              const ratio = tile.hp / tile.hardness;
-              ctx.fillStyle = "rgba(255,255,255,0.18)";
-              ctx.fillRect(screenX + 4, screenY + tileSize - 8, (tileSize - 8) * ratio, 4);
-            }
-          }
-
-          const distance = Math.abs(worldX - state.miner.x) + Math.abs(worldY - state.miner.y);
-          const fogStrength = clamp((distance - state.upgrades.lantern) / (radiusY + 2), 0, 1);
-          if (worldY > SURFACE_Y) {
-            ctx.fillStyle = `rgba(4, 4, 10, ${fogStrength * 0.7})`;
-            ctx.fillRect(screenX, screenY, tileSize, tileSize);
-          }
+      for (let row = 0; row < VISIBLE_ROWS; row += 1) {
+        const depth = cameraTop + row;
+        for (let x = 0; x < WORLD_WIDTH; x += 1) {
+          const tile = getTile(x, depth);
+          drawTile(tile, x, row, depth, revealLimit);
         }
       }
 
-      const minerScreenX = offsetX + radiusX * tileSize + tileSize / 2;
-      const minerScreenY = offsetY + radiusY * tileSize + tileSize / 2;
-      ctx.fillStyle = "#f9d88a";
-      ctx.beginPath();
-      ctx.arc(minerScreenX, minerScreenY - tileSize * 0.05, tileSize * 0.22, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#5cc9ff";
-      ctx.fillRect(minerScreenX - tileSize * 0.18, minerScreenY, tileSize * 0.36, tileSize * 0.34);
-      ctx.fillStyle = "#f6f8ff";
-      ctx.fillRect(minerScreenX + tileSize * 0.12, minerScreenY - tileSize * 0.12, tileSize * 0.16, tileSize * 0.08);
+      const miningWidth = getMiningWidth();
+      const minerX = Math.floor(WORLD_WIDTH / 2) * TILE_SIZE + TILE_SIZE / 2;
+      const minerY = (state.depth - cameraTop) * TILE_SIZE + TILE_SIZE / 2;
 
-      ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-      ctx.font = "14px Trebuchet MS";
-      ctx.fillText(`x:${state.miner.x} y:${state.miner.y}`, 14, 22);
-    }
+      ctx.fillStyle = "rgba(255, 231, 170, 0.12)";
+      ctx.fillRect(minerX - miningWidth * TILE_SIZE / 2, minerY - TILE_SIZE / 2, miningWidth * TILE_SIZE, canvas.height - minerY);
+      drawMiner(minerX, minerY, miningWidth);
 
-    function renderHud() {
-      depthValue.textContent = `${state.depth}m`;
-      creditsValue.textContent = formatNumber(state.credits);
-      drillValue.textContent = `Lv.${state.upgrades.drill}`;
-      lanternValue.textContent = `Lv.${state.upgrades.lantern}`;
-      idleValue.textContent = `${formatNumber(getOfflineRate() * 0.5)}/s`;
-      cargoValue.textContent = `${state.cargo.used} / ${getCargoCapacity()}`;
-      cargoFill.style.width = `${(state.cargo.used / getCargoCapacity()) * 100}%`;
-      cargoCopy.textContent = state.cargo.used >= getCargoCapacity()
-        ? "背包已满，点击“卸货卖出”继续推进。"
-        : `剩余容量 ${getCargoCapacityRemaining()}，背包等级越高越适合长线下潜。`;
-      renderUpgradeButtons();
-      renderOres();
-    }
-
-    function getClickedWorldPosition(event) {
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      const x = (event.clientX - rect.left) * scaleX;
-      const y = (event.clientY - rect.top) * scaleY;
-
-      const radiusX = 5;
-      const radiusY = getLanternRadius();
-      const visibleCols = radiusX * 2 + 1;
-      const visibleRows = radiusY * 2 + 1;
-      const tileSize = Math.min(canvas.width / visibleCols, canvas.height / visibleRows);
-      const offsetX = (canvas.width - visibleCols * tileSize) / 2;
-      const offsetY = (canvas.height - visibleRows * tileSize) / 2;
-      const gridX = Math.floor((x - offsetX) / tileSize);
-      const gridY = Math.floor((y - offsetY) / tileSize);
-      if (gridX < 0 || gridX >= visibleCols || gridY < 0 || gridY >= visibleRows) {
-        return null;
+      for (const popup of popups) {
+        ctx.save();
+        ctx.globalAlpha = clamp(popup.life / 0.9, 0, 1);
+        ctx.fillStyle = popup.color;
+        ctx.font = "bold 12px Trebuchet MS";
+        ctx.fillText(popup.value, popup.x, popup.y);
+        ctx.restore();
       }
-      return {
-        x: state.miner.x - radiusX + gridX,
-        y: state.miner.y - radiusY + gridY
-      };
+
+      for (const particle of particles) {
+        ctx.save();
+        ctx.globalAlpha = clamp(particle.life / 0.55, 0, 1);
+        ctx.fillStyle = particle.color;
+        ctx.fillRect(particle.x, particle.y, 3, 3);
+        ctx.restore();
+      }
+
+      drawDirty = false;
     }
 
-    function onCanvasClick(event) {
-      const world = getClickedWorldPosition(event);
-      if (!world) {
-        return;
+    function updateEffects(delta) {
+      for (let i = popups.length - 1; i >= 0; i -= 1) {
+        const popup = popups[i];
+        popup.y -= 28 * delta;
+        popup.life -= delta;
+        if (popup.life <= 0) {
+          popups.splice(i, 1);
+          continue;
+        }
       }
-      const dx = world.x - state.miner.x;
-      const dy = world.y - state.miner.y;
-      if (Math.abs(dx) + Math.abs(dy) !== 1) {
-        logEvent("只能点击相邻格子。");
-        return;
+      for (let i = particles.length - 1; i >= 0; i -= 1) {
+        const particle = particles[i];
+        particle.x += particle.vx * delta;
+        particle.y += particle.vy * delta;
+        particle.vy += 50 * delta;
+        particle.life -= delta;
+        if (particle.life <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
       }
-      moveMiner(dx, dy);
-      renderHud();
-      draw();
-    }
-
-    function onKeydown(event) {
-      const key = event.key.toLowerCase();
-      if (["arrowleft", "a"].includes(key)) moveMiner(-1, 0);
-      else if (["arrowright", "d"].includes(key)) moveMiner(1, 0);
-      else if (["arrowup", "w"].includes(key)) moveMiner(0, -1);
-      else if (["arrowdown", "s"].includes(key)) moveMiner(0, 1);
-      else if (key === "u") unloadCargo();
-      else return;
-      event.preventDefault();
-      renderHud();
-      draw();
+      if (popups.length || particles.length) {
+        drawDirty = true;
+      }
     }
 
     function step(timestamp) {
-      const delta = Math.min(0.1, (timestamp - lastFrame) / 1000);
+      const delta = Math.min(0.05, (timestamp - lastFrame) / 1000);
       lastFrame = timestamp;
 
-      state._idleAccumulator = (state._idleAccumulator || 0) + delta * getPassiveDigsPerSecond();
-      while (state._idleAccumulator >= 1) {
-        state._idleAccumulator -= 1;
-        tryAutoDig();
+      digAccumulator += delta;
+      const digInterval = 1 / getDigsPerSecond();
+      while (digAccumulator >= digInterval) {
+        digAccumulator -= digInterval;
+        mineStep();
       }
 
-      logTimer -= delta;
+      updateEffects(delta);
       saveTimer += delta;
-      if (saveTimer >= 4) {
+      if (saveTimer >= SAVE_INTERVAL) {
         saveTimer = 0;
         saveState();
       }
 
-      renderHud();
-      draw();
+      if (uiDirty) {
+        renderHud();
+      }
+      if (drawDirty) {
+        draw();
+      }
       requestAnimationFrame(step);
     }
-
-    unloadButton.addEventListener("click", () => {
-      unloadCargo();
-      renderHud();
-    });
 
     resetButton.addEventListener("click", () => {
       localStorage.removeItem(STORAGE_KEY);
       state = createInitialState();
-      applyOfflineProgress();
-      renderHud();
-      draw();
-      logEvent("已重开存档。");
+      digAccumulator = 0;
+      particles.length = 0;
+      popups.length = 0;
+      uiDirty = true;
+      drawDirty = true;
+      logEvent("已重开矿脉存档。");
+      saveState();
     });
 
-    offlineClose.addEventListener("click", () => {
-      offlineModal.classList.remove("show");
-    });
-
-    canvas.addEventListener("click", onCanvasClick);
-    window.addEventListener("keydown", onKeydown, { passive: false });
     window.addEventListener("beforeunload", saveState);
 
-    applyOfflineProgress();
     renderHud();
     draw();
     requestAnimationFrame(step);
