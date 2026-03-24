@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>节奏色块生成器</title>
+  <style>
+    :root {
+      --bg: #141218;
+      --panel: rgba(27, 24, 36, 0.92);
+      --panel-soft: rgba(39, 34, 52, 0.72);
+      --line: rgba(255, 255, 255, 0.1);
+      --text: #f7f1ff;
+      --muted: #b7abc8;
+      --accent: #ffcf5c;
+      --accent-strong: #ff8f3f;
+      --scan: #fff4d4;
+      --grid: rgba(255, 255, 255, 0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 138, 92, 0.14), transparent 28%),
+        radial-gradient(circle at 80% 10%, rgba(106, 149, 255, 0.14), transparent 26%),
+        linear-gradient(180deg, #100e14 0%, #1a1522 45%, #110f17 100%);
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1200px, calc(100vw - 24px));
+      margin: 0 auto;
+      padding: 20px 0 28px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel,
+    .stage {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+      overflow: hidden;
+    }
+
+    .panel {
+      padding: 18px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .section {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 18px;
+      background: var(--panel-soft);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    h1,
+    p,
+    h2 {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 4vw, 3.4rem);
+      letter-spacing: -0.05em;
+      line-height: 0.92;
+    }
+
+    .lede,
+    .help,
+    .meta {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .meta-grid,
+    .value-row,
+    .button-row,
+    .color-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      font-size: 0.92rem;
+    }
+
+    .color-chip,
+    .action {
+      appearance: none;
+      border: 0;
+      cursor: pointer;
+      transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+    }
+
+    .color-chip {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      position: relative;
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.15);
+    }
+
+    .color-chip[data-active="true"] {
+      transform: translateY(-1px) scale(1.04);
+      box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.78), 0 10px 22px rgba(0, 0, 0, 0.25);
+    }
+
+    .action {
+      min-height: 42px;
+      padding: 0 16px;
+      border-radius: 999px;
+      color: #1a1510;
+      background: linear-gradient(180deg, var(--accent) 0%, var(--accent-strong) 100%);
+      font-weight: 700;
+    }
+
+    .action.secondary {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--line);
+    }
+
+    .action:hover,
+    .color-chip:hover {
+      transform: translateY(-1px);
+    }
+
+    label {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .stage {
+      position: relative;
+      min-height: 66vh;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
+        linear-gradient(90deg, transparent 0 24px, rgba(255, 255, 255, 0.02) 24px 25px),
+        linear-gradient(transparent 0 24px, rgba(255, 255, 255, 0.02) 24px 25px),
+        #0f0d14;
+      background-size: auto, 25px 25px, 25px 25px, auto;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 66vh;
+      touch-action: none;
+      cursor: crosshair;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: auto 18px 18px auto;
+      padding: 10px 14px;
+      border-radius: 16px;
+      background: rgba(15, 13, 20, 0.78);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      max-width: min(320px, calc(100vw - 56px));
+      line-height: 1.45;
+      pointer-events: none;
+    }
+
+    @media (max-width: 920px) {
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .stage,
+      canvas {
+        min-height: 58vh;
+        height: 58vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel">
+      <div class="toolbar">
+        <section class="section">
+          <h1>节奏色块生成器</h1>
+          <p class="lede">点击画布放置色块，扫描线会按固定 BPM 循环触发。颜色决定音色，纵向位置决定音高，尺寸决定音量。</p>
+          <div class="meta-grid">
+            <div class="pill" id="transport-label">扫描中</div>
+            <div class="pill" id="loop-label">第 1 轮</div>
+            <div class="pill" id="block-count-label">0 个色块</div>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>工具</h2>
+          <div class="color-row" id="color-row" aria-label="Color instruments"></div>
+          <label for="size-slider">
+            <div class="value-row"><span>默认尺寸</span><span id="size-value">28</span></div>
+            <input id="size-slider" type="range" min="16" max="54" step="1" value="28">
+          </label>
+          <div class="button-row">
+            <button id="random-button" class="action" type="button">随机填充</button>
+            <button id="clear-button" class="action secondary" type="button">清除全部</button>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>节奏</h2>
+          <label for="bpm-slider">
+            <div class="value-row"><span>BPM</span><span id="bpm-value">112</span></div>
+            <input id="bpm-slider" type="range" min="72" max="168" step="1" value="112">
+          </label>
+          <p class="help">拖拽色块可改位置；按住 <strong>Alt</strong> 点击或右键点击可删除。首次交互会自动解锁 Web Audio。</p>
+          <p class="meta">音高使用五声音阶映射，避免随机摆放时过于刺耳。</p>
+        </section>
+      </div>
+    </section>
+
+    <section class="stage">
+      <canvas id="playfield" aria-label="Rhythm color block canvas"></canvas>
+      <div class="overlay" id="status-text">点击画布开始放置。扫描线经过色块时会立即发声。</div>
+    </section>
+  </main>
+
+  <script>
+    const palette = [
+      { color: "#ff6b6b", label: "Lead", waveform: "sine" },
+      { color: "#ffd166", label: "Pluck", waveform: "triangle" },
+      { color: "#4dd4ac", label: "Bass", waveform: "square" },
+      { color: "#5ea5ff", label: "Air", waveform: "sawtooth" }
+    ];
+
+    const pentatonicScale = [220.0, 261.63, 293.66, 329.63, 392.0, 440.0, 523.25, 587.33, 659.25, 783.99];
+    const canvas = document.getElementById("playfield");
+    const context = canvas.getContext("2d");
+    const colorRow = document.getElementById("color-row");
+    const bpmSlider = document.getElementById("bpm-slider");
+    const bpmValue = document.getElementById("bpm-value");
+    const sizeSlider = document.getElementById("size-slider");
+    const sizeValue = document.getElementById("size-value");
+    const randomButton = document.getElementById("random-button");
+    const clearButton = document.getElementById("clear-button");
+    const statusText = document.getElementById("status-text");
+    const transportLabel = document.getElementById("transport-label");
+    const loopLabel = document.getElementById("loop-label");
+    const blockCountLabel = document.getElementById("block-count-label");
+
+    const blocks = [];
+    let blockId = 0;
+    let activeColor = palette[0];
+    let audioContext;
+    let dragState = null;
+    let loopCount = 0;
+    let lastScanX = 0;
+    let lastTimestamp = 0;
+    let scanProgress = 0;
+
+    function ensureAudioContext() {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) {
+        statusText.textContent = "当前浏览器不支持 Web Audio API。";
+        return null;
+      }
+
+      if (!audioContext) {
+        audioContext = new AudioContextClass();
+      }
+
+      if (audioContext.state === "suspended") {
+        audioContext.resume();
+      }
+
+      return audioContext;
+    }
+
+    function getSecondsPerLoop() {
+      return 240 / Number(bpmSlider.value);
+    }
+
+    function updateLabels() {
+      bpmValue.textContent = bpmSlider.value;
+      sizeValue.textContent = sizeSlider.value;
+      loopLabel.textContent = `第 ${loopCount + 1} 轮`;
+      blockCountLabel.textContent = `${blocks.length} 个色块`;
+      transportLabel.textContent = `扫描中 · ${bpmSlider.value} BPM`;
+    }
+
+    function resizeCanvas() {
+      const ratio = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.round(rect.width * ratio);
+      canvas.height = Math.round(rect.height * ratio);
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      drawScene();
+    }
+
+    function renderPalette() {
+      const chips = palette.map((entry) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "color-chip";
+        button.style.background = entry.color;
+        button.title = `${entry.label} · ${entry.waveform}`;
+        button.dataset.active = String(entry === activeColor);
+        button.addEventListener("click", () => {
+          activeColor = entry;
+          renderPalette();
+          statusText.textContent = `当前音色：${entry.label} / ${entry.waveform}`;
+        });
+        return button;
+      });
+
+      colorRow.replaceChildren(...chips);
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function getCanvasPoint(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: clamp(event.clientX - rect.left, 0, rect.width),
+        y: clamp(event.clientY - rect.top, 0, rect.height)
+      };
+    }
+
+    function createBlock(x, y, size = Number(sizeSlider.value), color = activeColor) {
+      return {
+        id: blockId += 1,
+        x,
+        y,
+        size,
+        color: color.color,
+        label: color.label,
+        waveform: color.waveform,
+        lastTriggeredLoop: -1
+      };
+    }
+
+    function pickBlock(x, y) {
+      for (let index = blocks.length - 1; index >= 0; index -= 1) {
+        const block = blocks[index];
+        const distance = Math.hypot(x - block.x, y - block.y);
+        if (distance <= block.size * 0.62) {
+          return block;
+        }
+      }
+      return null;
+    }
+
+    function deleteBlock(target) {
+      const index = blocks.findIndex((block) => block.id === target.id);
+      if (index >= 0) {
+        blocks.splice(index, 1);
+        updateLabels();
+        drawScene();
+      }
+    }
+
+    function mapYToFrequency(y) {
+      const height = canvas.getBoundingClientRect().height || 1;
+      const normalized = 1 - clamp(y / height, 0, 0.9999);
+      const scaleIndex = Math.min(pentatonicScale.length - 1, Math.floor(normalized * pentatonicScale.length));
+      return pentatonicScale[scaleIndex];
+    }
+
+    function playBlock(block) {
+      const currentContext = ensureAudioContext();
+      if (!currentContext) {
+        return;
+      }
+
+      const now = currentContext.currentTime;
+      const oscillator = currentContext.createOscillator();
+      const gainNode = currentContext.createGain();
+      const filterNode = currentContext.createBiquadFilter();
+      const frequency = mapYToFrequency(block.y);
+      const normalizedSize = clamp((block.size - 16) / (54 - 16), 0, 1);
+      const gain = 0.04 + normalizedSize * 0.14;
+
+      oscillator.type = block.waveform;
+      oscillator.frequency.setValueAtTime(frequency, now);
+      oscillator.detune.setValueAtTime((Math.random() - 0.5) * 6, now);
+
+      filterNode.type = "lowpass";
+      filterNode.frequency.setValueAtTime(800 + normalizedSize * 2200, now);
+      filterNode.Q.setValueAtTime(1.2, now);
+
+      gainNode.gain.setValueAtTime(0.0001, now);
+      gainNode.gain.linearRampToValueAtTime(gain, now + 0.012);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.26);
+
+      oscillator.connect(filterNode);
+      filterNode.connect(gainNode);
+      gainNode.connect(currentContext.destination);
+
+      oscillator.start(now);
+      oscillator.stop(now + 0.28);
+    }
+
+    function maybeTriggerBlocks(scanX, previousX) {
+      const width = canvas.getBoundingClientRect().width || 1;
+      const wrapped = scanX < previousX;
+
+      for (const block of blocks) {
+        if (block.lastTriggeredLoop === loopCount) {
+          continue;
+        }
+
+        const hit = wrapped
+          ? block.x >= previousX || block.x <= scanX
+          : block.x >= previousX && block.x <= scanX;
+
+        if (hit && block.x <= width) {
+          block.lastTriggeredLoop = loopCount;
+          playBlock(block);
+        }
+      }
+    }
+
+    function drawGrid(width, height) {
+      context.save();
+      context.strokeStyle = "rgba(255,255,255,0.06)";
+      context.lineWidth = 1;
+
+      for (let x = 0; x <= width; x += 80) {
+        context.beginPath();
+        context.moveTo(x, 0);
+        context.lineTo(x, height);
+        context.stroke();
+      }
+
+      for (let y = 0; y <= height; y += 80) {
+        context.beginPath();
+        context.moveTo(0, y);
+        context.lineTo(width, y);
+        context.stroke();
+      }
+      context.restore();
+    }
+
+    function drawBlock(block, isDragging) {
+      const radius = block.size * 0.26;
+      context.save();
+      context.shadowColor = block.color;
+      context.shadowBlur = isDragging ? 28 : 18;
+      context.fillStyle = block.color;
+      context.globalAlpha = isDragging ? 0.92 : 0.84;
+      context.beginPath();
+      context.roundRect(block.x - block.size / 2, block.y - block.size / 2, block.size, block.size, radius);
+      context.fill();
+      context.shadowBlur = 0;
+      context.lineWidth = 2;
+      context.strokeStyle = "rgba(255,255,255,0.85)";
+      context.stroke();
+      context.restore();
+    }
+
+    function drawPitchGuides(width) {
+      const height = canvas.getBoundingClientRect().height;
+      context.save();
+      context.font = "12px Trebuchet MS, sans-serif";
+      context.fillStyle = "rgba(255,255,255,0.42)";
+      context.textAlign = "right";
+
+      pentatonicScale.forEach((frequency, index) => {
+        const y = (index + 0.5) * (height / pentatonicScale.length);
+        context.fillText(`${Math.round(frequency)}Hz`, width - 10, height - y + 4);
+      });
+      context.restore();
+    }
+
+    function drawScene() {
+      const rect = canvas.getBoundingClientRect();
+      const width = rect.width;
+      const height = rect.height;
+
+      context.clearRect(0, 0, width, height);
+      drawGrid(width, height);
+      drawPitchGuides(width);
+
+      context.save();
+      const gradient = context.createLinearGradient(0, 0, width, 0);
+      gradient.addColorStop(0, "rgba(255,244,212,0.06)");
+      gradient.addColorStop(Math.max(0, scanProgress - 0.08), "rgba(255,244,212,0.06)");
+      gradient.addColorStop(scanProgress, "rgba(255,244,212,0.18)");
+      gradient.addColorStop(Math.min(1, scanProgress + 0.02), "rgba(255,244,212,0.02)");
+      gradient.addColorStop(1, "rgba(255,244,212,0)");
+      context.fillStyle = gradient;
+      context.fillRect(0, 0, width, height);
+      context.restore();
+
+      for (const block of blocks) {
+        drawBlock(block, dragState && dragState.block.id === block.id);
+      }
+
+      const scanX = scanProgress * width;
+      context.save();
+      context.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--scan").trim();
+      context.lineWidth = 3;
+      context.shadowColor = "rgba(255,244,212,0.8)";
+      context.shadowBlur = 16;
+      context.beginPath();
+      context.moveTo(scanX, 0);
+      context.lineTo(scanX, height);
+      context.stroke();
+      context.restore();
+    }
+
+    function animate(timestamp) {
+      if (!lastTimestamp) {
+        lastTimestamp = timestamp;
+      }
+
+      const delta = (timestamp - lastTimestamp) / 1000;
+      lastTimestamp = timestamp;
+
+      const previousX = lastScanX;
+      scanProgress += delta / getSecondsPerLoop();
+      if (scanProgress >= 1) {
+        scanProgress %= 1;
+        loopCount += 1;
+        updateLabels();
+      }
+
+      const width = canvas.getBoundingClientRect().width || 1;
+      const currentX = scanProgress * width;
+      maybeTriggerBlocks(currentX, previousX);
+      lastScanX = currentX;
+
+      drawScene();
+      window.requestAnimationFrame(animate);
+    }
+
+    function addRandomBlocks() {
+      const rect = canvas.getBoundingClientRect();
+      blocks.length = 0;
+      const count = 22;
+      for (let index = 0; index < count; index += 1) {
+        const color = palette[index % palette.length];
+        const size = 18 + Math.round(Math.random() * 28);
+        const x = 32 + Math.random() * Math.max(32, rect.width - 64);
+        const y = 32 + Math.random() * Math.max(32, rect.height - 64);
+        blocks.push(createBlock(x, y, size, color));
+      }
+      updateLabels();
+      drawScene();
+      statusText.textContent = "已随机填充一轮循环色块。";
+    }
+
+    canvas.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+      const point = getCanvasPoint(event);
+      const block = pickBlock(point.x, point.y);
+      if (block) {
+        deleteBlock(block);
+        statusText.textContent = "已删除色块。";
+      }
+    });
+
+    canvas.addEventListener("pointerdown", (event) => {
+      ensureAudioContext();
+      const point = getCanvasPoint(event);
+      const target = pickBlock(point.x, point.y);
+
+      if (event.altKey && target) {
+        deleteBlock(target);
+        statusText.textContent = "已删除色块。";
+        return;
+      }
+
+      if (target) {
+        dragState = {
+          block: target,
+          offsetX: point.x - target.x,
+          offsetY: point.y - target.y
+        };
+        canvas.setPointerCapture(event.pointerId);
+        canvas.style.cursor = "grabbing";
+        statusText.textContent = `拖拽中：${target.label}`;
+        drawScene();
+        return;
+      }
+
+      const block = createBlock(point.x, point.y);
+      blocks.push(block);
+      updateLabels();
+      drawScene();
+      statusText.textContent = `已放置 ${block.label} 色块。`;
+    });
+
+    canvas.addEventListener("pointermove", (event) => {
+      if (!dragState) {
+        return;
+      }
+
+      const point = getCanvasPoint(event);
+      const rect = canvas.getBoundingClientRect();
+      dragState.block.x = clamp(point.x - dragState.offsetX, dragState.block.size / 2, rect.width - dragState.block.size / 2);
+      dragState.block.y = clamp(point.y - dragState.offsetY, dragState.block.size / 2, rect.height - dragState.block.size / 2);
+      drawScene();
+    });
+
+    function releaseDrag(pointerId) {
+      if (!dragState) {
+        return;
+      }
+      dragState = null;
+      canvas.style.cursor = "crosshair";
+      if (pointerId !== undefined && canvas.hasPointerCapture(pointerId)) {
+        canvas.releasePointerCapture(pointerId);
+      }
+      statusText.textContent = "色块位置已更新。";
+    }
+
+    canvas.addEventListener("pointerup", (event) => releaseDrag(event.pointerId));
+    canvas.addEventListener("pointercancel", (event) => releaseDrag(event.pointerId));
+
+    bpmSlider.addEventListener("input", updateLabels);
+    sizeSlider.addEventListener("input", updateLabels);
+
+    clearButton.addEventListener("click", () => {
+      blocks.length = 0;
+      updateLabels();
+      drawScene();
+      statusText.textContent = "已清空全部色块。";
+    });
+
+    randomButton.addEventListener("click", () => {
+      ensureAudioContext();
+      addRandomBlocks();
+    });
+
+    window.addEventListener("resize", resizeCanvas);
+
+    renderPalette();
+    updateLabels();
+    resizeCanvas();
+    window.requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
