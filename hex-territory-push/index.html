@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>领地推进</title>
+  <style>
+    :root {
+      --bg: #f4efe7;
+      --panel: rgba(255, 251, 245, 0.9);
+      --line: rgba(79, 59, 34, 0.14);
+      --text: #2c241a;
+      --muted: #6d635a;
+      --p1: #da5b48;
+      --p1-soft: #f7c5bc;
+      --p2: #3f7fd6;
+      --p2-soft: #c6dafb;
+      --fort: #a98a55;
+      --fort-glow: #f3d48f;
+      --neutral: #efe3cb;
+      --neutral-stroke: #b69b74;
+      --legal: #68aa5b;
+      --shadow: 0 20px 48px rgba(74, 52, 29, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.95), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(63, 127, 214, 0.12), transparent 22%),
+        linear-gradient(180deg, #fbf7f1 0%, var(--bg) 100%);
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1240px, calc(100vw - 24px));
+      margin: 0 auto;
+      padding: 20px 0 32px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(290px, 360px);
+      gap: 18px;
+    }
+
+    .panel,
+    .sidebar {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .panel {
+      padding: 22px;
+    }
+
+    .sidebar {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 5vw, 4.1rem);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+    }
+
+    .lede {
+      margin-top: 10px;
+      max-width: 64ch;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .topline {
+      margin-top: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .badge {
+      padding: 10px 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.75);
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    .badge strong {
+      color: var(--text);
+    }
+
+    .board-shell {
+      position: relative;
+      margin-top: 18px;
+      border-radius: 22px;
+      padding: 14px;
+      border: 1px solid rgba(79, 59, 34, 0.12);
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.82), transparent 34%),
+        linear-gradient(180deg, rgba(248, 240, 226, 0.98), rgba(239, 229, 209, 0.98));
+      overflow: auto;
+    }
+
+    #hex-board {
+      display: block;
+      width: 100%;
+      min-height: 620px;
+      height: auto;
+    }
+
+    .hex-tile {
+      fill: var(--neutral);
+      stroke: var(--neutral-stroke);
+      stroke-width: 2;
+      transition: fill 180ms ease, stroke 180ms ease, transform 180ms ease, filter 180ms ease, opacity 180ms ease;
+      cursor: pointer;
+    }
+
+    .hex-cell.legal .hex-tile {
+      stroke: var(--legal);
+      stroke-width: 3;
+      filter: drop-shadow(0 0 10px rgba(104, 170, 91, 0.5));
+    }
+
+    .hex-cell.owner-1 .hex-tile {
+      fill: var(--p1-soft);
+      stroke: var(--p1);
+    }
+
+    .hex-cell.owner-2 .hex-tile {
+      fill: var(--p2-soft);
+      stroke: var(--p2);
+    }
+
+    .hex-cell.fortress .hex-tile {
+      stroke-width: 2.5;
+    }
+
+    .hex-cell.fortress.owner-0 .hex-tile {
+      fill: #f2e5c8;
+      stroke: var(--fort);
+    }
+
+    .hex-cell.fortress.legal .hex-tile {
+      stroke: var(--legal);
+    }
+
+    .hex-cell.flipping .hex-tile {
+      animation: pulseFlip 280ms ease;
+    }
+
+    @keyframes pulseFlip {
+      0% { transform: scale(1); }
+      45% { transform: scale(0.88); }
+      100% { transform: scale(1); }
+    }
+
+    .cell-label,
+    .pressure-text,
+    .fortress-icon {
+      pointer-events: none;
+      text-anchor: middle;
+      user-select: none;
+    }
+
+    .cell-label {
+      font-size: 13px;
+      font-weight: 700;
+      fill: rgba(44, 36, 26, 0.68);
+    }
+
+    .pressure-text {
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .pressure-text.p1 {
+      fill: var(--p1);
+    }
+
+    .pressure-text.p2 {
+      fill: var(--p2);
+    }
+
+    .fortress-ring {
+      fill: none;
+      stroke: rgba(243, 212, 143, 0.95);
+      stroke-width: 3;
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .fortress-icon {
+      font-size: 16px;
+      fill: rgba(81, 57, 27, 0.76);
+    }
+
+    .card {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(79, 59, 34, 0.1);
+      background: rgba(255, 255, 255, 0.72);
+      display: grid;
+      gap: 10px;
+    }
+
+    .turn-banner {
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+      border-radius: 20px;
+      color: white;
+      background: linear-gradient(135deg, var(--p1), #ef8e73);
+      transition: background 220ms ease;
+    }
+
+    .turn-banner.player-2 {
+      background: linear-gradient(135deg, var(--p2), #7db3ff);
+    }
+
+    .turn-banner small {
+      opacity: 0.88;
+      font-size: 0.9rem;
+    }
+
+    .turn-banner strong {
+      font-size: 1.35rem;
+      line-height: 1.2;
+    }
+
+    .status-text {
+      min-height: 4.8em;
+      color: var(--muted);
+      line-height: 1.58;
+    }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .score {
+      padding: 14px;
+      border-radius: 18px;
+      color: white;
+    }
+
+    .score.player-1 {
+      background: linear-gradient(135deg, #c84e3c, var(--p1));
+    }
+
+    .score.player-2 {
+      background: linear-gradient(135deg, #2f6dc0, var(--p2));
+    }
+
+    .score span {
+      display: block;
+      opacity: 0.86;
+      font-size: 0.9rem;
+    }
+
+    .score strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 1.7rem;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .actions button {
+      border: 0;
+      border-radius: 16px;
+      padding: 12px 14px;
+      cursor: pointer;
+      color: white;
+      font-weight: 700;
+      background: linear-gradient(135deg, #4a8d46, #6bae5b);
+      box-shadow: 0 10px 20px rgba(72, 135, 68, 0.2);
+    }
+
+    .actions button.secondary {
+      background: linear-gradient(135deg, #8e6b3c, #b2874d);
+      box-shadow: 0 10px 20px rgba(142, 107, 60, 0.22);
+    }
+
+    .legend {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 0.95rem;
+    }
+
+    .legend-line {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .swatch {
+      width: 16px;
+      height: 16px;
+      margin-top: 3px;
+      border-radius: 50%;
+      flex: 0 0 auto;
+    }
+
+    .swatch.p1 {
+      background: var(--p1);
+    }
+
+    .swatch.p2 {
+      background: var(--p2);
+    }
+
+    .swatch.fort {
+      background: linear-gradient(135deg, var(--fort-glow), var(--fort));
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(33, 24, 16, 0.42);
+      backdrop-filter: blur(6px);
+    }
+
+    .overlay.visible {
+      display: flex;
+    }
+
+    .overlay-card {
+      width: min(460px, calc(100vw - 28px));
+      padding: 24px;
+      border-radius: 24px;
+      background: rgba(255, 249, 240, 0.96);
+      border: 1px solid rgba(79, 59, 34, 0.14);
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 12px;
+    }
+
+    .overlay-card h2 {
+      font-size: 2rem;
+      letter-spacing: -0.04em;
+    }
+
+    .overlay-card p {
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      #hex-board {
+        min-height: 560px;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .panel,
+      .sidebar {
+        border-radius: 20px;
+      }
+
+      .panel {
+        padding: 16px;
+      }
+
+      .sidebar {
+        padding: 14px;
+      }
+
+      .actions,
+      .score-grid {
+        grid-template-columns: 1fr;
+      }
+
+      #hex-board {
+        min-height: 500px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel">
+      <h1>领地推进</h1>
+      <p class="lede">双人热座六角格占领对抗。每回合只能在己方领地相邻的空格落子，落子与堡垒都会向周围敌格施压，压力满 3 立刻翻转，并继续向外引发连锁。</p>
+      <div class="topline">
+        <div class="badge"><strong>7 × 7</strong> 六角地图</div>
+        <div class="badge"><strong>2 - 4</strong> 个中立堡垒</div>
+        <div class="badge"><strong>热座</strong> 同屏传递操作</div>
+      </div>
+      <div class="board-shell">
+        <svg id="hex-board" viewBox="0 0 860 760" aria-label="领地推进六角格棋盘"></svg>
+      </div>
+    </section>
+
+    <aside class="sidebar">
+      <section class="turn-banner" id="turnBanner">
+        <small>当前回合</small>
+        <strong id="turnLabel">红方部署</strong>
+      </section>
+
+      <section class="card">
+        <h2>局势</h2>
+        <div class="score-grid">
+          <div class="score player-1">
+            <span>红方领地</span>
+            <strong id="scoreP1">1</strong>
+          </div>
+          <div class="score player-2">
+            <span>蓝方领地</span>
+            <strong id="scoreP2">1</strong>
+          </div>
+        </div>
+        <p class="status-text" id="statusText">红方先手。点击与己方领地相邻的空格落子。</p>
+      </section>
+
+      <section class="card">
+        <h2>控制</h2>
+        <div class="actions">
+          <button id="restartButton" type="button">重新开局</button>
+          <button id="newMapButton" class="secondary" type="button">地图重生</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>规则速览</h2>
+        <div class="legend">
+          <div class="legend-line"><span class="swatch p1"></span><span>红蓝轮流下子，只能落在与己方领地相邻的空格。</span></div>
+          <div class="legend-line"><span class="swatch fort"></span><span>堡垒被占后，会在所属玩家每回合开始时对周围敌格自动施压 1 点。</span></div>
+          <div class="legend-line"><span class="swatch p2"></span><span>敌格累计到 3 点压力就会翻转，并把这次翻转继续向外扩散，形成连锁。</span></div>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <div class="overlay" id="resultOverlay" aria-hidden="true">
+    <div class="overlay-card">
+      <h2 id="resultTitle">对局结束</h2>
+      <p id="resultText"></p>
+      <div class="actions">
+        <button id="overlayRestartButton" type="button">再来一局</button>
+        <button id="overlayNewMapButton" class="secondary" type="button">换张地图</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ROWS = 7;
+    const COLS = 7;
+    const PRESSURE_TO_FLIP = 3;
+    const CHAIN_DELAY_MS = 180;
+    const HEX_SIZE = 48;
+    const START_POSITIONS = {
+      1: { row: 3, col: 1 },
+      2: { row: 3, col: 5 }
+    };
+    const PLAYER_INFO = {
+      1: { label: "红方", className: "player-1" },
+      2: { label: "蓝方", className: "player-2" }
+    };
+    const ODD_R_DIRECTIONS = {
+      even: [
+        [-1, -1], [-1, 0], [0, -1],
+        [0, 1], [1, -1], [1, 0]
+      ],
+      odd: [
+        [-1, 0], [-1, 1], [0, -1],
+        [0, 1], [1, 0], [1, 1]
+      ]
+    };
+
+    const boardEl = document.getElementById("hex-board");
+    const turnBannerEl = document.getElementById("turnBanner");
+    const turnLabelEl = document.getElementById("turnLabel");
+    const statusTextEl = document.getElementById("statusText");
+    const scoreP1El = document.getElementById("scoreP1");
+    const scoreP2El = document.getElementById("scoreP2");
+    const resultOverlayEl = document.getElementById("resultOverlay");
+    const resultTitleEl = document.getElementById("resultTitle");
+    const resultTextEl = document.getElementById("resultText");
+
+    const state = {
+      board: [],
+      currentPlayer: 1,
+      gameOver: false,
+      busy: false,
+      fortressLayout: []
+    };
+
+    function createCell(row, col) {
+      const isStartP1 = row === START_POSITIONS[1].row && col === START_POSITIONS[1].col;
+      const isStartP2 = row === START_POSITIONS[2].row && col === START_POSITIONS[2].col;
+      return {
+        row,
+        col,
+        owner: isStartP1 ? 1 : isStartP2 ? 2 : 0,
+        fortress: false,
+        pressure: { 1: 0, 2: 0 },
+        flippedAt: 0
+      };
+    }
+
+    function buildEmptyBoard() {
+      return Array.from({ length: ROWS }, (_, row) =>
+        Array.from({ length: COLS }, (_, col) => createCell(row, col))
+      );
+    }
+
+    function randomInt(min, max) {
+      return min + Math.floor(Math.random() * (max - min + 1));
+    }
+
+    function shuffle(items) {
+      const copy = items.slice();
+      for (let index = copy.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
+      }
+      return copy;
+    }
+
+    function generateFortressLayout() {
+      const cells = [];
+      for (let row = 0; row < ROWS; row += 1) {
+        for (let col = 0; col < COLS; col += 1) {
+          const isStart = Object.values(START_POSITIONS).some((pos) => pos.row === row && pos.col === col);
+          const tooClose =
+            (Math.abs(row - START_POSITIONS[1].row) + Math.abs(col - START_POSITIONS[1].col) < 3) ||
+            (Math.abs(row - START_POSITIONS[2].row) + Math.abs(col - START_POSITIONS[2].col) < 3);
+          if (!isStart && !tooClose) {
+            cells.push({ row, col });
+          }
+        }
+      }
+      return shuffle(cells).slice(0, randomInt(2, 4));
+    }
+
+    function applyFortressLayout(layout) {
+      state.board = buildEmptyBoard();
+      for (const { row, col } of layout) {
+        state.board[row][col].fortress = true;
+      }
+      state.currentPlayer = 1;
+      state.gameOver = false;
+      state.busy = false;
+      hideOverlay();
+      updateStatus("红方先手。点击与己方领地相邻的空格落子。");
+      render();
+    }
+
+    function newGameWithSameMap() {
+      applyFortressLayout(state.fortressLayout);
+    }
+
+    function newGameWithNewMap() {
+      state.fortressLayout = generateFortressLayout();
+      applyFortressLayout(state.fortressLayout);
+    }
+
+    function getCell(row, col) {
+      if (row < 0 || row >= ROWS || col < 0 || col >= COLS) {
+        return null;
+      }
+      return state.board[row][col];
+    }
+
+    function getNeighbors(row, col) {
+      const parity = row % 2 === 0 ? "even" : "odd";
+      return ODD_R_DIRECTIONS[parity]
+        .map(([dRow, dCol]) => getCell(row + dRow, col + dCol))
+        .filter(Boolean);
+    }
+
+    function cellKey(cell) {
+      return `${cell.row},${cell.col}`;
+    }
+
+    function getLegalMoves(player) {
+      const legal = new Set();
+      for (const row of state.board) {
+        for (const cell of row) {
+          if (cell.owner !== player) {
+            continue;
+          }
+          for (const neighbor of getNeighbors(cell.row, cell.col)) {
+            if (neighbor.owner === 0) {
+              legal.add(cellKey(neighbor));
+            }
+          }
+        }
+      }
+      return legal;
+    }
+
+    function countTerritories() {
+      let p1 = 0;
+      let p2 = 0;
+      for (const row of state.board) {
+        for (const cell of row) {
+          if (cell.owner === 1) {
+            p1 += 1;
+          } else if (cell.owner === 2) {
+            p2 += 1;
+          }
+        }
+      }
+      return { 1: p1, 2: p2 };
+    }
+
+    function boardIsFull() {
+      return state.board.every((row) => row.every((cell) => cell.owner !== 0));
+    }
+
+    function hexCenter(row, col) {
+      const width = Math.sqrt(3) * HEX_SIZE;
+      const x = 90 + col * width + (row % 2 === 1 ? width / 2 : 0);
+      const y = 90 + row * HEX_SIZE * 1.5;
+      return { x, y };
+    }
+
+    function polygonPoints(centerX, centerY) {
+      const points = [];
+      for (let side = 0; side < 6; side += 1) {
+        const angle = ((60 * side) - 30) * (Math.PI / 180);
+        const x = centerX + HEX_SIZE * Math.cos(angle);
+        const y = centerY + HEX_SIZE * Math.sin(angle);
+        points.push(`${x.toFixed(2)},${y.toFixed(2)}`);
+      }
+      return points.join(" ");
+    }
+
+    function createSvgElement(tag, attributes = {}) {
+      const node = document.createElementNS("http://www.w3.org/2000/svg", tag);
+      for (const [key, value] of Object.entries(attributes)) {
+        node.setAttribute(key, String(value));
+      }
+      return node;
+    }
+
+    function pressureLabel(cell) {
+      if (cell.owner === 1 && cell.pressure[2] > 0) {
+        return { player: 2, text: cell.pressure[2] };
+      }
+      if (cell.owner === 2 && cell.pressure[1] > 0) {
+        return { player: 1, text: cell.pressure[1] };
+      }
+      return null;
+    }
+
+    function render() {
+      const legalMoves = !state.gameOver ? getLegalMoves(state.currentPlayer) : new Set();
+      boardEl.textContent = "";
+
+      for (let row = 0; row < ROWS; row += 1) {
+        for (let col = 0; col < COLS; col += 1) {
+          const cell = state.board[row][col];
+          const { x, y } = hexCenter(row, col);
+          const group = createSvgElement("g", {
+            class: [
+              "hex-cell",
+              `owner-${cell.owner}`,
+              cell.fortress ? "fortress" : "",
+              legalMoves.has(cellKey(cell)) ? "legal" : "",
+              Date.now() - cell.flippedAt < 260 ? "flipping" : ""
+            ].filter(Boolean).join(" ")
+          });
+
+          const tile = createSvgElement("polygon", {
+            class: "hex-tile",
+            points: polygonPoints(x, y),
+            "data-row": row,
+            "data-col": col
+          });
+          tile.addEventListener("click", () => {
+            void handleMove(row, col);
+          });
+          group.appendChild(tile);
+
+          if (cell.fortress) {
+            group.appendChild(createSvgElement("circle", {
+              class: "fortress-ring",
+              cx: x,
+              cy: y,
+              r: HEX_SIZE * 0.42
+            }));
+            const fortressIcon = createSvgElement("text", {
+              class: "fortress-icon",
+              x,
+              y: y + 5
+            });
+            fortressIcon.textContent = "堡";
+            group.appendChild(fortressIcon);
+          }
+
+          if (cell.owner !== 0) {
+            const label = createSvgElement("text", {
+              class: "cell-label",
+              x,
+              y: y + 5
+            });
+            label.textContent = PLAYER_INFO[cell.owner].label;
+            group.appendChild(label);
+          }
+
+          const pressure = pressureLabel(cell);
+          if (pressure) {
+            const text = createSvgElement("text", {
+              class: `pressure-text p${pressure.player}`,
+              x,
+              y: y - HEX_SIZE * 0.52
+            });
+            text.textContent = `${pressure.text}/${PRESSURE_TO_FLIP}`;
+            group.appendChild(text);
+          }
+
+          boardEl.appendChild(group);
+        }
+      }
+
+      const scores = countTerritories();
+      scoreP1El.textContent = String(scores[1]);
+      scoreP2El.textContent = String(scores[2]);
+      turnLabelEl.textContent = `${PLAYER_INFO[state.currentPlayer].label}部署`;
+      turnBannerEl.className = `turn-banner ${PLAYER_INFO[state.currentPlayer].className}`;
+    }
+
+    function updateStatus(message) {
+      statusTextEl.textContent = message;
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+
+    function resetPressures(cell) {
+      cell.pressure[1] = 0;
+      cell.pressure[2] = 0;
+    }
+
+    function applyPressure(target, player, amount) {
+      if (target.owner === 0 || target.owner === player) {
+        return false;
+      }
+      target.pressure[player] += amount;
+      return target.pressure[player] >= PRESSURE_TO_FLIP;
+    }
+
+    async function resolvePressureQueue(queue, player, sourceLabel) {
+      let totalFlips = 0;
+      while (queue.length > 0) {
+        const source = queue.shift();
+        const flipped = [];
+
+        for (const neighbor of getNeighbors(source.row, source.col)) {
+          if (!applyPressure(neighbor, player, 1)) {
+            continue;
+          }
+          neighbor.owner = player;
+          resetPressures(neighbor);
+          neighbor.flippedAt = Date.now();
+          flipped.push(neighbor);
+        }
+
+        render();
+
+        if (flipped.length > 0) {
+          totalFlips += flipped.length;
+          updateStatus(`${PLAYER_INFO[player].label}${sourceLabel}引发连锁，翻转 ${flipped.length} 格。`);
+          await sleep(CHAIN_DELAY_MS);
+          queue.push(...flipped);
+        }
+      }
+      return totalFlips;
+    }
+
+    async function applyFortressPressure(player) {
+      const sources = [];
+      for (const row of state.board) {
+        for (const cell of row) {
+          if (cell.fortress && cell.owner === player) {
+            sources.push(cell);
+          }
+        }
+      }
+
+      if (sources.length === 0) {
+        return 0;
+      }
+
+      updateStatus(`${PLAYER_INFO[player].label}的堡垒开始向周围施压。`);
+      await sleep(120);
+      return resolvePressureQueue(sources.slice(), player, "堡垒施压");
+    }
+
+    function finishGame(reason) {
+      state.gameOver = true;
+      const scores = countTerritories();
+      let winnerText = "双方平分秋色。";
+      if (scores[1] > scores[2]) {
+        winnerText = `红方以 ${scores[1]} 比 ${scores[2]} 领先。`;
+      } else if (scores[2] > scores[1]) {
+        winnerText = `蓝方以 ${scores[2]} 比 ${scores[1]} 领先。`;
+      }
+      resultTitleEl.textContent = scores[1] === scores[2] ? "平局" : `${scores[1] > scores[2] ? "红方" : "蓝方"}获胜`;
+      resultTextEl.textContent = `${reason} ${winnerText}`;
+      resultOverlayEl.classList.add("visible");
+      resultOverlayEl.setAttribute("aria-hidden", "false");
+      updateStatus(`对局结束。${winnerText}`);
+      render();
+    }
+
+    function hideOverlay() {
+      resultOverlayEl.classList.remove("visible");
+      resultOverlayEl.setAttribute("aria-hidden", "true");
+    }
+
+    function maybeFinishOrPass() {
+      if (boardIsFull()) {
+        finishGame("棋盘已占满。");
+        return true;
+      }
+
+      const currentMoves = getLegalMoves(state.currentPlayer);
+      const otherPlayer = state.currentPlayer === 1 ? 2 : 1;
+      const otherMoves = getLegalMoves(otherPlayer);
+
+      if (currentMoves.size === 0 && otherMoves.size === 0) {
+        finishGame("双方都已无子可下。");
+        return true;
+      }
+
+      if (currentMoves.size === 0 && otherMoves.size > 0) {
+        state.currentPlayer = otherPlayer;
+        updateStatus(`${PLAYER_INFO[otherPlayer].label}获得额外回合，因为对手已无合法落点。`);
+        render();
+      }
+
+      return false;
+    }
+
+    async function handleMove(row, col) {
+      if (state.gameOver || state.busy) {
+        return;
+      }
+
+      const legalMoves = getLegalMoves(state.currentPlayer);
+      const target = getCell(row, col);
+      if (!target || !legalMoves.has(cellKey(target))) {
+        return;
+      }
+
+      state.busy = true;
+      const player = state.currentPlayer;
+      target.owner = player;
+      resetPressures(target);
+      updateStatus(`${PLAYER_INFO[player].label}完成部署，开始施压。`);
+      render();
+      await sleep(80);
+
+      const flips = await resolvePressureQueue([target], player, "落子");
+      const nextPlayer = player === 1 ? 2 : 1;
+      state.currentPlayer = nextPlayer;
+      render();
+
+      if (maybeFinishOrPass()) {
+        state.busy = false;
+        return;
+      }
+
+      const fortressFlips = await applyFortressPressure(state.currentPlayer);
+      render();
+      if (maybeFinishOrPass()) {
+        state.busy = false;
+        return;
+      }
+
+      const legalCount = getLegalMoves(state.currentPlayer).size;
+      updateStatus(
+        `${PLAYER_INFO[player].label}本回合${flips > 0 ? `翻转 ${flips} 格，` : ""}` +
+        `${fortressFlips > 0 ? `${PLAYER_INFO[state.currentPlayer].label}的堡垒额外翻转 ${fortressFlips} 格，` : ""}` +
+        `现在轮到${PLAYER_INFO[state.currentPlayer].label}，可下位置 ${legalCount} 个。`
+      );
+      state.busy = false;
+      render();
+    }
+
+    document.getElementById("restartButton").addEventListener("click", newGameWithSameMap);
+    document.getElementById("newMapButton").addEventListener("click", newGameWithNewMap);
+    document.getElementById("overlayRestartButton").addEventListener("click", newGameWithSameMap);
+    document.getElementById("overlayNewMapButton").addEventListener("click", newGameWithNewMap);
+
+    newGameWithNewMap();
+  </script>
+</body>
+</html>
