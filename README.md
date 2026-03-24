@@ -283,12 +283,12 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 ## 像素生态缸
 
-新增 `pixel-ecosystem-tank/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的封闭像素生态缸，包含：
+新增 `pixel-ecosystem-tank/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的 falling-sand 像素生态缸，包含：
 
-- 默认初始生态配置，打开页面即可观赏藻类、浮游动物、小鱼三层食物链
-- 通过光照与温度两个滑块直接干预生态平衡，并明显影响繁殖与死亡
-- Canvas 2D 像素精灵渲染，以及繁殖绿色粒子、死亡红色粒子反馈
-- 实时统计面板，持续显示各物种数量与当前生态状态
+- 至少 128×128 像素粒度画布，可从调色盘选择水、沙、种子、小虫、石头并直接鼠标绘制
+- 水下流、沙堆积、种子遇水发芽、植物蔓延、小虫觅食繁殖等自动演化规则
+- 一条清晰食物链：种子 → 植物 → 小虫 → 鸟，鸟会自动巡逻并捕食过量的小虫
+- 实时显示存活时长、多样性评分、当前帧率与各元素数量
 
 直接用浏览器打开 `pixel-ecosystem-tank/index.html` 即可运行。
 
