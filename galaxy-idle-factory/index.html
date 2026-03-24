@@ -3,19 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>放置星系工厂</title>
+  <title>闲置星系工厂</title>
   <style>
     :root {
-      --bg: #060915;
-      --panel: rgba(13, 18, 36, 0.88);
-      --panel-border: rgba(182, 205, 255, 0.16);
-      --text: #f2f5ff;
-      --muted: #9dacd6;
-      --accent: #81d3ff;
-      --accent-strong: #ffe08a;
-      --good: #8cffba;
-      --danger: #ff8d9b;
-      --shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
+      --bg-1: #07111f;
+      --bg-2: #030712;
+      --panel: rgba(9, 16, 31, 0.84);
+      --panel-line: rgba(155, 198, 255, 0.16);
+      --text: #eef5ff;
+      --muted: #96a9cc;
+      --accent: #7bd4ff;
+      --accent-2: #ffd56f;
+      --good: #8ff2bd;
+      --danger: #ff8f9d;
+      --shadow: 0 18px 44px rgba(0, 0, 0, 0.34);
+      --radius: 24px;
       --font-display: "Avenir Next Condensed", "Trebuchet MS", sans-serif;
       --font-body: "Avenir Next", "Segoe UI", sans-serif;
     }
@@ -30,10 +32,10 @@
       font-family: var(--font-body);
       color: var(--text);
       background:
-        radial-gradient(circle at 20% 20%, rgba(102, 162, 255, 0.2), transparent 22%),
-        radial-gradient(circle at 80% 12%, rgba(255, 177, 106, 0.18), transparent 20%),
-        radial-gradient(circle at 50% 100%, rgba(115, 40, 199, 0.18), transparent 28%),
-        linear-gradient(180deg, #0b1022 0%, #060915 65%, #03040b 100%);
+        radial-gradient(circle at 15% 20%, rgba(73, 125, 255, 0.2), transparent 24%),
+        radial-gradient(circle at 82% 18%, rgba(255, 196, 102, 0.14), transparent 20%),
+        radial-gradient(circle at 50% 100%, rgba(140, 98, 255, 0.16), transparent 24%),
+        linear-gradient(180deg, var(--bg-1), var(--bg-2));
     }
 
     button {
@@ -41,26 +43,25 @@
     }
 
     .app {
-      width: min(1280px, calc(100vw - 28px));
-      margin: 20px auto 32px;
+      width: min(1220px, calc(100vw - 24px));
+      margin: 16px auto 28px;
       display: grid;
       gap: 18px;
     }
 
     .panel {
-      border: 1px solid var(--panel-border);
-      border-radius: 24px;
+      border: 1px solid var(--panel-line);
+      border-radius: var(--radius);
       background: var(--panel);
       box-shadow: var(--shadow);
-      backdrop-filter: blur(14px);
+      backdrop-filter: blur(12px);
     }
 
     .topbar {
-      padding: 18px 20px;
+      padding: 18px;
       display: grid;
-      grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr));
+      grid-template-columns: minmax(0, 1.7fr) repeat(4, minmax(0, 1fr));
       gap: 14px;
-      align-items: stretch;
     }
 
     h1,
@@ -70,38 +71,36 @@
       margin: 0;
     }
 
-    .title-block {
+    .hero {
       padding: 18px 20px;
       border-radius: 20px;
-      background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(129, 211, 255, 0.06)),
-        rgba(255, 255, 255, 0.03);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(123, 212, 255, 0.04));
       display: grid;
       gap: 10px;
     }
 
     .eyebrow {
       font-size: 0.78rem;
-      letter-spacing: 0.22em;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
       color: var(--accent);
     }
 
     h1 {
       font-family: var(--font-display);
-      font-size: clamp(2.4rem, 6vw, 4.5rem);
-      line-height: 0.9;
+      font-size: clamp(2.3rem, 5vw, 4.3rem);
+      line-height: 0.92;
       letter-spacing: -0.05em;
     }
 
     .subtitle {
-      max-width: 60ch;
-      line-height: 1.55;
       color: var(--muted);
+      line-height: 1.6;
+      max-width: 62ch;
     }
 
-    .resource-card {
-      padding: 18px;
+    .stat-card {
+      padding: 16px;
       border-radius: 20px;
       background: rgba(255, 255, 255, 0.04);
       display: grid;
@@ -109,33 +108,32 @@
       align-content: start;
     }
 
-    .resource-label {
+    .stat-label {
       font-size: 0.78rem;
       letter-spacing: 0.12em;
       text-transform: uppercase;
       color: var(--muted);
     }
 
-    .resource-value {
-      font-size: clamp(1.5rem, 3vw, 2.3rem);
+    .stat-value {
+      font-size: clamp(1.38rem, 2.6vw, 2.2rem);
       font-weight: 700;
     }
 
-    .resource-note {
+    .stat-note {
       font-size: 0.92rem;
       color: var(--muted);
       line-height: 1.5;
     }
 
-    .main-grid {
+    .layout {
       display: grid;
-      grid-template-columns: minmax(280px, 360px) minmax(0, 1fr) minmax(260px, 320px);
+      grid-template-columns: minmax(280px, 340px) minmax(0, 1fr) minmax(250px, 310px);
       gap: 18px;
       align-items: start;
     }
 
-    .sidebar,
-    .info-rail {
+    .stack {
       display: grid;
       gap: 16px;
     }
@@ -145,52 +143,56 @@
     }
 
     .section h2 {
-      font-size: 1.02rem;
-      letter-spacing: 0.04em;
+      font-size: 1rem;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
     }
 
     .section-copy {
       margin-top: 8px;
       color: var(--muted);
-      line-height: 1.55;
-      font-size: 0.95rem;
+      line-height: 1.6;
+      font-size: 0.94rem;
     }
 
-    .upgrades {
-      margin-top: 16px;
+    .upgrade-list,
+    .planet-list,
+    .info-list {
+      margin-top: 14px;
       display: grid;
       gap: 12px;
     }
 
+    .upgrade-button,
+    .planet-card,
+    .info-card {
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
     .upgrade-button {
       width: 100%;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 18px;
-      background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(129, 211, 255, 0.05)),
-        rgba(255, 255, 255, 0.03);
+      padding: 15px;
       color: inherit;
-      padding: 16px;
       text-align: left;
       cursor: pointer;
-      transition: transform 140ms ease, border-color 140ms ease, opacity 140ms ease;
+      transition: transform 150ms ease, border-color 150ms ease, opacity 150ms ease;
       display: grid;
       gap: 8px;
     }
 
     .upgrade-button:hover:not(:disabled) {
       transform: translateY(-2px);
-      border-color: rgba(129, 211, 255, 0.48);
+      border-color: rgba(123, 212, 255, 0.45);
     }
 
     .upgrade-button:disabled {
-      cursor: not-allowed;
       opacity: 0.52;
+      cursor: not-allowed;
     }
 
-    .upgrade-top,
-    .stat-row {
+    .row {
       display: flex;
       justify-content: space-between;
       gap: 10px;
@@ -198,98 +200,215 @@
     }
 
     .upgrade-title {
-      font-size: 1.02rem;
       font-weight: 700;
+      font-size: 1rem;
     }
 
-    .upgrade-level {
-      color: var(--accent-strong);
-      font-size: 0.92rem;
+    .upgrade-level,
+    .cost,
+    .accent {
+      color: var(--accent-2);
     }
 
-    .upgrade-meta {
+    .small {
       color: var(--muted);
       font-size: 0.92rem;
-      line-height: 1.45;
+      line-height: 1.5;
     }
 
-    .upgrade-cost {
-      color: var(--good);
-      font-weight: 600;
-    }
-
-    .galaxy-panel {
+    .system-panel {
       padding: 16px;
-      position: relative;
-      overflow: hidden;
     }
 
-    .galaxy-frame {
+    .system-frame {
       position: relative;
+      min-height: 700px;
       border-radius: 24px;
       overflow: hidden;
-      min-height: 680px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
       background:
-        radial-gradient(circle at top, rgba(118, 142, 255, 0.16), transparent 38%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 20%),
-        #040815;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+        radial-gradient(circle at 50% 45%, rgba(67, 102, 216, 0.2), transparent 22%),
+        radial-gradient(circle at 50% 50%, rgba(255, 213, 111, 0.08), transparent 34%),
+        #030915;
     }
 
-    canvas {
-      width: 100%;
-      height: 680px;
-      display: block;
-    }
-
-    .overlay-label {
+    .system-frame::before {
+      content: "";
       position: absolute;
-      top: 16px;
-      left: 16px;
-      padding: 10px 12px;
-      border-radius: 14px;
-      background: rgba(6, 10, 26, 0.72);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      max-width: 260px;
-      pointer-events: none;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.6) 0 1px, transparent 2px),
+        radial-gradient(circle at 72% 24%, rgba(255, 255, 255, 0.4) 0 1px, transparent 2px),
+        radial-gradient(circle at 24% 78%, rgba(255, 255, 255, 0.45) 0 1px, transparent 2px),
+        radial-gradient(circle at 88% 68%, rgba(255, 255, 255, 0.5) 0 1px, transparent 2px),
+        radial-gradient(circle at 42% 10%, rgba(255, 255, 255, 0.4) 0 1px, transparent 2px),
+        radial-gradient(circle at 10% 56%, rgba(255, 255, 255, 0.35) 0 1px, transparent 2px),
+        radial-gradient(circle at 54% 88%, rgba(255, 255, 255, 0.35) 0 1px, transparent 2px);
     }
 
-    .overlay-label strong {
+    .system-head {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      z-index: 3;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(5, 12, 26, 0.74);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      max-width: 280px;
+    }
+
+    .system-head strong {
       display: block;
-      font-size: 0.98rem;
       margin-bottom: 4px;
     }
 
-    .overlay-label span {
+    .system-head span {
       color: var(--muted);
-      font-size: 0.9rem;
+      font-size: 0.92rem;
       line-height: 1.45;
     }
 
-    .info-grid {
-      margin-top: 14px;
-      display: grid;
-      gap: 12px;
+    #galaxy-svg {
+      width: 100%;
+      height: 700px;
+      display: block;
+      position: relative;
+      z-index: 1;
     }
 
-    .info-card {
+    .orbit {
+      transform-origin: 450px 350px;
+    }
+
+    .orbit.unlocked {
+      animation: orbit-spin linear infinite;
+    }
+
+    .orbit.locked .planet-core,
+    .orbit.locked .planet-detail,
+    .orbit.locked .planet-ring {
+      opacity: 0.18;
+      filter: grayscale(1);
+    }
+
+    .orbit.locked .planet-hitbox {
+      cursor: not-allowed;
+    }
+
+    .orbit[data-planet-id="1"].unlocked {
+      animation-duration: 22s;
+    }
+
+    .orbit[data-planet-id="2"].unlocked {
+      animation-duration: 28s;
+    }
+
+    .orbit[data-planet-id="3"].unlocked {
+      animation-duration: 34s;
+    }
+
+    .orbit[data-planet-id="4"].unlocked {
+      animation-duration: 40s;
+    }
+
+    .orbit[data-planet-id="5"].unlocked {
+      animation-duration: 46s;
+    }
+
+    .planet-hitbox {
+      cursor: pointer;
+      fill: transparent;
+    }
+
+    .planet-core,
+    .planet-detail,
+    .planet-ring {
+      transition: filter 180ms ease, transform 180ms ease, opacity 180ms ease;
+      pointer-events: none;
+    }
+
+    .orbit.unlocked:hover .planet-core,
+    .orbit.unlocked:hover .planet-detail,
+    .orbit.unlocked:hover .planet-ring {
+      filter: brightness(1.15);
+    }
+
+    .orbit.selected .planet-core {
+      filter: drop-shadow(0 0 12px rgba(255, 223, 133, 0.75));
+    }
+
+    .tier-1 .planet-core {
+      filter: saturate(1);
+    }
+
+    .tier-2 .planet-core {
+      filter: saturate(1.18) drop-shadow(0 0 10px rgba(123, 212, 255, 0.25));
+    }
+
+    .tier-3 .planet-core {
+      filter: saturate(1.35) drop-shadow(0 0 12px rgba(255, 213, 111, 0.35));
+    }
+
+    .planet-pulse {
+      animation: pulse 1.1s ease-out;
+    }
+
+    .float-layer text {
+      font: 700 20px "Avenir Next", sans-serif;
+      fill: #ffffff;
+      text-anchor: middle;
+      paint-order: stroke;
+      stroke: rgba(3, 9, 21, 0.65);
+      stroke-width: 3px;
+    }
+
+    .status-banner {
+      margin-top: 14px;
       padding: 14px;
       border-radius: 18px;
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .status-banner strong {
+      color: var(--good);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .planet-card,
+    .info-card {
+      padding: 14px;
       display: grid;
       gap: 6px;
     }
 
-    .info-card strong {
-      font-size: 0.92rem;
-      color: var(--accent-strong);
+    .planet-card.active {
+      border-color: rgba(123, 212, 255, 0.42);
+      box-shadow: inset 0 0 0 1px rgba(123, 212, 255, 0.16);
     }
 
-    .info-card span {
-      color: var(--muted);
-      line-height: 1.45;
-      font-size: 0.92rem;
+    .planet-card strong,
+    .info-card strong {
+      font-size: 0.95rem;
+    }
+
+    .planet-card.locked {
+      opacity: 0.58;
+    }
+
+    .reset-button {
+      margin-top: 14px;
+      width: 100%;
+      border: 1px solid rgba(255, 143, 157, 0.3);
+      border-radius: 14px;
+      background: rgba(255, 143, 157, 0.08);
+      color: #ffd6db;
+      padding: 11px 14px;
+      cursor: pointer;
     }
 
     .modal {
@@ -297,9 +416,9 @@
       inset: 0;
       display: grid;
       place-items: center;
-      background: rgba(1, 4, 12, 0.72);
       padding: 16px;
-      z-index: 20;
+      background: rgba(0, 0, 0, 0.64);
+      z-index: 10;
     }
 
     .modal[hidden] {
@@ -307,11 +426,11 @@
     }
 
     .modal-card {
-      width: min(420px, 100%);
+      width: min(440px, 100%);
       padding: 24px;
       border-radius: 24px;
-      background: rgba(9, 14, 31, 0.96);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(6, 12, 24, 0.96);
       box-shadow: var(--shadow);
       display: grid;
       gap: 14px;
@@ -319,53 +438,67 @@
 
     .modal-card p {
       color: var(--muted);
-      line-height: 1.55;
+      line-height: 1.6;
     }
 
     .modal-card button {
       border: 0;
       border-radius: 14px;
-      padding: 12px 16px;
-      background: linear-gradient(135deg, #ffd36d, #ff9c58);
-      color: #1d1306;
+      padding: 12px 14px;
       font-weight: 700;
+      background: linear-gradient(135deg, #ffd56f, #ff9f58);
+      color: #1c1306;
       cursor: pointer;
     }
 
-    @media (max-width: 1080px) {
-      .topbar,
-      .main-grid {
-        grid-template-columns: 1fr;
+    @keyframes orbit-spin {
+      from {
+        transform: rotate(0deg);
       }
-
-      canvas,
-      .galaxy-frame {
-        min-height: 560px;
-        height: 560px;
+      to {
+        transform: rotate(360deg);
       }
     }
 
-    @media (max-width: 640px) {
-      body {
-        background:
-          radial-gradient(circle at top, rgba(102, 162, 255, 0.16), transparent 24%),
-          linear-gradient(180deg, #0b1022 0%, #060915 70%, #03040b 100%);
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
       }
+      45% {
+        transform: scale(1.12);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
 
+    @media (max-width: 1100px) {
+      .topbar,
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 680px) {
       .app {
-        width: min(100vw - 16px, 1280px);
-        margin-top: 10px;
-        margin-bottom: 18px;
+        width: min(100vw - 14px, 1220px);
+        margin-top: 8px;
       }
 
       .topbar {
         gap: 10px;
       }
 
-      .title-block,
-      .resource-card,
+      .hero,
+      .stat-card,
       .section {
         padding: 16px;
+      }
+
+      .system-frame,
+      #galaxy-svg {
+        min-height: 560px;
+        height: 560px;
       }
     }
   </style>
@@ -373,88 +506,172 @@
 <body>
   <main class="app">
     <section class="panel topbar">
-      <div class="title-block">
+      <div class="hero">
         <p class="eyebrow">Idle Galaxy</p>
-        <h1>放置星系工厂</h1>
-        <p class="subtitle">从一颗孤独小行星开始，点击采集星尘，堆出自动矿机、点亮行星环，再让恒星反向驱动整个资源链。</p>
+        <h1>闲置星系工厂</h1>
+        <p class="subtitle">从一颗小行星起步，点击采矿、购买自动矿机、逐步解锁 5 颗不同外观的星球。所有进度都保存在本地，离线收益最多补算 5 分钟。</p>
       </div>
-      <div class="resource-card">
-        <div class="resource-label">星尘储量</div>
-        <div class="resource-value" id="stardust-value">0</div>
-        <div class="resource-note" id="stardust-rate">+0 / 秒</div>
+      <div class="stat-card">
+        <div class="stat-label">星尘储量</div>
+        <div class="stat-value" id="resource-value">0</div>
+        <div class="stat-note" id="resource-rate">+0 / 秒</div>
       </div>
-      <div class="resource-card">
-        <div class="resource-label">手动采矿</div>
-        <div class="resource-value" id="click-power-value">1</div>
-        <div class="resource-note">点击小行星时获得的星尘数量。</div>
+      <div class="stat-card">
+        <div class="stat-label">当前星球</div>
+        <div class="stat-value" id="selected-planet-name">启明星</div>
+        <div class="stat-note" id="selected-planet-yield">点击获得 1 星尘</div>
       </div>
-      <div class="resource-card">
-        <div class="resource-label">离线结算</div>
-        <div class="resource-value" id="offline-status">在线</div>
-        <div class="resource-note" id="save-status">自动保存启用，关闭后会按速率结算。</div>
+      <div class="stat-card">
+        <div class="stat-label">自动矿机</div>
+        <div class="stat-value" id="miner-level">0</div>
+        <div class="stat-note" id="miner-note">每秒结算 0 星尘</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">离线结算</div>
+        <div class="stat-value" id="offline-status">在线</div>
+        <div class="stat-note" id="offline-note">最多补算 5 分钟收益</div>
       </div>
     </section>
 
-    <section class="main-grid">
-      <aside class="sidebar">
+    <section class="layout">
+      <aside class="stack">
         <section class="panel section">
           <h2>升级面板</h2>
-          <p class="section-copy">四层链条全部用星尘购买。矿机直接产出星尘，行星和恒星分别增幅下层单位的产出。</p>
-          <div class="upgrades" id="upgrade-list"></div>
+          <p class="section-copy">这里只保留本轮需要的三类升级：自动矿机、全局倍率和新星球解锁。所有花费都遵循指数增长公式。</p>
+          <div class="upgrade-list" id="upgrade-list"></div>
+          <div class="status-banner" id="win-banner" hidden>
+            <strong>星系已全部解锁</strong>
+            <span>你已经点亮全部 5 颗星球。现在可以继续堆倍率，也可以刷新页面验证本地存档和离线收益。</span>
+          </div>
+        </section>
+
+        <section class="panel section">
+          <h2>当前星系</h2>
+          <p class="section-copy">每颗星球产出不同。点击左侧列表或直接点击轨道上的星球，切换手动采矿目标。</p>
+          <div class="planet-list" id="planet-list"></div>
         </section>
       </aside>
 
-      <section class="panel galaxy-panel">
-        <div class="galaxy-frame">
-          <canvas id="galaxy-canvas" width="900" height="680" aria-label="Galaxy visualization"></canvas>
-          <div class="overlay-label">
-            <strong>点击中央小行星采矿</strong>
-            <span>解锁矿机、行星和恒星后，轨道会逐层扩展，粒子与数字跳动会直接反馈采集结果。</span>
+      <section class="panel system-panel">
+        <div class="system-frame">
+          <div class="system-head">
+            <strong>点击任一已解锁星球手动采矿</strong>
+            <span>轨道用 SVG 绘制，已解锁星球会持续旋转。星系等级越高，星球外观会更亮更饱和。</span>
           </div>
+          <svg id="galaxy-svg" viewBox="0 0 900 700" aria-label="Galaxy system view">
+            <defs>
+              <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#fff7ce"></stop>
+                <stop offset="60%" stop-color="#ffce6c"></stop>
+                <stop offset="100%" stop-color="rgba(255, 206, 108, 0)"></stop>
+              </radialGradient>
+              <radialGradient id="planetGradient1" cx="35%" cy="35%" r="65%">
+                <stop offset="0%" stop-color="#9be7ff"></stop>
+                <stop offset="100%" stop-color="#3a8ad8"></stop>
+              </radialGradient>
+              <radialGradient id="planetGradient2" cx="32%" cy="30%" r="70%">
+                <stop offset="0%" stop-color="#ffe39a"></stop>
+                <stop offset="100%" stop-color="#d38e2b"></stop>
+              </radialGradient>
+              <radialGradient id="planetGradient3" cx="35%" cy="32%" r="68%">
+                <stop offset="0%" stop-color="#ffbaad"></stop>
+                <stop offset="100%" stop-color="#db5962"></stop>
+              </radialGradient>
+              <radialGradient id="planetGradient4" cx="38%" cy="30%" r="70%">
+                <stop offset="0%" stop-color="#d3b5ff"></stop>
+                <stop offset="100%" stop-color="#6a49d8"></stop>
+              </radialGradient>
+              <radialGradient id="planetGradient5" cx="35%" cy="35%" r="70%">
+                <stop offset="0%" stop-color="#b6ffd9"></stop>
+                <stop offset="100%" stop-color="#1ba677"></stop>
+              </radialGradient>
+            </defs>
+
+            <g>
+              <circle cx="450" cy="350" r="68" fill="url(#sunGlow)" opacity="0.35"></circle>
+              <circle cx="450" cy="350" r="26" fill="#ffe48b"></circle>
+              <circle cx="440" cy="340" r="10" fill="rgba(255,255,255,0.55)"></circle>
+            </g>
+
+            <g class="float-layer" id="float-layer"></g>
+
+            <g class="orbit unlocked selected tier-1" data-planet-id="1">
+              <ellipse cx="450" cy="350" rx="96" ry="64" fill="none" stroke="rgba(123, 212, 255, 0.24)" stroke-width="1.5"></ellipse>
+              <g transform="translate(546 350)">
+                <circle class="planet-hitbox" r="30"></circle>
+                <circle class="planet-core" r="20" fill="url(#planetGradient1)"></circle>
+                <circle class="planet-detail" r="12" cx="-4" cy="-6" fill="rgba(255,255,255,0.18)"></circle>
+              </g>
+            </g>
+
+            <g class="orbit locked tier-1" data-planet-id="2">
+              <ellipse cx="450" cy="350" rx="160" ry="110" fill="none" stroke="rgba(255, 214, 111, 0.2)" stroke-width="1.5"></ellipse>
+              <g transform="translate(610 350)">
+                <circle class="planet-hitbox" r="34"></circle>
+                <circle class="planet-core" r="22" fill="url(#planetGradient2)"></circle>
+                <ellipse class="planet-ring" rx="34" ry="11" fill="none" stroke="rgba(255, 231, 177, 0.65)" stroke-width="2"></ellipse>
+                <circle class="planet-detail" r="8" cx="6" cy="-5" fill="rgba(255,255,255,0.2)"></circle>
+              </g>
+            </g>
+
+            <g class="orbit locked tier-1" data-planet-id="3">
+              <ellipse cx="450" cy="350" rx="230" ry="160" fill="none" stroke="rgba(255, 155, 167, 0.18)" stroke-width="1.5"></ellipse>
+              <g transform="translate(680 350)">
+                <circle class="planet-hitbox" r="32"></circle>
+                <circle class="planet-core" r="19" fill="url(#planetGradient3)"></circle>
+                <path class="planet-detail" d="M -12 -2 Q -2 -10 10 -3" stroke="rgba(255,255,255,0.25)" stroke-width="3" fill="none"></path>
+                <path class="planet-detail" d="M -10 8 Q 0 2 12 10" stroke="rgba(255,255,255,0.18)" stroke-width="2" fill="none"></path>
+              </g>
+            </g>
+
+            <g class="orbit locked tier-1" data-planet-id="4">
+              <ellipse cx="450" cy="350" rx="304" ry="214" fill="none" stroke="rgba(190, 157, 255, 0.18)" stroke-width="1.5"></ellipse>
+              <g transform="translate(754 350)">
+                <circle class="planet-hitbox" r="38"></circle>
+                <circle class="planet-core" r="24" fill="url(#planetGradient4)"></circle>
+                <ellipse class="planet-ring" rx="40" ry="13" fill="none" stroke="rgba(225, 211, 255, 0.55)" stroke-width="2"></ellipse>
+                <circle class="planet-detail" r="7" cx="-8" cy="-4" fill="rgba(255,255,255,0.18)"></circle>
+                <circle class="planet-detail" r="5" cx="9" cy="8" fill="rgba(255,255,255,0.14)"></circle>
+              </g>
+            </g>
+
+            <g class="orbit locked tier-1" data-planet-id="5">
+              <ellipse cx="450" cy="350" rx="372" ry="258" fill="none" stroke="rgba(123, 255, 196, 0.16)" stroke-width="1.5"></ellipse>
+              <g transform="translate(822 350)">
+                <circle class="planet-hitbox" r="40"></circle>
+                <circle class="planet-core" r="25" fill="url(#planetGradient5)"></circle>
+                <circle class="planet-detail" r="10" cx="-5" cy="-8" fill="rgba(255,255,255,0.18)"></circle>
+                <path class="planet-detail" d="M -15 5 Q 0 -4 13 8" stroke="rgba(255,255,255,0.22)" stroke-width="3" fill="none"></path>
+              </g>
+            </g>
+          </svg>
         </div>
       </section>
 
-      <aside class="info-rail">
+      <aside class="stack">
         <section class="panel section">
-          <h2>资源面板</h2>
-          <p class="section-copy">这里显示当前链条结构与实时产能。每层升级都会以指数价格上涨。</p>
-          <div class="info-grid">
+          <h2>产能概览</h2>
+          <p class="section-copy">自动矿机每秒结算一次。倍率会同时影响手动采矿和自动收益。</p>
+          <div class="info-list">
             <div class="info-card">
-              <strong id="miners-count">自动矿机 0</strong>
-              <span id="miners-rate">直接产出 0 星尘 / 秒</span>
+              <strong id="unlocked-count">已解锁 1 / 5 星球</strong>
+              <span class="small" id="yield-sum">总基础产出 1 / 秒</span>
             </div>
             <div class="info-card">
-              <strong id="planets-count">行星 0</strong>
-              <span id="planets-rate">每颗行星让矿机效率额外提升 15%</span>
+              <strong id="multiplier-value">全局倍率 x1.00</strong>
+              <span class="small" id="click-value">手动点击 1 星尘</span>
             </div>
             <div class="info-card">
-              <strong id="stars-count">恒星 0</strong>
-              <span id="stars-rate">每颗恒星让行星加成额外提升 20%</span>
-            </div>
-            <div class="info-card">
-              <strong id="galaxy-stage">星系阶段：孤岩</strong>
-              <span id="galaxy-note">先拿到第一台自动矿机，轨道才会开始转起来。</span>
+              <strong id="next-goal">下一目标：解锁流沙星</strong>
+              <span class="small" id="next-goal-note">新星球会提供更高基础产出和不同外观。</span>
             </div>
           </div>
+          <button class="reset-button" type="button" id="reset-button">清空当前存档</button>
         </section>
 
         <section class="panel section">
-          <h2>增长公式</h2>
-          <p class="section-copy">基础成本使用 `baseCost * multiplier^level`。离线收益使用当前总速率乘以离线秒数，保证 v1 范围简单稳定。</p>
-          <div class="info-grid">
-            <div class="info-card">
-              <strong>矿机产出</strong>
-              <span id="formula-miners">0 / 秒</span>
-            </div>
-            <div class="info-card">
-              <strong>行星加成</strong>
-              <span id="formula-planets">x1.00</span>
-            </div>
-            <div class="info-card">
-              <strong>恒星加成</strong>
-              <span id="formula-stars">x1.00</span>
-            </div>
-          </div>
+          <h2>规则摘要</h2>
+          <p class="section-copy">1 秒一次自动结算，离线最多补算 300 秒。资源显示使用 K / M / B 缩写，目标是在 10 分钟内点亮全部星球。</p>
         </section>
       </aside>
     </section>
@@ -463,107 +680,99 @@
   <div class="modal" id="offline-modal" hidden>
     <div class="modal-card">
       <h2>离线收益已结算</h2>
-      <p id="offline-message">你刚刚回到星系。</p>
+      <p id="offline-message">欢迎回来。</p>
       <button type="button" id="offline-close">继续扩张</button>
     </div>
   </div>
 
   <script>
     const STORAGE_KEY = "galaxy-idle-factory-save";
-    const SAVE_INTERVAL_MS = 30000;
+    const OFFLINE_CAP_SECONDS = 300;
+    const PLANET_COUNT = 5;
+    const planetDefs = [
+      { id: 1, name: "启明星", yield: 1, unlockCost: 0, description: "起始小行星，轻量但稳定。" },
+      { id: 2, name: "流沙星", yield: 4, unlockCost: 90, description: "带光环的黄沙星球，产出开始放大。" },
+      { id: 3, name: "赤潮星", yield: 12, unlockCost: 520, description: "炽热红星，适合把自动化拉起来。" },
+      { id: 4, name: "暮环星", yield: 34, unlockCost: 3200, description: "紫色环带星，进入中后段跳板。" },
+      { id: 5, name: "森辉星", yield: 90, unlockCost: 18000, description: "终局绿星，点亮后视为通关。" }
+    ];
     const upgradeDefs = [
-      {
-        key: "manualLevel",
-        title: "手动采矿强化",
-        description: "提升每次点击获得的星尘。",
-        baseCost: 12,
-        multiplier: 1.55,
-        getEffect(level) {
-          return 1 + level;
-        },
-        getRateText(state) {
-          return `当前每次点击 ${formatNumber(getClickPower(state))} 星尘`;
-        }
-      },
       {
         key: "miners",
         title: "自动矿机",
-        description: "持续采集星尘，受行星加成影响。",
-        baseCost: 25,
-        multiplier: 1.72,
-        getEffect(level, state) {
-          return level * getPlanetMultiplier(state);
+        description: "每级增加 1 组采矿器，对所有已解锁星球生效。",
+        baseCost: 15,
+        multiplier: 1.45,
+        getCost(state) {
+          return exponentialCost(this.baseCost, this.multiplier, state.miners);
         },
-        getRateText(state) {
-          return `当前产出 ${formatNumber(getMinerProductionRate(state))} / 秒`;
+        getMeta(state) {
+          return `当前 ${state.miners} 组，自动收益 ${formatNumber(getAutoIncomePerSecond(state))} / 秒`;
         }
       },
       {
-        key: "planets",
-        title: "行星工坊",
-        description: "每颗行星提升所有矿机效率。",
-        baseCost: 90,
-        multiplier: 1.95,
-        getEffect(level, state) {
-          return getPlanetMultiplier(state);
+        key: "boosters",
+        title: "倍率放大器",
+        description: "每级使手动采矿和自动产出同时提升 25%。",
+        baseCost: 50,
+        multiplier: 1.8,
+        getCost(state) {
+          return exponentialCost(this.baseCost, this.multiplier, state.boosters);
         },
-        getRateText(state) {
-          return `矿机倍率 ${formatMultiplier(getPlanetMultiplier(state))}`;
+        getMeta(state) {
+          return `当前倍率 ${formatMultiplier(getProductionMultiplier(state))}`;
         }
       },
       {
-        key: "stars",
-        title: "恒星核心",
-        description: "每颗恒星进一步强化行星加成。",
-        baseCost: 320,
-        multiplier: 2.18,
-        getEffect(level, state) {
-          return getStarMultiplier(state);
+        key: "unlockPlanet",
+        title: "解锁新星球",
+        description: "开启下一颗星球，获得新的基础产出和外观。",
+        getCost(state) {
+          const next = getNextLockedPlanet(state);
+          return next ? next.unlockCost : null;
         },
-        getRateText(state) {
-          return `行星倍率 ${formatMultiplier(getStarMultiplier(state))}`;
+        getMeta(state) {
+          const next = getNextLockedPlanet(state);
+          return next ? `下一颗：${next.name}，基础产出 ${formatNumber(next.yield)}` : "全部 5 颗星球已解锁";
         }
       }
     ];
 
-    const canvas = document.querySelector("#galaxy-canvas");
-    const ctx = canvas.getContext("2d");
-    const stardustValue = document.querySelector("#stardust-value");
-    const stardustRate = document.querySelector("#stardust-rate");
-    const clickPowerValue = document.querySelector("#click-power-value");
+    const state = loadState();
+    const resourceValue = document.querySelector("#resource-value");
+    const resourceRate = document.querySelector("#resource-rate");
+    const selectedPlanetName = document.querySelector("#selected-planet-name");
+    const selectedPlanetYield = document.querySelector("#selected-planet-yield");
+    const minerLevel = document.querySelector("#miner-level");
+    const minerNote = document.querySelector("#miner-note");
     const offlineStatus = document.querySelector("#offline-status");
-    const saveStatus = document.querySelector("#save-status");
-    const minersCount = document.querySelector("#miners-count");
-    const minersRate = document.querySelector("#miners-rate");
-    const planetsCount = document.querySelector("#planets-count");
-    const planetsRate = document.querySelector("#planets-rate");
-    const starsCount = document.querySelector("#stars-count");
-    const starsRate = document.querySelector("#stars-rate");
-    const galaxyStage = document.querySelector("#galaxy-stage");
-    const galaxyNote = document.querySelector("#galaxy-note");
-    const formulaMiners = document.querySelector("#formula-miners");
-    const formulaPlanets = document.querySelector("#formula-planets");
-    const formulaStars = document.querySelector("#formula-stars");
+    const offlineNote = document.querySelector("#offline-note");
     const upgradeList = document.querySelector("#upgrade-list");
+    const planetList = document.querySelector("#planet-list");
+    const unlockedCount = document.querySelector("#unlocked-count");
+    const yieldSum = document.querySelector("#yield-sum");
+    const multiplierValue = document.querySelector("#multiplier-value");
+    const clickValue = document.querySelector("#click-value");
+    const nextGoal = document.querySelector("#next-goal");
+    const nextGoalNote = document.querySelector("#next-goal-note");
+    const winBanner = document.querySelector("#win-banner");
+    const resetButton = document.querySelector("#reset-button");
+    const galaxySvg = document.querySelector("#galaxy-svg");
+    const orbitNodes = Array.from(document.querySelectorAll(".orbit"));
+    const floatLayer = document.querySelector("#float-layer");
     const offlineModal = document.querySelector("#offline-modal");
     const offlineMessage = document.querySelector("#offline-message");
     const offlineClose = document.querySelector("#offline-close");
 
-    const state = loadState();
-    const floatingTexts = [];
-    const particles = [];
-    const planetSeed = createPlanetSeeds(12);
-    let lastFrameTime = performance.now();
-    let lastSaveTime = performance.now();
-
     function createDefaultState() {
       return {
-        stardust: 0,
-        manualLevel: 0,
+        resources: 0,
         miners: 0,
-        planets: 0,
-        stars: 0,
-        lastTimestamp: Date.now()
+        boosters: 0,
+        unlockedPlanets: 1,
+        selectedPlanetId: 1,
+        lastSavedAt: Date.now(),
+        completed: false
       };
     }
 
@@ -574,19 +783,26 @@
           return createDefaultState();
         }
         const parsed = JSON.parse(raw);
-        return {
-          ...createDefaultState(),
-          ...parsed
-        };
+        const merged = { ...createDefaultState(), ...parsed };
+        merged.unlockedPlanets = clamp(merged.unlockedPlanets, 1, PLANET_COUNT);
+        merged.selectedPlanetId = clamp(merged.selectedPlanetId, 1, merged.unlockedPlanets);
+        return merged;
       } catch (error) {
         return createDefaultState();
       }
     }
 
     function saveState() {
-      state.lastTimestamp = Date.now();
+      state.lastSavedAt = Date.now();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      saveStatus.textContent = `最近保存：${new Date(state.lastTimestamp).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function exponentialCost(baseCost, multiplier, level) {
+      return Math.floor(baseCost * Math.pow(multiplier, level));
     }
 
     function formatNumber(value) {
@@ -597,14 +813,17 @@
       if (abs < 1000) {
         return value.toFixed(value >= 100 ? 0 : value >= 10 ? 1 : 2).replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1");
       }
-      const units = ["K", "M", "B", "T", "Qa", "Qi"];
-      let scaled = value;
-      let unitIndex = -1;
-      while (Math.abs(scaled) >= 1000 && unitIndex < units.length - 1) {
-        scaled /= 1000;
-        unitIndex += 1;
+      if (abs < 1000000) {
+        return `${trimNumber(value / 1000)}K`;
       }
-      return `${scaled.toFixed(scaled >= 100 ? 0 : scaled >= 10 ? 1 : 2).replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1")}${units[unitIndex]}`;
+      if (abs < 1000000000) {
+        return `${trimNumber(value / 1000000)}M`;
+      }
+      return `${trimNumber(value / 1000000000)}B`;
+    }
+
+    function trimNumber(value) {
+      return value.toFixed(value >= 100 ? 0 : value >= 10 ? 1 : 2).replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1");
     }
 
     function formatMultiplier(value) {
@@ -612,439 +831,303 @@
     }
 
     function formatDuration(seconds) {
-      const total = Math.max(1, Math.floor(seconds));
-      const hours = Math.floor(total / 3600);
-      const minutes = Math.floor((total % 3600) / 60);
-      const secs = total % 60;
-      if (hours > 0) {
-        return `${hours}小时 ${minutes}分钟`;
-      }
+      const whole = Math.max(1, Math.floor(seconds));
+      const minutes = Math.floor(whole / 60);
+      const secs = whole % 60;
       if (minutes > 0) {
-        return `${minutes}分钟 ${secs}秒`;
+        return `${minutes} 分 ${secs} 秒`;
       }
-      return `${secs}秒`;
+      return `${secs} 秒`;
     }
 
-    function getClickPower(currentState) {
-      return 1 + currentState.manualLevel;
+    function getUnlockedPlanets(state) {
+      return planetDefs.slice(0, state.unlockedPlanets);
     }
 
-    function getUpgradeCost(def, level) {
-      return Math.floor(def.baseCost * Math.pow(def.multiplier, level));
+    function getSelectedPlanet(state) {
+      return planetDefs.find((planet) => planet.id === state.selectedPlanetId) || planetDefs[0];
     }
 
-    function getStarMultiplier(currentState) {
-      return 1 + currentState.stars * 0.2;
+    function getNextLockedPlanet(state) {
+      return planetDefs[state.unlockedPlanets] || null;
     }
 
-    function getPlanetMultiplier(currentState) {
-      return 1 + currentState.planets * 0.15 * getStarMultiplier(currentState);
+    function getProductionMultiplier(state) {
+      return Math.pow(1.25, state.boosters);
     }
 
-    function getMinerProductionRate(currentState) {
-      return currentState.miners * getPlanetMultiplier(currentState);
+    function getUnlockedYieldSum(state) {
+      return getUnlockedPlanets(state).reduce((sum, planet) => sum + planet.yield, 0);
     }
 
-    function getTotalProductionPerSecond(currentState) {
-      return getMinerProductionRate(currentState);
+    function getClickYield(state, planet = getSelectedPlanet(state)) {
+      return planet.yield * getProductionMultiplier(state);
+    }
+
+    function getAutoIncomePerSecond(state) {
+      return state.miners * getUnlockedYieldSum(state) * getProductionMultiplier(state);
     }
 
     function simulateSeconds(seconds) {
-      const totalRate = getTotalProductionPerSecond(state);
-      return totalRate * seconds;
+      return getAutoIncomePerSecond(state) * seconds;
     }
 
     function applyOfflineProgress() {
-      const now = Date.now();
-      const offlineSeconds = Math.max(0, (now - state.lastTimestamp) / 1000);
-      const offlineEarnings = simulateSeconds(offlineSeconds);
-      state.stardust += offlineEarnings;
-      state.lastTimestamp = now;
-      if (offlineSeconds >= 3 && offlineEarnings > 0) {
-        offlineStatus.textContent = formatDuration(offlineSeconds);
-        offlineMessage.textContent = `你离开了 ${formatDuration(offlineSeconds)}，矿机为你带回了 ${formatNumber(offlineEarnings)} 星尘。`;
+      const elapsedSeconds = Math.max(0, (Date.now() - state.lastSavedAt) / 1000);
+      const creditedSeconds = Math.min(elapsedSeconds, OFFLINE_CAP_SECONDS);
+      const offlineGain = simulateSeconds(creditedSeconds);
+      state.resources += offlineGain;
+      offlineStatus.textContent = creditedSeconds > 0 ? formatDuration(creditedSeconds) : "在线";
+      offlineNote.textContent = creditedSeconds >= OFFLINE_CAP_SECONDS
+        ? "已按 5 分钟上限补算离线收益"
+        : "最多补算 5 分钟收益";
+      if (creditedSeconds >= 3 && offlineGain > 0) {
+        offlineMessage.textContent = `你离开了 ${formatDuration(elapsedSeconds)}，本次按最多 5 分钟规则结算 ${formatNumber(offlineGain)} 星尘。`;
         offlineModal.hidden = false;
       }
     }
 
-    function createPlanetSeeds(count) {
-      return Array.from({ length: count }, (_, index) => {
-        const hue = (index * 53 + 30) % 360;
-        return {
-          size: 14 + (index % 5) * 5,
-          hue,
-          hasRing: index % 3 === 1,
-          stripe: index % 2 === 0
-        };
-      });
+    function addResources(amount) {
+      state.resources += amount;
     }
 
-    function createUpgradeButton(def) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "upgrade-button";
-      button.dataset.key = def.key;
-      button.addEventListener("click", () => {
-        buyUpgrade(def.key);
-      });
-      upgradeList.append(button);
-      return button;
-    }
-
-    const upgradeButtons = Object.fromEntries(upgradeDefs.map((def) => [def.key, createUpgradeButton(def)]));
-
-    function updateUpgradeButtons() {
-      for (const def of upgradeDefs) {
-        const level = state[def.key];
-        const cost = getUpgradeCost(def, level);
-        const canAfford = state.stardust >= cost;
-        const button = upgradeButtons[def.key];
-        button.disabled = !canAfford;
-        button.innerHTML = `
-          <div class="upgrade-top">
-            <span class="upgrade-title">${def.title}</span>
-            <span class="upgrade-level">Lv.${level}</span>
-          </div>
-          <div class="upgrade-meta">${def.description}</div>
-          <div class="stat-row">
-            <span>${def.getRateText(state)}</span>
-            <span class="upgrade-cost">花费 ${formatNumber(cost)} 星尘</span>
-          </div>
-        `;
-      }
+    function canAfford(cost) {
+      return cost !== null && state.resources >= cost;
     }
 
     function buyUpgrade(key) {
+      if (key === "unlockPlanet") {
+        const nextPlanet = getNextLockedPlanet(state);
+        if (!nextPlanet || state.resources < nextPlanet.unlockCost) {
+          return;
+        }
+        state.resources -= nextPlanet.unlockCost;
+        state.unlockedPlanets += 1;
+        state.selectedPlanetId = nextPlanet.id;
+        pulsePlanet(nextPlanet.id);
+        showFloatAtPlanet(nextPlanet.id, `${nextPlanet.name} 已解锁`);
+        updateCompletion();
+        saveState();
+        render();
+        return;
+      }
+
       const def = upgradeDefs.find((item) => item.key === key);
       if (!def) {
         return;
       }
-      const cost = getUpgradeCost(def, state[key]);
-      if (state.stardust < cost) {
+      const cost = def.getCost(state);
+      if (!canAfford(cost)) {
         return;
       }
-      state.stardust -= cost;
+      state.resources -= cost;
       state[key] += 1;
-      spawnFloatingText(canvas.width * 0.5, canvas.height * 0.55, `${def.title} +1`, "#ffe08a");
       saveState();
-      updateUI();
+      render();
     }
 
-    function spawnFloatingText(x, y, text, color = "#ffffff") {
-      floatingTexts.push({
-        x,
-        y,
-        text,
-        color,
-        life: 0,
-        duration: 1.1
+    function updateCompletion() {
+      state.completed = state.unlockedPlanets >= PLANET_COUNT;
+    }
+
+    function selectPlanet(planetId) {
+      if (planetId > state.unlockedPlanets) {
+        return;
+      }
+      state.selectedPlanetId = planetId;
+      render();
+    }
+
+    function minePlanet(planetId) {
+      if (planetId > state.unlockedPlanets) {
+        return;
+      }
+      const planet = planetDefs[planetId - 1];
+      const gain = getClickYield(state, planet);
+      state.selectedPlanetId = planet.id;
+      addResources(gain);
+      pulsePlanet(planet.id);
+      showFloatAtPlanet(planet.id, `+${formatNumber(gain)}`);
+      render();
+    }
+
+    function getPlanetTier() {
+      if (state.resources >= 10000 || state.completed) {
+        return 3;
+      }
+      if (state.resources >= 1000 || state.unlockedPlanets >= 3) {
+        return 2;
+      }
+      return 1;
+    }
+
+    function pulsePlanet(planetId) {
+      const orbit = galaxySvg.querySelector(`.orbit[data-planet-id="${planetId}"]`);
+      if (!orbit) {
+        return;
+      }
+      const targets = orbit.querySelectorAll(".planet-core, .planet-detail, .planet-ring");
+      targets.forEach((node) => {
+        node.classList.remove("planet-pulse");
+        void node.getBoundingClientRect();
+        node.classList.add("planet-pulse");
       });
     }
 
-    function spawnParticles(x, y, amount) {
-      for (let index = 0; index < amount; index += 1) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = 40 + Math.random() * 140;
-        particles.push({
-          x,
-          y,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed - 20,
-          life: 0,
-          duration: 0.45 + Math.random() * 0.45,
-          size: 2 + Math.random() * 3,
-          color: Math.random() > 0.4 ? "#81d3ff" : "#ffe08a"
-        });
-      }
-      if (particles.length > 160) {
-        particles.splice(0, particles.length - 160);
-      }
-    }
-
-    function handleAsteroidClick(clientX, clientY) {
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      const x = (clientX - rect.left) * scaleX;
-      const y = (clientY - rect.top) * scaleY;
-      const centerX = canvas.width / 2;
-      const centerY = canvas.height / 2;
-      const radius = 54;
-      const dx = x - centerX;
-      const dy = y - centerY;
-      if ((dx * dx) + (dy * dy) > radius * radius) {
+    function showFloatAtPlanet(planetId, text) {
+      const group = galaxySvg.querySelector(`.orbit[data-planet-id="${planetId}"] > g:last-child, .orbit[data-planet-id="${planetId}"] g`);
+      const orbit = galaxySvg.querySelector(`.orbit[data-planet-id="${planetId}"]`);
+      if (!orbit) {
         return;
       }
-      const gain = getClickPower(state);
-      state.stardust += gain;
-      spawnFloatingText(x, y - 8, `+${formatNumber(gain)}`, "#ffffff");
-      spawnParticles(x, y, 14);
-      updateUI();
-    }
-
-    function updateUI() {
-      const totalRate = getTotalProductionPerSecond(state);
-      stardustValue.textContent = formatNumber(state.stardust);
-      stardustRate.textContent = `+${formatNumber(totalRate)} / 秒`;
-      clickPowerValue.textContent = formatNumber(getClickPower(state));
-
-      minersCount.textContent = `自动矿机 ${state.miners}`;
-      minersRate.textContent = `直接产出 ${formatNumber(getMinerProductionRate(state))} 星尘 / 秒`;
-      planetsCount.textContent = `行星 ${state.planets}`;
-      planetsRate.textContent = `矿机倍率 ${formatMultiplier(getPlanetMultiplier(state))}`;
-      starsCount.textContent = `恒星 ${state.stars}`;
-      starsRate.textContent = `行星倍率 ${formatMultiplier(getStarMultiplier(state))}`;
-      formulaMiners.textContent = `${formatNumber(state.miners)} x ${formatMultiplier(getPlanetMultiplier(state))} = ${formatNumber(getMinerProductionRate(state))} / 秒`;
-      formulaPlanets.textContent = formatMultiplier(getPlanetMultiplier(state));
-      formulaStars.textContent = formatMultiplier(getStarMultiplier(state));
-
-      if (state.stars > 0) {
-        galaxyStage.textContent = "星系阶段：恒星链";
-        galaxyNote.textContent = "恒星已经点亮外轨，行星环开始反向放大矿机效率。";
-      } else if (state.planets > 0) {
-        galaxyStage.textContent = "星系阶段：行星带";
-        galaxyNote.textContent = "中层轨道已解锁，行星开始为矿机提供成倍增益。";
-      } else if (state.miners > 0) {
-        galaxyStage.textContent = "星系阶段：采矿轨道";
-        galaxyNote.textContent = "第一圈采矿机已部署，星尘开始自动流入仓库。";
-      } else {
-        galaxyStage.textContent = "星系阶段：孤岩";
-        galaxyNote.textContent = "先靠点击启动引擎，再把它变成真正的自动化星系。";
-      }
-
-      updateUpgradeButtons();
-    }
-
-    function drawBackground(nowSeconds) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      const gradient = ctx.createRadialGradient(canvas.width * 0.5, canvas.height * 0.46, 10, canvas.width * 0.5, canvas.height * 0.5, canvas.width * 0.52);
-      gradient.addColorStop(0, "rgba(24, 38, 84, 0.42)");
-      gradient.addColorStop(1, "rgba(3, 5, 14, 0)");
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      for (let index = 0; index < 80; index += 1) {
-        const x = (index * 173) % canvas.width;
-        const y = (index * 97) % canvas.height;
-        const twinkle = 0.35 + 0.35 * Math.sin(nowSeconds * 0.8 + index);
-        ctx.fillStyle = `rgba(255,255,255,${0.2 + twinkle * 0.35})`;
-        ctx.fillRect(x, y, index % 4 === 0 ? 2 : 1, index % 4 === 0 ? 2 : 1);
-      }
-    }
-
-    function drawOrbit(cx, cy, radiusX, radiusY, color) {
-      ctx.beginPath();
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 1.2;
-      ctx.ellipse(cx, cy, radiusX, radiusY, 0, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-
-    function drawAsteroid(cx, cy, pulse) {
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.scale(1 + pulse * 0.03, 1 + pulse * 0.03);
-      ctx.beginPath();
-      ctx.fillStyle = "#836a61";
-      ctx.arc(0, 0, 46, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.fillStyle = "#a4897e";
-      ctx.arc(-10, -6, 12, 0, Math.PI * 2);
-      ctx.arc(14, -12, 8, 0, Math.PI * 2);
-      ctx.arc(12, 12, 6, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.strokeStyle = "rgba(255,255,255,0.22)";
-      ctx.lineWidth = 3;
-      ctx.arc(0, 0, 48, 0.1, Math.PI * 1.2);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    function drawMiners(cx, cy, nowSeconds) {
-      if (state.miners <= 0) {
+      const movingGroup = orbit.querySelector("g");
+      const transform = movingGroup.getAttribute("transform");
+      const match = /translate\(([-\d.]+) ([-\d.]+)\)/.exec(transform);
+      if (!match) {
         return;
       }
-      drawOrbit(cx, cy, 120, 80, "rgba(129, 211, 255, 0.22)");
-      const visible = Math.min(state.miners, 12);
-      for (let index = 0; index < visible; index += 1) {
-        const angle = nowSeconds * 0.48 + (index / visible) * Math.PI * 2;
-        const x = cx + Math.cos(angle) * 120;
-        const y = cy + Math.sin(angle) * 80;
-        ctx.beginPath();
-        ctx.fillStyle = "#8fdcff";
-        ctx.arc(x, y, 7, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.strokeStyle = "rgba(255,255,255,0.45)";
-        ctx.lineWidth = 1.2;
-        ctx.arc(x, y, 11, angle - 0.7, angle + 0.7);
-        ctx.stroke();
+      const x = Number(match[1]);
+      const y = Number(match[2]) - 34;
+      const textNode = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      textNode.setAttribute("x", String(x));
+      textNode.setAttribute("y", String(y));
+      textNode.textContent = text;
+      floatLayer.appendChild(textNode);
+
+      const start = performance.now();
+      function animate(now) {
+        const elapsed = (now - start) / 1000;
+        const progress = Math.min(elapsed / 0.9, 1);
+        textNode.setAttribute("y", String(y - progress * 24));
+        textNode.setAttribute("opacity", String(1 - progress));
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          textNode.remove();
+        }
       }
+      requestAnimationFrame(animate);
     }
 
-    function drawPlanets(cx, cy, nowSeconds) {
-      if (state.planets <= 0) {
+    function renderUpgradeButtons() {
+      upgradeList.innerHTML = "";
+      upgradeDefs.forEach((def) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "upgrade-button";
+        button.dataset.key = def.key;
+
+        const cost = def.getCost(state);
+        const isDone = def.key === "unlockPlanet" && cost === null;
+        button.disabled = !isDone && !canAfford(cost);
+        button.innerHTML = `
+          <div class="row">
+            <span class="upgrade-title">${def.title}</span>
+            <span class="upgrade-level">${def.key === "unlockPlanet" ? `已解锁 ${state.unlockedPlanets}/${PLANET_COUNT}` : `Lv.${state[def.key]}`}</span>
+          </div>
+          <div class="small">${def.description}</div>
+          <div class="row">
+            <span class="small">${def.getMeta(state)}</span>
+            <span class="cost">${isDone ? "完成" : `花费 ${formatNumber(cost)}`}</span>
+          </div>
+        `;
+        button.addEventListener("click", () => buyUpgrade(def.key));
+        upgradeList.appendChild(button);
+      });
+    }
+
+    function renderPlanetList() {
+      planetList.innerHTML = "";
+      planetDefs.forEach((planet) => {
+        const unlocked = planet.id <= state.unlockedPlanets;
+        const card = document.createElement("button");
+        card.type = "button";
+        card.className = `planet-card${unlocked ? "" : " locked"}${state.selectedPlanetId === planet.id ? " active" : ""}`;
+        card.disabled = !unlocked;
+        card.innerHTML = `
+          <strong>${planet.name}</strong>
+          <span class="small">${unlocked ? `基础产出 ${formatNumber(planet.yield)} / 次与 / 秒` : `解锁花费 ${formatNumber(planet.unlockCost)}`}</span>
+          <span class="small">${planet.description}</span>
+        `;
+        card.addEventListener("click", () => selectPlanet(planet.id));
+        planetList.appendChild(card);
+      });
+    }
+
+    function renderOrbits() {
+      const tier = getPlanetTier();
+      orbitNodes.forEach((orbit, index) => {
+        const planetId = index + 1;
+        const unlocked = planetId <= state.unlockedPlanets;
+        orbit.classList.toggle("unlocked", unlocked);
+        orbit.classList.toggle("locked", !unlocked);
+        orbit.classList.toggle("selected", planetId === state.selectedPlanetId);
+        orbit.classList.remove("tier-1", "tier-2", "tier-3");
+        orbit.classList.add(`tier-${tier}`);
+      });
+    }
+
+    function renderStats() {
+      const selectedPlanet = getSelectedPlanet(state);
+      const autoIncome = getAutoIncomePerSecond(state);
+      const nextPlanet = getNextLockedPlanet(state);
+      resourceValue.textContent = formatNumber(state.resources);
+      resourceRate.textContent = `+${formatNumber(autoIncome)} / 秒`;
+      selectedPlanetName.textContent = selectedPlanet.name;
+      selectedPlanetYield.textContent = `点击获得 ${formatNumber(getClickYield(state, selectedPlanet))} 星尘`;
+      minerLevel.textContent = String(state.miners);
+      minerNote.textContent = `每秒结算 ${formatNumber(autoIncome)} 星尘`;
+      unlockedCount.textContent = `已解锁 ${state.unlockedPlanets} / ${PLANET_COUNT} 星球`;
+      yieldSum.textContent = `总基础产出 ${formatNumber(getUnlockedYieldSum(state))} / 秒`;
+      multiplierValue.textContent = `全局倍率 ${formatMultiplier(getProductionMultiplier(state))}`;
+      clickValue.textContent = `手动点击 ${formatNumber(getClickYield(state))} 星尘`;
+      nextGoal.textContent = nextPlanet ? `下一目标：解锁 ${nextPlanet.name}` : "下一目标：全部星球已点亮";
+      nextGoalNote.textContent = nextPlanet ? `${nextPlanet.description} 解锁价 ${formatNumber(nextPlanet.unlockCost)}` : "通关提示已达成，可以继续冲更高资源数。";
+      winBanner.hidden = !state.completed;
+    }
+
+    function render() {
+      updateCompletion();
+      renderStats();
+      renderUpgradeButtons();
+      renderPlanetList();
+      renderOrbits();
+    }
+
+    function tick() {
+      addResources(getAutoIncomePerSecond(state));
+      saveState();
+      render();
+    }
+
+    function resetGame() {
+      localStorage.removeItem(STORAGE_KEY);
+      Object.assign(state, createDefaultState());
+      offlineModal.hidden = true;
+      render();
+      saveState();
+    }
+
+    galaxySvg.addEventListener("click", (event) => {
+      const orbit = event.target.closest(".orbit");
+      if (!orbit) {
         return;
       }
-      drawOrbit(cx, cy, 214, 134, "rgba(144, 117, 255, 0.2)");
-      const visible = Math.min(state.planets, planetSeed.length);
-      for (let index = 0; index < visible; index += 1) {
-        const seed = planetSeed[index];
-        const angle = nowSeconds * 0.21 + (index / visible) * Math.PI * 2;
-        const x = cx + Math.cos(angle) * 214;
-        const y = cy + Math.sin(angle) * 134;
-        const planetGradient = ctx.createRadialGradient(x - seed.size * 0.35, y - seed.size * 0.35, 2, x, y, seed.size);
-        planetGradient.addColorStop(0, `hsla(${seed.hue}, 88%, 78%, 0.95)`);
-        planetGradient.addColorStop(1, `hsla(${(seed.hue + 34) % 360}, 58%, 42%, 0.98)`);
-
-        ctx.beginPath();
-        ctx.fillStyle = planetGradient;
-        ctx.arc(x, y, seed.size, 0, Math.PI * 2);
-        ctx.fill();
-
-        if (seed.stripe) {
-          ctx.beginPath();
-          ctx.strokeStyle = "rgba(255,255,255,0.28)";
-          ctx.lineWidth = 2;
-          ctx.arc(x, y, seed.size * 0.72, -0.5, 2.4);
-          ctx.stroke();
-        }
-
-        if (seed.hasRing) {
-          ctx.beginPath();
-          ctx.strokeStyle = "rgba(255, 226, 152, 0.5)";
-          ctx.lineWidth = 2;
-          ctx.ellipse(x, y, seed.size * 1.8, seed.size * 0.7, 0.3, 0, Math.PI * 2);
-          ctx.stroke();
-        }
-      }
-    }
-
-    function drawStars(cx, cy, nowSeconds) {
-      if (state.stars <= 0) {
-        return;
-      }
-      drawOrbit(cx, cy, 324, 210, "rgba(255, 203, 118, 0.2)");
-      const visible = Math.min(state.stars, 10);
-      for (let index = 0; index < visible; index += 1) {
-        const angle = nowSeconds * 0.12 + (index / visible) * Math.PI * 2;
-        const x = cx + Math.cos(angle) * 324;
-        const y = cy + Math.sin(angle) * 210;
-        const glow = 14 + Math.sin(nowSeconds * 2 + index) * 3;
-        const starGradient = ctx.createRadialGradient(x, y, 0, x, y, glow);
-        starGradient.addColorStop(0, "rgba(255, 250, 220, 0.95)");
-        starGradient.addColorStop(0.45, "rgba(255, 203, 118, 0.8)");
-        starGradient.addColorStop(1, "rgba(255, 203, 118, 0)");
-        ctx.fillStyle = starGradient;
-        ctx.beginPath();
-        ctx.arc(x, y, glow, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.fillStyle = "#fff0b8";
-        ctx.arc(x, y, 6, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    function updateEffects(deltaSeconds) {
-      for (let index = floatingTexts.length - 1; index >= 0; index -= 1) {
-        const item = floatingTexts[index];
-        item.life += deltaSeconds;
-        item.y -= 28 * deltaSeconds;
-        if (item.life >= item.duration) {
-          floatingTexts.splice(index, 1);
-        }
-      }
-
-      for (let index = particles.length - 1; index >= 0; index -= 1) {
-        const item = particles[index];
-        item.life += deltaSeconds;
-        item.x += item.vx * deltaSeconds;
-        item.y += item.vy * deltaSeconds;
-        item.vy += 120 * deltaSeconds;
-        if (item.life >= item.duration) {
-          particles.splice(index, 1);
-        }
-      }
-    }
-
-    function drawEffects() {
-      for (const item of particles) {
-        const alpha = 1 - (item.life / item.duration);
-        ctx.fillStyle = hexToRgba(item.color, alpha);
-        ctx.beginPath();
-        ctx.arc(item.x, item.y, item.size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      ctx.textAlign = "center";
-      ctx.font = '700 20px "Avenir Next", sans-serif';
-      for (const item of floatingTexts) {
-        const alpha = 1 - (item.life / item.duration);
-        ctx.fillStyle = hexToRgba(item.color, alpha);
-        ctx.fillText(item.text, item.x, item.y);
-      }
-    }
-
-    function hexToRgba(hex, alpha) {
-      const normalized = hex.replace("#", "");
-      const value = normalized.length === 3
-        ? normalized.split("").map((char) => char + char).join("")
-        : normalized;
-      const red = Number.parseInt(value.slice(0, 2), 16);
-      const green = Number.parseInt(value.slice(2, 4), 16);
-      const blue = Number.parseInt(value.slice(4, 6), 16);
-      return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
-    }
-
-    function drawScene(nowSeconds) {
-      const centerX = canvas.width / 2;
-      const centerY = canvas.height / 2;
-      drawBackground(nowSeconds);
-      drawStars(centerX, centerY, nowSeconds);
-      drawPlanets(centerX, centerY, nowSeconds);
-      drawMiners(centerX, centerY, nowSeconds);
-      drawAsteroid(centerX, centerY, Math.sin(nowSeconds * 3));
-      drawEffects();
-    }
-
-    function frame(now) {
-      const deltaSeconds = Math.min(0.05, (now - lastFrameTime) / 1000);
-      lastFrameTime = now;
-
-      state.stardust += getTotalProductionPerSecond(state) * deltaSeconds;
-      updateEffects(deltaSeconds);
-      updateUI();
-      drawScene(now / 1000);
-
-      if (now - lastSaveTime >= SAVE_INTERVAL_MS) {
-        saveState();
-        lastSaveTime = now;
-      }
-
-      requestAnimationFrame(frame);
-    }
-
-    canvas.addEventListener("pointerdown", (event) => {
-      handleAsteroidClick(event.clientX, event.clientY);
+      const planetId = Number(orbit.dataset.planetId);
+      minePlanet(planetId);
     });
 
+    resetButton.addEventListener("click", resetGame);
     offlineClose.addEventListener("click", () => {
       offlineModal.hidden = true;
       offlineStatus.textContent = "已结算";
     });
-
     window.addEventListener("beforeunload", saveState);
 
     applyOfflineProgress();
-    updateUI();
-    requestAnimationFrame(frame);
+    render();
+    saveState();
+    setInterval(tick, 1000);
   </script>
 </body>
 </html>
