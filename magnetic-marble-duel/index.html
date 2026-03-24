@@ -6,16 +6,16 @@
   <title>磁力弹珠双人对战台</title>
   <style>
     :root {
-      --bg: #09111d;
-      --panel: rgba(11, 24, 38, 0.88);
-      --line: rgba(141, 214, 255, 0.16);
-      --text: #eef6ff;
-      --muted: #8ea5bf;
-      --p1: #ff6d87;
-      --p2: #67cfff;
-      --accent: #ffe07d;
-      --good: #94ffc7;
-      --danger: #ffaf96;
+      --bg: #071018;
+      --panel: rgba(10, 21, 32, 0.9);
+      --line: rgba(152, 216, 255, 0.16);
+      --text: #eef7ff;
+      --muted: #90a9c3;
+      --p1: #ff6f8f;
+      --p2: #6bcfff;
+      --good: #95ffca;
+      --warn: #ffd26f;
+      --danger: #ff9b8a;
     }
 
     * {
@@ -28,9 +28,9 @@
       font-family: "Segoe UI", sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at 16% 18%, rgba(255, 109, 135, 0.16), transparent 24%),
-        radial-gradient(circle at 84% 18%, rgba(103, 207, 255, 0.14), transparent 24%),
-        linear-gradient(180deg, #11253b 0%, var(--bg) 72%);
+        radial-gradient(circle at 15% 18%, rgba(255, 111, 143, 0.16), transparent 24%),
+        radial-gradient(circle at 85% 16%, rgba(107, 207, 255, 0.16), transparent 24%),
+        linear-gradient(180deg, #11283b 0%, var(--bg) 78%);
     }
 
     .app {
@@ -44,7 +44,7 @@
       border: 1px solid var(--line);
       border-radius: 24px;
       background: var(--panel);
-      box-shadow: 0 22px 56px rgba(0, 0, 0, 0.34);
+      box-shadow: 0 20px 56px rgba(0, 0, 0, 0.34);
       backdrop-filter: blur(14px);
     }
 
@@ -55,7 +55,7 @@
 
     .hero {
       display: grid;
-      grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+      grid-template-columns: minmax(0, 1.18fr) minmax(320px, 0.82fr);
       gap: 14px;
     }
 
@@ -70,13 +70,13 @@
 
     h1 {
       margin: 8px 0 10px;
-      font-size: clamp(2.2rem, 5vw, 3.6rem);
-      line-height: 0.96;
+      font-size: clamp(2.2rem, 5vw, 3.5rem);
+      line-height: 0.95;
     }
 
     p {
       margin: 0;
-      line-height: 1.6;
+      line-height: 1.58;
       color: var(--muted);
     }
 
@@ -87,15 +87,10 @@
       font-size: 0.96rem;
     }
 
-    .grid,
-    .controls {
+    .controls,
+    .grid {
       display: grid;
       gap: 12px;
-    }
-
-    .grid {
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      margin-top: 14px;
     }
 
     .controls {
@@ -103,19 +98,24 @@
       align-content: start;
     }
 
+    .grid {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      margin-top: 14px;
+    }
+
     .card {
+      min-height: 94px;
       padding: 14px;
       border-radius: 18px;
       border: 1px solid rgba(255, 255, 255, 0.08);
       background: rgba(255, 255, 255, 0.04);
-      min-height: 92px;
     }
 
     .card strong {
       display: block;
       margin-top: 8px;
       color: var(--text);
-      font-size: 1.04rem;
+      font-size: 1rem;
     }
 
     .p1 {
@@ -138,8 +138,8 @@
       padding: 12px 18px;
       font: inherit;
       font-weight: 700;
-      color: #08121d;
-      background: linear-gradient(135deg, var(--good), var(--accent));
+      color: #08131d;
+      background: linear-gradient(135deg, var(--good), var(--warn));
       cursor: pointer;
     }
 
@@ -160,8 +160,8 @@
       height: auto;
       border-radius: 18px;
       background:
-        radial-gradient(circle at center, rgba(255, 255, 255, 0.05), transparent 40%),
-        linear-gradient(180deg, #17314b 0%, #09111a 88%);
+        radial-gradient(circle at center, rgba(255, 255, 255, 0.04), transparent 40%),
+        linear-gradient(180deg, #153049 0%, #081118 88%);
     }
 
     .overlay {
@@ -173,16 +173,16 @@
     }
 
     .overlay-card {
-      width: min(420px, calc(100% - 20px));
+      width: min(440px, calc(100% - 20px));
       padding: 24px;
       border-radius: 24px;
       text-align: center;
       background: rgba(5, 10, 18, 0.95);
-      border: 1px solid rgba(255, 224, 125, 0.28);
+      border: 1px solid rgba(255, 210, 111, 0.32);
       box-shadow: 0 20px 48px rgba(0, 0, 0, 0.42);
       opacity: 0;
       transform: translateY(8px);
-      transition: opacity 160ms ease, transform 160ms ease;
+      transition: opacity 180ms ease, transform 180ms ease;
       pointer-events: none;
     }
 
@@ -212,8 +212,8 @@
     }
 
     @media (max-width: 640px) {
-      .grid,
-      .controls {
+      .controls,
+      .grid {
         grid-template-columns: 1fr;
       }
     }
@@ -226,18 +226,18 @@
         <div>
           <p class="eyebrow">Physics Toy</p>
           <h1>磁力弹珠双人对战台</h1>
-          <p>双人同屏回合制磁力弹珠对战。玩家 1 从左侧发射，玩家 2 从右侧发射；同色弹珠互相排斥、异色弹珠互相吸引，越靠近时轨迹偏转越明显。每回合双方各打一颗，等桌面静止后按中央得分环里的弹珠数量结算。</p>
-          <div class="status" id="status">第 1 / 5 回合，玩家 1 瞄准中。A / D 调角度，W / S 调力度，空格发射。</div>
-          <div class="hint">共 5 回合。弹珠飞出边界会被移除并扣 1 分，中央发光圆环每回合结算占位得分。</div>
+          <p>双人同屏回合制磁力弹珠对战。双方轮流把弹珠打进对手得分区，同时利用同极相斥、异极相吸把棋盘上的局面推向自己有利的一侧。共享棋盘上包含固定障碍、磁力增幅带、排斥脉冲区与减速泥区。</p>
+          <div class="status" id="status">玩家 1 回合。A / D 调角度，W / S 调力度，空格发射。</div>
+          <div class="hint">先到 5 分获胜。玩家 1 使用 WASD + 空格，玩家 2 使用方向键 + Enter。发射后等待弹珠静止，再轮到下一位。</div>
         </div>
         <div class="controls">
           <div class="card">
             <span class="label">玩家 1</span>
-            <strong class="p1">A / D 调角度，W / S 调力度，空格发射</strong>
+            <strong class="p1">WASD + 空格</strong>
           </div>
           <div class="card">
             <span class="label">玩家 2</span>
-            <strong class="p2">← / → 调角度，↑ / ↓ 调力度，Enter 发射</strong>
+            <strong class="p2">方向键 + Enter</strong>
           </div>
           <button id="restart" type="button">重新开始</button>
           <button id="reset-turn" class="secondary" type="button">重置当前瞄准</button>
@@ -247,33 +247,37 @@
       <div class="grid">
         <div class="card">
           <span class="label">当前回合</span>
-          <strong id="round-label">第 1 / 5 回合</strong>
+          <strong id="turn-count">第 1 回合</strong>
         </div>
         <div class="card">
           <span class="label">当前行动</span>
-          <strong id="turn-label">玩家 1 瞄准</strong>
+          <strong id="turn-label">玩家 1 瞄准中</strong>
         </div>
         <div class="card">
           <span class="label">玩家 1 分数</span>
-          <strong class="p1" id="score-p1">0</strong>
+          <strong class="p1" id="score-p1">0 / 5</strong>
         </div>
         <div class="card">
           <span class="label">玩家 2 分数</span>
-          <strong class="p2" id="score-p2">0</strong>
+          <strong class="p2" id="score-p2">0 / 5</strong>
         </div>
         <div class="card">
-          <span class="label">中央得分环</span>
-          <strong id="zone-label">静待占位</strong>
+          <span class="label">结算提示</span>
+          <strong id="event-label">等待第一颗弹珠发射</strong>
+        </div>
+        <div class="card">
+          <span class="label">区域类型</span>
+          <strong id="zone-label">障碍柱 / 增幅带 / 排斥区 / 泥区</strong>
         </div>
       </div>
     </section>
 
     <section class="board">
-      <canvas id="game" width="1100" height="700" aria-label="磁力弹珠双人对战台画布"></canvas>
+      <canvas id="game" width="1100" height="720" aria-label="磁力弹珠双人对战台画布"></canvas>
       <div class="overlay">
         <div class="overlay-card" id="overlay-card">
-          <h2 id="overlay-title">比赛结束</h2>
-          <p id="overlay-copy"></p>
+          <h2 id="overlay-title">玩家 1 回合</h2>
+          <p id="overlay-copy">A / D 调角度，W / S 调力度，空格发射。</p>
           <button id="play-again" type="button">再来一局</button>
         </div>
       </div>
@@ -285,10 +289,11 @@
       const canvas = document.getElementById("game");
       const ctx = canvas.getContext("2d");
       const statusLabel = document.getElementById("status");
-      const roundLabel = document.getElementById("round-label");
+      const turnCountLabel = document.getElementById("turn-count");
       const turnLabel = document.getElementById("turn-label");
       const scoreP1Label = document.getElementById("score-p1");
       const scoreP2Label = document.getElementById("score-p2");
+      const eventLabel = document.getElementById("event-label");
       const zoneLabel = document.getElementById("zone-label");
       const overlayCard = document.getElementById("overlay-card");
       const overlayTitle = document.getElementById("overlay-title");
@@ -300,64 +305,130 @@
       const WIDTH = canvas.width;
       const HEIGHT = canvas.height;
       const FIXED_DT = 1 / 60;
-      const TOTAL_ROUNDS = 5;
-      const TABLE_MARGIN = 54;
+      const TARGET_SCORE = 5;
+      const TABLE_MARGIN = 56;
       const MARBLE_RADIUS = 13;
-      const MIN_POWER = 320;
-      const MAX_POWER = 900;
+      const MIN_POWER = 330;
+      const MAX_POWER = 930;
       const DAMPING = 0.992;
-      const TURN_SETTLE_SPEED = 18;
-      const TURN_SETTLE_FRAMES = 32;
-      const MAGNET_RANGE = 240;
-      const MAGNET_STRENGTH = 260000;
-      const MAGNET_MAX_FORCE = 720;
-      const PARTICLE_LIFE = 0.55;
-      const scoreZone = {
-        x: WIDTH / 2,
-        y: HEIGHT / 2,
-        radius: 78
-      };
+      const WALL_BOUNCE = 0.88;
+      const MAGNET_RANGE = 220;
+      const MAGNET_STRENGTH = 230000;
+      const MAGNET_MAX_FORCE = 760;
+      const SETTLE_SPEED = 15;
+      const SETTLE_FRAMES = 34;
+      const OVERLAY_DURATION = 1.15;
+      const FIELD_PARTICLE_LIFE = 0.5;
+
       const tableBounds = {
         left: TABLE_MARGIN,
         right: WIDTH - TABLE_MARGIN,
         top: TABLE_MARGIN,
         bottom: HEIGHT - TABLE_MARGIN
       };
+
+      const goalDepth = 64;
       const launchers = [
-        { x: tableBounds.left + 36, y: HEIGHT / 2, baseAngle: 0, minAngle: -1.05, maxAngle: 1.05 },
-        { x: tableBounds.right - 36, y: HEIGHT / 2, baseAngle: Math.PI, minAngle: Math.PI - 1.05, maxAngle: Math.PI + 1.05 }
-      ];
-      const players = [
-        { id: 1, name: "玩家 1", color: "#ff6d87", glow: "rgba(255,109,135,0.28)", score: 0, angle: 0, power: 600 },
-        { id: 2, name: "玩家 2", color: "#67cfff", glow: "rgba(103,207,255,0.28)", score: 0, angle: Math.PI, power: 600 }
+        { x: tableBounds.left + 42, y: HEIGHT / 2, baseAngle: 0, minAngle: -1.02, maxAngle: 1.02 },
+        { x: tableBounds.right - 42, y: HEIGHT / 2, baseAngle: Math.PI, minAngle: Math.PI - 1.02, maxAngle: Math.PI + 1.02 }
       ];
 
-      let roundNumber = 1;
-      let activePlayer = 0;
-      let phase = "aim";
-      let winner = null;
+      const BOARD_CONFIG = {
+        bumpers: [
+          { x: WIDTH / 2, y: HEIGHT / 2 - 138, radius: 34 },
+          { x: WIDTH / 2 - 120, y: HEIGHT / 2 + 72, radius: 26 },
+          { x: WIDTH / 2 + 120, y: HEIGHT / 2 + 72, radius: 26 }
+        ],
+        walls: [
+          { x: WIDTH / 2 - 22, y: HEIGHT / 2 - 34, width: 44, height: 68 }
+        ],
+        fields: [
+          { type: "magnetBoost", x: WIDTH / 2 - 120, y: HEIGHT / 2, width: 110, height: 230, label: "磁力增幅带" },
+          { type: "repulsePulse", x: WIDTH / 2 + 125, y: HEIGHT / 2 - 18, radius: 88, label: "排斥脉冲区" },
+          { type: "slowZone", x: WIDTH / 2, y: HEIGHT / 2 + 170, width: 220, height: 92, label: "减速泥区" }
+        ]
+      };
+
+      const goals = [
+        {
+          owner: 1,
+          x: tableBounds.left - 4,
+          y: HEIGHT / 2,
+          width: goalDepth,
+          height: 208,
+          scoreFor: 2
+        },
+        {
+          owner: 2,
+          x: tableBounds.right - goalDepth + 4,
+          y: HEIGHT / 2,
+          width: goalDepth,
+          height: 208,
+          scoreFor: 1
+        }
+      ];
+
+      const players = [
+        {
+          id: 1,
+          name: "玩家 1",
+          color: "#ff6f8f",
+          glow: "rgba(255,111,143,0.28)",
+          angle: 0,
+          power: 610,
+          score: 0
+        },
+        {
+          id: 2,
+          name: "玩家 2",
+          color: "#6bcfff",
+          glow: "rgba(107,207,255,0.28)",
+          angle: Math.PI,
+          power: 610,
+          score: 0
+        }
+      ];
+
       let marbles = [];
       let particles = [];
+      let activePlayer = 0;
+      let turnNumber = 1;
+      let phase = "aim";
+      let winner = null;
       let settleFrames = 0;
       let lastTimestamp = 0;
-      let roundShots = [false, false];
-      let lastRoundSummary = "静待占位";
+      let overlayTimer = 0;
+      let overlayMode = "turn";
+      let lastEvent = "等待第一颗弹珠发射";
 
       function clamp(value, min, max) {
         return Math.max(min, Math.min(max, value));
       }
 
-      function emitParticles(x, y, color, count) {
+      function hideOverlay() {
+        overlayCard.classList.remove("visible");
+      }
+
+      function showOverlay(title, copy, mode = "turn") {
+        overlayMode = mode;
+        overlayTimer = OVERLAY_DURATION;
+        overlayTitle.textContent = title;
+        overlayCopy.textContent = copy;
+        playAgainButton.style.display = mode === "final" ? "inline-flex" : "none";
+        overlayCard.classList.add("visible");
+      }
+
+      function emitParticles(x, y, color, count, speed = 150) {
         for (let i = 0; i < count; i += 1) {
           const angle = Math.random() * Math.PI * 2;
-          const speed = 40 + Math.random() * 180;
+          const velocity = speed * (0.45 + Math.random() * 0.85);
           particles.push({
             x,
             y,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            life: PARTICLE_LIFE,
-            maxLife: PARTICLE_LIFE,
+            vx: Math.cos(angle) * velocity,
+            vy: Math.sin(angle) * velocity,
+            life: FIELD_PARTICLE_LIFE,
+            maxLife: FIELD_PARTICLE_LIFE,
             color
           });
         }
@@ -367,46 +438,57 @@
         const player = players[playerIndex];
         const launcher = launchers[playerIndex];
         player.angle = launcher.baseAngle;
-        player.power = 600;
+        player.power = 610;
       }
 
-      function resetRoundAim() {
-        resetAimFor(0);
-        resetAimFor(1);
+      function getActivePlayer() {
+        return players[activePlayer];
       }
 
-      function hideOverlay() {
-        overlayCard.classList.remove("visible");
-      }
-
-      function showOverlay(title, text) {
-        overlayTitle.textContent = title;
-        overlayCopy.textContent = text;
-        overlayCard.classList.add("visible");
+      function getControlsCopy(playerIndex) {
+        return playerIndex === 0
+          ? "玩家 1 回合。A / D 调角度，W / S 调力度，空格发射。"
+          : "玩家 2 回合。← / → 调角度，↑ / ↓ 调力度，Enter 发射。";
       }
 
       function updateHud() {
-        const current = players[activePlayer];
-        roundLabel.textContent = `第 ${Math.min(roundNumber, TOTAL_ROUNDS)} / ${TOTAL_ROUNDS} 回合`;
-        turnLabel.textContent = winner ? "比赛结束" : `${current.name} ${phase === "aim" ? "瞄准" : "等待结算"}`;
-        scoreP1Label.textContent = String(players[0].score);
-        scoreP2Label.textContent = String(players[1].score);
-        zoneLabel.textContent = lastRoundSummary;
+        const current = getActivePlayer();
+        turnCountLabel.textContent = `第 ${turnNumber} 回合`;
+        turnLabel.textContent = winner ? "比赛结束" : `${current.name} ${phase === "aim" ? "瞄准中" : "等待结算"}`;
+        scoreP1Label.textContent = `${players[0].score} / ${TARGET_SCORE}`;
+        scoreP2Label.textContent = `${players[1].score} / ${TARGET_SCORE}`;
+        eventLabel.textContent = lastEvent;
+        zoneLabel.textContent = "障碍柱 / 增幅带 / 排斥区 / 泥区";
 
         if (winner) {
-          statusLabel.textContent = `${winner.name} 获胜。按“再来一局”立即重开。`;
+          statusLabel.textContent = `${winner.name} 获胜，点击“再来一局”重新开始。`;
           return;
         }
 
         if (phase === "aim") {
-          const degrees = Math.round((players[activePlayer].angle * 180) / Math.PI);
-          const keyHint = activePlayer === 0
-            ? "A / D 调角度，W / S 调力度，空格发射。"
-            : "← / → 调角度，↑ / ↓ 调力度，Enter 发射。";
-          statusLabel.textContent = `第 ${roundNumber} / ${TOTAL_ROUNDS} 回合，${current.name} 瞄准中。角度 ${degrees}°，力度 ${Math.round(current.power)}。${keyHint}`;
+          statusLabel.textContent = `${getControlsCopy(activePlayer)} 当前角度 ${Math.round((current.angle * 180) / Math.PI)}°，力度 ${Math.round(current.power)}。`;
         } else {
-          statusLabel.textContent = "弹珠运动中，等待磁力与碰撞结算。";
+          statusLabel.textContent = "物理结算中：磁力、障碍碰撞与区域效果正在生效。";
         }
+      }
+
+      function spawnMarble(playerIndex) {
+        const player = players[playerIndex];
+        const launcher = launchers[playerIndex];
+        const muzzle = 32;
+        return {
+          x: launcher.x + Math.cos(player.angle) * muzzle,
+          y: launcher.y + Math.sin(player.angle) * muzzle,
+          vx: Math.cos(player.angle) * player.power,
+          vy: Math.sin(player.angle) * player.power,
+          radius: MARBLE_RADIUS,
+          owner: player.id,
+          color: player.color,
+          glow: player.glow,
+          history: [],
+          alive: true,
+          scored: false
+        };
       }
 
       function restartGame() {
@@ -414,16 +496,16 @@
           player.score = 0;
           resetAimFor(index);
         });
-        roundNumber = 1;
-        activePlayer = 0;
-        phase = "aim";
-        winner = null;
         marbles = [];
         particles = [];
+        activePlayer = 0;
+        turnNumber = 1;
+        phase = "aim";
+        winner = null;
         settleFrames = 0;
-        roundShots = [false, false];
-        lastRoundSummary = "静待占位";
-        hideOverlay();
+        lastTimestamp = 0;
+        lastEvent = "等待第一颗弹珠发射";
+        showOverlay("玩家 1 回合", "A / D 调角度，W / S 调力度，空格发射。");
         updateHud();
       }
 
@@ -435,33 +517,39 @@
         updateHud();
       }
 
-      function spawnMarble(playerIndex) {
-        const player = players[playerIndex];
-        const launcher = launchers[playerIndex];
-        const muzzle = 30;
-        return {
-          x: launcher.x + Math.cos(player.angle) * muzzle,
-          y: launcher.y + Math.sin(player.angle) * muzzle,
-          vx: Math.cos(player.angle) * player.power,
-          vy: Math.sin(player.angle) * player.power,
-          radius: MARBLE_RADIUS,
-          owner: player.id,
-          color: player.color,
-          glow: player.glow,
-          history: [],
-          alive: true
-        };
-      }
-
       function fireTurn() {
-        if (phase !== "aim" || winner) {
+        if (winner || phase !== "aim") {
           return;
         }
         marbles.push(spawnMarble(activePlayer));
-        roundShots[activePlayer] = true;
         phase = "sim";
         settleFrames = 0;
+        lastEvent = `${getActivePlayer().name} 已发射，等待桌面静止。`;
         updateHud();
+      }
+
+      function pointInRect(x, y, rect) {
+        return x >= rect.x - rect.width / 2 &&
+          x <= rect.x + rect.width / 2 &&
+          y >= rect.y - rect.height / 2 &&
+          y <= rect.y + rect.height / 2;
+      }
+
+      function pointInGoal(x, y, goal) {
+        return x >= goal.x &&
+          x <= goal.x + goal.width &&
+          y >= goal.y - goal.height / 2 &&
+          y <= goal.y + goal.height / 2;
+      }
+
+      function getMagnetMultiplier(x, y) {
+        let multiplier = 1;
+        for (const field of BOARD_CONFIG.fields) {
+          if (field.type === "magnetBoost" && pointInRect(x, y, field)) {
+            multiplier *= 2.2;
+          }
+        }
+        return multiplier;
       }
 
       function applyMagneticForces(dt) {
@@ -472,7 +560,7 @@
             const dx = b.x - a.x;
             const dy = b.y - a.y;
             const distanceSq = dx * dx + dy * dy;
-            if (distanceSq < 36) {
+            if (distanceSq < 42) {
               continue;
             }
             const distance = Math.sqrt(distanceSq);
@@ -482,13 +570,34 @@
             const directionX = dx / distance;
             const directionY = dy / distance;
             const polarity = a.owner === b.owner ? -1 : 1;
-            const force = clamp((MAGNET_STRENGTH / distanceSq) * polarity, -MAGNET_MAX_FORCE, MAGNET_MAX_FORCE);
+            const multiplier = Math.max(getMagnetMultiplier(a.x, a.y), getMagnetMultiplier(b.x, b.y));
+            const force = clamp((MAGNET_STRENGTH * multiplier / distanceSq) * polarity, -MAGNET_MAX_FORCE, MAGNET_MAX_FORCE);
             const accelX = directionX * force;
             const accelY = directionY * force;
             a.vx += accelX * dt;
             a.vy += accelY * dt;
             b.vx -= accelX * dt;
             b.vy -= accelY * dt;
+          }
+        }
+      }
+
+      function applyFieldEffects(dt) {
+        for (const marble of marbles) {
+          for (const field of BOARD_CONFIG.fields) {
+            if (field.type === "slowZone" && pointInRect(marble.x, marble.y, field)) {
+              marble.vx *= 0.965;
+              marble.vy *= 0.965;
+            } else if (field.type === "repulsePulse") {
+              const dx = marble.x - field.x;
+              const dy = marble.y - field.y;
+              const distance = Math.hypot(dx, dy);
+              if (distance < field.radius && distance > 1) {
+                const strength = (1 - distance / field.radius) * 520;
+                marble.vx += (dx / distance) * strength * dt;
+                marble.vy += (dy / distance) * strength * dt;
+              }
+            }
           }
         }
       }
@@ -530,42 +639,114 @@
         }
       }
 
-      function removeOutOfBounds() {
+      function resolveBumperCollisions() {
         for (const marble of marbles) {
-          if (
-            marble.x + marble.radius < tableBounds.left ||
-            marble.x - marble.radius > tableBounds.right ||
-            marble.y + marble.radius < tableBounds.top ||
-            marble.y - marble.radius > tableBounds.bottom
-          ) {
-            marble.alive = false;
-            const owner = players[marble.owner - 1];
-            owner.score -= 1;
-            emitParticles(
-              clamp(marble.x, tableBounds.left, tableBounds.right),
-              clamp(marble.y, tableBounds.top, tableBounds.bottom),
-              "rgba(255,175,150,0.78)",
-              14
-            );
+          for (const bumper of BOARD_CONFIG.bumpers) {
+            const dx = marble.x - bumper.x;
+            const dy = marble.y - bumper.y;
+            const distance = Math.hypot(dx, dy);
+            const minDistance = marble.radius + bumper.radius;
+            if (distance === 0 || distance >= minDistance) {
+              continue;
+            }
+            const normalX = dx / distance;
+            const normalY = dy / distance;
+            marble.x = bumper.x + normalX * minDistance;
+            marble.y = bumper.y + normalY * minDistance;
+            const speedAlongNormal = marble.vx * normalX + marble.vy * normalY;
+            marble.vx -= 2 * speedAlongNormal * normalX;
+            marble.vy -= 2 * speedAlongNormal * normalY;
+            marble.vx *= 0.96;
+            marble.vy *= 0.96;
+            emitParticles(marble.x, marble.y, "rgba(255,210,111,0.72)", 4, 110);
           }
         }
-        marbles = marbles.filter((marble) => marble.alive);
+      }
+
+      function resolveWallRectCollision(marble, wall) {
+        const nearestX = clamp(marble.x, wall.x - wall.width / 2, wall.x + wall.width / 2);
+        const nearestY = clamp(marble.y, wall.y - wall.height / 2, wall.y + wall.height / 2);
+        const dx = marble.x - nearestX;
+        const dy = marble.y - nearestY;
+        const distanceSq = dx * dx + dy * dy;
+        if (distanceSq >= marble.radius * marble.radius) {
+          return;
+        }
+        if (Math.abs(dx) > Math.abs(dy)) {
+          const direction = dx >= 0 ? 1 : -1;
+          marble.x = nearestX + direction * marble.radius;
+          marble.vx = Math.abs(marble.vx) * direction * WALL_BOUNCE;
+        } else {
+          const direction = dy >= 0 ? 1 : -1;
+          marble.y = nearestY + direction * marble.radius;
+          marble.vy = Math.abs(marble.vy) * direction * WALL_BOUNCE;
+        }
+      }
+
+      function resolveStaticGeometry() {
+        for (const marble of marbles) {
+          for (const wall of BOARD_CONFIG.walls) {
+            resolveWallRectCollision(marble, wall);
+          }
+
+          if (marble.y - marble.radius < tableBounds.top) {
+            marble.y = tableBounds.top + marble.radius;
+            marble.vy = Math.abs(marble.vy) * WALL_BOUNCE;
+          }
+          if (marble.y + marble.radius > tableBounds.bottom) {
+            marble.y = tableBounds.bottom - marble.radius;
+            marble.vy = -Math.abs(marble.vy) * WALL_BOUNCE;
+          }
+
+          const inGoalLane = goals.some((goal) => marble.y > goal.y - goal.height / 2 && marble.y < goal.y + goal.height / 2);
+          if (!inGoalLane && marble.x - marble.radius < tableBounds.left) {
+            marble.x = tableBounds.left + marble.radius;
+            marble.vx = Math.abs(marble.vx) * WALL_BOUNCE;
+          }
+          if (!inGoalLane && marble.x + marble.radius > tableBounds.right) {
+            marble.x = tableBounds.right - marble.radius;
+            marble.vx = -Math.abs(marble.vx) * WALL_BOUNCE;
+          }
+        }
+      }
+
+      function handleGoals() {
+        for (const marble of marbles) {
+          if (marble.scored) {
+            continue;
+          }
+          for (const goal of goals) {
+            if (!pointInGoal(marble.x, marble.y, goal)) {
+              continue;
+            }
+            marble.scored = true;
+            marble.alive = false;
+            players[goal.scoreFor - 1].score += 1;
+            lastEvent = `${players[goal.scoreFor - 1].name} 得分，弹珠被送入 ${players[goal.owner - 1].name} 得分区。`;
+            emitParticles(marble.x, marble.y, players[goal.scoreFor - 1].glow, 14, 170);
+            break;
+          }
+        }
+        marbles = marbles.filter((marble) => marble.alive !== false);
       }
 
       function updateMarbles(dt) {
         applyMagneticForces(dt);
+        applyFieldEffects(dt);
         for (const marble of marbles) {
           marble.x += marble.vx * dt;
           marble.y += marble.vy * dt;
           marble.vx *= DAMPING;
           marble.vy *= DAMPING;
           marble.history.push({ x: marble.x, y: marble.y });
-          if (marble.history.length > 20) {
+          if (marble.history.length > 18) {
             marble.history.shift();
           }
         }
         resolveMarbleCollisions();
-        removeOutOfBounds();
+        resolveBumperCollisions();
+        resolveStaticGeometry();
+        handleGoals();
       }
 
       function updateParticles(dt) {
@@ -582,52 +763,33 @@
         });
       }
 
-      function scoreRound() {
-        let p1Round = 0;
-        let p2Round = 0;
-        for (const marble of marbles) {
-          const distance = Math.hypot(marble.x - scoreZone.x, marble.y - scoreZone.y);
-          if (distance <= scoreZone.radius - marble.radius * 0.35) {
-            if (marble.owner === 1) {
-              p1Round += 1;
-            } else {
-              p2Round += 1;
-            }
-            emitParticles(marble.x, marble.y, marble.glow, 10);
-          }
+      function maybeFinishGame() {
+        const leader = players.find((player) => player.score >= TARGET_SCORE);
+        if (!leader) {
+          return false;
         }
-        players[0].score += p1Round;
-        players[1].score += p2Round;
-        lastRoundSummary = `本回合中央环得分：P1 +${p1Round} / P2 +${p2Round}`;
-      }
-
-      function finishGame() {
+        winner = leader;
         phase = "ended";
-        if (players[0].score === players[1].score) {
-          winner = { name: "平局" };
-          showOverlay("平局", `5 回合结束，双方同为 ${players[0].score} 分。点击“再来一局”重开。`);
-        } else {
-          winner = players[0].score > players[1].score ? players[0] : players[1];
-          showOverlay(
-            `${winner.name} 获胜`,
-            `5 回合结束，比分 ${players[0].score} : ${players[1].score}。点击“再来一局”立即重开。`
-          );
-        }
+        showOverlay(`${winner.name} 获胜`, `比分 ${players[0].score} : ${players[1].score}，点击“再来一局”重开。`, "final");
         updateHud();
+        return true;
       }
 
-      function advanceRound() {
-        scoreRound();
-        if (roundNumber >= TOTAL_ROUNDS) {
-          finishGame();
+      function advanceTurn() {
+        if (maybeFinishGame()) {
           return;
         }
-        roundNumber += 1;
-        activePlayer = 0;
+        activePlayer = activePlayer === 0 ? 1 : 0;
+        turnNumber += 1;
         phase = "aim";
-        roundShots = [false, false];
         settleFrames = 0;
-        resetRoundAim();
+        lastEvent = "桌面静止，轮到下一位玩家发射。";
+        showOverlay(
+          `${players[activePlayer].name} 回合`,
+          activePlayer === 0
+            ? "A / D 调角度，W / S 调力度，空格发射。"
+            : "← / → 调角度，↑ / ↓ 调力度，Enter 发射。"
+        );
         updateHud();
       }
 
@@ -636,85 +798,101 @@
           return;
         }
         if (!marbles.length) {
-          if (roundShots[0] && roundShots[1]) {
-            advanceRound();
-          } else {
-            activePlayer = roundShots[0] ? 1 : 0;
-            phase = "aim";
-            updateHud();
-          }
+          advanceTurn();
           return;
         }
-        const moving = marbles.some((marble) => Math.hypot(marble.vx, marble.vy) > TURN_SETTLE_SPEED);
+        const moving = marbles.some((marble) => Math.hypot(marble.vx, marble.vy) > SETTLE_SPEED);
         if (moving) {
           settleFrames = 0;
           return;
         }
         settleFrames += 1;
-        if (settleFrames < TURN_SETTLE_FRAMES) {
-          return;
+        if (settleFrames >= SETTLE_FRAMES) {
+          advanceTurn();
         }
-        if (!roundShots[0] || !roundShots[1]) {
-          activePlayer = roundShots[0] ? 1 : 0;
-          phase = "aim";
-          settleFrames = 0;
-          updateHud();
-          return;
-        }
-        advanceRound();
       }
 
       function drawBoard() {
         ctx.clearRect(0, 0, WIDTH, HEIGHT);
 
-        ctx.fillStyle = "#0d1d2e";
+        ctx.fillStyle = "#0d1d2d";
         ctx.fillRect(tableBounds.left, tableBounds.top, tableBounds.right - tableBounds.left, tableBounds.bottom - tableBounds.top);
 
         ctx.strokeStyle = "rgba(255,255,255,0.12)";
         ctx.lineWidth = 4;
         ctx.strokeRect(tableBounds.left, tableBounds.top, tableBounds.right - tableBounds.left, tableBounds.bottom - tableBounds.top);
 
+        ctx.setLineDash([12, 10]);
         ctx.strokeStyle = "rgba(255,255,255,0.08)";
-        ctx.setLineDash([14, 10]);
         ctx.beginPath();
-        ctx.moveTo(scoreZone.x, tableBounds.top + 18);
-        ctx.lineTo(scoreZone.x, tableBounds.bottom - 18);
+        ctx.moveTo(WIDTH / 2, tableBounds.top + 16);
+        ctx.lineTo(WIDTH / 2, tableBounds.bottom - 16);
         ctx.stroke();
         ctx.setLineDash([]);
 
-        ctx.beginPath();
-        ctx.fillStyle = "rgba(255,224,125,0.08)";
-        ctx.arc(scoreZone.x, scoreZone.y, scoreZone.radius + 28, 0, Math.PI * 2);
-        ctx.fill();
+        for (const goal of goals) {
+          const player = players[goal.owner - 1];
+          ctx.fillStyle = `${player.color}22`;
+          ctx.fillRect(goal.x, goal.y - goal.height / 2, goal.width, goal.height);
+          ctx.strokeStyle = `${player.color}aa`;
+          ctx.lineWidth = 3;
+          ctx.strokeRect(goal.x, goal.y - goal.height / 2, goal.width, goal.height);
+        }
 
-        ctx.beginPath();
-        ctx.fillStyle = "rgba(255,255,255,0.02)";
-        ctx.arc(scoreZone.x, scoreZone.y, scoreZone.radius - 16, 0, Math.PI * 2);
-        ctx.fill();
+        for (const field of BOARD_CONFIG.fields) {
+          if (field.type === "magnetBoost") {
+            ctx.fillStyle = "rgba(148,255,199,0.12)";
+            ctx.fillRect(field.x - field.width / 2, field.y - field.height / 2, field.width, field.height);
+            ctx.strokeStyle = "rgba(148,255,199,0.62)";
+            ctx.strokeRect(field.x - field.width / 2, field.y - field.height / 2, field.width, field.height);
+          } else if (field.type === "slowZone") {
+            ctx.fillStyle = "rgba(255,210,111,0.12)";
+            ctx.fillRect(field.x - field.width / 2, field.y - field.height / 2, field.width, field.height);
+            ctx.strokeStyle = "rgba(255,210,111,0.7)";
+            ctx.strokeRect(field.x - field.width / 2, field.y - field.height / 2, field.width, field.height);
+          } else if (field.type === "repulsePulse") {
+            ctx.beginPath();
+            ctx.fillStyle = "rgba(255,155,138,0.12)";
+            ctx.arc(field.x, field.y, field.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.strokeStyle = "rgba(255,155,138,0.72)";
+            ctx.lineWidth = 2;
+            ctx.arc(field.x, field.y, field.radius, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
 
-        ctx.beginPath();
-        ctx.strokeStyle = "rgba(255,224,125,0.85)";
-        ctx.lineWidth = 6;
-        ctx.arc(scoreZone.x, scoreZone.y, scoreZone.radius, 0, Math.PI * 2);
-        ctx.stroke();
+        for (const bumper of BOARD_CONFIG.bumpers) {
+          ctx.beginPath();
+          ctx.fillStyle = "rgba(255,255,255,0.08)";
+          ctx.arc(bumper.x, bumper.y, bumper.radius + 10, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.fillStyle = "rgba(255,210,111,0.28)";
+          ctx.arc(bumper.x, bumper.y, bumper.radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.strokeStyle = "rgba(255,255,255,0.38)";
+          ctx.lineWidth = 3;
+          ctx.arc(bumper.x, bumper.y, bumper.radius, 0, Math.PI * 2);
+          ctx.stroke();
+        }
 
-        ctx.beginPath();
-        ctx.strokeStyle = "rgba(255,255,255,0.2)";
-        ctx.lineWidth = 2;
-        ctx.arc(scoreZone.x, scoreZone.y, scoreZone.radius + 16, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.fillStyle = "rgba(255,255,255,0.75)";
-        ctx.font = '700 20px "Segoe UI", sans-serif';
-        ctx.textAlign = "center";
-        ctx.fillText("中央得分环", scoreZone.x, scoreZone.y - scoreZone.radius - 24);
+        for (const wall of BOARD_CONFIG.walls) {
+          ctx.fillStyle = "rgba(103,207,255,0.14)";
+          ctx.fillRect(wall.x - wall.width / 2, wall.y - wall.height / 2, wall.width, wall.height);
+          ctx.strokeStyle = "rgba(103,207,255,0.68)";
+          ctx.lineWidth = 3;
+          ctx.strokeRect(wall.x - wall.width / 2, wall.y - wall.height / 2, wall.width, wall.height);
+        }
       }
 
       function drawLaunchers() {
         players.forEach((player, index) => {
           const launcher = launchers[index];
-          const isActive = activePlayer === index && phase === "aim" && !winner;
-          const length = 48 + (player.power / MAX_POWER) * 52;
+          const isActive = !winner && phase === "aim" && activePlayer === index;
+          const length = 46 + ((player.power - MIN_POWER) / (MAX_POWER - MIN_POWER)) * 64;
 
           ctx.beginPath();
           ctx.fillStyle = isActive ? player.color : "rgba(255,255,255,0.18)";
@@ -728,13 +906,6 @@
           ctx.moveTo(launcher.x, launcher.y);
           ctx.lineTo(launcher.x + Math.cos(player.angle) * length, launcher.y + Math.sin(player.angle) * length);
           ctx.stroke();
-
-          const barX = index === 0 ? tableBounds.left + 18 : tableBounds.right - 18;
-          const barDir = index === 0 ? 1 : -1;
-          ctx.fillStyle = "rgba(255,255,255,0.12)";
-          ctx.fillRect(barX, tableBounds.bottom + 18, 120 * barDir, 10);
-          ctx.fillStyle = player.color;
-          ctx.fillRect(barX, tableBounds.bottom + 18, ((player.power - MIN_POWER) / (MAX_POWER - MIN_POWER)) * 120 * barDir, 10);
         });
       }
 
@@ -751,12 +922,27 @@
             }
             const alpha = 1 - distance / MAGNET_RANGE;
             ctx.beginPath();
+            ctx.setLineDash(a.owner === b.owner ? [6, 7] : [14, 8]);
             ctx.strokeStyle = a.owner === b.owner
-              ? `rgba(255,109,135,${0.12 + alpha * 0.16})`
-              : `rgba(148,255,199,${0.12 + alpha * 0.18})`;
+              ? `rgba(255,111,143,${0.16 + alpha * 0.18})`
+              : `rgba(149,255,202,${0.16 + alpha * 0.22})`;
             ctx.lineWidth = 2 + alpha * 2;
             ctx.moveTo(a.x, a.y);
             ctx.quadraticCurveTo((a.x + b.x) / 2 + dy * 0.08, (a.y + b.y) / 2 - dx * 0.08, b.x, b.y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+        }
+      }
+
+      function drawFieldParticles() {
+        for (const field of BOARD_CONFIG.fields) {
+          if (field.type === "repulsePulse") {
+            const ring = (performance.now() / 18) % field.radius;
+            ctx.beginPath();
+            ctx.strokeStyle = "rgba(255,155,138,0.28)";
+            ctx.lineWidth = 2;
+            ctx.arc(field.x, field.y, ring, 0, Math.PI * 2);
             ctx.stroke();
           }
         }
@@ -767,7 +953,7 @@
           if (marble.history.length > 1) {
             ctx.beginPath();
             ctx.strokeStyle = marble.glow;
-            ctx.lineWidth = 5;
+            ctx.lineWidth = 4;
             for (let i = 0; i < marble.history.length; i += 1) {
               const point = marble.history[i];
               if (i === 0) {
@@ -790,7 +976,7 @@
           ctx.fill();
 
           ctx.beginPath();
-          ctx.fillStyle = "rgba(255,255,255,0.36)";
+          ctx.fillStyle = "rgba(255,255,255,0.38)";
           ctx.arc(marble.x - 3, marble.y - 4, marble.radius * 0.34, 0, Math.PI * 2);
           ctx.fill();
         }
@@ -807,23 +993,24 @@
       }
 
       function drawHudText() {
-        ctx.font = '700 21px "Segoe UI", sans-serif';
+        ctx.font = '700 20px "Segoe UI", sans-serif';
         ctx.textAlign = "left";
         ctx.fillStyle = players[0].color;
-        ctx.fillText("P1 发射区", tableBounds.left + 18, tableBounds.top - 14);
+        ctx.fillText("P1 发射器", tableBounds.left + 18, tableBounds.top - 14);
 
         ctx.textAlign = "right";
         ctx.fillStyle = players[1].color;
-        ctx.fillText("P2 发射区", tableBounds.right - 18, tableBounds.top - 14);
+        ctx.fillText("P2 发射器", tableBounds.right - 18, tableBounds.top - 14);
 
         ctx.textAlign = "center";
-        ctx.fillStyle = "rgba(255,255,255,0.82)";
+        ctx.fillStyle = "rgba(255,255,255,0.84)";
         ctx.font = '600 18px "Segoe UI", sans-serif';
-        ctx.fillText("红红相斥，蓝蓝相斥，红蓝相吸", WIDTH / 2, tableBounds.bottom + 40);
+        ctx.fillText("同极相斥，异极相吸。把对手的弹珠推入得分区，率先达到目标分数。", WIDTH / 2, tableBounds.bottom + 42);
       }
 
       function render() {
         drawBoard();
+        drawFieldParticles();
         drawMagnetLinks();
         drawMarbles();
         drawParticles();
@@ -835,6 +1022,12 @@
         if (phase === "sim") {
           updateMarbles(dt);
           checkTurnEnd();
+        }
+        if (overlayMode !== "final" && overlayTimer > 0) {
+          overlayTimer -= dt;
+          if (overlayTimer <= 0) {
+            hideOverlay();
+          }
         }
         updateParticles(dt);
       }
@@ -856,10 +1049,10 @@
       }
 
       function adjustActivePlayer(changeAngle, changePower) {
-        if (phase !== "aim" || winner) {
+        if (winner || phase !== "aim") {
           return;
         }
-        const player = players[activePlayer];
+        const player = getActivePlayer();
         const launcher = launchers[activePlayer];
         player.angle = clamp(player.angle + changeAngle, launcher.minAngle, launcher.maxAngle);
         player.power = clamp(player.power + changePower, MIN_POWER, MAX_POWER);
@@ -878,13 +1071,13 @@
 
         if (activePlayer === 0) {
           if (event.code === "KeyA") {
-            adjustActivePlayer(-0.12, 0);
+            adjustActivePlayer(-0.11, 0);
           } else if (event.code === "KeyD") {
-            adjustActivePlayer(0.12, 0);
+            adjustActivePlayer(0.11, 0);
           } else if (event.code === "KeyW") {
-            adjustActivePlayer(0, 42);
+            adjustActivePlayer(0, 40);
           } else if (event.code === "KeyS") {
-            adjustActivePlayer(0, -42);
+            adjustActivePlayer(0, -40);
           } else if (event.code === "Space") {
             event.preventDefault();
             fireTurn();
@@ -892,16 +1085,16 @@
         } else if (activePlayer === 1) {
           if (event.code === "ArrowLeft") {
             event.preventDefault();
-            adjustActivePlayer(-0.12, 0);
+            adjustActivePlayer(-0.11, 0);
           } else if (event.code === "ArrowRight") {
             event.preventDefault();
-            adjustActivePlayer(0.12, 0);
+            adjustActivePlayer(0.11, 0);
           } else if (event.code === "ArrowUp") {
             event.preventDefault();
-            adjustActivePlayer(0, 42);
+            adjustActivePlayer(0, 40);
           } else if (event.code === "ArrowDown") {
             event.preventDefault();
-            adjustActivePlayer(0, -42);
+            adjustActivePlayer(0, -40);
           } else if (event.code === "Enter") {
             event.preventDefault();
             fireTurn();
