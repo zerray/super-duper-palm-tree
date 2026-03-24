@@ -191,6 +191,17 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `rhythm-color-blocks/index.html` 即可游玩。
 
+## 节奏色块记忆挑战
+
+新增 `rhythm-memory-grid/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的节奏记忆小游戏，包含：
+
+- 单人模式下，系统按节拍点亮霓虹色块后，玩家用鼠标或触屏按原顺序复现；失误后显示本局最高轮数，并用 `localStorage` 保存最佳成绩
+- 热座双人模式下，两位玩家轮流挑战同样规则，分别记录最高轮数并自动比较胜负
+- 初始 4 个色块，每 3 轮增加 1 个色块上限，同时缩短节拍间隔提升难度
+- 使用 CSS 发光动画与 Web Audio API 振荡器生成的 beat 音效营造高对比度霓虹节奏感
+
+直接用浏览器打开 `rhythm-memory-grid/index.html` 即可游玩。
+
 ## 节奏切水果
 
 新增 `rhythm-slice/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的音乐驱动切割小游戏，包含：
