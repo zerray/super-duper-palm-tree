@@ -82,6 +82,17 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `magnetic-pinball-duel/index.html` 即可游玩。
 
+## 磁力弹珠双人对战台
+
+新增 `magnetic-marble-duel/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的双人回合制磁力弹珠对战原型，包含：
+
+- 页面加载后立即进入对战，玩家 1 使用 `A / D / W / S / 空格`，玩家 2 使用方向键与 `Enter`
+- 每回合先调整发射角度与力度，再确认发射自己的颜色弹珠
+- 弹珠之间存在碰撞与磁力吸引 / 排斥，靠近时会出现明显轨迹偏转
+- 将自己的弹珠打入对方半场得分洞即可加分，先到 5 分触发胜负结算画面
+
+直接用浏览器打开 `magnetic-marble-duel/index.html` 即可游玩。
+
 ## 合作像素拼图
 
 新增 `pixel-coop-puzzle/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的双人协作像素拼图，包含：

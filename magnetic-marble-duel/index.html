@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>磁力弹珠双人对战台</title>
+  <style>
+    :root {
+      --bg: #08121e;
+      --bg-soft: #12263a;
+      --panel: rgba(9, 18, 31, 0.88);
+      --line: rgba(130, 205, 255, 0.18);
+      --text: #f3f8ff;
+      --muted: #8aa0b9;
+      --p1: #ff6d8a;
+      --p2: #62d4ff;
+      --accent: #ffd56d;
+      --good: #98ffc4;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 18% 18%, rgba(255, 109, 138, 0.15), transparent 24%),
+        radial-gradient(circle at 82% 18%, rgba(98, 212, 255, 0.15), transparent 24%),
+        linear-gradient(180deg, var(--bg-soft), var(--bg) 74%);
+    }
+
+    .app {
+      width: min(1180px, calc(100vw - 24px));
+      margin: 0 auto;
+      padding: 16px 0 24px;
+    }
+
+    .panel,
+    .board {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(14px);
+    }
+
+    .panel {
+      padding: 18px;
+      margin-bottom: 12px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+      gap: 14px;
+    }
+
+    .eyebrow,
+    .label {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 8px 0 10px;
+      font-size: clamp(2.1rem, 5vw, 3.5rem);
+      line-height: 0.96;
+    }
+
+    p {
+      margin: 0;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+
+    .status {
+      margin-top: 12px;
+      min-height: 24px;
+      color: var(--good);
+      font-size: 0.96rem;
+    }
+
+    .grid,
+    .controls {
+      display: grid;
+      gap: 12px;
+    }
+
+    .grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin-top: 14px;
+    }
+
+    .controls {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-content: start;
+    }
+
+    .card {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      min-height: 88px;
+    }
+
+    .card strong {
+      display: block;
+      margin-top: 8px;
+      color: var(--text);
+      font-size: 1.04rem;
+    }
+
+    .p1 {
+      color: var(--p1);
+    }
+
+    .p2 {
+      color: var(--p2);
+    }
+
+    .hint {
+      margin-top: 10px;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font: inherit;
+      font-weight: 700;
+      color: #08121d;
+      background: linear-gradient(135deg, var(--good), var(--accent));
+      cursor: pointer;
+    }
+
+    .secondary {
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .board {
+      position: relative;
+      padding: 12px;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 18px;
+      background:
+        radial-gradient(circle at center, rgba(255, 255, 255, 0.05), transparent 35%),
+        linear-gradient(180deg, #17314b 0%, #09111a 88%);
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 18px;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+    }
+
+    .overlay-card {
+      width: min(420px, calc(100% - 20px));
+      padding: 24px;
+      border-radius: 24px;
+      text-align: center;
+      background: rgba(5, 10, 18, 0.94);
+      border: 1px solid rgba(255, 213, 109, 0.28);
+      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.4);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 160ms ease, transform 160ms ease;
+      pointer-events: none;
+    }
+
+    .overlay-card.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .overlay-card h2 {
+      margin: 0 0 8px;
+      font-size: 1.9rem;
+    }
+
+    .overlay-card p {
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 920px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .grid,
+      .controls {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel">
+      <div class="hero">
+        <div>
+          <p class="eyebrow">Physics Toy</p>
+          <h1>磁力弹珠双人对战台</h1>
+          <p>同屏双人回合制弹珠对战。玩家 1 守下半场，玩家 2 守上半场；轮到自己时先调角度与力度，再把自己的磁力弹珠打进对方半场得分洞。场上的同色弹珠互斥、异色弹珠互吸，轨迹会在靠近其他弹珠时产生可见偏转。</p>
+          <div class="status" id="status">当前回合：玩家 1。A/D 调角度，W/S 调力度，空格确认发射。</div>
+          <div class="hint">先到 5 分者获胜。页面加载后立即进入双人对战模式。</div>
+        </div>
+        <div class="controls">
+          <div class="card">
+            <span class="label">玩家 1</span>
+            <strong class="p1">A / D 调角度，W / S 调力度，空格发射</strong>
+          </div>
+          <div class="card">
+            <span class="label">玩家 2</span>
+            <strong class="p2">← / → 调角度，↑ / ↓ 调力度，Enter 发射</strong>
+          </div>
+          <button id="restart" type="button">重新开始</button>
+          <button id="reset-turn" class="secondary" type="button">重置当前回合</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <span class="label">当前回合</span>
+          <strong id="turn-label">玩家 1 预备</strong>
+        </div>
+        <div class="card">
+          <span class="label">玩家 1 分数</span>
+          <strong class="p1" id="score-p1">0</strong>
+        </div>
+        <div class="card">
+          <span class="label">玩家 2 分数</span>
+          <strong class="p2" id="score-p2">0</strong>
+        </div>
+        <div class="card">
+          <span class="label">目标分数</span>
+          <strong id="goal-score">5</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="board">
+      <canvas id="game" width="980" height="1280" aria-label="磁力弹珠双人对战台画布"></canvas>
+      <div class="overlay">
+        <div class="overlay-card" id="overlay-card">
+          <h2 id="overlay-title">胜负已分</h2>
+          <p id="overlay-copy"></p>
+          <button id="play-again" type="button">再来一局</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const magneticMarbleDuel = (() => {
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      const statusLabel = document.getElementById("status");
+      const turnLabel = document.getElementById("turn-label");
+      const scoreP1Label = document.getElementById("score-p1");
+      const scoreP2Label = document.getElementById("score-p2");
+      const goalScoreLabel = document.getElementById("goal-score");
+      const overlayCard = document.getElementById("overlay-card");
+      const overlayTitle = document.getElementById("overlay-title");
+      const overlayCopy = document.getElementById("overlay-copy");
+      const restartButton = document.getElementById("restart");
+      const resetTurnButton = document.getElementById("reset-turn");
+      const playAgainButton = document.getElementById("play-again");
+
+      const WIDTH = canvas.width;
+      const HEIGHT = canvas.height;
+      const FIXED_DT = 1 / 60;
+      const WIN_SCORE = 5;
+      const MAX_POWER = 920;
+      const MIN_POWER = 280;
+      const FRICTION = 0.992;
+      const WALL_BOUNCE = 0.9;
+      const BUMPER_BOUNCE = 1.02;
+      const MAGNET_RANGE = 210;
+      const MAGNET_STRENGTH = 32000;
+      const TURN_SETTLE_SPEED = 22;
+      const TURN_SETTLE_FRAMES = 34;
+      const launchers = [
+        { x: WIDTH / 2, y: HEIGHT - 120, baseAngle: -Math.PI / 2, minAngle: -Math.PI + 0.34, maxAngle: -0.34 },
+        { x: WIDTH / 2, y: 120, baseAngle: Math.PI / 2, minAngle: 0.34, maxAngle: Math.PI - 0.34 }
+      ];
+      const holeRadius = 42;
+      const scoringHoles = [
+        { x: WIDTH * 0.28, y: 86, owner: 2 },
+        { x: WIDTH * 0.72, y: 86, owner: 2 },
+        { x: WIDTH * 0.28, y: HEIGHT - 86, owner: 1 },
+        { x: WIDTH * 0.72, y: HEIGHT - 86, owner: 1 }
+      ];
+      const bumpers = [
+        { x: WIDTH * 0.33, y: HEIGHT * 0.38, r: 28 },
+        { x: WIDTH * 0.67, y: HEIGHT * 0.38, r: 28 },
+        { x: WIDTH * 0.5, y: HEIGHT * 0.5, r: 34 },
+        { x: WIDTH * 0.33, y: HEIGHT * 0.62, r: 28 },
+        { x: WIDTH * 0.67, y: HEIGHT * 0.62, r: 28 }
+      ];
+      const players = [
+        { id: 1, name: "玩家 1", color: "#ff6d8a", trail: "rgba(255,109,138,0.35)", score: 0, angle: -Math.PI / 2, power: 620 },
+        { id: 2, name: "玩家 2", color: "#62d4ff", trail: "rgba(98,212,255,0.35)", score: 0, angle: Math.PI / 2, power: 620 }
+      ];
+
+      let activePlayer = 0;
+      let phase = "aim";
+      let winner = null;
+      let marbles = [];
+      let pendingTurnMarble = null;
+      let settleFrames = 0;
+      let lastTimestamp = 0;
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function resetRoundState() {
+        marbles = [];
+        pendingTurnMarble = null;
+        settleFrames = 0;
+        phase = "aim";
+        winner = null;
+        activePlayer = 0;
+        players[0].angle = launchers[0].baseAngle;
+        players[1].angle = launchers[1].baseAngle;
+        players[0].power = 620;
+        players[1].power = 620;
+        updateHud();
+        hideOverlay();
+      }
+
+      function restartGame() {
+        players.forEach((player) => {
+          player.score = 0;
+        });
+        resetRoundState();
+      }
+
+      function resetCurrentTurn() {
+        if (winner) {
+          return;
+        }
+        marbles = marbles.filter((marble) => marble.owner !== players[activePlayer].id || marble !== pendingTurnMarble);
+        pendingTurnMarble = null;
+        phase = "aim";
+        settleFrames = 0;
+        updateHud();
+      }
+
+      function updateHud() {
+        const current = players[activePlayer];
+        turnLabel.textContent = winner ? `${winner.name} 胜利` : `${current.name} 回合`;
+        scoreP1Label.textContent = String(players[0].score);
+        scoreP2Label.textContent = String(players[1].score);
+        goalScoreLabel.textContent = String(WIN_SCORE);
+        if (winner) {
+          statusLabel.textContent = `${winner.name} 率先达到 ${WIN_SCORE} 分。按“再来一局”重开。`;
+        } else if (phase === "aim") {
+          const degrees = Math.round((current.angle * 180) / Math.PI);
+          statusLabel.textContent = `${current.name} 调整中。角度 ${degrees}°，力度 ${Math.round(current.power)}。确认后发射。`;
+        } else {
+          statusLabel.textContent = "弹珠运动中，等待碰撞与磁力场结算后切换回合。";
+        }
+      }
+
+      function showOverlay(text) {
+        overlayTitle.textContent = `${winner.name} 获胜`;
+        overlayCopy.textContent = text;
+        overlayCard.classList.add("visible");
+      }
+
+      function hideOverlay() {
+        overlayCard.classList.remove("visible");
+      }
+
+      function spawnMarble(playerIndex) {
+        const player = players[playerIndex];
+        const launcher = launchers[playerIndex];
+        const angle = player.angle;
+        const radius = 15;
+        const muzzle = 28;
+        return {
+          x: launcher.x + Math.cos(angle) * muzzle,
+          y: launcher.y + Math.sin(angle) * muzzle,
+          vx: Math.cos(angle) * player.power,
+          vy: Math.sin(angle) * player.power,
+          radius,
+          owner: player.id,
+          color: player.color,
+          trail: player.trail,
+          history: [],
+          alive: true,
+          justScored: false
+        };
+      }
+
+      function fireTurn() {
+        if (phase !== "aim" || winner) {
+          return;
+        }
+        pendingTurnMarble = spawnMarble(activePlayer);
+        marbles.push(pendingTurnMarble);
+        phase = "sim";
+        settleFrames = 0;
+        updateHud();
+      }
+
+      function switchTurn() {
+        pendingTurnMarble = null;
+        phase = "aim";
+        activePlayer = activePlayer === 0 ? 1 : 0;
+        updateHud();
+      }
+
+      function scorePoint(playerId) {
+        const player = players.find((item) => item.id === playerId);
+        player.score += 1;
+        if (player.score >= WIN_SCORE) {
+          winner = player;
+          phase = "ended";
+          updateHud();
+          showOverlay(`${player.name} 率先达到 ${WIN_SCORE} 分，拿下这张磁力桌。`);
+          return;
+        }
+        switchTurn();
+      }
+
+      function handleScoring() {
+        for (const marble of marbles) {
+          if (!marble.alive || marble.justScored) {
+            continue;
+          }
+          for (const hole of scoringHoles) {
+            const dx = marble.x - hole.x;
+            const dy = marble.y - hole.y;
+            const distance = Math.hypot(dx, dy);
+            if (distance < holeRadius - marble.radius * 0.25) {
+              marble.alive = false;
+              marble.justScored = true;
+              if (hole.owner !== marble.owner) {
+                scorePoint(marble.owner);
+              }
+              break;
+            }
+          }
+          if (winner) {
+            break;
+          }
+        }
+        marbles = marbles.filter((marble) => marble.alive);
+      }
+
+      function applyMagneticForces(dt) {
+        for (let i = 0; i < marbles.length; i += 1) {
+          for (let j = i + 1; j < marbles.length; j += 1) {
+            const a = marbles[i];
+            const b = marbles[j];
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const distanceSq = dx * dx + dy * dy;
+            if (distanceSq < 1) {
+              continue;
+            }
+            const distance = Math.sqrt(distanceSq);
+            if (distance > MAGNET_RANGE) {
+              continue;
+            }
+            const directionX = dx / distance;
+            const directionY = dy / distance;
+            const polarity = a.owner === b.owner ? -1 : 1;
+            const force = (MAGNET_STRENGTH / distanceSq) * polarity;
+            const accelX = directionX * force;
+            const accelY = directionY * force;
+            a.vx += accelX * dt;
+            a.vy += accelY * dt;
+            b.vx -= accelX * dt;
+            b.vy -= accelY * dt;
+          }
+        }
+      }
+
+      function resolveWallCollision(marble) {
+        if (marble.x - marble.radius < 28) {
+          marble.x = 28 + marble.radius;
+          marble.vx = Math.abs(marble.vx) * WALL_BOUNCE;
+        } else if (marble.x + marble.radius > WIDTH - 28) {
+          marble.x = WIDTH - 28 - marble.radius;
+          marble.vx = -Math.abs(marble.vx) * WALL_BOUNCE;
+        }
+
+        if (marble.y - marble.radius < 28) {
+          marble.y = 28 + marble.radius;
+          marble.vy = Math.abs(marble.vy) * WALL_BOUNCE;
+        } else if (marble.y + marble.radius > HEIGHT - 28) {
+          marble.y = HEIGHT - 28 - marble.radius;
+          marble.vy = -Math.abs(marble.vy) * WALL_BOUNCE;
+        }
+      }
+
+      function resolveBumperCollision(marble) {
+        for (const bumper of bumpers) {
+          const dx = marble.x - bumper.x;
+          const dy = marble.y - bumper.y;
+          const distance = Math.hypot(dx, dy);
+          const minDistance = marble.radius + bumper.r;
+          if (distance === 0 || distance >= minDistance) {
+            continue;
+          }
+          const normalX = dx / distance;
+          const normalY = dy / distance;
+          const overlap = minDistance - distance;
+          marble.x += normalX * overlap;
+          marble.y += normalY * overlap;
+          const dot = marble.vx * normalX + marble.vy * normalY;
+          marble.vx -= 2 * dot * normalX;
+          marble.vy -= 2 * dot * normalY;
+          marble.vx *= BUMPER_BOUNCE;
+          marble.vy *= BUMPER_BOUNCE;
+        }
+      }
+
+      function resolveMarbleCollisions() {
+        for (let i = 0; i < marbles.length; i += 1) {
+          for (let j = i + 1; j < marbles.length; j += 1) {
+            const a = marbles[i];
+            const b = marbles[j];
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const distance = Math.hypot(dx, dy);
+            const minDistance = a.radius + b.radius;
+            if (distance === 0 || distance >= minDistance) {
+              continue;
+            }
+            const normalX = dx / distance;
+            const normalY = dy / distance;
+            const overlap = (minDistance - distance) / 2;
+            a.x -= normalX * overlap;
+            a.y -= normalY * overlap;
+            b.x += normalX * overlap;
+            b.y += normalY * overlap;
+
+            const tangentX = -normalY;
+            const tangentY = normalX;
+            const aNormal = a.vx * normalX + a.vy * normalY;
+            const bNormal = b.vx * normalX + b.vy * normalY;
+            const aTangent = a.vx * tangentX + a.vy * tangentY;
+            const bTangent = b.vx * tangentX + b.vy * tangentY;
+
+            a.vx = bNormal * normalX + aTangent * tangentX;
+            a.vy = bNormal * normalY + aTangent * tangentY;
+            b.vx = aNormal * normalX + bTangent * tangentX;
+            b.vy = aNormal * normalY + bTangent * tangentY;
+          }
+        }
+      }
+
+      function updateMarbles(dt) {
+        applyMagneticForces(dt);
+        for (const marble of marbles) {
+          marble.x += marble.vx * dt;
+          marble.y += marble.vy * dt;
+          marble.vx *= FRICTION;
+          marble.vy *= FRICTION;
+          resolveWallCollision(marble);
+          resolveBumperCollision(marble);
+          marble.history.push({ x: marble.x, y: marble.y });
+          if (marble.history.length > 18) {
+            marble.history.shift();
+          }
+        }
+        resolveMarbleCollisions();
+        handleScoring();
+      }
+
+      function checkTurnEnd() {
+        if (winner || phase !== "sim") {
+          return;
+        }
+        if (!marbles.length) {
+          switchTurn();
+          return;
+        }
+        const moving = marbles.some((marble) => Math.hypot(marble.vx, marble.vy) > TURN_SETTLE_SPEED);
+        if (moving) {
+          settleFrames = 0;
+          return;
+        }
+        settleFrames += 1;
+        if (settleFrames >= TURN_SETTLE_FRAMES) {
+          switchTurn();
+        }
+      }
+
+      function drawBoard() {
+        ctx.clearRect(0, 0, WIDTH, HEIGHT);
+        ctx.fillStyle = "#102235";
+        ctx.fillRect(24, 24, WIDTH - 48, HEIGHT - 48);
+
+        ctx.strokeStyle = "rgba(255,255,255,0.12)";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(24, 24, WIDTH - 48, HEIGHT - 48);
+
+        ctx.strokeStyle = "rgba(255,255,255,0.1)";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([12, 12]);
+        ctx.beginPath();
+        ctx.moveTo(60, HEIGHT / 2);
+        ctx.lineTo(WIDTH - 60, HEIGHT / 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        for (const hole of scoringHoles) {
+          ctx.beginPath();
+          ctx.fillStyle = hole.owner === 1 ? "rgba(255,109,138,0.18)" : "rgba(98,212,255,0.18)";
+          ctx.arc(hole.x, hole.y, holeRadius + 14, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.fillStyle = "#03070d";
+          ctx.arc(hole.x, hole.y, holeRadius, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.strokeStyle = hole.owner === 1 ? "rgba(255,109,138,0.7)" : "rgba(98,212,255,0.7)";
+          ctx.lineWidth = 4;
+          ctx.arc(hole.x, hole.y, holeRadius + 4, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        for (const bumper of bumpers) {
+          ctx.beginPath();
+          ctx.fillStyle = "rgba(255,213,109,0.12)";
+          ctx.arc(bumper.x, bumper.y, bumper.r + 12, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.fillStyle = "#1e3145";
+          ctx.arc(bumper.x, bumper.y, bumper.r, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.strokeStyle = "rgba(255,213,109,0.55)";
+          ctx.lineWidth = 3;
+          ctx.arc(bumper.x, bumper.y, bumper.r, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+
+      function drawLaunchers() {
+        players.forEach((player, index) => {
+          const launcher = launchers[index];
+          const isActive = activePlayer === index && phase === "aim" && !winner;
+          ctx.beginPath();
+          ctx.fillStyle = isActive ? player.color : "rgba(255,255,255,0.18)";
+          ctx.arc(launcher.x, launcher.y, 18, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.strokeStyle = player.color;
+          ctx.lineWidth = 8;
+          ctx.lineCap = "round";
+          ctx.moveTo(launcher.x, launcher.y);
+          ctx.lineTo(
+            launcher.x + Math.cos(player.angle) * (38 + (player.power / MAX_POWER) * 46),
+            launcher.y + Math.sin(player.angle) * (38 + (player.power / MAX_POWER) * 46)
+          );
+          ctx.stroke();
+        });
+      }
+
+      function drawMarbles() {
+        for (const marble of marbles) {
+          if (marble.history.length > 1) {
+            ctx.beginPath();
+            ctx.strokeStyle = marble.trail;
+            ctx.lineWidth = 5;
+            for (let i = 0; i < marble.history.length; i += 1) {
+              const point = marble.history[i];
+              if (i === 0) {
+                ctx.moveTo(point.x, point.y);
+              } else {
+                ctx.lineTo(point.x, point.y);
+              }
+            }
+            ctx.stroke();
+          }
+
+          ctx.beginPath();
+          ctx.fillStyle = marble.color;
+          ctx.arc(marble.x, marble.y, marble.radius, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.fillStyle = "rgba(255,255,255,0.35)";
+          ctx.arc(marble.x - 4, marble.y - 5, marble.radius * 0.34, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      function drawMagnetArcs() {
+        for (let i = 0; i < marbles.length; i += 1) {
+          for (let j = i + 1; j < marbles.length; j += 1) {
+            const a = marbles[i];
+            const b = marbles[j];
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const distance = Math.hypot(dx, dy);
+            if (distance > MAGNET_RANGE) {
+              continue;
+            }
+            ctx.beginPath();
+            ctx.strokeStyle = a.owner === b.owner ? "rgba(255,109,138,0.16)" : "rgba(128,255,220,0.16)";
+            ctx.lineWidth = 2;
+            ctx.moveTo(a.x, a.y);
+            ctx.quadraticCurveTo((a.x + b.x) / 2 + dy * 0.1, (a.y + b.y) / 2 - dx * 0.1, b.x, b.y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      function drawHudText() {
+        ctx.fillStyle = "rgba(255,255,255,0.84)";
+        ctx.font = '700 24px "Segoe UI", sans-serif';
+        ctx.textAlign = "left";
+        ctx.fillText(`P2 目标洞`, 48, 46);
+        ctx.fillText(`P1 目标洞`, 48, HEIGHT - 32);
+
+        const player = players[activePlayer];
+        if (phase === "aim" && !winner) {
+          ctx.textAlign = "center";
+          ctx.fillStyle = player.color;
+          ctx.font = '700 28px "Segoe UI", sans-serif';
+          ctx.fillText(`${player.name} 瞄准中`, WIDTH / 2, HEIGHT / 2 - 24);
+          ctx.fillStyle = "rgba(255,255,255,0.8)";
+          ctx.font = '500 22px "Segoe UI", sans-serif';
+          ctx.fillText(`角度 ${Math.round((player.angle * 180) / Math.PI)}° | 力度 ${Math.round(player.power)}`, WIDTH / 2, HEIGHT / 2 + 12);
+        }
+      }
+
+      function render() {
+        drawBoard();
+        drawMagnetArcs();
+        drawLaunchers();
+        drawMarbles();
+        drawHudText();
+      }
+
+      function step(dt) {
+        if (phase === "sim") {
+          updateMarbles(dt);
+          checkTurnEnd();
+          if (!winner) {
+            updateHud();
+          }
+        }
+      }
+
+      function frame(timestamp) {
+        if (!lastTimestamp) {
+          lastTimestamp = timestamp;
+        }
+        let delta = (timestamp - lastTimestamp) / 1000;
+        lastTimestamp = timestamp;
+        delta = Math.min(delta, 0.05);
+        while (delta > 0) {
+          const stepSize = Math.min(delta, FIXED_DT);
+          step(stepSize);
+          delta -= stepSize;
+        }
+        render();
+        requestAnimationFrame(frame);
+      }
+
+      function adjustActivePlayer(changeAngle, changePower) {
+        if (phase !== "aim" || winner) {
+          return;
+        }
+        const player = players[activePlayer];
+        const launcher = launchers[activePlayer];
+        player.angle = clamp(player.angle + changeAngle, launcher.minAngle, launcher.maxAngle);
+        player.power = clamp(player.power + changePower, MIN_POWER, MAX_POWER);
+        updateHud();
+      }
+
+      function onKeyDown(event) {
+        if (event.repeat) {
+          return;
+        }
+        if (winner && (event.code === "Space" || event.code === "Enter")) {
+          event.preventDefault();
+          restartGame();
+          return;
+        }
+
+        if (activePlayer === 0) {
+          if (event.code === "KeyA") {
+            adjustActivePlayer(-0.12, 0);
+          } else if (event.code === "KeyD") {
+            adjustActivePlayer(0.12, 0);
+          } else if (event.code === "KeyW") {
+            adjustActivePlayer(0, 45);
+          } else if (event.code === "KeyS") {
+            adjustActivePlayer(0, -45);
+          } else if (event.code === "Space") {
+            event.preventDefault();
+            fireTurn();
+          }
+        } else if (activePlayer === 1) {
+          if (event.code === "ArrowLeft") {
+            event.preventDefault();
+            adjustActivePlayer(0.12, 0);
+          } else if (event.code === "ArrowRight") {
+            event.preventDefault();
+            adjustActivePlayer(-0.12, 0);
+          } else if (event.code === "ArrowUp") {
+            event.preventDefault();
+            adjustActivePlayer(0, 45);
+          } else if (event.code === "ArrowDown") {
+            event.preventDefault();
+            adjustActivePlayer(0, -45);
+          } else if (event.code === "Enter") {
+            event.preventDefault();
+            fireTurn();
+          }
+        }
+      }
+
+      restartButton.addEventListener("click", restartGame);
+      resetTurnButton.addEventListener("click", resetCurrentTurn);
+      playAgainButton.addEventListener("click", restartGame);
+      window.addEventListener("keydown", onKeyDown);
+
+      restartGame();
+      requestAnimationFrame(frame);
+    })();
+  </script>
+</body>
+</html>
