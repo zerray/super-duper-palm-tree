@@ -82,6 +82,16 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `magnetic-pinball-duel/index.html` 即可游玩。
 
+## 磁力弹珠台：双人同屏对撞
+
+新增 `magnetic-pinball-clash/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的双人同屏磁力弹珠台原型，包含：
+
+- 玩家 1 使用 `A / D / W / S`，玩家 2 使用方向键控制各自一端的发射器角度、发射与弹珠类型切换
+- 正极、负极、中性三种弹珠同场碰撞，正负相吸、同极相斥，并用力线与粒子可视化磁力效果
+- 弹珠穿过对方底线即可得分，60 秒倒计时结束后即时显示胜负结果并支持重开
+
+直接用浏览器打开 `magnetic-pinball-clash/index.html` 即可游玩。
+
 ## 磁力弹球对战：同屏双人磁铁弹球竞技
 
 新增 `magnetic-pinball-versus/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的双人同屏磁力挡板对战原型，包含：
