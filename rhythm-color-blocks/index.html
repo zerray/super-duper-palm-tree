@@ -3,24 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>节奏色块接力</title>
+  <title>节奏色块记忆挑战</title>
   <style>
     :root {
-      --bg: #08111f;
-      --panel: rgba(8, 16, 30, 0.82);
-      --panel-border: rgba(255, 255, 255, 0.08);
-      --text: #edf4ff;
-      --muted: #9ab0cf;
-      --accent: #ffd36a;
-      --danger: rgba(10, 12, 20, 0.56);
-      --glow: rgba(255, 211, 106, 0.18);
-      --hit-line: rgba(255, 255, 255, 0.18);
-      --lane-red: #ff5f72;
-      --lane-blue: #4ea0ff;
-      --lane-green: #59df9f;
-      --lane-yellow: #ffd166;
-      --edge-alpha: 0;
-      --danger-alpha: 0;
+      --bg: #050816;
+      --panel: rgba(10, 16, 34, 0.88);
+      --line: rgba(255, 255, 255, 0.08);
+      --text: #eff4ff;
+      --muted: #98a9d2;
+      --accent: #74f8ff;
+      --danger: #ff557c;
+      --success: #72ffb6;
+      --shadow: 0 26px 70px rgba(0, 0, 0, 0.36);
     }
 
     * {
@@ -30,12 +24,20 @@
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: "Segoe UI", "PingFang SC", sans-serif;
+      font-family: "Trebuchet MS", "PingFang SC", sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at 15% 15%, rgba(78, 160, 255, 0.2), transparent 28%),
-        radial-gradient(circle at 85% 18%, rgba(255, 95, 114, 0.18), transparent 24%),
-        linear-gradient(180deg, #040913 0%, #0a1628 50%, #070d18 100%);
+        radial-gradient(circle at 18% 16%, rgba(116, 248, 255, 0.15), transparent 24%),
+        radial-gradient(circle at 82% 20%, rgba(255, 85, 124, 0.14), transparent 22%),
+        radial-gradient(circle at 50% 100%, rgba(113, 102, 255, 0.18), transparent 30%),
+        linear-gradient(180deg, #040611, #0a1227 45%, #050816);
+      transition: background 160ms ease;
+    }
+
+    body.fail-flash {
+      background:
+        radial-gradient(circle at 50% 16%, rgba(255, 85, 124, 0.24), transparent 30%),
+        linear-gradient(180deg, #18040a, #1f0a14 44%, #09040a);
     }
 
     button {
@@ -45,46 +47,36 @@
     }
 
     .app {
-      width: min(1180px, calc(100vw - 24px));
+      width: min(980px, calc(100vw - 24px));
       margin: 0 auto;
-      padding: 18px 0 28px;
+      padding: 20px 0 28px;
       display: grid;
       gap: 16px;
     }
 
     .panel {
-      position: relative;
-      background: var(--panel);
-      border: 1px solid var(--panel-border);
       border-radius: 28px;
-      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: var(--shadow);
       overflow: hidden;
-    }
-
-    .panel::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      pointer-events: none;
-      box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.03),
-        0 0 0 2px rgba(255, 255, 255, 0.02),
-        0 0 44px rgba(255, 211, 106, var(--edge-alpha));
+      backdrop-filter: blur(10px);
     }
 
     .hero {
       padding: 24px;
       display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+      grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.95fr);
       gap: 16px;
     }
 
-    .eyebrow {
+    .eyebrow,
+    .mini {
+      margin: 0;
       color: var(--accent);
-      letter-spacing: 0.18em;
+      font-size: 0.8rem;
       text-transform: uppercase;
-      font-size: 0.78rem;
+      letter-spacing: 0.18em;
     }
 
     h1,
@@ -94,14 +86,15 @@
     }
 
     h1 {
-      font-size: clamp(2.8rem, 7vw, 5.4rem);
-      line-height: 0.92;
-      letter-spacing: -0.08em;
-      margin-top: 6px;
+      margin-top: 8px;
+      font-size: clamp(2.7rem, 6.5vw, 5rem);
+      line-height: 0.94;
+      letter-spacing: -0.07em;
     }
 
     .lede,
-    .muted {
+    .muted,
+    .overlay-copy {
       color: var(--muted);
       line-height: 1.65;
     }
@@ -109,55 +102,38 @@
     .hero-copy,
     .hero-side,
     .board-wrap,
-    .results {
+    .overlay-card {
       display: grid;
       gap: 14px;
     }
 
-    .stat-grid,
-    .controls,
-    .score-grid {
+    .stats,
+    .level-preview {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 10px;
     }
 
     .stat,
-    .chip,
-    .results,
-    .legend {
+    .card,
+    .chip {
       padding: 14px 16px;
       border-radius: 20px;
       border: 1px solid rgba(255, 255, 255, 0.08);
       background: rgba(255, 255, 255, 0.04);
     }
 
-    .stat-label,
-    .chip-label {
+    .label {
       color: var(--muted);
-      font-size: 0.84rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
 
-    .stat-value {
+    .value {
       margin-top: 6px;
-      font-size: 1.45rem;
+      font-size: 1.4rem;
       font-weight: 700;
-    }
-
-    .legend-row,
-    .hud {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .chip {
-      min-width: 120px;
-    }
-
-    .lane-key {
-      font-weight: 700;
-      color: var(--text);
     }
 
     .button-row {
@@ -172,263 +148,259 @@
       border-radius: 999px;
       border: 1px solid rgba(255, 255, 255, 0.12);
       background: rgba(255, 255, 255, 0.06);
-      transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+      transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
     }
 
     .button:hover,
     .button:focus-visible {
       transform: translateY(-1px);
-      border-color: rgba(255, 211, 106, 0.45);
-      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
+      border-color: rgba(116, 248, 255, 0.48);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
       outline: none;
     }
 
     .button.primary {
-      color: #111522;
+      color: #06111b;
       border: 0;
       font-weight: 700;
-      background: linear-gradient(180deg, #ffe58f 0%, #ffbb5e 100%);
+      background: linear-gradient(180deg, #96fff5, #59bfff);
+    }
+
+    .button:disabled {
+      opacity: 0.45;
+      cursor: default;
+      transform: none;
+      box-shadow: none;
     }
 
     .board-wrap {
       padding: 18px;
     }
 
-    .status-bar {
+    .status-row {
       display: flex;
-      justify-content: space-between;
-      gap: 10px;
       flex-wrap: wrap;
+      justify-content: space-between;
       align-items: center;
+      gap: 10px;
+    }
+
+    .pill {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--muted);
     }
 
     .progress {
-      position: relative;
       height: 12px;
-      border-radius: 999px;
       overflow: hidden;
+      border-radius: 999px;
       border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.06);
     }
 
     .progress-fill {
-      position: absolute;
-      inset: 0 auto 0 0;
+      height: 100%;
       width: 0;
-      background: linear-gradient(90deg, #59df9f, #ffd166, #ff5f72);
+      background: linear-gradient(90deg, #64ffba, #74f8ff, #ff6c90);
+      transition: width 180ms ease;
     }
 
-    .stage {
+    .board-shell {
       position: relative;
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
-      min-height: 640px;
-    }
-
-    .playfield {
-      position: relative;
+      min-height: 560px;
+      padding: 18px;
       border-radius: 26px;
-      overflow: hidden;
       border: 1px solid rgba(255, 255, 255, 0.08);
       background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 18%),
-        linear-gradient(180deg, rgba(5, 10, 18, 0.8), rgba(7, 16, 28, 0.92));
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 18%),
+        linear-gradient(180deg, rgba(9, 15, 30, 0.95), rgba(7, 12, 25, 0.96));
+      overflow: hidden;
     }
 
-    .playfield::before {
+    .board-shell::before {
       content: "";
       position: absolute;
       inset: 0;
-      background: linear-gradient(180deg, transparent 0%, transparent 72%, var(--danger) 100%);
-      opacity: var(--danger-alpha);
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 28px 28px;
+      opacity: 0.22;
       pointer-events: none;
-      transition: opacity 160ms ease;
     }
 
-    .playfield-header {
+    .board {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 16px;
+      z-index: 1;
+    }
+
+    .pad {
+      position: relative;
+      min-height: 120px;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.05);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+        0 16px 28px rgba(0, 0, 0, 0.26);
+      overflow: hidden;
+      transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+    }
+
+    .pad::before,
+    .pad::after {
+      content: "";
       position: absolute;
-      inset: 0 0 auto 0;
-      padding: 16px 18px 12px;
+      inset: 0;
+      pointer-events: none;
+      transition: opacity 120ms ease, transform 120ms ease;
+    }
+
+    .pad::before {
+      background: radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.32), transparent 34%);
+      opacity: 0.65;
+    }
+
+    .pad::after {
+      opacity: 0;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2) inset, 0 0 28px currentColor;
+    }
+
+    .pad:hover,
+    .pad:focus-visible {
+      transform: translateY(-2px);
+      filter: brightness(1.08);
+      outline: none;
+    }
+
+    .pad.active {
+      transform: scale(1.03);
+      border-color: rgba(255, 255, 255, 0.5);
+      box-shadow: 0 0 36px color-mix(in srgb, var(--tile) 72%, white 28%);
+    }
+
+    .pad.active::after,
+    .pad.correct::after,
+    .pad.wrong::after {
+      opacity: 1;
+    }
+
+    .pad.correct::after {
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2) inset, 0 0 30px rgba(114, 255, 182, 0.9);
+    }
+
+    .pad.wrong::after {
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2) inset, 0 0 34px rgba(255, 85, 124, 0.95);
+    }
+
+    .pad[disabled] {
+      cursor: default;
+    }
+
+    .pad-content {
+      position: absolute;
+      inset: auto 14px 14px 14px;
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      z-index: 2;
-      background: linear-gradient(180deg, rgba(5, 10, 18, 0.68), transparent);
-    }
-
-    .playfield-label {
-      font-size: 1.05rem;
-      font-weight: 700;
-    }
-
-    .lanes {
-      position: absolute;
-      inset: 0;
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: end;
       gap: 10px;
-      padding: 68px 14px 16px;
+      z-index: 1;
     }
 
-    .lane {
-      position: relative;
-      overflow: hidden;
-      border-radius: 20px;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-    }
-
-    .lane::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      opacity: 0.18;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent 32%);
-    }
-
-    .lane-hitline {
-      position: absolute;
-      left: 10px;
-      right: 10px;
-      bottom: 92px;
-      height: 4px;
-      border-radius: 999px;
-      background: var(--hit-line);
-      box-shadow: 0 0 18px rgba(255, 255, 255, 0.16);
-    }
-
-    .lane-keycap {
-      position: absolute;
-      left: 14px;
-      right: 14px;
-      bottom: 18px;
-      min-height: 54px;
-      border-radius: 16px;
-      display: grid;
-      place-items: center;
-      font-size: 1.1rem;
-      font-weight: 800;
-      color: #09111f;
-      transform: scale(1);
-      transition: transform 80ms ease, filter 80ms ease;
-    }
-
-    .lane.active .lane-keycap {
-      transform: scale(0.96);
-      filter: brightness(1.12);
-    }
-
-    .lane-note {
-      position: absolute;
-      left: 12px;
-      right: 12px;
-      height: 48px;
-      border-radius: 16px;
-      border: 2px solid rgba(255, 255, 255, 0.14);
-      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
-      transform: translateY(0);
-      will-change: transform;
-    }
-
-    .feedback {
-      min-height: 26px;
+    .pad-name {
+      font-size: 1rem;
       font-weight: 700;
-      letter-spacing: 0.06em;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
     }
 
-    .feedback.perfect {
-      color: #7ffff0;
+    .pad-note {
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.82);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
     }
 
-    .feedback.good {
-      color: #ffd36a;
+    .pad-core-mark,
+    .pad-fake-mark {
+      position: absolute;
+      inset: 12px 12px auto auto;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: rgba(9, 15, 30, 0.38);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      backdrop-filter: blur(4px);
     }
 
-    .feedback.miss {
-      color: #ff7d8d;
+    .pad-fake-mark {
+      color: rgba(255, 255, 255, 0.75);
     }
 
     .overlay {
       position: absolute;
       inset: 0;
-      display: grid;
-      place-items: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       padding: 18px;
-      background: rgba(4, 10, 18, 0.68);
-      z-index: 3;
+      background: rgba(3, 6, 14, 0.52);
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 160ms ease;
     }
 
-    .overlay.hidden {
-      display: none;
+    .overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
     }
 
     .overlay-card {
-      width: min(560px, 100%);
-      padding: 22px;
-      border-radius: 24px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(6, 14, 25, 0.94);
-      display: grid;
-      gap: 14px;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.34);
+      width: min(420px, 100%);
+      padding: 20px;
+      border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(8, 13, 28, 0.92);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.32);
+      text-align: center;
     }
 
-    .level-list {
-      display: grid;
+    .overlay-title {
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+
+    .feedback {
+      display: flex;
+      flex-wrap: wrap;
       gap: 10px;
     }
 
-    .level-card {
-      padding: 14px 16px;
-      border-radius: 18px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(255, 255, 255, 0.04);
+    .footer-note {
+      color: var(--muted);
+      font-size: 0.92rem;
     }
 
-    .results {
-      padding: 18px;
-    }
-
-    .grade {
-      font-size: clamp(3rem, 10vw, 5rem);
-      line-height: 1;
-      font-weight: 800;
-      color: var(--accent);
-    }
-
-    .results.hidden {
-      display: none;
-    }
-
-    @media (max-width: 900px) {
-      .hero,
-      .stage {
+    @media (max-width: 760px) {
+      .hero {
         grid-template-columns: 1fr;
       }
 
-      .stat-grid,
-      .score-grid {
+      .stats,
+      .level-preview {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
-    }
 
-    @media (max-width: 640px) {
-      .app {
-        width: min(100vw - 12px, 100%);
-      }
-
-      .hero,
-      .board-wrap {
-        padding: 14px;
-      }
-
-      .stage {
-        min-height: 900px;
-      }
-
-      .playfield {
-        min-height: 420px;
+      .board-shell {
+        min-height: 620px;
       }
     }
   </style>
@@ -437,786 +409,510 @@
   <main class="app">
     <section class="panel hero">
       <div class="hero-copy">
-        <div class="eyebrow">party rhythm co-op</div>
-        <h1>节奏色块接力</h1>
-        <p class="lede">
-          热座双人合作节奏小游戏。左侧玩家用 <strong>D / F</strong>，右侧玩家用 <strong>J / K</strong>，
-          在色块落到底线时协作接住。命中会叠加背景音轨，失误过多会剥离音轨并让画面变暗。
-        </p>
-        <div class="stat-grid">
+        <p class="eyebrow">Arcade / Rhythm Memory</p>
+        <div>
+          <h1>节奏色块记忆挑战</h1>
+          <p class="lede">页面打开后直接进入第一关。系统会按节拍闪烁一串霓虹色块，你要在播放结束后用相同顺序和节奏点击复现。第 4 关开始会混入颜色近似的干扰块，记住真正出现过的旋律。</p>
+        </div>
+        <div class="stats">
           <div class="stat">
-            <div class="stat-label">判定</div>
-            <div class="stat-value">Perfect / Good / Miss</div>
+            <div class="label">当前关卡</div>
+            <div class="value" id="levelValue">1 / 10</div>
           </div>
           <div class="stat">
-            <div class="stat-label">音频</div>
-            <div class="stat-value">Web Audio API + GainNode</div>
+            <div class="label">最高记录</div>
+            <div class="value" id="bestValue">1</div>
           </div>
           <div class="stat">
-            <div class="stat-label">动画</div>
-            <div class="stat-value">requestAnimationFrame</div>
+            <div class="label">阶段</div>
+            <div class="value" id="phaseValue">准备中</div>
           </div>
           <div class="stat">
-            <div class="stat-label">关卡</div>
-            <div class="stat-value">3 段递增接力</div>
+            <div class="label">节拍窗口</div>
+            <div class="value" id="tempoValue">760ms</div>
           </div>
         </div>
       </div>
-      <aside class="hero-side">
-        <div class="legend">
-          <h2>双人分工</h2>
-          <div class="legend-row">
-            <div class="chip">
-              <div class="chip-label">左半屏</div>
-              <div><span class="lane-key">D</span> 红色, <span class="lane-key">F</span> 蓝色</div>
-            </div>
-            <div class="chip">
-              <div class="chip-label">右半屏</div>
-              <div><span class="lane-key">J</span> 绿色, <span class="lane-key">K</span> 黄色</div>
-            </div>
-          </div>
-          <p class="muted">
-            每层连击都会提高边缘光效并淡入一层循环音轨。连续 3 次 Miss 会降一层音轨，并触发暗场惩罚。
-          </p>
+      <div class="hero-side">
+        <div class="card">
+          <p class="mini">规则</p>
+          <p class="muted">正确点击会播放对应音高并闪亮确认。若顺序错、点到干扰块，或节拍偏差超出容差，就会立即失败。失败后可重试当前关卡，或从第 1 关重新开始。</p>
         </div>
+        <div class="level-preview" id="levelPreview"></div>
         <div class="button-row">
-          <button id="startButton" class="button primary" type="button">开始第 1 关</button>
-          <button id="restartButton" class="button" type="button">重置整轮</button>
+          <button class="button" id="retryButton" type="button" disabled>重试本关</button>
+          <button class="button primary" id="restartButton" type="button">重新开始</button>
         </div>
-      </aside>
+      </div>
     </section>
 
     <section class="panel board-wrap">
-      <div class="status-bar">
-        <div class="hud">
-          <div class="chip"><span class="chip-label">关卡</span><div id="levelLabel">第 1 / 3 关</div></div>
-          <div class="chip"><span class="chip-label">总分</span><div id="scoreLabel">0</div></div>
-          <div class="chip"><span class="chip-label">连击</span><div id="comboLabel">0</div></div>
-          <div class="chip"><span class="chip-label">音轨层</span><div id="layerLabel">1 / 4</div></div>
-        </div>
-        <div class="feedback" id="feedbackLabel">按开始后再按任意键以激活音频。</div>
+      <div class="status-row">
+        <div class="pill" id="statusText">正在校准霓虹节拍...</div>
+        <div class="pill" id="timingText">点击节奏: 等待开局</div>
       </div>
       <div class="progress" aria-hidden="true">
         <div class="progress-fill" id="progressFill"></div>
       </div>
-      <div class="stage" id="stage">
-        <section class="playfield" id="leftField">
-          <div class="playfield-header">
-            <div class="playfield-label">玩家 1</div>
-            <div class="muted">负责左半屏</div>
-          </div>
-          <div class="lanes" id="leftLanes"></div>
-        </section>
-        <section class="playfield" id="rightField">
-          <div class="playfield-header">
-            <div class="playfield-label">玩家 2</div>
-            <div class="muted">负责右半屏</div>
-          </div>
-          <div class="lanes" id="rightLanes"></div>
-        </section>
-        <div class="overlay" id="overlay">
+      <div class="board-shell">
+        <div class="board" id="board"></div>
+        <div class="overlay visible" id="overlay">
           <div class="overlay-card">
-            <div class="eyebrow">co-op briefing</div>
-            <h2 id="overlayTitle">协作接住第 1 段节拍</h2>
-            <p class="muted" id="overlayText">
-              命中目标分就能过关。第 1 关只有 2 种颜色，第 3 关会启用 4 条轨道并加快下落速度。
-            </p>
-            <div class="level-list" id="levelList"></div>
-            <div class="button-row">
-              <button id="overlayButton" class="button primary" type="button">开始</button>
-            </div>
+            <div class="overlay-title" id="overlayTitle">第 1 关</div>
+            <p class="overlay-copy" id="overlayCopy">系统正在装填第一个节拍序列。</p>
+            <div class="feedback" id="overlayMeta"></div>
           </div>
         </div>
       </div>
-    </section>
-
-    <section class="panel results hidden" id="resultsPanel">
-      <div class="eyebrow">final grade</div>
-      <div class="grade" id="gradeLabel">C</div>
-      <div class="score-grid">
-        <div class="stat">
-          <div class="stat-label">总分 / 满分</div>
-          <div class="stat-value" id="finalScoreLabel">0 / 0</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">命中率</div>
-          <div class="stat-value" id="accuracyLabel">0%</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">最高连击</div>
-          <div class="stat-value" id="maxComboLabel">0</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">评价</div>
-          <div class="stat-value" id="remarkLabel">继续磨合</div>
-        </div>
-      </div>
+      <p class="footer-note">音效使用 Web Audio API 实时合成，无需加载音频资源。首次点击页面任意位置后，浏览器会解锁音频上下文。</p>
     </section>
   </main>
 
   <script>
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    const PERFECT_WINDOW = 0.09;
-    const GOOD_WINDOW = 0.18;
-    const MISS_STREAK_THRESHOLD = 3;
-    const COMBO_LAYER_THRESHOLDS = [0, 5, 10, 16];
-    const TRACK_NAMES = ["Kick", "Bass", "Chord", "Hat"];
-    const LANES = [
-      { id: 0, side: "left", key: "KeyD", label: "D", color: "#ff5f72", accent: "rgba(255,95,114,0.22)" },
-      { id: 1, side: "left", key: "KeyF", label: "F", color: "#4ea0ff", accent: "rgba(78,160,255,0.22)" },
-      { id: 2, side: "right", key: "KeyJ", label: "J", color: "#59df9f", accent: "rgba(89,223,159,0.22)" },
-      { id: 3, side: "right", key: "KeyK", label: "K", color: "#ffd166", accent: "rgba(255,209,102,0.24)" }
-    ];
+    const STORAGE_KEY = "rhythm-color-blocks-best";
     const LEVELS = [
-      { name: "暖场接力", bpm: 94, speed: 250, colors: [0, 2], beats: 24 },
-      { name: "同步推进", bpm: 108, speed: 310, colors: [0, 1, 2], beats: 32 },
-      { name: "满屏合奏", bpm: 124, speed: 365, colors: [0, 1, 2, 3], beats: 40 }
+      { blockCount: 3, interval: 760, distractors: 0, sequenceLength: 4 },
+      { blockCount: 3, interval: 700, distractors: 0, sequenceLength: 5 },
+      { blockCount: 4, interval: 640, distractors: 0, sequenceLength: 5 },
+      { blockCount: 4, interval: 600, distractors: 1, sequenceLength: 6 },
+      { blockCount: 5, interval: 560, distractors: 1, sequenceLength: 6 },
+      { blockCount: 5, interval: 520, distractors: 1, sequenceLength: 7 },
+      { blockCount: 6, interval: 490, distractors: 1, sequenceLength: 7 },
+      { blockCount: 7, interval: 460, distractors: 2, sequenceLength: 8 },
+      { blockCount: 8, interval: 430, distractors: 2, sequenceLength: 9 },
+      { blockCount: 8, interval: 400, distractors: 2, sequenceLength: 10 }
     ];
 
-    const laneRootMap = {
-      left: document.getElementById("leftLanes"),
-      right: document.getElementById("rightLanes")
-    };
+    const BASE_PADS = [
+      { name: "Cyan", hue: 190, frequency: 261.63 },
+      { name: "Mint", hue: 148, frequency: 293.66 },
+      { name: "Gold", hue: 42, frequency: 329.63 },
+      { name: "Coral", hue: 8, frequency: 349.23 },
+      { name: "Rose", hue: 330, frequency: 392.0 },
+      { name: "Violet", hue: 278, frequency: 440.0 },
+      { name: "Azure", hue: 224, frequency: 493.88 },
+      { name: "Lime", hue: 94, frequency: 523.25 }
+    ];
 
-    const stageEl = document.getElementById("stage");
-    const overlayEl = document.getElementById("overlay");
-    const overlayTitleEl = document.getElementById("overlayTitle");
-    const overlayTextEl = document.getElementById("overlayText");
-    const overlayButtonEl = document.getElementById("overlayButton");
-    const levelListEl = document.getElementById("levelList");
-    const startButtonEl = document.getElementById("startButton");
-    const restartButtonEl = document.getElementById("restartButton");
-    const resultsPanelEl = document.getElementById("resultsPanel");
-    const levelLabelEl = document.getElementById("levelLabel");
-    const scoreLabelEl = document.getElementById("scoreLabel");
-    const comboLabelEl = document.getElementById("comboLabel");
-    const layerLabelEl = document.getElementById("layerLabel");
-    const feedbackLabelEl = document.getElementById("feedbackLabel");
-    const progressFillEl = document.getElementById("progressFill");
-    const gradeLabelEl = document.getElementById("gradeLabel");
-    const finalScoreLabelEl = document.getElementById("finalScoreLabel");
-    const accuracyLabelEl = document.getElementById("accuracyLabel");
-    const maxComboLabelEl = document.getElementById("maxComboLabel");
-    const remarkLabelEl = document.getElementById("remarkLabel");
-
-    const laneEls = new Map();
-    const noteEls = new Map();
+    const TIMING_TOLERANCE_MS = 180;
+    const TIMING_TOLERANCE_RATIO = 0.28;
+    const FLASH_DURATION_MS = 260;
+    const START_DELAY_MS = 900;
 
     const state = {
-      levelIndex: 0,
-      running: false,
-      started: false,
-      startTime: 0,
-      lastFrame: 0,
-      score: 0,
-      maxScore: 0,
-      combo: 0,
-      maxCombo: 0,
-      hitCount: 0,
-      totalNotes: 0,
-      noteIndex: 0,
-      processedNotes: 0,
-      missStreak: 0,
-      currentLayers: 1,
-      notes: [],
-      rafId: 0
+      currentLevel: 0,
+      bestLevel: clamp(Number(localStorage.getItem(STORAGE_KEY) || 1), 1, LEVELS.length),
+      blocks: [],
+      sequence: [],
+      status: "boot",
+      awaitingIndex: 0,
+      inputStartAt: 0,
+      timerIds: [],
+      inputUnlocked: false,
+      audioContext: null,
+      failedLevel: null
     };
 
-    const audioState = {
-      ctx: null,
-      master: null,
-      beatInterval: 0,
-      schedulerTimer: 0,
-      nextBeatTime: 0,
-      layerGains: [],
-      layers: []
-    };
+    const board = document.getElementById("board");
+    const overlay = document.getElementById("overlay");
+    const overlayTitle = document.getElementById("overlayTitle");
+    const overlayCopy = document.getElementById("overlayCopy");
+    const overlayMeta = document.getElementById("overlayMeta");
+    const levelValue = document.getElementById("levelValue");
+    const bestValue = document.getElementById("bestValue");
+    const phaseValue = document.getElementById("phaseValue");
+    const tempoValue = document.getElementById("tempoValue");
+    const statusText = document.getElementById("statusText");
+    const timingText = document.getElementById("timingText");
+    const progressFill = document.getElementById("progressFill");
+    const levelPreview = document.getElementById("levelPreview");
+    const retryButton = document.getElementById("retryButton");
+    const restartButton = document.getElementById("restartButton");
 
-    function buildLanes() {
-      LANES.forEach((lane) => {
-        const laneEl = document.createElement("div");
-        laneEl.className = "lane";
-        laneEl.style.background = `linear-gradient(180deg, ${lane.accent}, rgba(255,255,255,0.03))`;
-        laneEl.dataset.laneId = String(lane.id);
-        laneEl.innerHTML = `
-          <div class="lane-hitline"></div>
-          <div class="lane-keycap" style="background:${lane.color}">${lane.label}</div>
-        `;
-        laneRootMap[lane.side].appendChild(laneEl);
-        laneEls.set(lane.id, laneEl);
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function getLevelConfig(index) {
+      return LEVELS[index];
+    }
+
+    function updateBestLevel(levelNumber) {
+      if (levelNumber > state.bestLevel) {
+        state.bestLevel = levelNumber;
+        localStorage.setItem(STORAGE_KEY, String(levelNumber));
+      }
+      bestValue.textContent = String(state.bestLevel);
+    }
+
+    function ensureAudio() {
+      const AudioCtor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtor) {
+        return null;
+      }
+      if (!state.audioContext) {
+        state.audioContext = new AudioCtor();
+      }
+      if (state.audioContext.state === "suspended") {
+        state.audioContext.resume();
+      }
+      state.inputUnlocked = true;
+      return state.audioContext;
+    }
+
+    function playTone(frequency, type = "sine", duration = 0.2, volume = 0.05) {
+      const context = ensureAudio();
+      if (!context) {
+        return;
+      }
+      const now = context.currentTime;
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, now);
+      gainNode.gain.setValueAtTime(0.0001, now);
+      gainNode.gain.exponentialRampToValueAtTime(volume, now + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+      oscillator.start(now);
+      oscillator.stop(now + duration + 0.02);
+    }
+
+    function playErrorSound() {
+      const context = ensureAudio();
+      if (!context) {
+        return;
+      }
+      const now = context.currentTime;
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+      oscillator.type = "sawtooth";
+      oscillator.frequency.setValueAtTime(190, now);
+      oscillator.frequency.exponentialRampToValueAtTime(90, now + 0.26);
+      gainNode.gain.setValueAtTime(0.0001, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.08, now + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+      oscillator.start(now);
+      oscillator.stop(now + 0.3);
+    }
+
+    function clearTimers() {
+      while (state.timerIds.length) {
+        clearTimeout(state.timerIds.pop());
+      }
+    }
+
+    function showOverlay(title, copy, chips = []) {
+      overlayTitle.textContent = title;
+      overlayCopy.textContent = copy;
+      overlayMeta.innerHTML = "";
+      chips.forEach((text) => {
+        const chip = document.createElement("div");
+        chip.className = "chip";
+        chip.textContent = text;
+        overlayMeta.appendChild(chip);
       });
-    }
-
-    function renderLevelList() {
-      levelListEl.innerHTML = "";
-      LEVELS.forEach((level, index) => {
-        const levelEl = document.createElement("div");
-        levelEl.className = "level-card";
-        levelEl.innerHTML = `
-          <strong>第 ${index + 1} 关 · ${level.name}</strong>
-          <div class="muted">${level.bpm} BPM，速度 ${level.speed}px/s，启用 ${level.colors.length} 种颜色</div>
-        `;
-        levelListEl.appendChild(levelEl);
-      });
-    }
-
-    function resetRun() {
-      cancelAnimationFrame(state.rafId);
-      state.levelIndex = 0;
-      state.running = false;
-      state.started = false;
-      state.startTime = 0;
-      state.lastFrame = 0;
-      state.score = 0;
-      state.maxScore = 0;
-      state.combo = 0;
-      state.maxCombo = 0;
-      state.hitCount = 0;
-      state.totalNotes = 0;
-      state.noteIndex = 0;
-      state.processedNotes = 0;
-      state.missStreak = 0;
-      state.currentLayers = 1;
-      state.notes = [];
-      noteEls.forEach((el) => el.remove());
-      noteEls.clear();
-      resultsPanelEl.classList.add("hidden");
-      feedbackLabelEl.className = "feedback";
-      feedbackLabelEl.textContent = "按开始后再按任意键以激活音频。";
-      syncVisualMood();
-      updateHud();
-      showOverlayForCurrentLevel();
-    }
-
-    function showOverlayForCurrentLevel() {
-      const level = LEVELS[state.levelIndex];
-      overlayTitleEl.textContent = state.levelIndex === LEVELS.length
-        ? "全部关卡完成"
-        : `协作接住第 ${state.levelIndex + 1} 关：${level.name}`;
-      overlayTextEl.textContent = state.levelIndex === LEVELS.length
-        ? "查看最终评价，或重置整轮重新挑战。"
-        : `目标分为本关满分的 65%。命中叠层，连续 ${MISS_STREAK_THRESHOLD} 次 Miss 会剥离一层音轨。`;
-      overlayButtonEl.textContent = state.levelIndex === LEVELS.length ? "查看结算" : `开始第 ${state.levelIndex + 1} 关`;
-      overlayEl.classList.remove("hidden");
+      overlay.classList.add("visible");
     }
 
     function hideOverlay() {
-      overlayEl.classList.add("hidden");
+      overlay.classList.remove("visible");
     }
 
-    function generateLevelNotes(levelIndex) {
-      const level = LEVELS[levelIndex];
-      const beat = 60 / level.bpm;
-      const active = level.colors.slice();
-      const notes = [];
-      let previousLane = -1;
-      let sideToggle = levelIndex % 2 === 0 ? "left" : "right";
+    function setPhase(phase, message) {
+      state.status = phase;
+      phaseValue.textContent = message;
+    }
 
-      for (let i = 0; i < level.beats; i += 1) {
-        let pool = active.filter((laneId) => LANES[laneId].side === sideToggle);
-        if (!pool.length) {
-          pool = active.slice();
-        }
-        let laneId = pool[i % pool.length];
-        if (laneId === previousLane && pool.length > 1) {
-          laneId = pool[(i + 1) % pool.length];
-        }
-        previousLane = laneId;
-        sideToggle = sideToggle === "left" ? "right" : "left";
-        notes.push({
-          id: `${levelIndex}-${i}`,
-          laneId,
-          spawnTime: 1.2 + i * beat,
-          hitTime: 3 + i * beat,
-          judged: false,
-          result: null
-        });
+    function updateProgress(value) {
+      progressFill.style.width = `${clamp(value, 0, 1) * 100}%`;
+    }
+
+    function setTimingFeedback(text) {
+      timingText.textContent = text;
+    }
+
+    function createDistractor(basePad, levelIndex, offsetIndex) {
+      const shift = offsetIndex % 2 === 0 ? 16 : -16;
+      return {
+        id: `fake-${levelIndex}-${offsetIndex}`,
+        name: `${basePad.name} Echo`,
+        frequency: basePad.frequency * 1.06,
+        core: false,
+        color: `hsl(${(basePad.hue + shift + 360) % 360} 88% 58%)`,
+        noteLabel: "FAKE"
+      };
+    }
+
+    function buildLevelBlocks(levelIndex) {
+      const config = getLevelConfig(levelIndex);
+      const coreBlocks = BASE_PADS.slice(0, config.blockCount).map((pad, index) => ({
+        id: `core-${index}`,
+        name: pad.name,
+        frequency: pad.frequency,
+        core: true,
+        color: `hsl(${pad.hue} 88% 58%)`,
+        noteLabel: `P${index + 1}`
+      }));
+      const distractors = [];
+      for (let i = 0; i < config.distractors; i += 1) {
+        distractors.push(createDistractor(coreBlocks[i % coreBlocks.length], levelIndex, i));
       }
-      return notes;
+      return [...coreBlocks, ...distractors];
     }
 
-    function spawnNotes() {
-      noteEls.forEach((el) => el.remove());
-      noteEls.clear();
-      state.noteIndex = 0;
-      state.processedNotes = 0;
-      state.notes.forEach((note) => {
-        const noteEl = document.createElement("div");
-        noteEl.className = "lane-note";
-        noteEl.style.background = `linear-gradient(180deg, ${LANES[note.laneId].color}, rgba(255,255,255,0.18))`;
-        noteEl.style.opacity = "0";
-        laneEls.get(note.laneId).appendChild(noteEl);
-        noteEls.set(note.id, noteEl);
+    function shuffle(items) {
+      const copy = [...items];
+      for (let i = copy.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function renderPreview() {
+      const config = getLevelConfig(state.currentLevel);
+      levelPreview.innerHTML = "";
+      [
+        `色块 ${config.blockCount}`,
+        `节拍 ${config.interval}ms`,
+        `干扰 ${config.distractors}`,
+        `序列 ${config.sequenceLength}`
+      ].forEach((text) => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `<div class="label">本关参数</div><div class="value">${text}</div>`;
+        levelPreview.appendChild(card);
       });
     }
 
-    async function ensureAudio() {
-      if (!AudioContextClass) {
-        return;
-      }
-      if (!audioState.ctx) {
-        const ctx = new AudioContextClass();
-        const master = ctx.createGain();
-        master.gain.value = 0.2;
-        master.connect(ctx.destination);
-
-        audioState.ctx = ctx;
-        audioState.master = master;
-        audioState.layerGains = TRACK_NAMES.map(() => {
-          const gain = ctx.createGain();
-          gain.gain.value = 0;
-          gain.connect(master);
-          return gain;
-        });
-
-        audioState.layers = [
-          { name: "Kick", pattern: [1, 0, 0, 0, 1, 0, 0, 0], play: playKickLayer },
-          { name: "Bass", pattern: [1, 0, 1, 0, 1, 0, 1, 0], play: playBassLayer },
-          { name: "Chord", pattern: [1, 0, 0, 1, 1, 0, 0, 1], play: playChordLayer },
-          { name: "Hat", pattern: [1, 1, 1, 1, 1, 1, 1, 1], play: playHatLayer }
-        ];
-      }
-
-      if (audioState.ctx.state === "suspended") {
-        await audioState.ctx.resume();
-      }
-    }
-
-    function setLayerCount(count) {
-      state.currentLayers = Math.max(1, Math.min(TRACK_NAMES.length, count));
-      layerLabelEl.textContent = `${state.currentLayers} / ${TRACK_NAMES.length}`;
-      if (!audioState.ctx) {
-        return;
-      }
-      audioState.layerGains.forEach((gainNode, index) => {
-        gainNode.gain.cancelScheduledValues(audioState.ctx.currentTime);
-        gainNode.gain.linearRampToValueAtTime(index < state.currentLayers ? 0.18 : 0, audioState.ctx.currentTime + 0.18);
+    function renderBoard() {
+      board.innerHTML = "";
+      shuffle(state.blocks).forEach((block) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "pad";
+        button.dataset.id = block.id;
+        button.style.setProperty("--tile", block.color);
+        button.style.color = block.color;
+        button.style.background = `linear-gradient(180deg, color-mix(in srgb, ${block.color} 82%, white 18%), color-mix(in srgb, ${block.color} 56%, black 44%))`;
+        button.innerHTML = `
+          <span class="${block.core ? "pad-core-mark" : "pad-fake-mark"}">${block.core ? "Memory" : "Distractor"}</span>
+          <span class="pad-content">
+            <span class="pad-name">${block.name}</span>
+            <span class="pad-note">${block.noteLabel}</span>
+          </span>
+        `;
+        button.addEventListener("click", () => handlePadClick(block.id));
+        board.appendChild(button);
       });
     }
 
-    function layerCountForCombo(combo) {
-      let layers = 1;
-      COMBO_LAYER_THRESHOLDS.forEach((threshold, index) => {
-        if (combo >= threshold) {
-          layers = index + 1;
-        }
-      });
-      return layers;
+    function findPadElement(blockId) {
+      return board.querySelector(`[data-id="${blockId}"]`);
     }
 
-    function startMusicScheduler(level) {
-      if (!audioState.ctx) {
+    function pulsePad(blockId, cssClass = "active", duration = FLASH_DURATION_MS) {
+      const element = findPadElement(blockId);
+      if (!element) {
         return;
       }
-      clearInterval(audioState.schedulerTimer);
-      audioState.beatInterval = 60 / level.bpm / 2;
-      audioState.nextBeatTime = audioState.ctx.currentTime + 0.08;
-      audioState.schedulerTimer = window.setInterval(() => {
-        const ctx = audioState.ctx;
-        while (audioState.nextBeatTime < ctx.currentTime + 0.25) {
-          scheduleBeat(audioState.nextBeatTime);
-          audioState.nextBeatTime += audioState.beatInterval;
-        }
-      }, 60);
-      setLayerCount(1);
+      element.classList.add(cssClass);
+      window.setTimeout(() => {
+        element.classList.remove(cssClass);
+      }, duration);
     }
 
-    function stopMusicScheduler() {
-      clearInterval(audioState.schedulerTimer);
-      audioState.schedulerTimer = 0;
-      if (!audioState.ctx) {
-        return;
-      }
-      audioState.layerGains.forEach((gainNode) => {
-        gainNode.gain.cancelScheduledValues(audioState.ctx.currentTime);
-        gainNode.gain.linearRampToValueAtTime(0, audioState.ctx.currentTime + 0.12);
-      });
-    }
-
-    function scheduleBeat(time) {
-      audioState.layers.forEach((layer, index) => {
-        if (index >= state.currentLayers) {
-          return;
-        }
-        const step = Math.floor(time / audioState.beatInterval) % layer.pattern.length;
-        if (layer.pattern[step]) {
-          layer.play(audioState.ctx, audioState.layerGains[index], time);
-        }
-      });
-    }
-
-    function playKickLayer(ctx, destination, time) {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(150, time);
-      osc.frequency.exponentialRampToValueAtTime(48, time + 0.12);
-      gain.gain.setValueAtTime(0.0001, time);
-      gain.gain.exponentialRampToValueAtTime(0.9, time + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.14);
-      osc.connect(gain);
-      gain.connect(destination);
-      osc.start(time);
-      osc.stop(time + 0.16);
-    }
-
-    function playBassLayer(ctx, destination, time) {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "triangle";
-      osc.frequency.setValueAtTime(82, time);
-      gain.gain.setValueAtTime(0.0001, time);
-      gain.gain.linearRampToValueAtTime(0.32, time + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.28);
-      osc.connect(gain);
-      gain.connect(destination);
-      osc.start(time);
-      osc.stop(time + 0.3);
-    }
-
-    function playChordLayer(ctx, destination, time) {
-      [220, 277, 330].forEach((freq) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sawtooth";
-        osc.frequency.setValueAtTime(freq, time);
-        gain.gain.setValueAtTime(0.0001, time);
-        gain.gain.linearRampToValueAtTime(0.08, time + 0.03);
-        gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.32);
-        osc.connect(gain);
-        gain.connect(destination);
-        osc.start(time);
-        osc.stop(time + 0.34);
-      });
-    }
-
-    function playHatLayer(ctx, destination, time) {
-      const bufferSize = ctx.sampleRate * 0.05;
-      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i += 1) {
-        data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
-      }
-      const source = ctx.createBufferSource();
-      const gain = ctx.createGain();
-      source.buffer = buffer;
-      gain.gain.setValueAtTime(0.15, time);
-      gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.05);
-      source.connect(gain);
-      gain.connect(destination);
-      source.start(time);
-    }
-
-    function playHitSound(noteLaneId, rating) {
-      if (!audioState.ctx) {
-        return;
-      }
-      const ctx = audioState.ctx;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = rating === "perfect" ? "square" : "triangle";
-      osc.frequency.setValueAtTime(320 + noteLaneId * 55, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(580 + noteLaneId * 35, ctx.currentTime + 0.09);
-      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(rating === "perfect" ? 0.18 : 0.11, ctx.currentTime + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.12);
-      osc.connect(gain);
-      gain.connect(audioState.master);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.14);
-    }
-
-    function playMissSound() {
-      if (!audioState.ctx) {
-        return;
-      }
-      const ctx = audioState.ctx;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sawtooth";
-      osc.frequency.setValueAtTime(180, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(70, ctx.currentTime + 0.18);
-      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.2);
-      osc.connect(gain);
-      gain.connect(audioState.master);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.22);
-    }
-
-    function beginLevel() {
-      const level = LEVELS[state.levelIndex];
-      state.running = true;
-      state.started = true;
-      state.combo = 0;
-      state.noteIndex = 0;
-      state.processedNotes = 0;
-      state.missStreak = 0;
-      state.notes = generateLevelNotes(state.levelIndex);
-      state.totalNotes += state.notes.length;
-      state.maxScore += state.notes.length * 100;
-      state.startTime = performance.now() / 1000;
-      state.lastFrame = state.startTime;
-      spawnNotes();
-      hideOverlay();
-      syncVisualMood();
-      updateHud();
-      startMusicScheduler(level);
-      state.rafId = requestAnimationFrame(loop);
-    }
-
-    function nowSeconds() {
-      return performance.now() / 1000;
-    }
-
-    function loop() {
-      if (!state.running) {
-        return;
-      }
-      const time = nowSeconds() - state.startTime;
-      const level = LEVELS[state.levelIndex];
-      const laneHeight = 530;
-
-      state.notes.forEach((note) => {
-        if (note.judged) {
-          return;
-        }
-        const noteEl = noteEls.get(note.id);
-        const offset = (note.hitTime - time) * level.speed;
-        const y = laneHeight - 92 - offset;
-        if (time >= note.spawnTime - 0.5 && noteEl.style.opacity !== "1") {
-          noteEl.style.opacity = "1";
-        }
-        noteEl.style.transform = `translateY(${Math.max(-72, y)}px)`;
-      });
-
-      while (state.noteIndex < state.notes.length) {
-        const note = state.notes[state.noteIndex];
-        if (note.judged || time <= note.hitTime + GOOD_WINDOW) {
-          break;
-        }
-        judgeMiss(note);
-        state.noteIndex += 1;
-      }
-
-      const progress = state.notes.length ? state.processedNotes / state.notes.length : 0;
-      progressFillEl.style.width = `${Math.min(100, progress * 100)}%`;
-
-      if (state.processedNotes >= state.notes.length) {
-        finishLevel();
-        return;
-      }
-
-      state.rafId = requestAnimationFrame(loop);
-    }
-
-    function judgeLanePress(laneId) {
-      if (!state.running) {
-        return;
-      }
-      const time = nowSeconds() - state.startTime;
-      const laneNotes = state.notes.filter((note) => !note.judged && note.laneId === laneId);
-      if (!laneNotes.length) {
-        registerMiss(null, "空拍");
-        return;
-      }
-      let target = laneNotes[0];
-      let bestDiff = Math.abs(target.hitTime - time);
-      laneNotes.forEach((note) => {
-        const diff = Math.abs(note.hitTime - time);
-        if (diff < bestDiff) {
-          target = note;
-          bestDiff = diff;
-        }
-      });
-
-      activateLane(laneId);
-      if (bestDiff <= PERFECT_WINDOW) {
-        judgeHit(target, "perfect", 100);
-      } else if (bestDiff <= GOOD_WINDOW) {
-        judgeHit(target, "good", 70);
-      } else {
-        registerMiss(null, "Miss");
-      }
-    }
-
-    function activateLane(laneId) {
-      const laneEl = laneEls.get(laneId);
-      laneEl.classList.add("active");
-      window.setTimeout(() => laneEl.classList.remove("active"), 90);
-    }
-
-    function judgeHit(note, rating, points) {
-      if (note.judged) {
-        return;
-      }
-      note.judged = true;
-      note.result = rating;
-      state.processedNotes += 1;
-      state.hitCount += 1;
-      state.combo += 1;
-      state.maxCombo = Math.max(state.maxCombo, state.combo);
-      state.missStreak = 0;
-      state.score += points;
-      state.noteIndex = Math.max(state.noteIndex, state.notes.indexOf(note) + 1);
-      const noteEl = noteEls.get(note.id);
-      if (noteEl) {
-        noteEl.style.opacity = "0";
-      }
-      playHitSound(note.laneId, rating);
-      setLayerCount(layerCountForCombo(state.combo));
-      flashFeedback(rating === "perfect" ? "Perfect" : "Good", rating);
-      syncVisualMood();
-      updateHud();
-    }
-
-    function judgeMiss(note) {
-      if (note && note.judged) {
-        return;
-      }
-      if (note) {
-        note.judged = true;
-        note.result = "miss";
-        const noteEl = noteEls.get(note.id);
-        if (noteEl) {
-          noteEl.style.opacity = "0.15";
-        }
-        state.processedNotes += 1;
-      }
-      registerMiss(note, "Miss");
-    }
-
-    function registerMiss(note, label) {
-      state.combo = 0;
-      state.missStreak += 1;
-      if (state.missStreak >= MISS_STREAK_THRESHOLD) {
-        setLayerCount(state.currentLayers - 1);
-      }
-      playMissSound();
-      flashFeedback(label, "miss");
-      syncVisualMood();
-      updateHud();
-      if (note) {
-        state.noteIndex = Math.max(state.noteIndex, state.notes.indexOf(note) + 1);
-      }
-    }
-
-    function flashFeedback(text, type) {
-      feedbackLabelEl.className = `feedback ${type}`;
-      feedbackLabelEl.textContent = text;
-    }
-
-    function syncVisualMood() {
-      const comboGlow = Math.min(0.34, state.combo >= 5 ? 0.1 + state.combo * 0.012 : 0);
-      const darken = Math.min(0.72, state.missStreak * 0.18);
-      document.documentElement.style.setProperty("--edge-alpha", comboGlow.toFixed(3));
-      document.documentElement.style.setProperty("--danger-alpha", darken.toFixed(3));
+    function buildSequence() {
+      const config = getLevelConfig(state.currentLevel);
+      const activeBlockIds = state.blocks.filter((block) => block.core).map((block) => block.id);
+      return Array.from({ length: config.sequenceLength }, (_, step) => ({
+        blockId: activeBlockIds[Math.floor(Math.random() * activeBlockIds.length)],
+        expectedAt: config.interval * (step + 1)
+      }));
     }
 
     function updateHud() {
-      levelLabelEl.textContent = `第 ${Math.min(state.levelIndex + 1, LEVELS.length)} / ${LEVELS.length} 关`;
-      scoreLabelEl.textContent = String(state.score);
-      comboLabelEl.textContent = String(state.combo);
-      layerLabelEl.textContent = `${state.currentLayers} / ${TRACK_NAMES.length}`;
+      const config = getLevelConfig(state.currentLevel);
+      levelValue.textContent = `${state.currentLevel + 1} / ${LEVELS.length}`;
+      bestValue.textContent = String(state.bestLevel);
+      tempoValue.textContent = `${config.interval}ms`;
+      retryButton.disabled = state.failedLevel === null;
     }
 
-    function finishLevel() {
-      state.running = false;
-      cancelAnimationFrame(state.rafId);
-      stopMusicScheduler();
-      const level = LEVELS[state.levelIndex];
-      const levelMax = level.beats * 100;
-      const levelScore = state.notes.reduce((sum, note) => {
-        if (note.result === "perfect") {
-          return sum + 100;
-        }
-        if (note.result === "good") {
-          return sum + 70;
-        }
-        return sum;
-      }, 0);
-      const passed = levelScore >= levelMax * 0.65;
-      state.levelIndex += 1;
-
-      if (state.levelIndex >= LEVELS.length) {
-        showFinalResults();
-        overlayTitleEl.textContent = passed ? "全部关卡完成" : "最后一关结束";
-        overlayTextEl.textContent = passed ? "查看双人合作总评价。" : "虽未达成满目标，但整轮已完成。";
-        overlayButtonEl.textContent = "查看结算";
-        overlayEl.classList.remove("hidden");
-        return;
-      }
-
-      overlayTitleEl.textContent = passed
-        ? `过关，进入第 ${state.levelIndex + 1} 关`
-        : `本关未达目标，仍可继续挑战第 ${state.levelIndex + 1} 关`;
-      overlayTextEl.textContent = `下一关提升到 ${LEVELS[state.levelIndex].bpm} BPM，并启用 ${LEVELS[state.levelIndex].colors.length} 种颜色。`;
-      overlayButtonEl.textContent = `开始第 ${state.levelIndex + 1} 关`;
-      overlayEl.classList.remove("hidden");
-      state.combo = 0;
-      state.missStreak = 0;
-      setLayerCount(1);
-      syncVisualMood();
+    function prepareLevel(levelIndex) {
+      clearTimers();
+      state.currentLevel = levelIndex;
+      state.blocks = buildLevelBlocks(levelIndex);
+      state.sequence = buildSequence();
+      state.awaitingIndex = 0;
+      state.inputStartAt = 0;
+      state.failedLevel = null;
+      renderPreview();
+      renderBoard();
       updateHud();
-    }
-
-    function showFinalResults() {
-      const ratio = state.maxScore ? state.score / state.maxScore : 0;
-      const accuracy = state.totalNotes ? state.hitCount / state.totalNotes : 0;
-      const grade = ratio >= 0.9 ? "S" : ratio >= 0.75 ? "A" : ratio >= 0.5 ? "B" : "C";
-      const remark = grade === "S"
-        ? "双人默契拉满"
-        : grade === "A"
-          ? "合作稳定"
-          : grade === "B"
-            ? "还差一点同步"
-            : "建议继续分工练习";
-
-      resultsPanelEl.classList.remove("hidden");
-      gradeLabelEl.textContent = grade;
-      finalScoreLabelEl.textContent = `${state.score} / ${state.maxScore}`;
-      accuracyLabelEl.textContent = `${Math.round(accuracy * 100)}%`;
-      maxComboLabelEl.textContent = String(state.maxCombo);
-      remarkLabelEl.textContent = remark;
-    }
-
-    document.addEventListener("keydown", async (event) => {
-      const lane = LANES.find((item) => item.key === event.code);
-      if (!lane) {
-        return;
-      }
-      event.preventDefault();
-      await ensureAudio();
-      judgeLanePress(lane.id);
-    });
-
-    overlayButtonEl.addEventListener("click", async () => {
-      await ensureAudio();
-      if (state.levelIndex >= LEVELS.length) {
-        resultsPanelEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      updateProgress(0);
+      setPhase("prepare", "准备中");
+      statusText.textContent = `第 ${levelIndex + 1} 关载入完成，准备播放 ${state.sequence.length} 拍序列。`;
+      setTimingFeedback("点击节奏: 等待系统示范");
+      showOverlay(`第 ${levelIndex + 1} 关`, "观察闪烁顺序和节拍。播放结束后立刻按同样节奏点击。", [
+        `色块 ${getLevelConfig(levelIndex).blockCount}`,
+        `干扰 ${getLevelConfig(levelIndex).distractors}`,
+        `速度 ${getLevelConfig(levelIndex).interval}ms`
+      ]);
+      const timerId = window.setTimeout(() => {
         hideOverlay();
+        playbackSequence();
+      }, START_DELAY_MS);
+      state.timerIds.push(timerId);
+    }
+
+    function playbackSequence() {
+      const config = getLevelConfig(state.currentLevel);
+      setPhase("playback", "系统示范");
+      statusText.textContent = "留意颜色出现的顺序，并记住每一拍的间距。";
+      setTimingFeedback("点击节奏: 观察中");
+      state.sequence.forEach((step, index) => {
+        const timerId = window.setTimeout(() => {
+          const block = state.blocks.find((item) => item.id === step.blockId);
+          pulsePad(step.blockId, "active");
+          playTone(block.frequency, "triangle", 0.18, 0.045);
+          updateProgress((index + 1) / state.sequence.length);
+        }, config.interval * index);
+        state.timerIds.push(timerId);
+      });
+      const endTimer = window.setTimeout(() => {
+        beginInputPhase();
+      }, config.interval * state.sequence.length + 120);
+      state.timerIds.push(endTimer);
+    }
+
+    function beginInputPhase() {
+      const config = getLevelConfig(state.currentLevel);
+      state.awaitingIndex = 0;
+      state.inputStartAt = performance.now();
+      setPhase("input", "玩家复现");
+      statusText.textContent = "现在按相同顺序和节拍点击。";
+      setTimingFeedback(`点击节奏: 每拍约 ${config.interval}ms`);
+      updateProgress(0);
+      showOverlay("轮到你了", "从现在开始按同一节拍复现。点错、点慢或点快都会失败。", [
+        `容差 ±${Math.round(Math.min(TIMING_TOLERANCE_MS, config.interval * TIMING_TOLERANCE_RATIO))}ms`
+      ]);
+      const timerId = window.setTimeout(hideOverlay, 560);
+      state.timerIds.push(timerId);
+    }
+
+    function completeLevel() {
+      updateProgress(1);
+      updateBestLevel(state.currentLevel + 1);
+      setPhase("clear", "过关");
+      statusText.textContent = `第 ${state.currentLevel + 1} 关通过，准备进入下一关。`;
+      setTimingFeedback("点击节奏: 完整复现成功");
+      showOverlay("节奏复现成功", "霓虹旋律已锁定，下一关会更快，也会加入更多迷惑颜色。", [
+        `已通关 ${state.currentLevel + 1}`,
+        `最高记录 ${state.bestLevel}`
+      ]);
+      if (state.currentLevel === LEVELS.length - 1) {
+        const finalTimer = window.setTimeout(() => {
+          showOverlay("全部 10 关完成", "你已通关全部节奏记忆挑战。可立即重新开始，再刷一次最高记录。", [
+            `完成关卡 ${LEVELS.length}`,
+            `最佳记录 ${state.bestLevel}`
+          ]);
+          retryButton.disabled = false;
+          state.failedLevel = state.currentLevel;
+          setPhase("finished", "全关完成");
+          statusText.textContent = "全部关卡完成，可重试最后一关或重新开始。";
+        }, 900);
+        state.timerIds.push(finalTimer);
         return;
       }
-      beginLevel();
-    });
+      const nextTimer = window.setTimeout(() => {
+        prepareLevel(state.currentLevel + 1);
+      }, 1100);
+      state.timerIds.push(nextTimer);
+    }
 
-    startButtonEl.addEventListener("click", async () => {
-      await ensureAudio();
-      stopMusicScheduler();
-      resetRun();
-      overlayEl.classList.add("hidden");
-      beginLevel();
-    });
+    function failLevel(reason, blockId = null) {
+      clearTimers();
+      state.failedLevel = state.currentLevel;
+      retryButton.disabled = false;
+      setPhase("failed", "失败");
+      statusText.textContent = reason;
+      setTimingFeedback("点击节奏: 序列已中断");
+      if (blockId) {
+        pulsePad(blockId, "wrong", 420);
+      }
+      playErrorSound();
+      document.body.classList.add("fail-flash");
+      window.setTimeout(() => document.body.classList.remove("fail-flash"), 220);
+      showOverlay("节奏断了", reason, [
+        `停在第 ${state.currentLevel + 1} 关`,
+        `最高记录 ${state.bestLevel}`
+      ]);
+    }
 
-    restartButtonEl.addEventListener("click", () => {
-      stopMusicScheduler();
-      resetRun();
-    });
+    function handlePadClick(blockId) {
+      ensureAudio();
+      if (state.status !== "input") {
+        return;
+      }
+      const block = state.blocks.find((item) => item.id === blockId);
+      if (!block) {
+        return;
+      }
 
-    buildLanes();
-    renderLevelList();
-    resetRun();
+      playTone(block.frequency, block.core ? "sine" : "square", 0.18, block.core ? 0.05 : 0.035);
+
+      if (!block.core) {
+        failLevel("你点中了干扰块，顺序立即失效。", blockId);
+        return;
+      }
+
+      const expectedStep = state.sequence[state.awaitingIndex];
+      const elapsed = performance.now() - state.inputStartAt;
+      const expectedTime = expectedStep.expectedAt;
+      const tolerance = Math.min(TIMING_TOLERANCE_MS, getLevelConfig(state.currentLevel).interval * TIMING_TOLERANCE_RATIO);
+      const delta = Math.abs(elapsed - expectedTime);
+
+      if (expectedStep.blockId !== blockId) {
+        failLevel("颜色顺序错了，旋律被打断。", blockId);
+        return;
+      }
+
+      if (delta > tolerance) {
+        failLevel(`节拍偏差 ${Math.round(delta)}ms，超过容差。`, blockId);
+        return;
+      }
+
+      pulsePad(blockId, "correct", 220);
+      state.awaitingIndex += 1;
+      updateProgress(state.awaitingIndex / state.sequence.length);
+      setTimingFeedback(`点击节奏: 偏差 ${Math.round(delta)}ms / 容差 ±${Math.round(tolerance)}ms`);
+
+      if (state.awaitingIndex >= state.sequence.length) {
+        completeLevel();
+      }
+    }
+
+    function retryLevel() {
+      const levelIndex = state.failedLevel === null ? state.currentLevel : state.failedLevel;
+      prepareLevel(levelIndex);
+    }
+
+    function restartGame() {
+      prepareLevel(0);
+    }
+
+    retryButton.addEventListener("click", retryLevel);
+    restartButton.addEventListener("click", restartGame);
+    window.addEventListener("pointerdown", ensureAudio, { once: false, passive: true });
+    window.addEventListener("keydown", ensureAudio, { once: false });
+
+    bestValue.textContent = String(state.bestLevel);
+    restartGame();
   </script>
 </body>
 </html>
