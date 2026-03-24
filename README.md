@@ -291,6 +291,17 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `magnetic-marble-arena/index.html` 即可游玩。
 
+## 双人磁力弹球竞技场
+
+更新 `magnetic-pinball-arena/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的双人同屏磁力弹球竞技场，包含：
+
+- 玩家 1 使用 `W / S / D`、玩家 2 使用 `↑ / ↓ / ←` 控制两侧发射器调角度、蓄力并发射
+- 支持多颗弹球同时存在，球与球之间会发生弹性碰撞，并在场地边界正确反弹
+- 场地会随机刷新吸引 / 排斥磁力块，对经过的弹球产生可见的轨迹偏折效果
+- 命中对方底线即可得分，并触发闪屏、粒子和 Web Audio 音效反馈；先到 5 分显示胜利结算，可一键重开
+
+直接用浏览器打开 `magnetic-pinball-arena/index.html` 即可游玩。
+
 ## 像素生态缸
 
 新增 `pixel-ecosystem-tank/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的像素生态模拟玩具，包含：
