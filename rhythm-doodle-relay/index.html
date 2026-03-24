@@ -333,7 +333,7 @@
       <header class="hero">
         <div class="chip">Creative Toy</div>
         <h1>节奏涂鸦接力</h1>
-        <p class="lede">跟着 16 拍节奏，在同一张画布上合作留下随机色彩的笔触。单人可独自完成整幅涂鸦，双人模式会在第 8 拍后自动切换画手。</p>
+        <p class="lede">跟着 16 拍节奏点击或按键，在画布上盖出一串节拍笔触。单人可独自完成整幅涂鸦，双人模式会在第 8 拍后自动切换画手，并分别负责上下半区。</p>
       </header>
 
       <section class="setup" id="setup-screen">
@@ -353,7 +353,7 @@
 
           <button class="primary" id="start-button" type="button">开始创作</button>
         </div>
-        <p class="subtle">每拍都会切换颜色，并根据节拍强弱改变笔触粗细。使用鼠标或触屏拖动画布即可作画，结束后可下载 PNG 或重新开始。</p>
+        <p class="subtle">点击、触屏点按或按下空格 / Enter 都能落笔。命中越准，笔触越大、颜色越鲜艳；双人模式下玩家 1 只画上半区，玩家 2 只画下半区。</p>
       </section>
 
       <section class="shell">
@@ -409,15 +409,18 @@
   <script>
     const totalBeats = 16;
     const beatsPerPlayer = 8;
+    const perfectWindowMs = 70;
+    const goodWindowMs = 150;
+    const switchDelayMs = 1200;
     const beatPalette = [
-      "#f05c52",
-      "#f59d2f",
-      "#f1d54d",
-      "#6ecb63",
-      "#2dbecf",
-      "#4d78ff",
-      "#8257e6",
-      "#f25cb1"
+      { hue: 8, accent: "#f05c52" },
+      { hue: 32, accent: "#f59d2f" },
+      { hue: 52, accent: "#f1d54d" },
+      { hue: 120, accent: "#6ecb63" },
+      { hue: 186, accent: "#2dbecf" },
+      { hue: 224, accent: "#4d78ff" },
+      { hue: 262, accent: "#8257e6" },
+      { hue: 328, accent: "#f25cb1" }
     ];
     const bpmOptions = {
       slow: 84,
@@ -450,17 +453,22 @@
 
     let intervalId = 0;
     let pulseTimeoutId = 0;
+    let switchTimeoutId = 0;
     let gameMode = 1;
     let bpm = 112;
     let beatMs = Math.round(60000 / bpm);
     let currentBeat = -1;
     let currentPlayer = 1;
-    let currentColor = beatPalette[0];
+    let currentColor = beatPalette[0].accent;
     let currentBrushSize = 10;
+    let currentJudgementLabel = "等待开始";
     let phase = "idle";
-    let isPointerDown = false;
-    let lastPoint = null;
+    let beatTimeline = [];
+    let beatJudgements = [];
     let playerMarks = [0, 0];
+    let accuracyTotals = { perfect: 0, good: 0, miss: 0 };
+    let audioContext = null;
+    let pointerTarget = { x: canvas.width / 2, y: canvas.height / 2 };
 
     function createBeatCells() {
       beatStrip.innerHTML = "";
@@ -472,19 +480,66 @@
       }
     }
 
+    function getActiveBand() {
+      if (gameMode !== 2) {
+        return { top: 0, bottom: canvas.height };
+      }
+      return currentPlayer === 1
+        ? { top: 0, bottom: canvas.height / 2 }
+        : { top: canvas.height / 2, bottom: canvas.height };
+    }
+
+    function clampPointToBand(point) {
+      const band = getActiveBand();
+      return {
+        x: Math.max(28, Math.min(canvas.width - 28, point.x)),
+        y: Math.max(band.top + 28, Math.min(band.bottom - 28, point.y))
+      };
+    }
+
     function clearCanvas() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#fffaf5";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.save();
+      ctx.strokeStyle = "rgba(83, 57, 32, 0.12)";
+      ctx.lineWidth = 1;
+      for (let x = 28; x < canvas.width; x += 28) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 28; y < canvas.height; y += 28) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+      if (gameMode === 2) {
+        ctx.setLineDash([12, 10]);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "rgba(83, 57, 32, 0.22)";
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height / 2);
+        ctx.lineTo(canvas.width, canvas.height / 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = "rgba(83, 57, 32, 0.45)";
+        ctx.font = "600 20px Avenir Next, Segoe UI, sans-serif";
+        ctx.fillText("玩家 1 区域", 24, 34);
+        ctx.fillText("玩家 2 区域", 24, canvas.height / 2 + 34);
+      }
+      ctx.restore();
     }
 
-    function getCurrentColor(beatIndex) {
-      return beatPalette[beatIndex % beatPalette.length];
+    function getCurrentAccent(beatIndex) {
+      return beatPalette[beatIndex % beatPalette.length].accent;
     }
 
-    function getCurrentBrushSize(beatIndex) {
-      const phaseStrength = (Math.sin((beatIndex / 4) * Math.PI - Math.PI / 2) + 1) / 2;
-      return 6 + phaseStrength * 16;
+    function getCurrentHue(beatIndex) {
+      return beatPalette[beatIndex % beatPalette.length].hue;
     }
 
     function updateBeatStrip() {
@@ -502,13 +557,15 @@
     function updateHud() {
       const modeText = gameMode === 2 ? "双人热座" : "单人创作";
       modeLabel.textContent = `模式：${modeText}`;
-      playerLabel.textContent = `当前画手：玩家 ${currentPlayer}`;
+      playerLabel.textContent = gameMode === 2
+        ? `当前画手：玩家 ${currentPlayer}`
+        : "当前画手：Solo";
       beatLabel.textContent = `第 ${Math.max(currentBeat + 1, 0)} / ${totalBeats} 拍`;
-      brushLabel.textContent = `笔触：${Math.round(currentBrushSize)} px`;
+      brushLabel.textContent = `笔触：${Math.round(currentBrushSize)} px / ${currentJudgementLabel}`;
       colorSwatch.style.background = currentColor;
       colorLabel.textContent = `当前颜色：${currentColor}`;
       const statusText =
-        phase === "playing" ? "状态：跟拍涂鸦中" :
+        phase === "playing" ? "状态：跟拍点击或按键落笔" :
         phase === "switching" ? "状态：切换画手中" :
         phase === "finished" ? "状态：作品完成" :
         "状态：选择模式与速度后开始";
@@ -528,10 +585,53 @@
       pulseTimeoutId = window.setTimeout(() => pulseCore.classList.remove("active"), Math.min(220, beatMs * 0.45));
     }
 
+    function ensureAudioContext() {
+      if (audioContext) {
+        return audioContext;
+      }
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) {
+        return null;
+      }
+      audioContext = new AudioContextClass();
+      return audioContext;
+    }
+
+    async function unlockAudio() {
+      const context = ensureAudioContext();
+      if (!context) {
+        return null;
+      }
+      if (context.state === "suspended") {
+        await context.resume();
+      }
+      return context;
+    }
+
+    function playBeatClick(accent = false) {
+      const context = audioContext;
+      if (!context) {
+        return;
+      }
+      const now = context.currentTime;
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+      oscillator.type = accent ? "square" : "triangle";
+      oscillator.frequency.setValueAtTime(accent ? 980 : 720, now);
+      gainNode.gain.setValueAtTime(0.0001, now);
+      gainNode.gain.exponentialRampToValueAtTime(accent ? 0.16 : 0.08, now + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+      oscillator.start(now);
+      oscillator.stop(now + 0.13);
+    }
+
     function stopLoop() {
       window.clearInterval(intervalId);
       intervalId = 0;
       window.clearTimeout(pulseTimeoutId);
+      window.clearTimeout(switchTimeoutId);
       pulseCore.classList.remove("active");
     }
 
@@ -542,51 +642,85 @@
       beatMs = Math.round(60000 / bpm);
       currentBeat = -1;
       currentPlayer = 1;
-      currentColor = beatPalette[0];
+      currentColor = beatPalette[0].accent;
       currentBrushSize = 10;
+      currentJudgementLabel = "等待开始";
       phase = "idle";
-      isPointerDown = false;
-      lastPoint = null;
+      beatTimeline = [];
+      beatJudgements = Array.from({ length: totalBeats }, () => null);
       playerMarks = [0, 0];
+      accuracyTotals = { perfect: 0, good: 0, miss: 0 };
+      pointerTarget = clampPointToBand({ x: canvas.width / 2, y: canvas.height / 2 });
       resultsOverlay.hidden = true;
-      setOverlay("准备好开始", "选择单人或双人模式，再按下开始创作。", false);
+      setOverlay("准备好开始", "选择模式并开始；每拍点一下，越准越鲜艳。", false);
       updateBeatStrip();
       updateHud();
       clearCanvas();
     }
 
     function pauseForPlayerSwitch() {
+      window.clearInterval(intervalId);
+      intervalId = 0;
       phase = "switching";
       currentPlayer = 2;
+      for (let index = beatsPerPlayer; index < beatTimeline.length; index += 1) {
+        beatTimeline[index] += switchDelayMs;
+      }
+      pointerTarget = clampPointToBand({ x: canvas.width / 2, y: canvas.height * 0.75 });
       updateHud();
-      setOverlay("玩家 2 接棒", "前 8 拍结束，1.2 秒后自动进入后半段。", false);
-      window.setTimeout(() => {
+      setOverlay("玩家 2 接棒", "后 8 拍只在下半区作画，1.2 秒后继续。", false);
+      switchTimeoutId = window.setTimeout(() => {
         if (phase !== "switching") {
           return;
         }
         phase = "playing";
         setOverlay("", "", true);
         updateHud();
-      }, 1200);
+        advanceBeat();
+        intervalId = window.setInterval(advanceBeat, beatMs);
+      }, switchDelayMs);
+    }
+
+    function getAccuracyPercent() {
+      const score = accuracyTotals.perfect + accuracyTotals.good * 0.65;
+      return Math.round((score / totalBeats) * 100);
     }
 
     function renderResults() {
       resultsStats.innerHTML = "";
-      const participantCount = gameMode === 2 ? 2 : 1;
-      for (let index = 0; index < participantCount; index += 1) {
+      const statCards = [
+        { label: "准确率", value: `${getAccuracyPercent()}%` },
+        { label: "Perfect", value: String(accuracyTotals.perfect) },
+        { label: "Good", value: String(accuracyTotals.good) },
+        { label: "Miss", value: String(accuracyTotals.miss) }
+      ];
+      if (gameMode === 2) {
+        statCards.push({ label: "玩家 1 笔触", value: String(playerMarks[0]) });
+        statCards.push({ label: "玩家 2 笔触", value: String(playerMarks[1]) });
+      } else {
+        statCards.push({ label: "总笔触", value: String(playerMarks[0]) });
+      }
+      for (const entry of statCards) {
         const card = document.createElement("div");
         card.className = "results-stat";
-        card.innerHTML = `<strong>玩家 ${index + 1}</strong><span>${playerMarks[index]} 笔</span>`;
+        card.innerHTML = `<strong>${entry.value}</strong><span>${entry.label}</span>`;
         resultsStats.appendChild(card);
       }
       resultsNote.textContent = gameMode === 2
-        ? "双人 16 拍合作完成，点击下载 PNG 保存这张接力涂鸦。"
-        : "单人 16 拍创作完成，点击下载 PNG 保存这张节奏作品。";
+        ? "上下半区已经合成为一张合作涂鸦，节拍越准的笔触会更饱和、更醒目。"
+        : "单人 16 拍创作完成，节拍越准的落笔会留下更鲜艳、更大的痕迹。";
     }
 
     function finishGame() {
       stopLoop();
+      for (let index = 0; index < beatJudgements.length; index += 1) {
+        if (!beatJudgements[index]) {
+          beatJudgements[index] = "miss";
+          accuracyTotals.miss += 1;
+        }
+      }
       phase = "finished";
+      currentJudgementLabel = `准确率 ${getAccuracyPercent()}%`;
       updateHud();
       setOverlay("16 拍完成", "最终作品已经固定，可以下载 PNG 或重新开始。", false);
       renderResults();
@@ -595,14 +729,14 @@
 
     function advanceBeat() {
       currentBeat += 1;
-
       if (currentBeat >= totalBeats) {
         finishGame();
         return;
       }
 
-      currentColor = getCurrentColor(currentBeat);
-      currentBrushSize = getCurrentBrushSize(currentBeat);
+      currentColor = getCurrentAccent(currentBeat);
+      currentBrushSize = 12;
+      currentJudgementLabel = "等待落笔";
       if (gameMode === 2 && currentBeat >= beatsPerPlayer) {
         currentPlayer = 2;
       }
@@ -610,22 +744,25 @@
       updateBeatStrip();
       updateHud();
       triggerPulse();
+      playBeatClick(currentBeat % 4 === 0);
 
-      if (gameMode === 2 && currentBeat === beatsPerPlayer) {
+      if (gameMode === 2 && currentBeat === beatsPerPlayer - 1) {
         pauseForPlayerSwitch();
       }
     }
 
-    function startGame() {
+    async function startGame() {
+      await unlockAudio();
       resetGame();
-      phase = "playing";
       const speedName =
         bpm === bpmOptions.slow ? "慢" :
         bpm === bpmOptions.fast ? "快" :
         "中";
+      beatTimeline = Array.from({ length: totalBeats }, (_, index) => performance.now() + 900 + index * beatMs);
+      phase = "playing";
       setOverlay(
         gameMode === 2 ? "玩家 1 先画" : "单人开始",
-        `${speedName}速 ${bpm} BPM，跟着每一拍拖动画布。`,
+        `${speedName}速 ${bpm} BPM，跟着节拍点击或按空格 / Enter 落笔。`,
         false
       );
       updateHud();
@@ -634,12 +771,12 @@
           return;
         }
         setOverlay("", "", true);
+        advanceBeat();
+        intervalId = window.setInterval(advanceBeat, beatMs);
       }, 900);
-      advanceBeat();
-      intervalId = window.setInterval(advanceBeat, beatMs);
     }
 
-    function canDraw() {
+    function canPaint() {
       return phase === "playing";
     }
 
@@ -651,50 +788,112 @@
       };
     }
 
-    function drawSegment(from, to) {
+    function judgeBeat(nowMs) {
+      let closestIndex = -1;
+      let closestDelta = Number.POSITIVE_INFINITY;
+      for (let index = 0; index < beatTimeline.length; index += 1) {
+        const delta = Math.abs(nowMs - beatTimeline[index]);
+        if (delta < closestDelta) {
+          closestDelta = delta;
+          closestIndex = index;
+        }
+      }
+
+      if (closestIndex === -1) {
+        return { beatIndex: 0, rating: "miss", accuracy: 0, delta: closestDelta };
+      }
+
+      const existing = beatJudgements[closestIndex];
+      let rating = "miss";
+      let accuracy = 0.18;
+      if (closestDelta <= perfectWindowMs) {
+        rating = "perfect";
+        accuracy = 1;
+      } else if (closestDelta <= goodWindowMs) {
+        rating = "good";
+        accuracy = 0.72;
+      }
+
+      if (existing === "perfect") {
+        return { beatIndex: closestIndex, rating: "ignored", accuracy: 0, delta: closestDelta };
+      }
+      if (existing === "good" && rating === "miss") {
+        return { beatIndex: closestIndex, rating: "ignored", accuracy: 0, delta: closestDelta };
+      }
+
+      if (!existing) {
+        accuracyTotals[rating] += 1;
+      } else {
+        accuracyTotals[existing] -= 1;
+        accuracyTotals[rating] += 1;
+      }
+      beatJudgements[closestIndex] = rating;
+      return { beatIndex: closestIndex, rating, accuracy, delta: closestDelta };
+    }
+
+    function drawBrushMark(point, judgement) {
+      const clampedPoint = clampPointToBand(point);
+      const hue = getCurrentHue(Math.max(judgement.beatIndex, 0));
+      const saturation = 35 + Math.round(judgement.accuracy * 60);
+      const lightness = 68 - Math.round(judgement.accuracy * 20);
+      const brushSize = 10 + judgement.accuracy * 24;
+
       ctx.save();
-      ctx.strokeStyle = currentColor;
-      ctx.lineWidth = currentBrushSize;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
+      ctx.fillStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, 0.78)`;
       ctx.beginPath();
-      ctx.moveTo(from.x, from.y);
-      ctx.lineTo(to.x, to.y);
-      ctx.stroke();
+      ctx.arc(clampedPoint.x, clampedPoint.y, brushSize, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = `hsla(${(hue + 18) % 360}, ${Math.min(100, saturation + 8)}%, ${Math.max(20, lightness - 12)}%, 0.42)`;
+      ctx.beginPath();
+      ctx.arc(clampedPoint.x + brushSize * 0.22, clampedPoint.y - brushSize * 0.18, brushSize * 0.44, 0, Math.PI * 2);
+      ctx.fill();
       ctx.restore();
+
+      currentColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+      currentBrushSize = brushSize;
+      currentJudgementLabel = judgement.rating === "perfect"
+        ? `Perfect ${Math.round(judgement.delta)}ms`
+        : judgement.rating === "good"
+          ? `Good ${Math.round(judgement.delta)}ms`
+          : `Miss ${Math.round(judgement.delta)}ms`;
+      updateHud();
+    }
+
+    function registerHit(point) {
+      if (!canPaint()) {
+        return;
+      }
+      const judgement = judgeBeat(performance.now());
+      if (judgement.rating === "ignored") {
+        return;
+      }
+      drawBrushMark(point, judgement);
+      playerMarks[currentPlayer - 1] += 1;
     }
 
     function handlePointerDown(event) {
-      if (!canDraw()) {
+      if (!canPaint()) {
         return;
       }
       event.preventDefault();
-      isPointerDown = true;
-      lastPoint = getCanvasPoint(event);
-      playerMarks[currentPlayer - 1] += 1;
-      canvas.setPointerCapture(event.pointerId);
-      drawSegment(lastPoint, { x: lastPoint.x + 0.01, y: lastPoint.y + 0.01 });
+      pointerTarget = clampPointToBand(getCanvasPoint(event));
+      registerHit(pointerTarget);
     }
 
     function handlePointerMove(event) {
-      if (!isPointerDown || !canDraw()) {
+      const point = clampPointToBand(getCanvasPoint(event));
+      pointerTarget = point;
+    }
+
+    function handleKeyDown(event) {
+      if (!canPaint()) {
+        return;
+      }
+      if (event.code !== "Space" && event.code !== "Enter") {
         return;
       }
       event.preventDefault();
-      const nextPoint = getCanvasPoint(event);
-      drawSegment(lastPoint, nextPoint);
-      lastPoint = nextPoint;
-    }
-
-    function endStroke(event) {
-      if (!isPointerDown) {
-        return;
-      }
-      if (event) {
-        event.preventDefault();
-      }
-      isPointerDown = false;
-      lastPoint = null;
+      registerHit(pointerTarget);
     }
 
     function downloadImage() {
@@ -712,9 +911,7 @@
     downloadButton.addEventListener("click", downloadImage);
     canvas.addEventListener("pointerdown", handlePointerDown);
     canvas.addEventListener("pointermove", handlePointerMove);
-    canvas.addEventListener("pointerup", endStroke);
-    canvas.addEventListener("pointercancel", endStroke);
-    canvas.addEventListener("pointerleave", endStroke);
+    window.addEventListener("keydown", handleKeyDown);
   </script>
 </body>
 </html>
