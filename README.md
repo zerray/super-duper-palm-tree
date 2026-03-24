@@ -259,6 +259,17 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `pixel-biome-terrarium/index.html` 即可运行。
 
+## 双人磁力弹珠竞技场
+
+新增 `magnetic-marble-arena/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的双人同屏物理弹珠竞技场，包含：
+
+- 玩家 1 使用 `WASD + 空格`、玩家 2 使用方向键 + `Enter`，先调角度与磁极，再蓄力并同时发射
+- 弹珠与中央目标球之间存在可感知的吸引 / 排斥磁力，轨迹会被实时扰动
+- 竞技场随机使用 3 张预设地图，内含圆形撞柱、矩形反弹墙、三角折射板三类障碍
+- 进球后立即计分并触发视觉反馈，先到 5 分显示胜利结算
+
+直接用浏览器打开 `magnetic-marble-arena/index.html` 即可游玩。
+
 ## 像素生态缸
 
 新增 `pixel-ecosystem-tank/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的封闭像素生态缸，包含：
