@@ -3,18 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>节奏色块记忆挑战</title>
+  <title>节奏色块：回合制双人记忆对战</title>
   <style>
     :root {
-      --bg: #050816;
-      --panel: rgba(10, 16, 34, 0.88);
-      --line: rgba(255, 255, 255, 0.08);
-      --text: #eff4ff;
-      --muted: #98a9d2;
-      --accent: #74f8ff;
-      --danger: #ff557c;
-      --success: #72ffb6;
-      --shadow: 0 26px 70px rgba(0, 0, 0, 0.36);
+      --bg: #0f1226;
+      --panel: rgba(17, 22, 44, 0.9);
+      --panel-strong: rgba(24, 30, 58, 0.96);
+      --line: rgba(255, 255, 255, 0.1);
+      --text: #f5f7ff;
+      --muted: #a8b2d9;
+      --accent: #ffe082;
+      --good: #87f0b5;
+      --bad: #ff8fb1;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
     }
 
     * {
@@ -27,17 +28,9 @@
       font-family: "Trebuchet MS", "PingFang SC", sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at 18% 16%, rgba(116, 248, 255, 0.15), transparent 24%),
-        radial-gradient(circle at 82% 20%, rgba(255, 85, 124, 0.14), transparent 22%),
-        radial-gradient(circle at 50% 100%, rgba(113, 102, 255, 0.18), transparent 30%),
-        linear-gradient(180deg, #040611, #0a1227 45%, #050816);
-      transition: background 160ms ease;
-    }
-
-    body.fail-flash {
-      background:
-        radial-gradient(circle at 50% 16%, rgba(255, 85, 124, 0.24), transparent 30%),
-        linear-gradient(180deg, #18040a, #1f0a14 44%, #09040a);
+        radial-gradient(circle at top left, rgba(100, 181, 246, 0.22), transparent 24%),
+        radial-gradient(circle at top right, rgba(255, 138, 128, 0.18), transparent 26%),
+        linear-gradient(180deg, #151935 0%, #0d1021 100%);
     }
 
     button {
@@ -47,7 +40,7 @@
     }
 
     .app {
-      width: min(980px, calc(100vw - 24px));
+      width: min(960px, calc(100vw - 24px));
       margin: 0 auto;
       padding: 20px 0 28px;
       display: grid;
@@ -55,19 +48,17 @@
     }
 
     .panel {
-      border-radius: 28px;
       border: 1px solid var(--line);
+      border-radius: 28px;
       background: var(--panel);
       box-shadow: var(--shadow);
       overflow: hidden;
-      backdrop-filter: blur(10px);
     }
 
     .hero {
       padding: 24px;
       display: grid;
-      grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.95fr);
-      gap: 16px;
+      gap: 18px;
     }
 
     .eyebrow,
@@ -86,321 +77,219 @@
     }
 
     h1 {
-      margin-top: 8px;
-      font-size: clamp(2.7rem, 6.5vw, 5rem);
-      line-height: 0.94;
-      letter-spacing: -0.07em;
+      font-size: clamp(2.4rem, 6vw, 4.6rem);
+      line-height: 0.96;
+      letter-spacing: -0.06em;
     }
 
     .lede,
-    .muted,
-    .overlay-copy {
+    .muted {
       color: var(--muted);
-      line-height: 1.65;
+      line-height: 1.6;
     }
 
-    .hero-copy,
-    .hero-side,
-    .board-wrap,
-    .overlay-card {
+    .scoreboard {
       display: grid;
-      gap: 14px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
     }
 
-    .stats,
-    .level-preview {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
-    }
-
-    .stat,
-    .card,
-    .chip {
-      padding: 14px 16px;
-      border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+    .score-card,
+    .status-card {
+      padding: 18px;
+      border-radius: 22px;
+      border: 1px solid var(--line);
       background: rgba(255, 255, 255, 0.04);
     }
 
-    .label {
+    .score-card.active {
+      border-color: rgba(255, 224, 130, 0.8);
+      box-shadow: inset 0 0 0 1px rgba(255, 224, 130, 0.45);
+    }
+
+    .score-title {
       color: var(--muted);
-      font-size: 0.78rem;
+      font-size: 0.9rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
     }
 
-    .value {
-      margin-top: 6px;
-      font-size: 1.4rem;
+    .score-value {
+      margin-top: 8px;
+      font-size: clamp(2rem, 6vw, 3rem);
       font-weight: 700;
     }
 
-    .button-row {
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .status-value {
+      margin-top: 6px;
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .controls {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
     }
 
     .button {
-      min-height: 48px;
+      min-height: 46px;
       padding: 0 18px;
       border-radius: 999px;
       border: 1px solid rgba(255, 255, 255, 0.12);
       background: rgba(255, 255, 255, 0.06);
-      transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+      transition: transform 120ms ease, border-color 120ms ease;
     }
 
     .button:hover,
     .button:focus-visible {
       transform: translateY(-1px);
-      border-color: rgba(116, 248, 255, 0.48);
-      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+      border-color: rgba(255, 224, 130, 0.75);
       outline: none;
     }
 
     .button.primary {
-      color: #06111b;
+      color: #1b1730;
       border: 0;
       font-weight: 700;
-      background: linear-gradient(180deg, #96fff5, #59bfff);
+      background: linear-gradient(180deg, #fff2a8, #ffc96b);
     }
 
-    .button:disabled {
-      opacity: 0.45;
-      cursor: default;
-      transform: none;
-      box-shadow: none;
-    }
-
-    .board-wrap {
+    .board-panel {
       padding: 18px;
+      display: grid;
+      gap: 16px;
     }
 
-    .status-row {
+    .status-bar {
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
-      align-items: center;
       gap: 10px;
+      align-items: center;
     }
 
     .pill {
       padding: 10px 14px;
       border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--line);
       background: rgba(255, 255, 255, 0.05);
       color: var(--muted);
     }
 
-    .progress {
-      height: 12px;
-      overflow: hidden;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(255, 255, 255, 0.06);
-    }
-
-    .progress-fill {
-      height: 100%;
-      width: 0;
-      background: linear-gradient(90deg, #64ffba, #74f8ff, #ff6c90);
-      transition: width 180ms ease;
-    }
-
-    .board-shell {
-      position: relative;
-      min-height: 560px;
-      padding: 18px;
-      border-radius: 26px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 18%),
-        linear-gradient(180deg, rgba(9, 15, 30, 0.95), rgba(7, 12, 25, 0.96));
-      overflow: hidden;
-    }
-
-    .board-shell::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background:
-        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-      background-size: 28px 28px;
-      opacity: 0.22;
-      pointer-events: none;
-    }
-
     .board {
-      position: relative;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 16px;
-      z-index: 1;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
     }
 
-    .pad {
+    .tile {
       position: relative;
-      min-height: 120px;
-      border-radius: 24px;
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      background: rgba(255, 255, 255, 0.05);
+      aspect-ratio: 1;
+      border: 0;
+      border-radius: 22px;
+      background: var(--tile);
       box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.04),
-        0 16px 28px rgba(0, 0, 0, 0.26);
-      overflow: hidden;
-      transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+        inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+        0 18px 28px rgba(0, 0, 0, 0.22);
+      transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease;
     }
 
-    .pad::before,
-    .pad::after {
+    .tile::after {
       content: "";
       position: absolute;
       inset: 0;
+      border-radius: inherit;
+      background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.38), transparent 36%);
+      opacity: 0.8;
       pointer-events: none;
-      transition: opacity 120ms ease, transform 120ms ease;
     }
 
-    .pad::before {
-      background: radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.32), transparent 34%);
-      opacity: 0.65;
-    }
-
-    .pad::after {
-      opacity: 0;
-      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2) inset, 0 0 28px currentColor;
-    }
-
-    .pad:hover,
-    .pad:focus-visible {
+    .tile:hover,
+    .tile:focus-visible {
       transform: translateY(-2px);
-      filter: brightness(1.08);
+      filter: brightness(1.04);
       outline: none;
     }
 
-    .pad.active {
-      transform: scale(1.03);
-      border-color: rgba(255, 255, 255, 0.5);
-      box-shadow: 0 0 36px color-mix(in srgb, var(--tile) 72%, white 28%);
+    .tile.active {
+      transform: scale(1.04);
+      filter: brightness(1.45) saturate(1.12);
+      box-shadow:
+        inset 0 0 0 2px rgba(255, 255, 255, 0.55),
+        0 0 28px color-mix(in srgb, var(--tile) 75%, white 25%);
     }
 
-    .pad.active::after,
-    .pad.correct::after,
-    .pad.wrong::after {
-      opacity: 1;
+    .tile.good {
+      box-shadow:
+        inset 0 0 0 2px rgba(255, 255, 255, 0.55),
+        0 0 26px rgba(135, 240, 181, 0.75);
     }
 
-    .pad.correct::after {
-      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2) inset, 0 0 30px rgba(114, 255, 182, 0.9);
+    .tile.bad {
+      box-shadow:
+        inset 0 0 0 2px rgba(255, 255, 255, 0.55),
+        0 0 26px rgba(255, 143, 177, 0.85);
     }
 
-    .pad.wrong::after {
-      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2) inset, 0 0 34px rgba(255, 85, 124, 0.95);
-    }
-
-    .pad[disabled] {
+    .tile[disabled] {
       cursor: default;
+      opacity: 0.92;
     }
 
-    .pad-content {
+    .tile-label {
       position: absolute;
-      inset: auto 14px 14px 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: end;
-      gap: 10px;
-      z-index: 1;
-    }
-
-    .pad-name {
-      font-size: 1rem;
+      left: 12px;
+      bottom: 10px;
+      font-size: 0.9rem;
       font-weight: 700;
       text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
-    }
-
-    .pad-note {
-      font-size: 0.78rem;
-      color: rgba(255, 255, 255, 0.82);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    .pad-core-mark,
-    .pad-fake-mark {
-      position: absolute;
-      inset: 12px 12px auto auto;
-      padding: 6px 10px;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      background: rgba(9, 15, 30, 0.38);
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      backdrop-filter: blur(4px);
-    }
-
-    .pad-fake-mark {
-      color: rgba(255, 255, 255, 0.75);
+      pointer-events: none;
     }
 
     .overlay {
-      position: absolute;
+      position: fixed;
       inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 18px;
-      background: rgba(3, 6, 14, 0.52);
-      z-index: 2;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 160ms ease;
+      display: none;
+      place-items: center;
+      padding: 20px;
+      background: rgba(5, 7, 15, 0.72);
+      backdrop-filter: blur(8px);
     }
 
-    .overlay.visible {
-      opacity: 1;
-      pointer-events: auto;
+    .overlay.show {
+      display: grid;
     }
 
     .overlay-card {
       width: min(420px, 100%);
-      padding: 20px;
-      border-radius: 22px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      background: rgba(8, 13, 28, 0.92);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.32);
-      text-align: center;
+      padding: 24px;
+      border-radius: 28px;
+      border: 1px solid var(--line);
+      background: var(--panel-strong);
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 14px;
     }
 
-    .overlay-title {
-      font-size: 1.8rem;
-      font-weight: 700;
-    }
-
-    .feedback {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .footer-note {
-      color: var(--muted);
-      font-size: 0.92rem;
-    }
-
-    @media (max-width: 760px) {
-      .hero {
+    @media (max-width: 720px) {
+      .scoreboard,
+      .status-grid {
         grid-template-columns: 1fr;
       }
 
-      .stats,
-      .level-preview {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+      .board {
+        gap: 10px;
       }
 
-      .board-shell {
-        min-height: 620px;
+      .tile {
+        border-radius: 18px;
       }
     }
   </style>
@@ -408,511 +297,403 @@
 <body>
   <main class="app">
     <section class="panel hero">
-      <div class="hero-copy">
-        <p class="eyebrow">Arcade / Rhythm Memory</p>
-        <div>
-          <h1>节奏色块记忆挑战</h1>
-          <p class="lede">页面打开后直接进入第一关。系统会按节拍闪烁一串霓虹色块，你要在播放结束后用相同顺序和节奏点击复现。第 4 关开始会混入颜色近似的干扰块，记住真正出现过的旋律。</p>
-        </div>
-        <div class="stats">
-          <div class="stat">
-            <div class="label">当前关卡</div>
-            <div class="value" id="levelValue">1 / 10</div>
-          </div>
-          <div class="stat">
-            <div class="label">最高记录</div>
-            <div class="value" id="bestValue">1</div>
-          </div>
-          <div class="stat">
-            <div class="label">阶段</div>
-            <div class="value" id="phaseValue">准备中</div>
-          </div>
-          <div class="stat">
-            <div class="label">节拍窗口</div>
-            <div class="value" id="tempoValue">760ms</div>
-          </div>
-        </div>
+      <div>
+        <p class="eyebrow">Hot Seat Party Memory Duel</p>
+        <h1>节奏色块：回合制双人记忆对战</h1>
+        <p class="lede">两名玩家轮流观看并复现同一条逐渐变长的色块序列。成功复现后，序列自动加一并交给对手；失败时，对手直接获得当前序列长度的分数，先到 30 分获胜。</p>
       </div>
-      <div class="hero-side">
-        <div class="card">
-          <p class="mini">规则</p>
-          <p class="muted">正确点击会播放对应音高并闪亮确认。若顺序错、点到干扰块，或节拍偏差超出容差，就会立即失败。失败后可重试当前关卡，或从第 1 关重新开始。</p>
-        </div>
-        <div class="level-preview" id="levelPreview"></div>
-        <div class="button-row">
-          <button class="button" id="retryButton" type="button" disabled>重试本关</button>
-          <button class="button primary" id="restartButton" type="button">重新开始</button>
-        </div>
+
+      <div class="scoreboard">
+        <article class="score-card active" id="player-0-card">
+          <div class="score-title">玩家 1 分数</div>
+          <div class="score-value" id="score-0">0</div>
+        </article>
+        <article class="score-card" id="player-1-card">
+          <div class="score-title">玩家 2 分数</div>
+          <div class="score-value" id="score-1">0</div>
+        </article>
       </div>
+
+      <div class="status-grid">
+        <article class="status-card">
+          <div class="score-title">当前回合</div>
+          <div class="status-value" id="turn-label">玩家 1</div>
+        </article>
+        <article class="status-card">
+          <div class="score-title">当前序列长度</div>
+          <div class="status-value" id="sequence-length">1</div>
+        </article>
+        <article class="status-card">
+          <div class="score-title">阶段</div>
+          <div class="status-value" id="phase-label">准备中</div>
+        </article>
+      </div>
+
+      <div class="controls">
+        <button class="button primary" id="restart-button" type="button">重新开始</button>
+      </div>
+
+      <p class="muted">浏览器通常需要一次交互后才允许播放声音；点击任意色块或“重新开始”后，后续高亮都会带有音效反馈。</p>
     </section>
 
-    <section class="panel board-wrap">
-      <div class="status-row">
-        <div class="pill" id="statusText">正在校准霓虹节拍...</div>
-        <div class="pill" id="timingText">点击节奏: 等待开局</div>
+    <section class="panel board-panel">
+      <div class="status-bar">
+        <div class="pill" id="status-text">系统正在准备第一轮序列。</div>
+        <div class="pill" id="hint-text">展示阶段不可点击，输入阶段按顺序点击色块。</div>
       </div>
-      <div class="progress" aria-hidden="true">
-        <div class="progress-fill" id="progressFill"></div>
-      </div>
-      <div class="board-shell">
-        <div class="board" id="board"></div>
-        <div class="overlay visible" id="overlay">
-          <div class="overlay-card">
-            <div class="overlay-title" id="overlayTitle">第 1 关</div>
-            <p class="overlay-copy" id="overlayCopy">系统正在装填第一个节拍序列。</p>
-            <div class="feedback" id="overlayMeta"></div>
-          </div>
-        </div>
-      </div>
-      <p class="footer-note">音效使用 Web Audio API 实时合成，无需加载音频资源。首次点击页面任意位置后，浏览器会解锁音频上下文。</p>
+
+      <div class="board" id="board" aria-label="4x4 彩色网格"></div>
     </section>
   </main>
 
+  <div class="overlay" id="game-over-overlay" role="dialog" aria-modal="true" aria-labelledby="game-over-title">
+    <div class="overlay-card">
+      <p class="mini">Match Over</p>
+      <h2 id="game-over-title">玩家 1 获胜</h2>
+      <p class="muted" id="game-over-copy"></p>
+      <button class="button primary" id="overlay-restart" type="button">再来一局</button>
+    </div>
+  </div>
+
   <script>
-    const STORAGE_KEY = "rhythm-color-blocks-best";
-    const LEVELS = [
-      { blockCount: 3, interval: 760, distractors: 0, sequenceLength: 4 },
-      { blockCount: 3, interval: 700, distractors: 0, sequenceLength: 5 },
-      { blockCount: 4, interval: 640, distractors: 0, sequenceLength: 5 },
-      { blockCount: 4, interval: 600, distractors: 1, sequenceLength: 6 },
-      { blockCount: 5, interval: 560, distractors: 1, sequenceLength: 6 },
-      { blockCount: 5, interval: 520, distractors: 1, sequenceLength: 7 },
-      { blockCount: 6, interval: 490, distractors: 1, sequenceLength: 7 },
-      { blockCount: 7, interval: 460, distractors: 2, sequenceLength: 8 },
-      { blockCount: 8, interval: 430, distractors: 2, sequenceLength: 9 },
-      { blockCount: 8, interval: 400, distractors: 2, sequenceLength: 10 }
+    const WIN_SCORE = 30;
+    const TILE_COLORS = [
+      "#ff6b6b", "#ff8e53", "#ffd166", "#c7f464",
+      "#4ef0b7", "#44d7f5", "#4f8cff", "#8b7dff",
+      "#b06cff", "#ff72c7", "#ff7aa2", "#ff9f68",
+      "#ffe66d", "#6df5c8", "#68b9ff", "#8ff0ff"
     ];
-
-    const BASE_PADS = [
-      { name: "Cyan", hue: 190, frequency: 261.63 },
-      { name: "Mint", hue: 148, frequency: 293.66 },
-      { name: "Gold", hue: 42, frequency: 329.63 },
-      { name: "Coral", hue: 8, frequency: 349.23 },
-      { name: "Rose", hue: 330, frequency: 392.0 },
-      { name: "Violet", hue: 278, frequency: 440.0 },
-      { name: "Azure", hue: 224, frequency: 493.88 },
-      { name: "Lime", hue: 94, frequency: 523.25 }
+    const TILE_FREQUENCIES = [
+      261.63, 293.66, 329.63, 349.23,
+      392.0, 440.0, 493.88, 523.25,
+      587.33, 659.25, 698.46, 783.99,
+      293.66, 369.99, 466.16, 554.37
     ];
-
-    const TIMING_TOLERANCE_MS = 180;
-    const TIMING_TOLERANCE_RATIO = 0.28;
-    const FLASH_DURATION_MS = 260;
-    const START_DELAY_MS = 900;
 
     const state = {
-      currentLevel: 0,
-      bestLevel: clamp(Number(localStorage.getItem(STORAGE_KEY) || 1), 1, LEVELS.length),
-      blocks: [],
+      scores: [0, 0],
+      currentPlayer: 0,
       sequence: [],
-      status: "boot",
-      awaitingIndex: 0,
-      inputStartAt: 0,
-      timerIds: [],
-      inputUnlocked: false,
+      inputIndex: 0,
+      phase: "ready",
+      locked: true,
+      gameOver: false,
       audioContext: null,
-      failedLevel: null
+      timeouts: []
     };
 
-    const board = document.getElementById("board");
-    const overlay = document.getElementById("overlay");
-    const overlayTitle = document.getElementById("overlayTitle");
-    const overlayCopy = document.getElementById("overlayCopy");
-    const overlayMeta = document.getElementById("overlayMeta");
-    const levelValue = document.getElementById("levelValue");
-    const bestValue = document.getElementById("bestValue");
-    const phaseValue = document.getElementById("phaseValue");
-    const tempoValue = document.getElementById("tempoValue");
-    const statusText = document.getElementById("statusText");
-    const timingText = document.getElementById("timingText");
-    const progressFill = document.getElementById("progressFill");
-    const levelPreview = document.getElementById("levelPreview");
-    const retryButton = document.getElementById("retryButton");
-    const restartButton = document.getElementById("restartButton");
+    const board = document.querySelector("#board");
+    const scoreEls = [document.querySelector("#score-0"), document.querySelector("#score-1")];
+    const cardEls = [document.querySelector("#player-0-card"), document.querySelector("#player-1-card")];
+    const turnLabel = document.querySelector("#turn-label");
+    const sequenceLengthLabel = document.querySelector("#sequence-length");
+    const phaseLabel = document.querySelector("#phase-label");
+    const statusText = document.querySelector("#status-text");
+    const hintText = document.querySelector("#hint-text");
+    const restartButton = document.querySelector("#restart-button");
+    const overlay = document.querySelector("#game-over-overlay");
+    const overlayTitle = document.querySelector("#game-over-title");
+    const overlayCopy = document.querySelector("#game-over-copy");
+    const overlayRestart = document.querySelector("#overlay-restart");
 
-    function clamp(value, min, max) {
-      return Math.min(max, Math.max(min, value));
+    function clearScheduledTasks() {
+      state.timeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
+      state.timeouts = [];
     }
 
-    function getLevelConfig(index) {
-      return LEVELS[index];
+    function schedule(callback, delay) {
+      const timeoutId = window.setTimeout(() => {
+        state.timeouts = state.timeouts.filter((id) => id !== timeoutId);
+        callback();
+      }, delay);
+      state.timeouts.push(timeoutId);
+      return timeoutId;
     }
 
-    function updateBestLevel(levelNumber) {
-      if (levelNumber > state.bestLevel) {
-        state.bestLevel = levelNumber;
-        localStorage.setItem(STORAGE_KEY, String(levelNumber));
-      }
-      bestValue.textContent = String(state.bestLevel);
-    }
-
-    function ensureAudio() {
-      const AudioCtor = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtor) {
-        return null;
-      }
-      if (!state.audioContext) {
-        state.audioContext = new AudioCtor();
-      }
-      if (state.audioContext.state === "suspended") {
-        state.audioContext.resume();
-      }
-      state.inputUnlocked = true;
-      return state.audioContext;
-    }
-
-    function playTone(frequency, type = "sine", duration = 0.2, volume = 0.05) {
-      const context = ensureAudio();
-      if (!context) {
-        return;
-      }
-      const now = context.currentTime;
-      const oscillator = context.createOscillator();
-      const gainNode = context.createGain();
-      oscillator.type = type;
-      oscillator.frequency.setValueAtTime(frequency, now);
-      gainNode.gain.setValueAtTime(0.0001, now);
-      gainNode.gain.exponentialRampToValueAtTime(volume, now + 0.02);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-      oscillator.connect(gainNode);
-      gainNode.connect(context.destination);
-      oscillator.start(now);
-      oscillator.stop(now + duration + 0.02);
-    }
-
-    function playErrorSound() {
-      const context = ensureAudio();
-      if (!context) {
-        return;
-      }
-      const now = context.currentTime;
-      const oscillator = context.createOscillator();
-      const gainNode = context.createGain();
-      oscillator.type = "sawtooth";
-      oscillator.frequency.setValueAtTime(190, now);
-      oscillator.frequency.exponentialRampToValueAtTime(90, now + 0.26);
-      gainNode.gain.setValueAtTime(0.0001, now);
-      gainNode.gain.exponentialRampToValueAtTime(0.08, now + 0.02);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
-      oscillator.connect(gainNode);
-      gainNode.connect(context.destination);
-      oscillator.start(now);
-      oscillator.stop(now + 0.3);
-    }
-
-    function clearTimers() {
-      while (state.timerIds.length) {
-        clearTimeout(state.timerIds.pop());
-      }
-    }
-
-    function showOverlay(title, copy, chips = []) {
-      overlayTitle.textContent = title;
-      overlayCopy.textContent = copy;
-      overlayMeta.innerHTML = "";
-      chips.forEach((text) => {
-        const chip = document.createElement("div");
-        chip.className = "chip";
-        chip.textContent = text;
-        overlayMeta.appendChild(chip);
-      });
-      overlay.classList.add("visible");
-    }
-
-    function hideOverlay() {
-      overlay.classList.remove("visible");
-    }
-
-    function setPhase(phase, message) {
-      state.status = phase;
-      phaseValue.textContent = message;
-    }
-
-    function updateProgress(value) {
-      progressFill.style.width = `${clamp(value, 0, 1) * 100}%`;
-    }
-
-    function setTimingFeedback(text) {
-      timingText.textContent = text;
-    }
-
-    function createDistractor(basePad, levelIndex, offsetIndex) {
-      const shift = offsetIndex % 2 === 0 ? 16 : -16;
-      return {
-        id: `fake-${levelIndex}-${offsetIndex}`,
-        name: `${basePad.name} Echo`,
-        frequency: basePad.frequency * 1.06,
-        core: false,
-        color: `hsl(${(basePad.hue + shift + 360) % 360} 88% 58%)`,
-        noteLabel: "FAKE"
-      };
-    }
-
-    function buildLevelBlocks(levelIndex) {
-      const config = getLevelConfig(levelIndex);
-      const coreBlocks = BASE_PADS.slice(0, config.blockCount).map((pad, index) => ({
-        id: `core-${index}`,
-        name: pad.name,
-        frequency: pad.frequency,
-        core: true,
-        color: `hsl(${pad.hue} 88% 58%)`,
-        noteLabel: `P${index + 1}`
-      }));
-      const distractors = [];
-      for (let i = 0; i < config.distractors; i += 1) {
-        distractors.push(createDistractor(coreBlocks[i % coreBlocks.length], levelIndex, i));
-      }
-      return [...coreBlocks, ...distractors];
-    }
-
-    function shuffle(items) {
-      const copy = [...items];
-      for (let i = copy.length - 1; i > 0; i -= 1) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [copy[i], copy[j]] = [copy[j], copy[i]];
-      }
-      return copy;
-    }
-
-    function renderPreview() {
-      const config = getLevelConfig(state.currentLevel);
-      levelPreview.innerHTML = "";
-      [
-        `色块 ${config.blockCount}`,
-        `节拍 ${config.interval}ms`,
-        `干扰 ${config.distractors}`,
-        `序列 ${config.sequenceLength}`
-      ].forEach((text) => {
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML = `<div class="label">本关参数</div><div class="value">${text}</div>`;
-        levelPreview.appendChild(card);
-      });
-    }
-
-    function renderBoard() {
+    function createBoard() {
       board.innerHTML = "";
-      shuffle(state.blocks).forEach((block) => {
+      TILE_COLORS.forEach((color, index) => {
         const button = document.createElement("button");
         button.type = "button";
-        button.className = "pad";
-        button.dataset.id = block.id;
-        button.style.setProperty("--tile", block.color);
-        button.style.color = block.color;
-        button.style.background = `linear-gradient(180deg, color-mix(in srgb, ${block.color} 82%, white 18%), color-mix(in srgb, ${block.color} 56%, black 44%))`;
-        button.innerHTML = `
-          <span class="${block.core ? "pad-core-mark" : "pad-fake-mark"}">${block.core ? "Memory" : "Distractor"}</span>
-          <span class="pad-content">
-            <span class="pad-name">${block.name}</span>
-            <span class="pad-note">${block.noteLabel}</span>
-          </span>
-        `;
-        button.addEventListener("click", () => handlePadClick(block.id));
+        button.className = "tile";
+        button.dataset.index = String(index);
+        button.style.setProperty("--tile", color);
+        button.innerHTML = `<span class="tile-label">${index + 1}</span>`;
+        button.addEventListener("click", () => handleTileClick(index));
         board.appendChild(button);
       });
     }
 
-    function findPadElement(blockId) {
-      return board.querySelector(`[data-id="${blockId}"]`);
+    function getTiles() {
+      return Array.from(board.querySelectorAll(".tile"));
     }
 
-    function pulsePad(blockId, cssClass = "active", duration = FLASH_DURATION_MS) {
-      const element = findPadElement(blockId);
-      if (!element) {
+    function setInteractive(enabled) {
+      state.locked = !enabled;
+      getTiles().forEach((tile) => {
+        tile.disabled = !enabled;
+      });
+    }
+
+    function updateStatus() {
+      scoreEls.forEach((el, index) => {
+        el.textContent = String(state.scores[index]);
+        cardEls[index].classList.toggle("active", index === state.currentPlayer && !state.gameOver);
+      });
+
+      turnLabel.textContent = `玩家 ${state.currentPlayer + 1}`;
+      sequenceLengthLabel.textContent = String(state.sequence.length || 1);
+
+      const labels = {
+        ready: "准备中",
+        showing: "展示阶段",
+        input: "输入阶段",
+        switch: "切换回合",
+        gameover: "游戏结束"
+      };
+      phaseLabel.textContent = labels[state.phase] || state.phase;
+    }
+
+    function setMessage(main, hint) {
+      statusText.textContent = main;
+      hintText.textContent = hint;
+    }
+
+    async function ensureAudio() {
+      if (!state.audioContext) {
+        const Context = window.AudioContext || window.webkitAudioContext;
+        if (!Context) {
+          return null;
+        }
+        state.audioContext = new Context();
+      }
+
+      if (state.audioContext.state === "suspended") {
+        try {
+          await state.audioContext.resume();
+        } catch (error) {
+          return null;
+        }
+      }
+
+      return state.audioContext;
+    }
+
+    function playTone(index, duration = 0.22) {
+      ensureAudio().then((audioContext) => {
+        if (!audioContext) {
+          return;
+        }
+
+        const now = audioContext.currentTime;
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.type = "sine";
+        oscillator.frequency.value = TILE_FREQUENCIES[index];
+
+        gainNode.gain.setValueAtTime(0.0001, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        oscillator.start(now);
+        oscillator.stop(now + duration + 0.02);
+      });
+    }
+
+    function flashTile(index, className = "active", duration = 360) {
+      const tile = getTiles()[index];
+      if (!tile) {
         return;
       }
-      element.classList.add(cssClass);
-      window.setTimeout(() => {
-        element.classList.remove(cssClass);
+
+      tile.classList.remove("good", "bad");
+      tile.classList.add(className);
+      playTone(index, Math.max(duration / 1000 - 0.04, 0.12));
+      schedule(() => {
+        tile.classList.remove(className);
       }, duration);
     }
 
-    function buildSequence() {
-      const config = getLevelConfig(state.currentLevel);
-      const activeBlockIds = state.blocks.filter((block) => block.core).map((block) => block.id);
-      return Array.from({ length: config.sequenceLength }, (_, step) => ({
-        blockId: activeBlockIds[Math.floor(Math.random() * activeBlockIds.length)],
-        expectedAt: config.interval * (step + 1)
-      }));
+    function markTile(index, className) {
+      const tile = getTiles()[index];
+      if (!tile) {
+        return;
+      }
+
+      tile.classList.remove("good", "bad");
+      tile.classList.add(className);
+      schedule(() => {
+        tile.classList.remove(className);
+      }, 320);
     }
 
-    function updateHud() {
-      const config = getLevelConfig(state.currentLevel);
-      levelValue.textContent = `${state.currentLevel + 1} / ${LEVELS.length}`;
-      bestValue.textContent = String(state.bestLevel);
-      tempoValue.textContent = `${config.interval}ms`;
-      retryButton.disabled = state.failedLevel === null;
+    function nextRandomIndex() {
+      return Math.floor(Math.random() * TILE_COLORS.length);
     }
 
-    function prepareLevel(levelIndex) {
-      clearTimers();
-      state.currentLevel = levelIndex;
-      state.blocks = buildLevelBlocks(levelIndex);
-      state.sequence = buildSequence();
-      state.awaitingIndex = 0;
-      state.inputStartAt = 0;
-      state.failedLevel = null;
-      renderPreview();
-      renderBoard();
-      updateHud();
-      updateProgress(0);
-      setPhase("prepare", "准备中");
-      statusText.textContent = `第 ${levelIndex + 1} 关载入完成，准备播放 ${state.sequence.length} 拍序列。`;
-      setTimingFeedback("点击节奏: 等待系统示范");
-      showOverlay(`第 ${levelIndex + 1} 关`, "观察闪烁顺序和节拍。播放结束后立刻按同样节奏点击。", [
-        `色块 ${getLevelConfig(levelIndex).blockCount}`,
-        `干扰 ${getLevelConfig(levelIndex).distractors}`,
-        `速度 ${getLevelConfig(levelIndex).interval}ms`
-      ]);
-      const timerId = window.setTimeout(() => {
-        hideOverlay();
-        playbackSequence();
-      }, START_DELAY_MS);
-      state.timerIds.push(timerId);
-    }
+    function showSequence() {
+      if (state.gameOver) {
+        return;
+      }
 
-    function playbackSequence() {
-      const config = getLevelConfig(state.currentLevel);
-      setPhase("playback", "系统示范");
-      statusText.textContent = "留意颜色出现的顺序，并记住每一拍的间距。";
-      setTimingFeedback("点击节奏: 观察中");
-      state.sequence.forEach((step, index) => {
-        const timerId = window.setTimeout(() => {
-          const block = state.blocks.find((item) => item.id === step.blockId);
-          pulsePad(step.blockId, "active");
-          playTone(block.frequency, "triangle", 0.18, 0.045);
-          updateProgress((index + 1) / state.sequence.length);
-        }, config.interval * index);
-        state.timerIds.push(timerId);
+      clearScheduledTasks();
+      state.phase = "showing";
+      state.inputIndex = 0;
+      setInteractive(false);
+      updateStatus();
+      setMessage(
+        `玩家 ${state.currentPlayer + 1} 请观看序列`,
+        "系统会依次高亮色块并播放音调。"
+      );
+
+      const stepDelay = 560;
+      state.sequence.forEach((tileIndex, step) => {
+        schedule(() => flashTile(tileIndex, "active", 320), 360 + step * stepDelay);
       });
-      const endTimer = window.setTimeout(() => {
-        beginInputPhase();
-      }, config.interval * state.sequence.length + 120);
-      state.timerIds.push(endTimer);
+
+      schedule(() => {
+        if (state.gameOver) {
+          return;
+        }
+        state.phase = "input";
+        updateStatus();
+        setInteractive(true);
+        setMessage(
+          `轮到玩家 ${state.currentPlayer + 1} 输入`,
+          `请按顺序完成 ${state.sequence.length} 次点击。`
+        );
+      }, 420 + state.sequence.length * stepDelay);
     }
 
-    function beginInputPhase() {
-      const config = getLevelConfig(state.currentLevel);
-      state.awaitingIndex = 0;
-      state.inputStartAt = performance.now();
-      setPhase("input", "玩家复现");
-      statusText.textContent = "现在按相同顺序和节拍点击。";
-      setTimingFeedback(`点击节奏: 每拍约 ${config.interval}ms`);
-      updateProgress(0);
-      showOverlay("轮到你了", "从现在开始按同一节拍复现。点错、点慢或点快都会失败。", [
-        `容差 ±${Math.round(Math.min(TIMING_TOLERANCE_MS, config.interval * TIMING_TOLERANCE_RATIO))}ms`
-      ]);
-      const timerId = window.setTimeout(hideOverlay, 560);
-      state.timerIds.push(timerId);
+    function switchPlayer() {
+      state.currentPlayer = state.currentPlayer === 0 ? 1 : 0;
+      updateStatus();
     }
 
-    function completeLevel() {
-      updateProgress(1);
-      updateBestLevel(state.currentLevel + 1);
-      setPhase("clear", "过关");
-      statusText.textContent = `第 ${state.currentLevel + 1} 关通过，准备进入下一关。`;
-      setTimingFeedback("点击节奏: 完整复现成功");
-      showOverlay("节奏复现成功", "霓虹旋律已锁定，下一关会更快，也会加入更多迷惑颜色。", [
-        `已通关 ${state.currentLevel + 1}`,
-        `最高记录 ${state.bestLevel}`
-      ]);
-      if (state.currentLevel === LEVELS.length - 1) {
-        const finalTimer = window.setTimeout(() => {
-          showOverlay("全部 10 关完成", "你已通关全部节奏记忆挑战。可立即重新开始，再刷一次最高记录。", [
-            `完成关卡 ${LEVELS.length}`,
-            `最佳记录 ${state.bestLevel}`
-          ]);
-          retryButton.disabled = false;
-          state.failedLevel = state.currentLevel;
-          setPhase("finished", "全关完成");
-          statusText.textContent = "全部关卡完成，可重试最后一关或重新开始。";
-        }, 900);
-        state.timerIds.push(finalTimer);
+    function finishGame(winnerIndex) {
+      state.gameOver = true;
+      state.phase = "gameover";
+      setInteractive(false);
+      updateStatus();
+      overlayTitle.textContent = `玩家 ${winnerIndex + 1} 获胜`;
+      overlayCopy.textContent = `最终比分：玩家 1 ${state.scores[0]} 比 ${state.scores[1]} 玩家 2。点击下方按钮重新开始。`;
+      overlay.classList.add("show");
+      setMessage("比赛结束。", "任一玩家达到 30 分后立即结束。");
+    }
+
+    function checkForWinner() {
+      const winnerIndex = state.scores.findIndex((score) => score >= WIN_SCORE);
+      if (winnerIndex !== -1) {
+        finishGame(winnerIndex);
+        return true;
+      }
+      return false;
+    }
+
+    function onRoundSuccess() {
+      state.phase = "switch";
+      setInteractive(false);
+      updateStatus();
+      setMessage(
+        `玩家 ${state.currentPlayer + 1} 复现成功`,
+        "序列会增加一步，然后切换到对手。"
+      );
+
+      schedule(() => {
+        state.sequence.push(nextRandomIndex());
+        switchPlayer();
+        showSequence();
+      }, 780);
+    }
+
+    function onRoundFailure(failedIndex) {
+      state.phase = "switch";
+      setInteractive(false);
+      updateStatus();
+
+      const opponent = state.currentPlayer === 0 ? 1 : 0;
+      state.scores[opponent] += state.sequence.length;
+      updateStatus();
+      setMessage(
+        `玩家 ${state.currentPlayer + 1} 失败，玩家 ${opponent + 1} 获得 ${state.sequence.length} 分`,
+        "本轮序列重置为长度 1，并切换到得分方。"
+      );
+
+      markTile(failedIndex, "bad");
+
+      if (checkForWinner()) {
         return;
       }
-      const nextTimer = window.setTimeout(() => {
-        prepareLevel(state.currentLevel + 1);
-      }, 1100);
-      state.timerIds.push(nextTimer);
+
+      schedule(() => {
+        state.sequence = [nextRandomIndex()];
+        state.inputIndex = 0;
+        state.currentPlayer = opponent;
+        updateStatus();
+        showSequence();
+      }, 960);
     }
 
-    function failLevel(reason, blockId = null) {
-      clearTimers();
-      state.failedLevel = state.currentLevel;
-      retryButton.disabled = false;
-      setPhase("failed", "失败");
-      statusText.textContent = reason;
-      setTimingFeedback("点击节奏: 序列已中断");
-      if (blockId) {
-        pulsePad(blockId, "wrong", 420);
+    function handleTileClick(index) {
+      if (state.locked || state.gameOver || state.phase !== "input") {
+        return;
       }
-      playErrorSound();
-      document.body.classList.add("fail-flash");
-      window.setTimeout(() => document.body.classList.remove("fail-flash"), 220);
-      showOverlay("节奏断了", reason, [
-        `停在第 ${state.currentLevel + 1} 关`,
-        `最高记录 ${state.bestLevel}`
-      ]);
-    }
 
-    function handlePadClick(blockId) {
       ensureAudio();
-      if (state.status !== "input") {
-        return;
-      }
-      const block = state.blocks.find((item) => item.id === blockId);
-      if (!block) {
-        return;
-      }
+      flashTile(index, "active", 220);
 
-      playTone(block.frequency, block.core ? "sine" : "square", 0.18, block.core ? 0.05 : 0.035);
-
-      if (!block.core) {
-        failLevel("你点中了干扰块，顺序立即失效。", blockId);
+      const expected = state.sequence[state.inputIndex];
+      if (index !== expected) {
+        onRoundFailure(index);
         return;
       }
 
-      const expectedStep = state.sequence[state.awaitingIndex];
-      const elapsed = performance.now() - state.inputStartAt;
-      const expectedTime = expectedStep.expectedAt;
-      const tolerance = Math.min(TIMING_TOLERANCE_MS, getLevelConfig(state.currentLevel).interval * TIMING_TOLERANCE_RATIO);
-      const delta = Math.abs(elapsed - expectedTime);
+      markTile(index, "good");
+      state.inputIndex += 1;
+      setMessage(
+        `玩家 ${state.currentPlayer + 1} 正在输入`,
+        `已完成 ${state.inputIndex} / ${state.sequence.length}。`
+      );
 
-      if (expectedStep.blockId !== blockId) {
-        failLevel("颜色顺序错了，旋律被打断。", blockId);
-        return;
-      }
-
-      if (delta > tolerance) {
-        failLevel(`节拍偏差 ${Math.round(delta)}ms，超过容差。`, blockId);
-        return;
-      }
-
-      pulsePad(blockId, "correct", 220);
-      state.awaitingIndex += 1;
-      updateProgress(state.awaitingIndex / state.sequence.length);
-      setTimingFeedback(`点击节奏: 偏差 ${Math.round(delta)}ms / 容差 ±${Math.round(tolerance)}ms`);
-
-      if (state.awaitingIndex >= state.sequence.length) {
-        completeLevel();
+      if (state.inputIndex >= state.sequence.length) {
+        onRoundSuccess();
       }
     }
 
-    function retryLevel() {
-      const levelIndex = state.failedLevel === null ? state.currentLevel : state.failedLevel;
-      prepareLevel(levelIndex);
+    function startGame() {
+      clearScheduledTasks();
+      state.scores = [0, 0];
+      state.currentPlayer = 0;
+      state.sequence = [nextRandomIndex()];
+      state.inputIndex = 0;
+      state.phase = "ready";
+      state.gameOver = false;
+      overlay.classList.remove("show");
+      updateStatus();
+      setMessage("系统正在准备第一轮序列。", "玩家 1 将先观看并复现长度为 1 的序列。");
+      schedule(showSequence, 650);
     }
 
-    function restartGame() {
-      prepareLevel(0);
-    }
+    restartButton.addEventListener("click", async () => {
+      await ensureAudio();
+      startGame();
+    });
 
-    retryButton.addEventListener("click", retryLevel);
-    restartButton.addEventListener("click", restartGame);
-    window.addEventListener("pointerdown", ensureAudio, { once: false, passive: true });
-    window.addEventListener("keydown", ensureAudio, { once: false });
+    overlayRestart.addEventListener("click", async () => {
+      await ensureAudio();
+      startGame();
+    });
 
-    bestValue.textContent = String(state.bestLevel);
-    restartGame();
+    document.addEventListener("pointerdown", () => {
+      ensureAudio();
+    }, { once: true });
+
+    createBoard();
+    updateStatus();
+    startGame();
   </script>
 </body>
 </html>
