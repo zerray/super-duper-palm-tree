@@ -93,6 +93,16 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `magnetic-marble-duel/index.html` 即可游玩。
 
+## 双人磁力弹球对战
+
+新增 `magnetic-ball-versus/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的同屏双人磁力弹球对战原型，包含：
+
+- 玩家 1 使用 `W / S / A / D / 空格 / Q`，玩家 2 使用方向键、`Enter` 与 `Shift` 控制两侧发射器移动、瞄准、开火与切换极性
+- 多颗弹球会依据同极相斥、异极相吸的简化库仑力彼此牵引或排斥，并在接近时显示磁力线
+- 每颗球带有霓虹粒子拖尾，穿过对方底线即可得分，先到 7 分立即触发胜利提示与重新开始
+
+直接用浏览器打开 `magnetic-ball-versus/index.html` 即可游玩。
+
 ## 合作像素拼图
 
 新增 `pixel-coop-puzzle/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的双人协作像素拼图，包含：
