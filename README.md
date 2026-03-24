@@ -170,15 +170,14 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `rhythm-tap/index.html` 即可游玩。
 
-## 节奏色块记忆挑战
+## 节奏色块接力
 
-新增 `rhythm-color-blocks/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的节奏记忆小游戏，包含：
+新增 `rhythm-color-blocks/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的双人合作节奏小游戏，包含：
 
-- 单人模式与热座双人模式切换
-- 系统按固定 BPM 演示色块序列，玩家必须在每拍时限内按原顺序点击复现
-- 初始序列长度为 3，成功过关后序列逐步变长且 BPM 提升
-- 双人模式下两位玩家依次挑战同一随机种子，最终按得分比较胜负
-- 使用 Web Audio API 实时合成节拍与反馈音效，无需外部音频文件
+- 玩家 1 使用 `D / F` 负责左半屏，玩家 2 使用 `J / K` 负责右半屏，在色块落到底线时协作接住
+- 使用 `requestAnimationFrame` 驱动下落动画，并按 Perfect / Good / Miss 三档计算判定与总分
+- 命中会播放对应音效并通过 Web Audio API `GainNode` 淡入更多背景音轨，连续 Miss 会剥离音轨并让画面变暗
+- 提供 3 个难度递增关卡，逐步提升下落速度与可出现的颜色种类，最终给出 `S / A / B / C` 评价
 
 直接用浏览器打开 `rhythm-color-blocks/index.html` 即可游玩。
 

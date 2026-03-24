@@ -3,19 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>节奏色块记忆挑战</title>
+  <title>节奏色块接力</title>
   <style>
     :root {
-      --bg: #0c1220;
-      --panel: rgba(13, 22, 38, 0.88);
-      --panel-soft: rgba(21, 32, 54, 0.86);
-      --line: rgba(255, 255, 255, 0.08);
-      --text: #eef5ff;
-      --muted: #91a3c2;
-      --accent: #ffd166;
-      --good: #7ef0b8;
-      --bad: #ff6e7a;
-      --glow: rgba(255, 209, 102, 0.35);
+      --bg: #08111f;
+      --panel: rgba(8, 16, 30, 0.82);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --text: #edf4ff;
+      --muted: #9ab0cf;
+      --accent: #ffd36a;
+      --danger: rgba(10, 12, 20, 0.56);
+      --glow: rgba(255, 211, 106, 0.18);
+      --hit-line: rgba(255, 255, 255, 0.18);
+      --lane-red: #ff5f72;
+      --lane-blue: #4ea0ff;
+      --lane-green: #59df9f;
+      --lane-yellow: #ffd166;
+      --edge-alpha: 0;
+      --danger-alpha: 0;
     }
 
     * {
@@ -28,45 +33,58 @@
       font-family: "Segoe UI", "PingFang SC", sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at top left, rgba(88, 168, 255, 0.22), transparent 28%),
-        radial-gradient(circle at 85% 12%, rgba(255, 110, 122, 0.18), transparent 22%),
-        linear-gradient(180deg, #0a101b 0%, #111a2c 52%, #0a111c 100%);
+        radial-gradient(circle at 15% 15%, rgba(78, 160, 255, 0.2), transparent 28%),
+        radial-gradient(circle at 85% 18%, rgba(255, 95, 114, 0.18), transparent 24%),
+        linear-gradient(180deg, #040913 0%, #0a1628 50%, #070d18 100%);
     }
 
     button {
       font: inherit;
       color: inherit;
+      cursor: pointer;
     }
 
     .app {
-      width: min(980px, calc(100vw - 24px));
+      width: min(1180px, calc(100vw - 24px));
       margin: 0 auto;
-      padding: 20px 0 28px;
+      padding: 18px 0 28px;
       display: grid;
       gap: 16px;
     }
 
     .panel {
+      position: relative;
       background: var(--panel);
-      border: 1px solid var(--line);
+      border: 1px solid var(--panel-border);
       border-radius: 28px;
-      box-shadow: 0 28px 70px rgba(0, 0, 0, 0.28);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
       overflow: hidden;
     }
 
-    .hero {
-      display: grid;
-      grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
-      gap: 18px;
-      padding: 22px;
+    .panel::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+        0 0 0 2px rgba(255, 255, 255, 0.02),
+        0 0 44px rgba(255, 211, 106, var(--edge-alpha));
     }
 
-    .copy,
-    .menu,
-    .board-shell,
-    .result-panel {
+    .hero {
+      padding: 24px;
       display: grid;
-      gap: 14px;
+      grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+      gap: 16px;
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-size: 0.78rem;
     }
 
     h1,
@@ -76,224 +94,341 @@
     }
 
     h1 {
-      font-size: clamp(2.4rem, 5vw, 4.4rem);
-      line-height: 0.94;
-      letter-spacing: -0.06em;
-    }
-
-    .eyebrow,
-    .micro {
-      color: var(--accent);
-      text-transform: uppercase;
-      letter-spacing: 0.18em;
-      font-size: 0.76rem;
+      font-size: clamp(2.8rem, 7vw, 5.4rem);
+      line-height: 0.92;
+      letter-spacing: -0.08em;
+      margin-top: 6px;
     }
 
     .lede,
-    .hint,
     .muted {
       color: var(--muted);
-      line-height: 1.6;
+      line-height: 1.65;
     }
 
-    .stats {
+    .hero-copy,
+    .hero-side,
+    .board-wrap,
+    .results {
+      display: grid;
+      gap: 14px;
+    }
+
+    .stat-grid,
+    .controls,
+    .score-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 10px;
     }
 
     .stat,
-    .menu,
-    .result-panel {
-      padding: 16px;
+    .chip,
+    .results,
+    .legend {
+      padding: 14px 16px;
       border-radius: 20px;
-      border: 1px solid var(--line);
-      background: var(--panel-soft);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .stat-label,
+    .chip-label {
+      color: var(--muted);
+      font-size: 0.84rem;
     }
 
     .stat-value {
       margin-top: 6px;
-      font-size: 1.5rem;
+      font-size: 1.45rem;
       font-weight: 700;
     }
 
-    .mode-row,
-    .button-row {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    .legend-row,
+    .hud {
+      display: flex;
+      flex-wrap: wrap;
       gap: 10px;
     }
 
-    .mode-button,
-    .action-button,
-    .pad {
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+    .chip {
+      min-width: 120px;
     }
 
-    .mode-button,
-    .action-button {
-      min-height: 48px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.06);
-      cursor: pointer;
-    }
-
-    .mode-button.active,
-    .mode-button:hover,
-    .action-button:hover {
-      transform: translateY(-1px);
-      border-color: rgba(255, 209, 102, 0.42);
-      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
-    }
-
-    .action-button.primary {
-      color: #11111a;
+    .lane-key {
       font-weight: 700;
-      border: 0;
-      background: linear-gradient(180deg, #ffe289 0%, #ffb347 100%);
+      color: var(--text);
     }
 
-    .board-shell {
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .button {
+      min-height: 48px;
+      padding: 0 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+    }
+
+    .button:hover,
+    .button:focus-visible {
+      transform: translateY(-1px);
+      border-color: rgba(255, 211, 106, 0.45);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
+      outline: none;
+    }
+
+    .button.primary {
+      color: #111522;
+      border: 0;
+      font-weight: 700;
+      background: linear-gradient(180deg, #ffe58f 0%, #ffbb5e 100%);
+    }
+
+    .board-wrap {
       padding: 18px;
-      position: relative;
     }
 
     .status-bar {
       display: flex;
-      flex-wrap: wrap;
       justify-content: space-between;
-      gap: 12px;
+      gap: 10px;
+      flex-wrap: wrap;
       align-items: center;
     }
 
-    .pill {
-      padding: 10px 14px;
+    .progress {
+      position: relative;
+      height: 12px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--line);
-      color: var(--muted);
-    }
-
-    .progress-track {
-      height: 10px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.06);
       overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
     }
 
-    .progress-bar {
-      height: 100%;
-      width: 100%;
-      transform-origin: left center;
-      background: linear-gradient(90deg, #7ef0b8, #ffd166, #ff6e7a);
-      transition: transform 80ms linear;
+    .progress-fill {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 0;
+      background: linear-gradient(90deg, #59df9f, #ffd166, #ff5f72);
     }
 
-    .board {
+    .stage {
       position: relative;
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 16px;
-      padding: 16px;
-      border-radius: 28px;
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01)),
-        linear-gradient(135deg, rgba(255, 255, 255, 0.02), transparent 48%),
-        #0b1322;
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      min-height: 640px;
     }
 
-    .board::after {
-      content: "";
-      position: absolute;
-      inset: 12px;
-      border-radius: 22px;
-      border: 1px solid rgba(255, 255, 255, 0.04);
-      pointer-events: none;
-    }
-
-    .pad {
+    .playfield {
       position: relative;
-      min-height: 168px;
-      border-radius: 24px;
-      cursor: pointer;
+      border-radius: 26px;
       overflow: hidden;
-      box-shadow: inset 0 -12px 26px rgba(0, 0, 0, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 18%),
+        linear-gradient(180deg, rgba(5, 10, 18, 0.8), rgba(7, 16, 28, 0.92));
     }
 
-    .pad::before,
-    .pad::after {
+    .playfield::before {
       content: "";
       position: absolute;
       inset: 0;
-      transition: opacity 120ms ease, transform 120ms ease;
+      background: linear-gradient(180deg, transparent 0%, transparent 72%, var(--danger) 100%);
+      opacity: var(--danger-alpha);
+      pointer-events: none;
+      transition: opacity 160ms ease;
     }
 
-    .pad::before {
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), transparent 45%);
-      opacity: 0.5;
-    }
-
-    .pad::after {
-      background: radial-gradient(circle at center, rgba(255, 255, 255, 0.46), transparent 58%);
-      opacity: 0;
-      transform: scale(0.92);
-    }
-
-    .pad.active,
-    .pad:active {
-      transform: scale(0.97);
-      filter: brightness(1.14) saturate(1.08);
-      box-shadow:
-        inset 0 -12px 26px rgba(0, 0, 0, 0.14),
-        0 0 0 2px rgba(255, 255, 255, 0.2),
-        0 0 28px var(--glow);
-    }
-
-    .pad.active::after,
-    .pad:active::after {
-      opacity: 1;
-      transform: scale(1.02);
-    }
-
-    .pad span {
+    .playfield-header {
       position: absolute;
-      left: 18px;
-      bottom: 16px;
-      font-size: 1rem;
-      font-weight: 700;
-      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.24);
+      inset: 0 0 auto 0;
+      padding: 16px 18px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 2;
+      background: linear-gradient(180deg, rgba(5, 10, 18, 0.68), transparent);
     }
 
-    .result-panel {
+    .playfield-label {
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+
+    .lanes {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      padding: 68px 14px 16px;
+    }
+
+    .lane {
+      position: relative;
+      overflow: hidden;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .lane::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: 0.18;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent 32%);
+    }
+
+    .lane-hitline {
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      bottom: 92px;
+      height: 4px;
+      border-radius: 999px;
+      background: var(--hit-line);
+      box-shadow: 0 0 18px rgba(255, 255, 255, 0.16);
+    }
+
+    .lane-keycap {
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 18px;
+      min-height: 54px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #09111f;
+      transform: scale(1);
+      transition: transform 80ms ease, filter 80ms ease;
+    }
+
+    .lane.active .lane-keycap {
+      transform: scale(0.96);
+      filter: brightness(1.12);
+    }
+
+    .lane-note {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      height: 48px;
+      border-radius: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+      transform: translateY(0);
+      will-change: transform;
+    }
+
+    .feedback {
+      min-height: 26px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+    }
+
+    .feedback.perfect {
+      color: #7ffff0;
+    }
+
+    .feedback.good {
+      color: #ffd36a;
+    }
+
+    .feedback.miss {
+      color: #ff7d8d;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgba(4, 10, 18, 0.68);
+      z-index: 3;
+    }
+
+    .overlay.hidden {
       display: none;
     }
 
-    .result-panel.visible {
+    .overlay-card {
+      width: min(560px, 100%);
+      padding: 22px;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(6, 14, 25, 0.94);
       display: grid;
+      gap: 14px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.34);
     }
 
-    .result-panel.good {
-      border-color: rgba(126, 240, 184, 0.34);
+    .level-list {
+      display: grid;
+      gap: 10px;
     }
 
-    .result-panel.bad {
-      border-color: rgba(255, 110, 122, 0.3);
+    .level-card {
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
     }
 
-    @media (max-width: 860px) {
-      .hero {
+    .results {
+      padding: 18px;
+    }
+
+    .grade {
+      font-size: clamp(3rem, 10vw, 5rem);
+      line-height: 1;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    .results.hidden {
+      display: none;
+    }
+
+    @media (max-width: 900px) {
+      .hero,
+      .stage {
         grid-template-columns: 1fr;
       }
 
-      .stats {
+      .stat-grid,
+      .score-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
+    }
 
-      .pad {
-        min-height: 140px;
+    @media (max-width: 640px) {
+      .app {
+        width: min(100vw - 12px, 100%);
+      }
+
+      .hero,
+      .board-wrap {
+        padding: 14px;
+      }
+
+      .stage {
+        min-height: 900px;
+      }
+
+      .playfield {
+        min-height: 420px;
       }
     }
   </style>
@@ -301,471 +436,787 @@
 <body>
   <main class="app">
     <section class="panel hero">
-      <section class="copy">
-        <div class="eyebrow">party-toy</div>
-        <h1>节奏色块记忆挑战</h1>
-        <p class="lede">系统先按节拍点亮色块，你必须在每一拍窗口内按正确顺序复现。每过一轮，序列加长、BPM 提升。双人热座模式下，两位玩家会挑战同一随机种子。</p>
-        <div class="stats">
+      <div class="hero-copy">
+        <div class="eyebrow">party rhythm co-op</div>
+        <h1>节奏色块接力</h1>
+        <p class="lede">
+          热座双人合作节奏小游戏。左侧玩家用 <strong>D / F</strong>，右侧玩家用 <strong>J / K</strong>，
+          在色块落到底线时协作接住。命中会叠加背景音轨，失误过多会剥离音轨并让画面变暗。
+        </p>
+        <div class="stat-grid">
           <div class="stat">
-            <div class="micro">模式</div>
-            <div class="stat-value" id="mode-stat">单人</div>
+            <div class="stat-label">判定</div>
+            <div class="stat-value">Perfect / Good / Miss</div>
           </div>
           <div class="stat">
-            <div class="micro">当前玩家</div>
-            <div class="stat-value" id="player-stat">玩家 1</div>
+            <div class="stat-label">音频</div>
+            <div class="stat-value">Web Audio API + GainNode</div>
           </div>
           <div class="stat">
-            <div class="micro">当前回合</div>
-            <div class="stat-value" id="round-stat">1</div>
+            <div class="stat-label">动画</div>
+            <div class="stat-value">requestAnimationFrame</div>
           </div>
           <div class="stat">
-            <div class="micro">BPM</div>
-            <div class="stat-value" id="bpm-stat">92</div>
+            <div class="stat-label">关卡</div>
+            <div class="stat-value">3 段递增接力</div>
           </div>
         </div>
-      </section>
-
-      <section class="menu">
-        <h2>开始设置</h2>
-        <div class="mode-row">
-          <button class="mode-button active" data-mode="solo" type="button">单人</button>
-          <button class="mode-button" data-mode="versus" type="button">热座双人</button>
+      </div>
+      <aside class="hero-side">
+        <div class="legend">
+          <h2>双人分工</h2>
+          <div class="legend-row">
+            <div class="chip">
+              <div class="chip-label">左半屏</div>
+              <div><span class="lane-key">D</span> 红色, <span class="lane-key">F</span> 蓝色</div>
+            </div>
+            <div class="chip">
+              <div class="chip-label">右半屏</div>
+              <div><span class="lane-key">J</span> 绿色, <span class="lane-key">K</span> 黄色</div>
+            </div>
+          </div>
+          <p class="muted">
+            每层连击都会提高边缘光效并淡入一层循环音轨。连续 3 次 Miss 会降一层音轨，并触发暗场惩罚。
+          </p>
         </div>
         <div class="button-row">
-          <button class="action-button primary" id="start-button" type="button">开始挑战</button>
-          <button class="action-button" id="retry-button" type="button">重新开局</button>
+          <button id="startButton" class="button primary" type="button">开始第 1 关</button>
+          <button id="restartButton" class="button" type="button">重置整轮</button>
         </div>
-        <p class="hint" id="seed-label">随机种子: 等待开始</p>
-        <p class="muted" id="status-text">首次点击会解锁 Web Audio。观看演示后，在每拍倒计时归零前点对下一个色块。</p>
-      </section>
+      </aside>
     </section>
 
-    <section class="panel board-shell">
+    <section class="panel board-wrap">
       <div class="status-bar">
-        <div class="pill" id="phase-pill">待机</div>
-        <div class="pill" id="score-pill">得分 0</div>
-        <div class="pill" id="sequence-pill">序列长度 3</div>
+        <div class="hud">
+          <div class="chip"><span class="chip-label">关卡</span><div id="levelLabel">第 1 / 3 关</div></div>
+          <div class="chip"><span class="chip-label">总分</span><div id="scoreLabel">0</div></div>
+          <div class="chip"><span class="chip-label">连击</span><div id="comboLabel">0</div></div>
+          <div class="chip"><span class="chip-label">音轨层</span><div id="layerLabel">1 / 4</div></div>
+        </div>
+        <div class="feedback" id="feedbackLabel">按开始后再按任意键以激活音频。</div>
       </div>
-      <div class="progress-track" aria-label="Beat timer">
-        <div class="progress-bar" id="timer-bar"></div>
+      <div class="progress" aria-hidden="true">
+        <div class="progress-fill" id="progressFill"></div>
       </div>
-      <section class="board" id="board" aria-label="Rhythm color pads">
-        <button class="pad" data-pad="0" type="button" aria-label="琥珀">
-          <span>琥珀</span>
-        </button>
-        <button class="pad" data-pad="1" type="button" aria-label="海蓝">
-          <span>海蓝</span>
-        </button>
-        <button class="pad" data-pad="2" type="button" aria-label="薄荷">
-          <span>薄荷</span>
-        </button>
-        <button class="pad" data-pad="3" type="button" aria-label="莓红">
-          <span>莓红</span>
-        </button>
-      </section>
-      <section class="result-panel" id="result-panel">
-        <h2 id="result-title">结果</h2>
-        <p class="lede" id="result-copy"></p>
-      </section>
+      <div class="stage" id="stage">
+        <section class="playfield" id="leftField">
+          <div class="playfield-header">
+            <div class="playfield-label">玩家 1</div>
+            <div class="muted">负责左半屏</div>
+          </div>
+          <div class="lanes" id="leftLanes"></div>
+        </section>
+        <section class="playfield" id="rightField">
+          <div class="playfield-header">
+            <div class="playfield-label">玩家 2</div>
+            <div class="muted">负责右半屏</div>
+          </div>
+          <div class="lanes" id="rightLanes"></div>
+        </section>
+        <div class="overlay" id="overlay">
+          <div class="overlay-card">
+            <div class="eyebrow">co-op briefing</div>
+            <h2 id="overlayTitle">协作接住第 1 段节拍</h2>
+            <p class="muted" id="overlayText">
+              命中目标分就能过关。第 1 关只有 2 种颜色，第 3 关会启用 4 条轨道并加快下落速度。
+            </p>
+            <div class="level-list" id="levelList"></div>
+            <div class="button-row">
+              <button id="overlayButton" class="button primary" type="button">开始</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel results hidden" id="resultsPanel">
+      <div class="eyebrow">final grade</div>
+      <div class="grade" id="gradeLabel">C</div>
+      <div class="score-grid">
+        <div class="stat">
+          <div class="stat-label">总分 / 满分</div>
+          <div class="stat-value" id="finalScoreLabel">0 / 0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">命中率</div>
+          <div class="stat-value" id="accuracyLabel">0%</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">最高连击</div>
+          <div class="stat-value" id="maxComboLabel">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">评价</div>
+          <div class="stat-value" id="remarkLabel">继续磨合</div>
+        </div>
+      </div>
     </section>
   </main>
 
   <script>
-    const BASE_BPM = 92;
-    const BPM_STEP = 6;
-    const START_LENGTH = 3;
-    const INPUT_WINDOW_RATIO = 0.92;
-    const FLASH_RATIO = 0.54;
-    const pads = Array.from(document.querySelectorAll(".pad"));
-    const modeButtons = Array.from(document.querySelectorAll(".mode-button"));
-    const board = document.querySelector("#board");
-    const startButton = document.querySelector("#start-button");
-    const retryButton = document.querySelector("#retry-button");
-    const modeStat = document.querySelector("#mode-stat");
-    const playerStat = document.querySelector("#player-stat");
-    const roundStat = document.querySelector("#round-stat");
-    const bpmStat = document.querySelector("#bpm-stat");
-    const phasePill = document.querySelector("#phase-pill");
-    const scorePill = document.querySelector("#score-pill");
-    const sequencePill = document.querySelector("#sequence-pill");
-    const seedLabel = document.querySelector("#seed-label");
-    const statusText = document.querySelector("#status-text");
-    const timerBar = document.querySelector("#timer-bar");
-    const resultPanel = document.querySelector("#result-panel");
-    const resultTitle = document.querySelector("#result-title");
-    const resultCopy = document.querySelector("#result-copy");
-
-    const palette = [
-      { name: "琥珀", color: "#ffb347", freq: 392 },
-      { name: "海蓝", color: "#5caeff", freq: 466.16 },
-      { name: "薄荷", color: "#57e8b4", freq: 523.25 },
-      { name: "莓红", color: "#ff6e7a", freq: 587.33 }
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    const PERFECT_WINDOW = 0.09;
+    const GOOD_WINDOW = 0.18;
+    const MISS_STREAK_THRESHOLD = 3;
+    const COMBO_LAYER_THRESHOLDS = [0, 5, 10, 16];
+    const TRACK_NAMES = ["Kick", "Bass", "Chord", "Hat"];
+    const LANES = [
+      { id: 0, side: "left", key: "KeyD", label: "D", color: "#ff5f72", accent: "rgba(255,95,114,0.22)" },
+      { id: 1, side: "left", key: "KeyF", label: "F", color: "#4ea0ff", accent: "rgba(78,160,255,0.22)" },
+      { id: 2, side: "right", key: "KeyJ", label: "J", color: "#59df9f", accent: "rgba(89,223,159,0.22)" },
+      { id: 3, side: "right", key: "KeyK", label: "K", color: "#ffd166", accent: "rgba(255,209,102,0.24)" }
+    ];
+    const LEVELS = [
+      { name: "暖场接力", bpm: 94, speed: 250, colors: [0, 2], beats: 24 },
+      { name: "同步推进", bpm: 108, speed: 310, colors: [0, 1, 2], beats: 32 },
+      { name: "满屏合奏", bpm: 124, speed: 365, colors: [0, 1, 2, 3], beats: 40 }
     ];
 
-    pads.forEach((pad, index) => {
-      pad.style.background = `linear-gradient(180deg, ${palette[index].color}, ${shadeColor(palette[index].color, -22)})`;
-    });
+    const laneRootMap = {
+      left: document.getElementById("leftLanes"),
+      right: document.getElementById("rightLanes")
+    };
 
-    let audioContext = null;
-    let selectedMode = "solo";
-    let currentSeed = 0;
-    let turnState = null;
-    let sequence = [];
-    let sequenceRng = null;
-    let playbackToken = 0;
-    let inputDeadline = 0;
-    let inputLoopId = 0;
-    let versusScores = [];
-    let startAction = "new-match";
+    const stageEl = document.getElementById("stage");
+    const overlayEl = document.getElementById("overlay");
+    const overlayTitleEl = document.getElementById("overlayTitle");
+    const overlayTextEl = document.getElementById("overlayText");
+    const overlayButtonEl = document.getElementById("overlayButton");
+    const levelListEl = document.getElementById("levelList");
+    const startButtonEl = document.getElementById("startButton");
+    const restartButtonEl = document.getElementById("restartButton");
+    const resultsPanelEl = document.getElementById("resultsPanel");
+    const levelLabelEl = document.getElementById("levelLabel");
+    const scoreLabelEl = document.getElementById("scoreLabel");
+    const comboLabelEl = document.getElementById("comboLabel");
+    const layerLabelEl = document.getElementById("layerLabel");
+    const feedbackLabelEl = document.getElementById("feedbackLabel");
+    const progressFillEl = document.getElementById("progressFill");
+    const gradeLabelEl = document.getElementById("gradeLabel");
+    const finalScoreLabelEl = document.getElementById("finalScoreLabel");
+    const accuracyLabelEl = document.getElementById("accuracyLabel");
+    const maxComboLabelEl = document.getElementById("maxComboLabel");
+    const remarkLabelEl = document.getElementById("remarkLabel");
 
-    modeButtons.forEach((button) => {
-      button.addEventListener("click", () => {
-        if ((turnState && turnState.locked) || startAction === "player-two") {
-          return;
-        }
-        selectedMode = button.dataset.mode;
-        modeButtons.forEach((candidate) => candidate.classList.toggle("active", candidate === button));
-        syncStaticLabels();
+    const laneEls = new Map();
+    const noteEls = new Map();
+
+    const state = {
+      levelIndex: 0,
+      running: false,
+      started: false,
+      startTime: 0,
+      lastFrame: 0,
+      score: 0,
+      maxScore: 0,
+      combo: 0,
+      maxCombo: 0,
+      hitCount: 0,
+      totalNotes: 0,
+      noteIndex: 0,
+      processedNotes: 0,
+      missStreak: 0,
+      currentLayers: 1,
+      notes: [],
+      rafId: 0
+    };
+
+    const audioState = {
+      ctx: null,
+      master: null,
+      beatInterval: 0,
+      schedulerTimer: 0,
+      nextBeatTime: 0,
+      layerGains: [],
+      layers: []
+    };
+
+    function buildLanes() {
+      LANES.forEach((lane) => {
+        const laneEl = document.createElement("div");
+        laneEl.className = "lane";
+        laneEl.style.background = `linear-gradient(180deg, ${lane.accent}, rgba(255,255,255,0.03))`;
+        laneEl.dataset.laneId = String(lane.id);
+        laneEl.innerHTML = `
+          <div class="lane-hitline"></div>
+          <div class="lane-keycap" style="background:${lane.color}">${lane.label}</div>
+        `;
+        laneRootMap[lane.side].appendChild(laneEl);
+        laneEls.set(lane.id, laneEl);
       });
-    });
-
-    startButton.addEventListener("click", () => {
-      unlockAudio();
-      if (startAction === "player-two") {
-        beginTurn(2);
-        return;
-      }
-      startMatch();
-    });
-
-    retryButton.addEventListener("click", () => {
-      unlockAudio();
-      startMatch(currentSeed || randomSeed());
-    });
-
-    board.addEventListener("click", (event) => {
-      const pad = event.target.closest(".pad");
-      if (!pad || !turnState || turnState.phase !== "input") {
-        return;
-      }
-      handlePadInput(Number(pad.dataset.pad));
-    });
-
-    syncStaticLabels();
-    resetBoardMessage();
-
-    function syncStaticLabels() {
-      modeStat.textContent = selectedMode === "solo" ? "单人" : "热座双人";
-      if (!turnState || !turnState.activePlayer) {
-        playerStat.textContent = "玩家 1";
-      }
     }
 
-    function startMatch(seed = randomSeed()) {
-      currentSeed = seed;
-      startAction = "new-match";
-      startButton.textContent = "开始挑战";
-      versusScores = [];
-      resultPanel.className = "result-panel";
-      resultTitle.textContent = "结果";
-      resultCopy.textContent = "";
-      seedLabel.textContent = `随机种子: ${seed}`;
-      if (selectedMode === "solo") {
-        beginTurn(1);
-        return;
-      }
-      beginTurn(1);
+    function renderLevelList() {
+      levelListEl.innerHTML = "";
+      LEVELS.forEach((level, index) => {
+        const levelEl = document.createElement("div");
+        levelEl.className = "level-card";
+        levelEl.innerHTML = `
+          <strong>第 ${index + 1} 关 · ${level.name}</strong>
+          <div class="muted">${level.bpm} BPM，速度 ${level.speed}px/s，启用 ${level.colors.length} 种颜色</div>
+        `;
+        levelListEl.appendChild(levelEl);
+      });
     }
 
-    function beginTurn(playerIndex) {
-      playbackToken += 1;
-      clearTimeout(inputLoopId);
-      startAction = "new-match";
-      startButton.textContent = "开始挑战";
-      resultPanel.className = "result-panel";
-      sequence = [];
-      sequenceRng = mulberry32(currentSeed);
-      turnState = {
-        activePlayer: playerIndex,
-        phase: "playback",
-        round: 1,
-        score: 0,
-        bpm: BASE_BPM,
-        inputIndex: 0,
-        locked: true
-      };
+    function resetRun() {
+      cancelAnimationFrame(state.rafId);
+      state.levelIndex = 0;
+      state.running = false;
+      state.started = false;
+      state.startTime = 0;
+      state.lastFrame = 0;
+      state.score = 0;
+      state.maxScore = 0;
+      state.combo = 0;
+      state.maxCombo = 0;
+      state.hitCount = 0;
+      state.totalNotes = 0;
+      state.noteIndex = 0;
+      state.processedNotes = 0;
+      state.missStreak = 0;
+      state.currentLayers = 1;
+      state.notes = [];
+      noteEls.forEach((el) => el.remove());
+      noteEls.clear();
+      resultsPanelEl.classList.add("hidden");
+      feedbackLabelEl.className = "feedback";
+      feedbackLabelEl.textContent = "按开始后再按任意键以激活音频。";
+      syncVisualMood();
       updateHud();
-      statusText.textContent = `玩家 ${playerIndex} 准备中。先观看序列，再在每拍内点击复现。`;
-      playRound();
+      showOverlayForCurrentLevel();
     }
 
-    function playRound() {
-      if (!turnState) {
+    function showOverlayForCurrentLevel() {
+      const level = LEVELS[state.levelIndex];
+      overlayTitleEl.textContent = state.levelIndex === LEVELS.length
+        ? "全部关卡完成"
+        : `协作接住第 ${state.levelIndex + 1} 关：${level.name}`;
+      overlayTextEl.textContent = state.levelIndex === LEVELS.length
+        ? "查看最终评价，或重置整轮重新挑战。"
+        : `目标分为本关满分的 65%。命中叠层，连续 ${MISS_STREAK_THRESHOLD} 次 Miss 会剥离一层音轨。`;
+      overlayButtonEl.textContent = state.levelIndex === LEVELS.length ? "查看结算" : `开始第 ${state.levelIndex + 1} 关`;
+      overlayEl.classList.remove("hidden");
+    }
+
+    function hideOverlay() {
+      overlayEl.classList.add("hidden");
+    }
+
+    function generateLevelNotes(levelIndex) {
+      const level = LEVELS[levelIndex];
+      const beat = 60 / level.bpm;
+      const active = level.colors.slice();
+      const notes = [];
+      let previousLane = -1;
+      let sideToggle = levelIndex % 2 === 0 ? "left" : "right";
+
+      for (let i = 0; i < level.beats; i += 1) {
+        let pool = active.filter((laneId) => LANES[laneId].side === sideToggle);
+        if (!pool.length) {
+          pool = active.slice();
+        }
+        let laneId = pool[i % pool.length];
+        if (laneId === previousLane && pool.length > 1) {
+          laneId = pool[(i + 1) % pool.length];
+        }
+        previousLane = laneId;
+        sideToggle = sideToggle === "left" ? "right" : "left";
+        notes.push({
+          id: `${levelIndex}-${i}`,
+          laneId,
+          spawnTime: 1.2 + i * beat,
+          hitTime: 3 + i * beat,
+          judged: false,
+          result: null
+        });
+      }
+      return notes;
+    }
+
+    function spawnNotes() {
+      noteEls.forEach((el) => el.remove());
+      noteEls.clear();
+      state.noteIndex = 0;
+      state.processedNotes = 0;
+      state.notes.forEach((note) => {
+        const noteEl = document.createElement("div");
+        noteEl.className = "lane-note";
+        noteEl.style.background = `linear-gradient(180deg, ${LANES[note.laneId].color}, rgba(255,255,255,0.18))`;
+        noteEl.style.opacity = "0";
+        laneEls.get(note.laneId).appendChild(noteEl);
+        noteEls.set(note.id, noteEl);
+      });
+    }
+
+    async function ensureAudio() {
+      if (!AudioContextClass) {
         return;
       }
-      turnState.phase = "playback";
-      turnState.locked = true;
-      turnState.inputIndex = 0;
-      turnState.bpm = BASE_BPM + (turnState.round - 1) * BPM_STEP;
-      ensureSequenceLength(START_LENGTH + turnState.round - 1);
-      const currentSequence = sequence.slice(0, START_LENGTH + turnState.round - 1);
-      const beatMs = beatDurationMs(turnState.bpm);
-      const flashMs = beatMs * FLASH_RATIO;
-      const token = ++playbackToken;
+      if (!audioState.ctx) {
+        const ctx = new AudioContextClass();
+        const master = ctx.createGain();
+        master.gain.value = 0.2;
+        master.connect(ctx.destination);
 
+        audioState.ctx = ctx;
+        audioState.master = master;
+        audioState.layerGains = TRACK_NAMES.map(() => {
+          const gain = ctx.createGain();
+          gain.gain.value = 0;
+          gain.connect(master);
+          return gain;
+        });
+
+        audioState.layers = [
+          { name: "Kick", pattern: [1, 0, 0, 0, 1, 0, 0, 0], play: playKickLayer },
+          { name: "Bass", pattern: [1, 0, 1, 0, 1, 0, 1, 0], play: playBassLayer },
+          { name: "Chord", pattern: [1, 0, 0, 1, 1, 0, 0, 1], play: playChordLayer },
+          { name: "Hat", pattern: [1, 1, 1, 1, 1, 1, 1, 1], play: playHatLayer }
+        ];
+      }
+
+      if (audioState.ctx.state === "suspended") {
+        await audioState.ctx.resume();
+      }
+    }
+
+    function setLayerCount(count) {
+      state.currentLayers = Math.max(1, Math.min(TRACK_NAMES.length, count));
+      layerLabelEl.textContent = `${state.currentLayers} / ${TRACK_NAMES.length}`;
+      if (!audioState.ctx) {
+        return;
+      }
+      audioState.layerGains.forEach((gainNode, index) => {
+        gainNode.gain.cancelScheduledValues(audioState.ctx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(index < state.currentLayers ? 0.18 : 0, audioState.ctx.currentTime + 0.18);
+      });
+    }
+
+    function layerCountForCombo(combo) {
+      let layers = 1;
+      COMBO_LAYER_THRESHOLDS.forEach((threshold, index) => {
+        if (combo >= threshold) {
+          layers = index + 1;
+        }
+      });
+      return layers;
+    }
+
+    function startMusicScheduler(level) {
+      if (!audioState.ctx) {
+        return;
+      }
+      clearInterval(audioState.schedulerTimer);
+      audioState.beatInterval = 60 / level.bpm / 2;
+      audioState.nextBeatTime = audioState.ctx.currentTime + 0.08;
+      audioState.schedulerTimer = window.setInterval(() => {
+        const ctx = audioState.ctx;
+        while (audioState.nextBeatTime < ctx.currentTime + 0.25) {
+          scheduleBeat(audioState.nextBeatTime);
+          audioState.nextBeatTime += audioState.beatInterval;
+        }
+      }, 60);
+      setLayerCount(1);
+    }
+
+    function stopMusicScheduler() {
+      clearInterval(audioState.schedulerTimer);
+      audioState.schedulerTimer = 0;
+      if (!audioState.ctx) {
+        return;
+      }
+      audioState.layerGains.forEach((gainNode) => {
+        gainNode.gain.cancelScheduledValues(audioState.ctx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0, audioState.ctx.currentTime + 0.12);
+      });
+    }
+
+    function scheduleBeat(time) {
+      audioState.layers.forEach((layer, index) => {
+        if (index >= state.currentLayers) {
+          return;
+        }
+        const step = Math.floor(time / audioState.beatInterval) % layer.pattern.length;
+        if (layer.pattern[step]) {
+          layer.play(audioState.ctx, audioState.layerGains[index], time);
+        }
+      });
+    }
+
+    function playKickLayer(ctx, destination, time) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(150, time);
+      osc.frequency.exponentialRampToValueAtTime(48, time + 0.12);
+      gain.gain.setValueAtTime(0.0001, time);
+      gain.gain.exponentialRampToValueAtTime(0.9, time + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.14);
+      osc.connect(gain);
+      gain.connect(destination);
+      osc.start(time);
+      osc.stop(time + 0.16);
+    }
+
+    function playBassLayer(ctx, destination, time) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(82, time);
+      gain.gain.setValueAtTime(0.0001, time);
+      gain.gain.linearRampToValueAtTime(0.32, time + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.28);
+      osc.connect(gain);
+      gain.connect(destination);
+      osc.start(time);
+      osc.stop(time + 0.3);
+    }
+
+    function playChordLayer(ctx, destination, time) {
+      [220, 277, 330].forEach((freq) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(freq, time);
+        gain.gain.setValueAtTime(0.0001, time);
+        gain.gain.linearRampToValueAtTime(0.08, time + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.32);
+        osc.connect(gain);
+        gain.connect(destination);
+        osc.start(time);
+        osc.stop(time + 0.34);
+      });
+    }
+
+    function playHatLayer(ctx, destination, time) {
+      const bufferSize = ctx.sampleRate * 0.05;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i += 1) {
+        data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+      }
+      const source = ctx.createBufferSource();
+      const gain = ctx.createGain();
+      source.buffer = buffer;
+      gain.gain.setValueAtTime(0.15, time);
+      gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.05);
+      source.connect(gain);
+      gain.connect(destination);
+      source.start(time);
+    }
+
+    function playHitSound(noteLaneId, rating) {
+      if (!audioState.ctx) {
+        return;
+      }
+      const ctx = audioState.ctx;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = rating === "perfect" ? "square" : "triangle";
+      osc.frequency.setValueAtTime(320 + noteLaneId * 55, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(580 + noteLaneId * 35, ctx.currentTime + 0.09);
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(rating === "perfect" ? 0.18 : 0.11, ctx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.12);
+      osc.connect(gain);
+      gain.connect(audioState.master);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.14);
+    }
+
+    function playMissSound() {
+      if (!audioState.ctx) {
+        return;
+      }
+      const ctx = audioState.ctx;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(180, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(70, ctx.currentTime + 0.18);
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.2);
+      osc.connect(gain);
+      gain.connect(audioState.master);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.22);
+    }
+
+    function beginLevel() {
+      const level = LEVELS[state.levelIndex];
+      state.running = true;
+      state.started = true;
+      state.combo = 0;
+      state.noteIndex = 0;
+      state.processedNotes = 0;
+      state.missStreak = 0;
+      state.notes = generateLevelNotes(state.levelIndex);
+      state.totalNotes += state.notes.length;
+      state.maxScore += state.notes.length * 100;
+      state.startTime = performance.now() / 1000;
+      state.lastFrame = state.startTime;
+      spawnNotes();
+      hideOverlay();
+      syncVisualMood();
       updateHud();
-      statusText.textContent = `第 ${turnState.round} 轮演示中，记住 ${currentSequence.length} 个色块。`;
-      timerBar.style.transform = "scaleX(1)";
+      startMusicScheduler(level);
+      state.rafId = requestAnimationFrame(loop);
+    }
 
-      currentSequence.forEach((padIndex, stepIndex) => {
-        const when = stepIndex * beatMs;
-        window.setTimeout(() => {
-          if (!turnState || token !== playbackToken) {
-            return;
-          }
-          flashPad(padIndex, flashMs);
-          playTone(palette[padIndex].freq, flashMs * 0.001, "sine", 0.12);
-        }, when);
+    function nowSeconds() {
+      return performance.now() / 1000;
+    }
+
+    function loop() {
+      if (!state.running) {
+        return;
+      }
+      const time = nowSeconds() - state.startTime;
+      const level = LEVELS[state.levelIndex];
+      const laneHeight = 530;
+
+      state.notes.forEach((note) => {
+        if (note.judged) {
+          return;
+        }
+        const noteEl = noteEls.get(note.id);
+        const offset = (note.hitTime - time) * level.speed;
+        const y = laneHeight - 92 - offset;
+        if (time >= note.spawnTime - 0.5 && noteEl.style.opacity !== "1") {
+          noteEl.style.opacity = "1";
+        }
+        noteEl.style.transform = `translateY(${Math.max(-72, y)}px)`;
       });
 
-      window.setTimeout(() => {
-        if (!turnState || token !== playbackToken) {
-          return;
+      while (state.noteIndex < state.notes.length) {
+        const note = state.notes[state.noteIndex];
+        if (note.judged || time <= note.hitTime + GOOD_WINDOW) {
+          break;
         }
-        startInputPhase(currentSequence);
-      }, currentSequence.length * beatMs + 120);
+        judgeMiss(note);
+        state.noteIndex += 1;
+      }
+
+      const progress = state.notes.length ? state.processedNotes / state.notes.length : 0;
+      progressFillEl.style.width = `${Math.min(100, progress * 100)}%`;
+
+      if (state.processedNotes >= state.notes.length) {
+        finishLevel();
+        return;
+      }
+
+      state.rafId = requestAnimationFrame(loop);
     }
 
-    function startInputPhase(currentSequence) {
-      if (!turnState) {
+    function judgeLanePress(laneId) {
+      if (!state.running) {
         return;
       }
-      turnState.phase = "input";
-      turnState.locked = false;
-      turnState.inputIndex = 0;
-      updateHud();
-      statusText.textContent = "轮到你了。按同样顺序点击，并在每拍结束前完成当前一步。";
-      scheduleInputDeadline();
-
-      function tick() {
-        if (!turnState || turnState.phase !== "input") {
-          return;
+      const time = nowSeconds() - state.startTime;
+      const laneNotes = state.notes.filter((note) => !note.judged && note.laneId === laneId);
+      if (!laneNotes.length) {
+        registerMiss(null, "空拍");
+        return;
+      }
+      let target = laneNotes[0];
+      let bestDiff = Math.abs(target.hitTime - time);
+      laneNotes.forEach((note) => {
+        const diff = Math.abs(note.hitTime - time);
+        if (diff < bestDiff) {
+          target = note;
+          bestDiff = diff;
         }
-        const remaining = Math.max(0, inputDeadline - performance.now());
-        const beatMs = beatDurationMs(turnState.bpm) * INPUT_WINDOW_RATIO;
-        timerBar.style.transform = `scaleX(${remaining / beatMs})`;
-        if (remaining <= 0) {
-          endTurn(false, "超时");
-          return;
-        }
-        inputLoopId = window.setTimeout(tick, 50);
-      }
+      });
 
-      tick();
-
-      function scheduleInputDeadline() {
-        inputDeadline = performance.now() + beatDurationMs(turnState.bpm) * INPUT_WINDOW_RATIO;
-      }
-
-      turnState.scheduleInputDeadline = scheduleInputDeadline;
-      turnState.currentSequence = currentSequence;
-    }
-
-    function handlePadInput(padIndex) {
-      if (!turnState || turnState.phase !== "input") {
-        return;
-      }
-      const currentSequence = turnState.currentSequence;
-      const expectedPad = currentSequence[turnState.inputIndex];
-      flashPad(padIndex, 180);
-      if (padIndex !== expectedPad) {
-        playTone(160, 0.18, "square", 0.16);
-        endTurn(false, "点错了");
-        return;
-      }
-      playTone(palette[padIndex].freq * 1.08, 0.12, "triangle", 0.12);
-      turnState.inputIndex += 1;
-      scorePill.textContent = `得分 ${turnState.score}`;
-      if (turnState.inputIndex >= currentSequence.length) {
-        turnState.score = currentSequence.length;
-        turnState.round += 1;
-        statusText.textContent = "正确复现，下一轮会更快。";
-        playTone(660, 0.09, "triangle", 0.1);
-        playTone(880, 0.12, "triangle", 0.08, 0.06);
-        clearTimeout(inputLoopId);
-        timerBar.style.transform = "scaleX(1)";
-        window.setTimeout(() => {
-          if (turnState) {
-            playRound();
-          }
-        }, 520);
-        return;
-      }
-      turnState.scheduleInputDeadline();
-      timerBar.style.transform = "scaleX(1)";
-      updateHud();
-    }
-
-    function endTurn(survived, reason) {
-      if (!turnState) {
-        return;
-      }
-      clearTimeout(inputLoopId);
-      playbackToken += 1;
-      turnState.phase = "ended";
-      turnState.locked = false;
-      timerBar.style.transform = "scaleX(0)";
-      const finalScore = turnState.score;
-      const playerIndex = turnState.activePlayer;
-
-      if (!survived && finalScore === 0 && turnState.round > 1) {
-        turnState.score = START_LENGTH + turnState.round - 2;
-      }
-
-      const resolvedScore = turnState.score;
-      if (!survived) {
-        resultPanel.className = "result-panel visible bad";
-        resultTitle.textContent = `玩家 ${playerIndex} 结束`;
-        resultCopy.textContent = `${reason}。最终得分 ${resolvedScore}，最高复现长度 ${resolvedScore}。`;
-        statusText.textContent = `${reason}，本回合结束。`;
+      activateLane(laneId);
+      if (bestDiff <= PERFECT_WINDOW) {
+        judgeHit(target, "perfect", 100);
+      } else if (bestDiff <= GOOD_WINDOW) {
+        judgeHit(target, "good", 70);
       } else {
-        resultPanel.className = "result-panel visible good";
+        registerMiss(null, "Miss");
       }
+    }
 
-      if (selectedMode === "solo") {
-        phasePill.textContent = "单人结束";
-        scorePill.textContent = `得分 ${resolvedScore}`;
+    function activateLane(laneId) {
+      const laneEl = laneEls.get(laneId);
+      laneEl.classList.add("active");
+      window.setTimeout(() => laneEl.classList.remove("active"), 90);
+    }
+
+    function judgeHit(note, rating, points) {
+      if (note.judged) {
         return;
       }
+      note.judged = true;
+      note.result = rating;
+      state.processedNotes += 1;
+      state.hitCount += 1;
+      state.combo += 1;
+      state.maxCombo = Math.max(state.maxCombo, state.combo);
+      state.missStreak = 0;
+      state.score += points;
+      state.noteIndex = Math.max(state.noteIndex, state.notes.indexOf(note) + 1);
+      const noteEl = noteEls.get(note.id);
+      if (noteEl) {
+        noteEl.style.opacity = "0";
+      }
+      playHitSound(note.laneId, rating);
+      setLayerCount(layerCountForCombo(state.combo));
+      flashFeedback(rating === "perfect" ? "Perfect" : "Good", rating);
+      syncVisualMood();
+      updateHud();
+    }
 
-      versusScores[playerIndex - 1] = resolvedScore;
-      if (playerIndex === 1) {
-        phasePill.textContent = "玩家 1 完成";
-        statusText.textContent = `玩家 1 得分 ${resolvedScore}。点击“开始玩家 2”让玩家 2 使用同一种子接棒。`;
-        startAction = "player-two";
-        startButton.textContent = "开始玩家 2";
+    function judgeMiss(note) {
+      if (note && note.judged) {
         return;
       }
+      if (note) {
+        note.judged = true;
+        note.result = "miss";
+        const noteEl = noteEls.get(note.id);
+        if (noteEl) {
+          noteEl.style.opacity = "0.15";
+        }
+        state.processedNotes += 1;
+      }
+      registerMiss(note, "Miss");
+    }
 
-      phasePill.textContent = "双人结算";
-      const [scoreA, scoreB] = versusScores;
-      const summary = compareScores(scoreA, scoreB);
-      resultPanel.className = `result-panel visible ${summary.tied ? "good" : "bad"}`;
-      resultTitle.textContent = summary.title;
-      resultCopy.textContent = `玩家 1 得分 ${scoreA}，玩家 2 得分 ${scoreB}。${summary.copy}`;
-      statusText.textContent = "同一随机种子的双人热座挑战完成。";
-      startButton.textContent = "再来一局";
-      startAction = "new-match";
+    function registerMiss(note, label) {
+      state.combo = 0;
+      state.missStreak += 1;
+      if (state.missStreak >= MISS_STREAK_THRESHOLD) {
+        setLayerCount(state.currentLayers - 1);
+      }
+      playMissSound();
+      flashFeedback(label, "miss");
+      syncVisualMood();
+      updateHud();
+      if (note) {
+        state.noteIndex = Math.max(state.noteIndex, state.notes.indexOf(note) + 1);
+      }
+    }
+
+    function flashFeedback(text, type) {
+      feedbackLabelEl.className = `feedback ${type}`;
+      feedbackLabelEl.textContent = text;
+    }
+
+    function syncVisualMood() {
+      const comboGlow = Math.min(0.34, state.combo >= 5 ? 0.1 + state.combo * 0.012 : 0);
+      const darken = Math.min(0.72, state.missStreak * 0.18);
+      document.documentElement.style.setProperty("--edge-alpha", comboGlow.toFixed(3));
+      document.documentElement.style.setProperty("--danger-alpha", darken.toFixed(3));
     }
 
     function updateHud() {
-      if (!turnState) {
-        return;
-      }
-      playerStat.textContent = `玩家 ${turnState.activePlayer}`;
-      roundStat.textContent = `${turnState.round}`;
-      bpmStat.textContent = `${turnState.bpm}`;
-      scorePill.textContent = `得分 ${turnState.score}`;
-      sequencePill.textContent = `序列长度 ${START_LENGTH + turnState.round - 1}`;
-      if (turnState.phase === "playback") {
-        phasePill.textContent = "系统演示";
-      } else if (turnState.phase === "input") {
-        phasePill.textContent = "玩家输入";
-      }
+      levelLabelEl.textContent = `第 ${Math.min(state.levelIndex + 1, LEVELS.length)} / ${LEVELS.length} 关`;
+      scoreLabelEl.textContent = String(state.score);
+      comboLabelEl.textContent = String(state.combo);
+      layerLabelEl.textContent = `${state.currentLayers} / ${TRACK_NAMES.length}`;
     }
 
-    function ensureSequenceLength(length) {
-      while (sequence.length < length) {
-        sequence.push(Math.floor(sequenceRng() * palette.length));
-      }
-    }
-
-    function beatDurationMs(bpm) {
-      return 60000 / bpm;
-    }
-
-    function flashPad(index, durationMs) {
-      const pad = pads[index];
-      pad.classList.add("active");
-      window.setTimeout(() => pad.classList.remove("active"), durationMs);
-    }
-
-    function unlockAudio() {
-      if (!audioContext) {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContextClass) {
-          return;
+    function finishLevel() {
+      state.running = false;
+      cancelAnimationFrame(state.rafId);
+      stopMusicScheduler();
+      const level = LEVELS[state.levelIndex];
+      const levelMax = level.beats * 100;
+      const levelScore = state.notes.reduce((sum, note) => {
+        if (note.result === "perfect") {
+          return sum + 100;
         }
-        audioContext = new AudioContextClass();
-      }
-      if (audioContext.state === "suspended") {
-        audioContext.resume();
-      }
-    }
+        if (note.result === "good") {
+          return sum + 70;
+        }
+        return sum;
+      }, 0);
+      const passed = levelScore >= levelMax * 0.65;
+      state.levelIndex += 1;
 
-    function playTone(frequency, durationSeconds, type, gainAmount, delaySeconds = 0) {
-      if (!audioContext) {
+      if (state.levelIndex >= LEVELS.length) {
+        showFinalResults();
+        overlayTitleEl.textContent = passed ? "全部关卡完成" : "最后一关结束";
+        overlayTextEl.textContent = passed ? "查看双人合作总评价。" : "虽未达成满目标，但整轮已完成。";
+        overlayButtonEl.textContent = "查看结算";
+        overlayEl.classList.remove("hidden");
         return;
       }
-      const startTime = audioContext.currentTime + delaySeconds;
-      const oscillator = audioContext.createOscillator();
-      const gain = audioContext.createGain();
-      oscillator.type = type;
-      oscillator.frequency.setValueAtTime(frequency, startTime);
-      gain.gain.setValueAtTime(0.0001, startTime);
-      gain.gain.exponentialRampToValueAtTime(gainAmount, startTime + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + durationSeconds);
-      oscillator.connect(gain);
-      gain.connect(audioContext.destination);
-      oscillator.start(startTime);
-      oscillator.stop(startTime + durationSeconds + 0.02);
+
+      overlayTitleEl.textContent = passed
+        ? `过关，进入第 ${state.levelIndex + 1} 关`
+        : `本关未达目标，仍可继续挑战第 ${state.levelIndex + 1} 关`;
+      overlayTextEl.textContent = `下一关提升到 ${LEVELS[state.levelIndex].bpm} BPM，并启用 ${LEVELS[state.levelIndex].colors.length} 种颜色。`;
+      overlayButtonEl.textContent = `开始第 ${state.levelIndex + 1} 关`;
+      overlayEl.classList.remove("hidden");
+      state.combo = 0;
+      state.missStreak = 0;
+      setLayerCount(1);
+      syncVisualMood();
+      updateHud();
     }
 
-    function compareScores(scoreA, scoreB) {
-      if (scoreA === scoreB) {
-        return {
-          title: "平局",
-          copy: "两位玩家都撑到了同一轮次，下一局可以继续拼更快的 BPM。",
-          tied: true
-        };
+    function showFinalResults() {
+      const ratio = state.maxScore ? state.score / state.maxScore : 0;
+      const accuracy = state.totalNotes ? state.hitCount / state.totalNotes : 0;
+      const grade = ratio >= 0.9 ? "S" : ratio >= 0.75 ? "A" : ratio >= 0.5 ? "B" : "C";
+      const remark = grade === "S"
+        ? "双人默契拉满"
+        : grade === "A"
+          ? "合作稳定"
+          : grade === "B"
+            ? "还差一点同步"
+            : "建议继续分工练习";
+
+      resultsPanelEl.classList.remove("hidden");
+      gradeLabelEl.textContent = grade;
+      finalScoreLabelEl.textContent = `${state.score} / ${state.maxScore}`;
+      accuracyLabelEl.textContent = `${Math.round(accuracy * 100)}%`;
+      maxComboLabelEl.textContent = String(state.maxCombo);
+      remarkLabelEl.textContent = remark;
+    }
+
+    document.addEventListener("keydown", async (event) => {
+      const lane = LANES.find((item) => item.key === event.code);
+      if (!lane) {
+        return;
       }
-      const winner = scoreA > scoreB ? 1 : 2;
-      return {
-        title: `玩家 ${winner} 获胜`,
-        copy: `玩家 ${winner} 在相同种子下复现了更长的序列。`,
-        tied: false
-      };
-    }
+      event.preventDefault();
+      await ensureAudio();
+      judgeLanePress(lane.id);
+    });
 
-    function randomSeed() {
-      return Math.floor(Math.random() * 0xffffffff);
-    }
+    overlayButtonEl.addEventListener("click", async () => {
+      await ensureAudio();
+      if (state.levelIndex >= LEVELS.length) {
+        resultsPanelEl.scrollIntoView({ behavior: "smooth", block: "start" });
+        hideOverlay();
+        return;
+      }
+      beginLevel();
+    });
 
-    function mulberry32(seed) {
-      let t = seed >>> 0;
-      return function() {
-        t += 0x6d2b79f5;
-        let value = Math.imul(t ^ (t >>> 15), t | 1);
-        value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
-        return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
-      };
-    }
+    startButtonEl.addEventListener("click", async () => {
+      await ensureAudio();
+      stopMusicScheduler();
+      resetRun();
+      overlayEl.classList.add("hidden");
+      beginLevel();
+    });
 
-    function shadeColor(hex, offset) {
-      const value = hex.replace("#", "");
-      const number = Number.parseInt(value, 16);
-      const red = Math.max(0, Math.min(255, (number >> 16) + offset));
-      const green = Math.max(0, Math.min(255, ((number >> 8) & 255) + offset));
-      const blue = Math.max(0, Math.min(255, (number & 255) + offset));
-      return `rgb(${red}, ${green}, ${blue})`;
-    }
+    restartButtonEl.addEventListener("click", () => {
+      stopMusicScheduler();
+      resetRun();
+    });
 
-    function resetBoardMessage() {
-      phasePill.textContent = "待机";
-      scorePill.textContent = "得分 0";
-      sequencePill.textContent = `序列长度 ${START_LENGTH}`;
-      timerBar.style.transform = "scaleX(1)";
-    }
+    buildLanes();
+    renderLevelList();
+    resetRun();
   </script>
 </body>
 </html>
