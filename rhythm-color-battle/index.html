@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>节奏色块大作战</title>
+  <style>
+    :root {
+      --bg: #07111f;
+      --panel: rgba(11, 19, 34, 0.9);
+      --panel-strong: rgba(17, 29, 48, 0.98);
+      --line: rgba(255, 255, 255, 0.1);
+      --text: #edf4ff;
+      --muted: #93a8c7;
+      --accent: #ffe285;
+      --danger: #ff647d;
+      --shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", "PingFang SC", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(84, 166, 255, 0.18), transparent 26%),
+        radial-gradient(circle at top right, rgba(255, 104, 129, 0.14), transparent 24%),
+        linear-gradient(180deg, #050a14 0%, #091221 46%, #03070f 100%);
+    }
+
+    button {
+      font: inherit;
+      color: inherit;
+    }
+
+    .app {
+      width: min(980px, calc(100vw - 24px));
+      margin: 0 auto;
+      padding: 18px 0 28px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .hero,
+    .board-panel,
+    .overlay-card {
+      display: grid;
+      gap: 16px;
+    }
+
+    .hero {
+      padding: 24px;
+    }
+
+    .eyebrow {
+      margin: 0;
+      color: var(--accent);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.7rem, 7vw, 4.8rem);
+      line-height: 0.92;
+      letter-spacing: -0.08em;
+    }
+
+    .lede,
+    .muted {
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .mode-row,
+    .stats,
+    .board {
+      display: grid;
+      gap: 12px;
+    }
+
+    .mode-row {
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    .mode-button,
+    .action-button {
+      min-height: 50px;
+      padding: 0 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.06);
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+    }
+
+    .mode-button:hover,
+    .mode-button:focus-visible,
+    .action-button:hover,
+    .action-button:focus-visible,
+    .tile:hover,
+    .tile:focus-visible {
+      outline: none;
+      transform: translateY(-1px);
+      border-color: rgba(255, 226, 133, 0.6);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+    }
+
+    .mode-button strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 1rem;
+    }
+
+    .mode-button.active,
+    .action-button.primary {
+      color: #132036;
+      border-color: transparent;
+      font-weight: 700;
+      background: linear-gradient(180deg, #ffe79d 0%, #ffc968 100%);
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .stats {
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
+
+    .stat-card {
+      padding: 16px;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .value {
+      margin-top: 8px;
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .board-panel {
+      padding: 18px;
+    }
+
+    .status-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .pill {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--muted);
+    }
+
+    .pill strong {
+      color: var(--text);
+    }
+
+    .board-shell {
+      position: relative;
+      padding: 18px;
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
+        var(--panel-strong);
+      overflow: hidden;
+    }
+
+    .board-shell.shake {
+      animation: shake 420ms ease;
+    }
+
+    .board-shell.error::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 100, 125, 0.18);
+      pointer-events: none;
+      animation: error-flash 420ms ease;
+    }
+
+    .board {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .tile {
+      position: relative;
+      aspect-ratio: 1;
+      border: 0;
+      border-radius: 22px;
+      background:
+        radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.4), transparent 30%),
+        linear-gradient(180deg, color-mix(in srgb, var(--tile) 84%, white 16%), var(--tile));
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+        0 18px 28px rgba(0, 0, 0, 0.22);
+      cursor: pointer;
+      transition: transform 130ms ease, filter 130ms ease, box-shadow 130ms ease;
+    }
+
+    .tile.active {
+      transform: scale(1.05);
+      filter: brightness(1.5) saturate(1.15);
+      box-shadow:
+        inset 0 0 0 2px rgba(255, 255, 255, 0.65),
+        0 0 36px color-mix(in srgb, var(--tile) 80%, white 20%);
+    }
+
+    .tile.locked {
+      cursor: default;
+      opacity: 0.9;
+    }
+
+    .tile-label {
+      position: absolute;
+      left: 12px;
+      bottom: 10px;
+      font-weight: 700;
+      font-size: 0.94rem;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      pointer-events: none;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .sequence {
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    .sequence strong {
+      color: var(--text);
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 20px;
+      background: rgba(3, 7, 15, 0.72);
+      backdrop-filter: blur(10px);
+    }
+
+    .overlay.visible {
+      display: grid;
+    }
+
+    .overlay-card {
+      width: min(440px, 100%);
+      padding: 24px;
+      border-radius: 26px;
+      border: 1px solid var(--line);
+      background: rgba(11, 19, 34, 0.96);
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .overlay-card h2 {
+      font-size: 2rem;
+    }
+
+    .overlay-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-5px); }
+      80% { transform: translateX(4px); }
+    }
+
+    @keyframes error-flash {
+      0% { opacity: 0; }
+      35% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    @media (max-width: 680px) {
+      .app {
+        width: min(100vw - 18px, 980px);
+      }
+
+      .hero,
+      .board-panel {
+        padding: 16px;
+      }
+
+      .board-shell {
+        padding: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel hero">
+      <div>
+        <p class="eyebrow">Party Toy</p>
+        <h1>节奏色块大作战</h1>
+        <p class="lede">
+          6 个色块会按顺序闪烁并发出不同音调。单人模式追求更长连击，双人热座模式则是复现成功后给对手追加一个新色块，谁先失误谁输。
+        </p>
+      </div>
+
+      <div class="mode-row" id="mode-row">
+        <button class="mode-button active" type="button" data-mode="solo">
+          <strong>单人练习</strong>
+          <span>系统播放序列，正确复现后自动 +1</span>
+        </button>
+        <button class="mode-button" type="button" data-mode="duel">
+          <strong>双人热座</strong>
+          <span>玩家轮流复现并追加色块给对手</span>
+        </button>
+      </div>
+
+      <div class="hero-actions">
+        <button class="action-button primary" type="button" id="start-button">开始游戏</button>
+        <button class="action-button" type="button" id="restart-button">重新开始</button>
+      </div>
+
+      <div class="stats">
+        <article class="stat-card">
+          <div class="label">当前模式</div>
+          <div class="value" id="mode-label">单人练习</div>
+        </article>
+        <article class="stat-card">
+          <div class="label">当前回合</div>
+          <div class="value" id="round-label">未开始</div>
+        </article>
+        <article class="stat-card">
+          <div class="label">活跃玩家</div>
+          <div class="value" id="player-label">玩家 1</div>
+        </article>
+        <article class="stat-card">
+          <div class="label">当前长度</div>
+          <div class="value" id="length-label">0</div>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel board-panel">
+      <div class="status-bar">
+        <div class="pill"><strong id="phase-label">选择模式后开始</strong></div>
+        <div class="pill">输入进度 <strong id="progress-label">0 / 0</strong></div>
+      </div>
+
+      <div class="board-shell" id="board-shell">
+        <div class="board" id="board"></div>
+      </div>
+
+      <p class="hint" id="hint">
+        单人模式：系统播放后按顺序点击。双人模式：复现完整序列后，再点击 1 个色块追加到尾部并交给下一位玩家。
+      </p>
+
+      <div class="sequence">
+        <strong>最终序列记录：</strong>
+        <span id="sequence-label">尚未开局</span>
+      </div>
+    </section>
+  </main>
+
+  <div class="overlay" id="overlay" aria-live="polite">
+    <div class="overlay-card">
+      <p class="eyebrow">Round Result</p>
+      <h2 id="result-title">准备开始</h2>
+      <p class="muted" id="result-copy">点击开始后，系统会先播放第一段序列。</p>
+      <div class="overlay-actions">
+        <button class="action-button primary" type="button" id="play-again-button">再来一局</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const COLORS = [
+      { name: "珊瑚红", value: "#ff5a7a", frequency: 261.63 },
+      { name: "日光橙", value: "#ff9f43", frequency: 329.63 },
+      { name: "晴空黄", value: "#ffd93d", frequency: 392.0 },
+      { name: "薄荷绿", value: "#48db8f", frequency: 440.0 },
+      { name: "湖水青", value: "#36cfc9", frequency: 523.25 },
+      { name: "霓虹蓝", value: "#4d96ff", frequency: 659.25 }
+    ];
+
+    const STATES = {
+      IDLE: "idle",
+      SHOW_SEQUENCE: "show-sequence",
+      PLAYER_INPUT: "player-input",
+      ADD_BLOCK: "add-block",
+      GAME_OVER: "game-over"
+    };
+
+    const MODE_META = {
+      solo: "单人练习",
+      duel: "双人热座"
+    };
+
+    const state = {
+      mode: "solo",
+      phase: STATES.IDLE,
+      round: 0,
+      activePlayer: 0,
+      sequence: [],
+      inputIndex: 0,
+      locked: false,
+      playbackToken: 0
+    };
+
+    const board = document.querySelector("#board");
+    const boardShell = document.querySelector("#board-shell");
+    const modeRow = document.querySelector("#mode-row");
+    const startButton = document.querySelector("#start-button");
+    const restartButton = document.querySelector("#restart-button");
+    const playAgainButton = document.querySelector("#play-again-button");
+    const modeLabel = document.querySelector("#mode-label");
+    const roundLabel = document.querySelector("#round-label");
+    const playerLabel = document.querySelector("#player-label");
+    const lengthLabel = document.querySelector("#length-label");
+    const phaseLabel = document.querySelector("#phase-label");
+    const progressLabel = document.querySelector("#progress-label");
+    const hint = document.querySelector("#hint");
+    const sequenceLabel = document.querySelector("#sequence-label");
+    const overlay = document.querySelector("#overlay");
+    const resultTitle = document.querySelector("#result-title");
+    const resultCopy = document.querySelector("#result-copy");
+
+    const tiles = COLORS.map((color, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "tile";
+      button.style.setProperty("--tile", color.value);
+      button.dataset.index = String(index);
+      button.innerHTML = `<span class="tile-label">${color.name}</span>`;
+      button.addEventListener("click", () => handleTilePress(index));
+      board.appendChild(button);
+      return button;
+    });
+
+    let audioContext = null;
+
+    function ensureAudioContext() {
+      if (!audioContext) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          audioContext = new AudioCtx();
+        }
+      }
+      if (audioContext && audioContext.state === "suspended") {
+        audioContext.resume();
+      }
+    }
+
+    function toneFor(index, duration = 0.22, gainValue = 0.07) {
+      ensureAudioContext();
+      if (!audioContext) {
+        return;
+      }
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      const now = audioContext.currentTime;
+
+      oscillator.type = "sine";
+      oscillator.frequency.value = COLORS[index].frequency;
+      gainNode.gain.setValueAtTime(0.0001, now);
+      gainNode.gain.exponentialRampToValueAtTime(gainValue, now + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      oscillator.start(now);
+      oscillator.stop(now + duration + 0.02);
+    }
+
+    function buzzError() {
+      ensureAudioContext();
+      if (!audioContext) {
+        return;
+      }
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      const now = audioContext.currentTime;
+
+      oscillator.type = "sawtooth";
+      oscillator.frequency.setValueAtTime(180, now);
+      oscillator.frequency.exponentialRampToValueAtTime(90, now + 0.22);
+      gainNode.gain.setValueAtTime(0.0001, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.09, now + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      oscillator.start(now);
+      oscillator.stop(now + 0.26);
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+
+    function randomIndex() {
+      return Math.floor(Math.random() * COLORS.length);
+    }
+
+    function formatSequence() {
+      if (!state.sequence.length) {
+        return "尚未开局";
+      }
+      return state.sequence.map((index) => COLORS[index].name).join(" -> ");
+    }
+
+    function updateHud() {
+      modeLabel.textContent = MODE_META[state.mode];
+      roundLabel.textContent = state.round ? `第 ${state.round} 回合` : "未开始";
+      playerLabel.textContent = state.mode === "solo" ? "玩家 1" : `玩家 ${state.activePlayer + 1}`;
+      lengthLabel.textContent = String(state.sequence.length);
+      progressLabel.textContent = `${state.inputIndex} / ${state.sequence.length}`;
+      sequenceLabel.textContent = formatSequence();
+
+      if (state.phase === STATES.IDLE) {
+        phaseLabel.textContent = "点击开始，系统先播放序列";
+        hint.textContent = "单人模式：系统播放后按顺序点击。双人模式：复现完整序列后，再点击 1 个色块追加到尾部并交给下一位玩家。";
+      } else if (state.phase === STATES.SHOW_SEQUENCE) {
+        phaseLabel.textContent = state.mode === "solo"
+          ? "系统正在播放序列"
+          : `系统正在为玩家 ${state.activePlayer + 1} 播放序列`;
+        hint.textContent = "播放阶段已锁定输入，请观察闪烁顺序和音调。";
+      } else if (state.phase === STATES.PLAYER_INPUT) {
+        phaseLabel.textContent = state.mode === "solo"
+          ? "按顺序复现序列"
+          : `玩家 ${state.activePlayer + 1}：复现序列`;
+        hint.textContent = "按顺序点击色块。只要有一步出错，本轮立即结束。";
+      } else if (state.phase === STATES.ADD_BLOCK) {
+        phaseLabel.textContent = `玩家 ${state.activePlayer + 1}：追加 1 个色块`;
+        hint.textContent = "复现成功，现在请选择 1 个色块追加到序列末尾，交给对手。";
+      } else if (state.phase === STATES.GAME_OVER) {
+        phaseLabel.textContent = "本局结束";
+        hint.textContent = "点击“再来一局”或“重新开始”立即开新局，无需刷新页面。";
+      }
+
+      tiles.forEach((tile) => {
+        tile.disabled = state.phase === STATES.SHOW_SEQUENCE || state.phase === STATES.IDLE || state.phase === STATES.GAME_OVER;
+        tile.classList.toggle("locked", tile.disabled);
+      });
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      modeRow.querySelectorAll(".mode-button").forEach((button) => {
+        button.classList.toggle("active", button.dataset.mode === mode);
+      });
+      resetState(true);
+    }
+
+    function resetEffects() {
+      boardShell.classList.remove("shake", "error");
+      tiles.forEach((tile) => tile.classList.remove("active"));
+    }
+
+    function resetState(hideOverlay = true) {
+      state.phase = STATES.IDLE;
+      state.round = 0;
+      state.activePlayer = 0;
+      state.sequence = [];
+      state.inputIndex = 0;
+      state.locked = false;
+      state.playbackToken += 1;
+      resetEffects();
+      if (hideOverlay) {
+        overlay.classList.remove("visible");
+      }
+      updateHud();
+    }
+
+    async function flashTile(index, duration = 420) {
+      const tile = tiles[index];
+      tile.classList.add("active");
+      toneFor(index, Math.min(duration / 1000, 0.28));
+      await sleep(duration);
+      tile.classList.remove("active");
+    }
+
+    async function playSequence() {
+      const token = ++state.playbackToken;
+      state.phase = STATES.SHOW_SEQUENCE;
+      state.inputIndex = 0;
+      state.locked = true;
+      updateHud();
+
+      await sleep(420);
+      if (token !== state.playbackToken) {
+        return;
+      }
+      for (const index of state.sequence) {
+        await flashTile(index, 360);
+        if (token !== state.playbackToken) {
+          return;
+        }
+        await sleep(160);
+        if (token !== state.playbackToken) {
+          return;
+        }
+      }
+
+      state.phase = STATES.PLAYER_INPUT;
+      state.locked = false;
+      updateHud();
+    }
+
+    function startNewGame() {
+      resetState(true);
+      ensureAudioContext();
+      state.sequence.push(randomIndex());
+      state.round = 1;
+      void playSequence();
+    }
+
+    async function handleSuccess() {
+      if (state.mode === "solo") {
+        state.round += 1;
+        state.sequence.push(randomIndex());
+        state.inputIndex = 0;
+        updateHud();
+        await sleep(480);
+        await playSequence();
+        return;
+      }
+
+      state.phase = STATES.ADD_BLOCK;
+      state.inputIndex = state.sequence.length;
+      updateHud();
+    }
+
+    function showResult(title, copy) {
+      state.phase = STATES.GAME_OVER;
+      updateHud();
+      resultTitle.textContent = title;
+      resultCopy.textContent = copy;
+      overlay.classList.add("visible");
+    }
+
+    function failRound() {
+      state.locked = true;
+      buzzError();
+      boardShell.classList.remove("shake", "error");
+      void boardShell.offsetWidth;
+      boardShell.classList.add("shake", "error");
+      if (navigator.vibrate) {
+        navigator.vibrate([120, 40, 120]);
+      }
+
+      const finalLength = state.sequence.length;
+      const fullSequence = formatSequence();
+
+      if (state.mode === "solo") {
+        showResult("记忆断拍了", `你完成到长度 ${finalLength}。本轮完整序列是：${fullSequence}`);
+        return;
+      }
+
+      const loser = state.activePlayer;
+      const winner = loser === 0 ? 1 : 0;
+      showResult(`玩家 ${winner + 1} 获胜`, `玩家 ${loser + 1} 在长度 ${finalLength} 的序列上失误。完整序列是：${fullSequence}`);
+    }
+
+    async function handleTilePress(index) {
+      ensureAudioContext();
+      if (state.locked || state.phase === STATES.IDLE || state.phase === STATES.GAME_OVER) {
+        return;
+      }
+
+      const tile = tiles[index];
+      tile.classList.add("active");
+      toneFor(index, 0.18, 0.08);
+      window.setTimeout(() => tile.classList.remove("active"), 180);
+
+      if (state.phase === STATES.ADD_BLOCK) {
+        state.sequence.push(index);
+        state.round += 1;
+        state.activePlayer = state.activePlayer === 0 ? 1 : 0;
+        state.inputIndex = 0;
+        updateHud();
+        await sleep(360);
+        await playSequence();
+        return;
+      }
+
+      if (state.phase !== STATES.PLAYER_INPUT) {
+        return;
+      }
+
+      const expected = state.sequence[state.inputIndex];
+      if (index !== expected) {
+        failRound();
+        return;
+      }
+
+      state.inputIndex += 1;
+      updateHud();
+      if (state.inputIndex >= state.sequence.length) {
+        await handleSuccess();
+      }
+    }
+
+    modeRow.addEventListener("click", (event) => {
+      const button = event.target.closest(".mode-button");
+      if (!button) {
+        return;
+      }
+      setMode(button.dataset.mode);
+    });
+
+    startButton.addEventListener("click", startNewGame);
+    restartButton.addEventListener("click", startNewGame);
+    playAgainButton.addEventListener("click", startNewGame);
+
+    resetState();
+  </script>
+</body>
+</html>
