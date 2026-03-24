@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>磁力弹珠台 - 同屏双人对战</title>
+  <style>
+    :root {
+      --bg: #040816;
+      --panel: rgba(8, 14, 33, 0.82);
+      --line: rgba(111, 214, 255, 0.18);
+      --text: #eff7ff;
+      --muted: #8ca8c5;
+      --p1: #ff5da9;
+      --p2: #56d7ff;
+      --star: #ffd96a;
+      --good: #90ffdb;
+      --danger: #ff756b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(86, 215, 255, 0.15), transparent 24%),
+        radial-gradient(circle at bottom, rgba(255, 93, 169, 0.16), transparent 26%),
+        linear-gradient(180deg, #071024 0%, #03060f 100%);
+    }
+
+    .shell {
+      width: min(1180px, calc(100vw - 24px));
+      margin: 0 auto;
+      padding: 14px 0 22px;
+    }
+
+    .panel,
+    .board,
+    .score-card,
+    .overlay-card {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+      backdrop-filter: blur(10px);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(310px, 0.8fr);
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .panel {
+      padding: 18px;
+    }
+
+    .eyebrow,
+    .label {
+      margin: 0;
+      font-size: 0.78rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      margin-top: 8px;
+      font-size: clamp(2.3rem, 5vw, 4rem);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+    }
+
+    .lede,
+    .hint,
+    .summary {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .lede {
+      margin-top: 12px;
+      max-width: 62ch;
+    }
+
+    .rules {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .chip {
+      padding: 12px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .scores {
+      display: grid;
+      gap: 10px;
+    }
+
+    .score-card {
+      padding: 14px;
+    }
+
+    .score-row,
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .value {
+      font-size: clamp(1.8rem, 3vw, 2.6rem);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      font-size: 0.88rem;
+    }
+
+    .p1 {
+      color: var(--p1);
+    }
+
+    .p2 {
+      color: var(--p2);
+    }
+
+    .board {
+      position: relative;
+      padding: 12px;
+    }
+
+    #game {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 20px;
+      background:
+        radial-gradient(circle at center, rgba(255, 255, 255, 0.04), transparent 30%),
+        linear-gradient(180deg, rgba(87, 215, 255, 0.07), rgba(255, 93, 169, 0.07)),
+        linear-gradient(180deg, #081020, #050914 78%);
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 18px;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+    }
+
+    .overlay-card {
+      width: min(480px, calc(100% - 24px));
+      padding: 24px;
+      text-align: center;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 160ms ease, transform 160ms ease;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at top, rgba(255, 217, 106, 0.12), transparent 32%),
+        rgba(4, 8, 18, 0.94);
+    }
+
+    .overlay-card.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .overlay-card button {
+      margin-top: 18px;
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font: inherit;
+      font-weight: 700;
+      color: #03101e;
+      background: linear-gradient(90deg, #ffd96a, #fff6bb);
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(255, 217, 106, 0.25);
+    }
+
+    @media (max-width: 900px) {
+      .hero,
+      .rules {
+        grid-template-columns: 1fr;
+      }
+
+      .shell {
+        width: min(100vw, calc(100vw - 16px));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div class="panel">
+        <p class="eyebrow">Neon Physics Duel</p>
+        <h1>磁力弹珠台</h1>
+        <p class="lede">上下两端各有一对磁力发射器。玩家 1 用 W 发射、S 切换吸引 / 排斥，玩家 2 用 ↑ 发射、↓ 切换磁极。所有弹珠都会同时受到四个激活磁极的距离平方反比影响，击穿对方底线得 1 分，吃到星星得 3 分，先到 15 分获胜。</p>
+        <div class="rules">
+          <div class="chip">
+            <p class="label">Player 1</p>
+            <p>W 发射弹珠</p>
+            <p class="hint">S 切换磁极</p>
+          </div>
+          <div class="chip">
+            <p class="label">Player 2</p>
+            <p>↑ 发射弹珠</p>
+            <p class="hint">↓ 切换磁极</p>
+          </div>
+          <div class="chip">
+            <p class="label">Victory</p>
+            <p>对方底线 +1</p>
+            <p class="hint">星星 +3，先到 15 分</p>
+          </div>
+        </div>
+      </div>
+      <div class="scores">
+        <div class="score-card">
+          <p class="label">Player 2 / Top Rail</p>
+          <div class="score-row">
+            <strong class="value p2" id="p2Score">0</strong>
+            <span class="pill" id="p2Polarity">吸引</span>
+          </div>
+          <div class="status-row">
+            <span class="summary">↑ 发射，↓ 切换</span>
+            <span id="p2Cooldown">就绪</span>
+          </div>
+        </div>
+        <div class="score-card">
+          <p class="label">Arena Status</p>
+          <div class="score-row">
+            <strong class="value" id="statusText">双人对战进行中</strong>
+          </div>
+          <div class="status-row">
+            <span class="summary" id="starText">星星准备刷新</span>
+            <span class="summary" id="ballCount">0 弹珠</span>
+          </div>
+        </div>
+        <div class="score-card">
+          <p class="label">Player 1 / Bottom Rail</p>
+          <div class="score-row">
+            <strong class="value p1" id="p1Score">0</strong>
+            <span class="pill" id="p1Polarity">吸引</span>
+          </div>
+          <div class="status-row">
+            <span class="summary">W 发射，S 切换</span>
+            <span id="p1Cooldown">就绪</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="board">
+      <canvas id="game" width="1000" height="1400"></canvas>
+      <div class="overlay">
+        <div class="overlay-card" id="overlayCard">
+          <p class="eyebrow">Match Over</p>
+          <h2 id="winnerText">玩家 1 获胜</h2>
+          <p class="lede" id="winnerSummary">按空格 / Enter 或点击按钮立刻重开。</p>
+          <button id="restartButton" type="button">重开对战</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const canvas = document.querySelector("#game");
+    const ctx = canvas.getContext("2d");
+
+    const WIN_SCORE = 15;
+    const MAX_MARBLES_PER_PLAYER = 5;
+    const LAUNCH_SPEED = 580;
+    const FIRE_COOLDOWN = 500;
+    const DRAG = 0.995;
+    const WALL_BOUNCE = 0.98;
+    const K_MAGNET = 280000;
+    const FORCE_CAP = 240;
+    const BASELINE_MARGIN = 42;
+    const STAR_RESPAWN_MS = 1800;
+
+    const ui = {
+      p1Score: document.querySelector("#p1Score"),
+      p2Score: document.querySelector("#p2Score"),
+      p1Polarity: document.querySelector("#p1Polarity"),
+      p2Polarity: document.querySelector("#p2Polarity"),
+      p1Cooldown: document.querySelector("#p1Cooldown"),
+      p2Cooldown: document.querySelector("#p2Cooldown"),
+      statusText: document.querySelector("#statusText"),
+      starText: document.querySelector("#starText"),
+      ballCount: document.querySelector("#ballCount"),
+      overlayCard: document.querySelector("#overlayCard"),
+      winnerText: document.querySelector("#winnerText"),
+      winnerSummary: document.querySelector("#winnerSummary"),
+      restartButton: document.querySelector("#restartButton")
+    };
+
+    const polarityLabel = {
+      1: "吸引",
+      "-1": "排斥"
+    };
+
+    const state = {
+      marbles: [],
+      sparks: [],
+      traces: [],
+      gameOver: false,
+      lastTime: 0,
+      starRespawnAt: 0,
+      star: null,
+      players: {
+        p1: {
+          name: "玩家 1",
+          side: "bottom",
+          color: "#ff5da9",
+          polarity: 1,
+          score: 0,
+          fireKey: "KeyW",
+          toggleKey: "KeyS",
+          nextFireAt: 0,
+          emitterY: canvas.height - 92,
+          emitters: [
+            { x: canvas.width * 0.32, y: canvas.height - 108 },
+            { x: canvas.width * 0.68, y: canvas.height - 108 }
+          ]
+        },
+        p2: {
+          name: "玩家 2",
+          side: "top",
+          color: "#56d7ff",
+          polarity: 1,
+          score: 0,
+          fireKey: "ArrowUp",
+          toggleKey: "ArrowDown",
+          nextFireAt: 0,
+          emitterY: 92,
+          emitters: [
+            { x: canvas.width * 0.32, y: 108 },
+            { x: canvas.width * 0.68, y: 108 }
+          ]
+        }
+      }
+    };
+
+    function resetGame() {
+      state.marbles = [];
+      state.sparks = [];
+      state.traces = [];
+      state.gameOver = false;
+      state.lastTime = 0;
+      state.players.p1.score = 0;
+      state.players.p2.score = 0;
+      state.players.p1.polarity = 1;
+      state.players.p2.polarity = 1;
+      state.players.p1.nextFireAt = 0;
+      state.players.p2.nextFireAt = 0;
+      spawnStar(true);
+      updateHud(0);
+      ui.overlayCard.classList.remove("visible");
+      ui.statusText.textContent = "双人对战进行中";
+    }
+
+    function spawnStar(immediate = false) {
+      if (!immediate) {
+        state.star = null;
+        state.starRespawnAt = performance.now() + STAR_RESPAWN_MS;
+        ui.starText.textContent = "星星重组中";
+        return;
+      }
+
+      state.starRespawnAt = 0;
+      state.star = {
+        x: 170 + Math.random() * (canvas.width - 340),
+        y: canvas.height * 0.32 + Math.random() * (canvas.height * 0.36),
+        radius: 18 + Math.random() * 6,
+        pulse: Math.random() * Math.PI * 2
+      };
+      ui.starText.textContent = "星星 +3 已上线";
+    }
+
+    function makeMarble(player) {
+      if (countMarblesFor(player.name) >= MAX_MARBLES_PER_PLAYER) {
+        return;
+      }
+      const direction = player.side === "bottom" ? -1 : 1;
+      const marble = {
+        x: canvas.width / 2 + (Math.random() - 0.5) * 90,
+        y: player.side === "bottom" ? canvas.height - 150 : 150,
+        vx: (Math.random() - 0.5) * 90,
+        vy: direction * LAUNCH_SPEED,
+        radius: 11,
+        owner: player.name,
+        ownerKey: player === state.players.p1 ? "p1" : "p2",
+        color: player.color,
+        trail: []
+      };
+      state.marbles.push(marble);
+      for (let i = 0; i < 12; i += 1) {
+        addSpark(marble.x, marble.y, player.color, 1.6);
+      }
+    }
+
+    function countMarblesFor(owner) {
+      let count = 0;
+      for (const marble of state.marbles) {
+        if (marble.owner === owner) {
+          count += 1;
+        }
+      }
+      return count;
+    }
+
+    function togglePolarity(player) {
+      if (state.gameOver) {
+        return;
+      }
+      player.polarity *= -1;
+      const label = player.polarity === 1 ? "吸引" : "排斥";
+      ui.statusText.textContent = `${player.name} 切换为 ${label}`;
+      for (const emitter of player.emitters) {
+        for (let i = 0; i < 10; i += 1) {
+          addSpark(emitter.x, emitter.y, player.color, 1.2);
+        }
+      }
+    }
+
+    function addSpark(x, y, color, scale = 1) {
+      state.sparks.push({
+        x,
+        y,
+        vx: (Math.random() - 0.5) * 140 * scale,
+        vy: (Math.random() - 0.5) * 140 * scale,
+        life: 0.4 + Math.random() * 0.3,
+        age: 0,
+        color
+      });
+    }
+
+    function scorePoint(scoringPlayer, amount, reason) {
+      scoringPlayer.score += amount;
+      ui.statusText.textContent = `${scoringPlayer.name}${reason}`;
+      if (scoringPlayer.score >= WIN_SCORE) {
+        finishMatch(scoringPlayer);
+      }
+    }
+
+    function finishMatch(player) {
+      state.gameOver = true;
+      ui.winnerText.textContent = `${player.name} 获胜`;
+      ui.winnerSummary.textContent = `${player.name} 率先达到 ${WIN_SCORE} 分。按 Space / Enter 或点击按钮重开。`;
+      ui.overlayCard.classList.add("visible");
+    }
+
+    function updateHud(now) {
+      ui.p1Score.textContent = state.players.p1.score;
+      ui.p2Score.textContent = state.players.p2.score;
+      ui.p1Polarity.textContent = polarityLabel[state.players.p1.polarity];
+      ui.p2Polarity.textContent = polarityLabel[state.players.p2.polarity];
+      ui.p1Cooldown.textContent = now >= state.players.p1.nextFireAt ? "就绪" : "冷却";
+      ui.p2Cooldown.textContent = now >= state.players.p2.nextFireAt ? "就绪" : "冷却";
+      ui.ballCount.textContent = `${state.marbles.length} 弹珠`;
+      if (!state.star && state.starRespawnAt > now) {
+        ui.starText.textContent = `星星 ${Math.max(0, ((state.starRespawnAt - now) / 1000)).toFixed(1)}s`;
+      }
+    }
+
+    function handleKeydown(event) {
+      if (event.code === "ArrowUp" || event.code === "ArrowDown" || event.code === "Space") {
+        event.preventDefault();
+      }
+
+      if (state.gameOver && (event.code === "Space" || event.code === "Enter")) {
+        resetGame();
+        return;
+      }
+
+      if (state.gameOver) {
+        return;
+      }
+
+      if (event.code === state.players.p1.fireKey) {
+        tryFire(state.players.p1);
+      } else if (event.code === state.players.p1.toggleKey) {
+        togglePolarity(state.players.p1);
+      } else if (event.code === state.players.p2.fireKey) {
+        tryFire(state.players.p2);
+      } else if (event.code === state.players.p2.toggleKey) {
+        togglePolarity(state.players.p2);
+      }
+    }
+
+    function tryFire(player) {
+      const now = performance.now();
+      if (now < player.nextFireAt) {
+        return;
+      }
+      player.nextFireAt = now + FIRE_COOLDOWN;
+      makeMarble(player);
+    }
+
+    function applyMagneticForces(marble, dt) {
+      for (const player of Object.values(state.players)) {
+        for (const emitter of player.emitters) {
+          const dx = emitter.x - marble.x;
+          const dy = emitter.y - marble.y;
+          const distanceSq = Math.max(dx * dx + dy * dy, 1400);
+          const distance = Math.sqrt(distanceSq);
+          const force = Math.min(FORCE_CAP, K_MAGNET / (distance * distance)) * player.polarity;
+          marble.vx += (dx / distance) * force * dt;
+          marble.vy += (dy / distance) * force * dt;
+        }
+      }
+    }
+
+    function updateMarbles(dt) {
+      const survivors = [];
+      for (const marble of state.marbles) {
+        applyMagneticForces(marble, dt);
+        marble.vx *= DRAG;
+        marble.vy *= DRAG;
+        marble.x += marble.vx * dt;
+        marble.y += marble.vy * dt;
+
+        marble.trail.push({ x: marble.x, y: marble.y, life: 1 });
+        if (marble.trail.length > 22) {
+          marble.trail.shift();
+        }
+
+        if (marble.x < marble.radius) {
+          marble.x = marble.radius;
+          marble.vx = Math.abs(marble.vx) * WALL_BOUNCE;
+        } else if (marble.x > canvas.width - marble.radius) {
+          marble.x = canvas.width - marble.radius;
+          marble.vx = -Math.abs(marble.vx) * WALL_BOUNCE;
+        }
+
+        if (state.star) {
+          const dx = marble.x - state.star.x;
+          const dy = marble.y - state.star.y;
+          const hitRadius = marble.radius + state.star.radius + 4;
+          if (dx * dx + dy * dy <= hitRadius * hitRadius) {
+            scorePoint(state.players[marble.ownerKey], 3, " 击中了星星 +3");
+            for (let i = 0; i < 24; i += 1) {
+              addSpark(state.star.x, state.star.y, "#ffd96a", 1.7);
+            }
+            spawnStar();
+          }
+        }
+
+        if (marble.y <= BASELINE_MARGIN) {
+          if (marble.ownerKey === "p1") {
+            scorePoint(state.players.p1, 1, " 击穿顶部底线 +1");
+          }
+          for (let i = 0; i < 18; i += 1) {
+            addSpark(marble.x, BASELINE_MARGIN, marble.color, 1.5);
+          }
+          continue;
+        }
+
+        if (marble.y >= canvas.height - BASELINE_MARGIN) {
+          if (marble.ownerKey === "p2") {
+            scorePoint(state.players.p2, 1, " 击穿底部底线 +1");
+          }
+          for (let i = 0; i < 18; i += 1) {
+            addSpark(marble.x, canvas.height - BASELINE_MARGIN, marble.color, 1.5);
+          }
+          continue;
+        }
+
+        survivors.push(marble);
+      }
+      state.marbles = survivors;
+    }
+
+    function updateSparks(dt) {
+      const next = [];
+      for (const spark of state.sparks) {
+        spark.age += dt;
+        if (spark.age >= spark.life) {
+          continue;
+        }
+        spark.x += spark.vx * dt;
+        spark.y += spark.vy * dt;
+        spark.vx *= 0.98;
+        spark.vy *= 0.98;
+        next.push(spark);
+      }
+      state.sparks = next;
+    }
+
+    function updateStar(dt, now) {
+      if (!state.star && state.starRespawnAt && now >= state.starRespawnAt) {
+        spawnStar(true);
+      }
+      if (state.star) {
+        state.star.pulse += dt * 3;
+      }
+    }
+
+    function drawArena() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.save();
+      ctx.fillStyle = "rgba(9, 16, 34, 0.96)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = "rgba(111, 214, 255, 0.08)";
+      ctx.lineWidth = 2;
+      for (let i = 1; i < 6; i += 1) {
+        const y = (canvas.height / 6) * i;
+        ctx.beginPath();
+        ctx.moveTo(56, y);
+        ctx.lineTo(canvas.width - 56, y);
+        ctx.stroke();
+      }
+
+      ctx.setLineDash([14, 14]);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.14)";
+      ctx.beginPath();
+      ctx.moveTo(70, canvas.height / 2);
+      ctx.lineTo(canvas.width - 70, canvas.height / 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.shadowBlur = 30;
+      ctx.shadowColor = "rgba(86, 215, 255, 0.55)";
+      ctx.strokeStyle = "rgba(86, 215, 255, 0.55)";
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(80, 24);
+      ctx.lineTo(canvas.width - 80, 24);
+      ctx.stroke();
+
+      ctx.shadowColor = "rgba(255, 93, 169, 0.55)";
+      ctx.strokeStyle = "rgba(255, 93, 169, 0.55)";
+      ctx.beginPath();
+      ctx.moveTo(80, canvas.height - 24);
+      ctx.lineTo(canvas.width - 80, canvas.height - 24);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawEmitters(player) {
+      const repel = player.polarity === -1;
+      for (const emitter of player.emitters) {
+        const glow = repel ? "rgba(255, 117, 107, 0.9)" : hexToRgba(player.color, 0.9);
+        ctx.save();
+        ctx.shadowBlur = 26;
+        ctx.shadowColor = glow;
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(emitter.x, emitter.y, 14, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.lineWidth = 2;
+        for (let i = 1; i <= 3; i += 1) {
+          ctx.globalAlpha = 0.25 - i * 0.04 + Math.sin((state.lastTime || 0) * 0.003 + i) * 0.02;
+          ctx.strokeStyle = glow;
+          ctx.beginPath();
+          ctx.arc(emitter.x, emitter.y, 28 + i * 24, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        ctx.globalAlpha = 0.55;
+        ctx.strokeStyle = glow;
+        ctx.beginPath();
+        ctx.moveTo(emitter.x - 34, emitter.y);
+        ctx.lineTo(emitter.x + 34, emitter.y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(emitter.x, emitter.y - 34);
+        ctx.lineTo(emitter.x, emitter.y + 34);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    function drawStar() {
+      if (!state.star) {
+        return;
+      }
+      const { x, y, radius, pulse } = state.star;
+      const outer = radius + Math.sin(pulse) * 4;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.shadowBlur = 24;
+      ctx.shadowColor = "rgba(255, 217, 106, 0.95)";
+      ctx.fillStyle = "rgba(255, 217, 106, 0.9)";
+      ctx.beginPath();
+      for (let i = 0; i < 10; i += 1) {
+        const angle = -Math.PI / 2 + i * (Math.PI / 5);
+        const r = i % 2 === 0 ? outer : outer * 0.42;
+        const px = Math.cos(angle) * r;
+        const py = Math.sin(angle) * r;
+        if (i === 0) {
+          ctx.moveTo(px, py);
+        } else {
+          ctx.lineTo(px, py);
+        }
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawMarbles() {
+      for (const marble of state.marbles) {
+        ctx.save();
+        for (let i = 0; i < marble.trail.length; i += 1) {
+          const point = marble.trail[i];
+          const alpha = (i + 1) / marble.trail.length;
+          ctx.fillStyle = hexToRgba(marble.color, alpha * 0.24);
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = marble.color;
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, Math.max(2, marble.radius * alpha * 0.65), 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.shadowBlur = 24;
+        ctx.shadowColor = marble.color;
+        ctx.fillStyle = marble.color;
+        ctx.beginPath();
+        ctx.arc(marble.x, marble.y, marble.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "rgba(255, 255, 255, 0.72)";
+        ctx.beginPath();
+        ctx.arc(marble.x - 3, marble.y - 3, marble.radius * 0.34, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    function drawSparks() {
+      for (const spark of state.sparks) {
+        const alpha = 1 - spark.age / spark.life;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = spark.color;
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = spark.color;
+        ctx.beginPath();
+        ctx.arc(spark.x, spark.y, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    function drawHudMarks() {
+      ctx.save();
+      ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+      ctx.font = "700 28px Trebuchet MS";
+      ctx.fillText("+1 顶线", 90, 72);
+      ctx.fillText("+1 底线", 90, canvas.height - 46);
+      ctx.restore();
+    }
+
+    function render() {
+      drawArena();
+      drawEmitters(state.players.p2);
+      drawEmitters(state.players.p1);
+      drawStar();
+      drawMarbles();
+      drawSparks();
+      drawHudMarks();
+    }
+
+    function tick(timestamp) {
+      if (!state.lastTime) {
+        state.lastTime = timestamp;
+      }
+      const dt = Math.min(0.022, (timestamp - state.lastTime) / 1000);
+      state.lastTime = timestamp;
+
+      if (!state.gameOver) {
+        updateMarbles(dt);
+        updateSparks(dt);
+        updateStar(dt, timestamp);
+      } else {
+        updateSparks(dt);
+      }
+
+      updateHud(timestamp);
+      render();
+      requestAnimationFrame(tick);
+    }
+
+    function hexToRgba(hex, alpha) {
+      const clean = hex.replace("#", "");
+      const bigint = Number.parseInt(clean, 16);
+      const r = (bigint >> 16) & 255;
+      const g = (bigint >> 8) & 255;
+      const b = bigint & 255;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    document.addEventListener("keydown", handleKeydown);
+    ui.restartButton.addEventListener("click", resetGame);
+
+    resetGame();
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>
