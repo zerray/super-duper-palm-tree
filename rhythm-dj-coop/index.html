@@ -3,23 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>节奏色块：合作打碟机</title>
+  <title>节奏色块：合作打碟小游戏</title>
   <style>
     :root {
-      --bg-a: #07111f;
-      --bg-b: #14091f;
-      --panel: rgba(10, 18, 32, 0.82);
-      --line: rgba(160, 197, 255, 0.18);
-      --text: #eef4ff;
-      --muted: #92a6ca;
-      --accent: #7cf7ff;
-      --red: #ff5d73;
-      --blue: #57a6ff;
-      --green: #5de4a4;
-      --yellow: #ffd35d;
-      --perfect: #9ef7d8;
-      --good: #ffe7a3;
-      --miss: #ff7d96;
+      --bg0: #09101c;
+      --bg1: #111b32;
+      --panel: rgba(10, 16, 32, 0.82);
+      --line: rgba(255, 255, 255, 0.12);
+      --text: #f3f7ff;
+      --muted: #9fb0d1;
+      --perfect: #8ff3c1;
+      --good: #ffe18c;
+      --miss: #ff7d9c;
+      --lane0: #53b3ff;
+      --lane1: #7b72ff;
+      --lane2: #ff6f91;
+      --lane3: #ffc857;
     }
 
     * {
@@ -32,20 +31,19 @@
       font-family: "Trebuchet MS", "Segoe UI", sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at 20% 15%, rgba(124, 247, 255, 0.16), transparent 24%),
-        radial-gradient(circle at 80% 0%, rgba(255, 93, 115, 0.12), transparent 24%),
-        linear-gradient(180deg, var(--bg-a), var(--bg-b));
+        radial-gradient(circle at top, rgba(123, 114, 255, 0.18), transparent 30%),
+        radial-gradient(circle at 20% 80%, rgba(83, 179, 255, 0.16), transparent 28%),
+        linear-gradient(180deg, var(--bg1), var(--bg0));
     }
 
-    button,
-    input {
+    button {
       font: inherit;
     }
 
     .app {
-      width: min(1240px, calc(100vw - 24px));
+      width: min(1120px, calc(100vw - 24px));
       margin: 0 auto;
-      padding: 20px 0 28px;
+      padding: 18px 0 28px;
       display: grid;
       gap: 16px;
     }
@@ -54,32 +52,33 @@
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 24px;
-      box-shadow: 0 22px 48px rgba(0, 0, 0, 0.28);
-      backdrop-filter: blur(14px);
+      box-shadow: 0 24px 56px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(12px);
     }
 
     .hero {
-      padding: 24px;
+      padding: 22px;
       display: grid;
-      grid-template-columns: minmax(0, 1.4fr) minmax(300px, 0.8fr);
-      gap: 18px;
+      grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+      gap: 16px;
       align-items: start;
     }
 
     h1,
-    p,
-    h2 {
+    h2,
+    p {
       margin: 0;
     }
 
     h1 {
-      font-size: clamp(2.6rem, 5vw, 4.8rem);
-      line-height: 0.9;
+      font-size: clamp(2.6rem, 5.5vw, 4.6rem);
+      line-height: 0.92;
       letter-spacing: -0.06em;
     }
 
     .lede,
-    .hint {
+    .hint,
+    .mode-note {
       color: var(--muted);
       line-height: 1.55;
     }
@@ -91,66 +90,61 @@
 
     .stats {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 10px;
     }
 
     .stat {
       padding: 12px 14px;
       border-radius: 18px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
       background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .stat-label {
-      font-size: 0.78rem;
-      letter-spacing: 0.08em;
+      font-size: 0.76rem;
       text-transform: uppercase;
+      letter-spacing: 0.08em;
       color: var(--muted);
     }
 
     .stat-value {
-      margin-top: 6px;
-      font-size: 1.6rem;
+      margin-top: 4px;
+      font-size: 1.5rem;
       font-weight: 700;
     }
 
     .controls {
       padding: 18px;
       border-radius: 22px;
-      background: rgba(0, 0, 0, 0.18);
-      border: 1px solid rgba(255, 255, 255, 0.08);
       display: grid;
       gap: 14px;
-    }
-
-    .control-group {
-      display: grid;
-      gap: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .mode-buttons {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
     }
 
     .mode-button,
     .action-button {
-      min-height: 44px;
+      min-height: 46px;
       border: 0;
       border-radius: 999px;
-      cursor: pointer;
       color: var(--text);
+      cursor: pointer;
       background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.14);
       transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
     }
 
     .mode-button.active,
     .action-button {
-      background: linear-gradient(180deg, rgba(87, 166, 255, 0.92), rgba(45, 98, 186, 0.92));
-      border-color: rgba(124, 247, 255, 0.42);
+      background: linear-gradient(180deg, rgba(83, 179, 255, 0.95), rgba(61, 111, 226, 0.95));
+      border-color: rgba(143, 243, 193, 0.5);
     }
 
     .mode-button:hover,
@@ -158,28 +152,32 @@
       transform: translateY(-1px);
     }
 
-    .slider-row {
+    .key-layout {
       display: grid;
-      grid-template-columns: auto 1fr auto;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
-      align-items: center;
     }
 
-    .game-panel {
+    .key-box {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .canvas-panel {
       position: relative;
       padding: 16px;
       overflow: hidden;
     }
 
-    canvas {
+    #game-canvas {
       width: 100%;
       height: auto;
       display: block;
       border-radius: 22px;
       border: 1px solid rgba(255, 255, 255, 0.08);
-      background:
-        radial-gradient(circle at 50% 50%, rgba(124, 247, 255, 0.08), transparent 26%),
-        linear-gradient(180deg, rgba(8, 10, 20, 0.95), rgba(10, 19, 36, 0.96));
+      background: linear-gradient(180deg, rgba(9, 14, 30, 0.98), rgba(11, 18, 36, 0.98));
     }
 
     .overlay {
@@ -189,39 +187,33 @@
       place-items: center;
       text-align: center;
       border-radius: 22px;
-      background: rgba(5, 8, 14, 0.74);
+      background: rgba(5, 10, 18, 0.74);
       padding: 24px;
-      pointer-events: none;
+      transition: opacity 180ms ease, visibility 180ms ease;
     }
 
     .overlay.hidden {
       opacity: 0;
       visibility: hidden;
+      pointer-events: none;
     }
 
     .overlay-card {
       max-width: 720px;
       display: grid;
-      gap: 14px;
+      gap: 12px;
     }
 
-    .key-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    .overlay-actions {
+      display: flex;
+      justify-content: center;
       gap: 10px;
-      text-align: left;
-    }
-
-    .key-row {
-      padding: 12px 14px;
-      border-radius: 16px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      flex-wrap: wrap;
     }
 
     .footer-note {
-      color: var(--muted);
       text-align: center;
+      color: var(--muted);
       font-size: 0.95rem;
     }
 
@@ -233,12 +225,16 @@
       .stats {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
+    }
 
-      .mode-buttons {
-        grid-template-columns: 1fr;
+    @media (max-width: 640px) {
+      .app {
+        width: min(100vw, calc(100vw - 12px));
       }
 
-      .key-grid {
+      .stats,
+      .mode-buttons,
+      .key-layout {
         grid-template-columns: 1fr;
       }
     }
@@ -248,528 +244,563 @@
   <main class="app">
     <section class="panel hero">
       <div class="hero-copy">
-        <p class="hint">Arcade Rhythm Co-op</p>
-        <h1>节奏色块：合作打碟机</h1>
-        <p class="lede">彩色方块从中央传送带向左右两侧滑出。左侧用 <strong>A/S/D/F</strong>，右侧用 <strong>J/K/L/;</strong>，在判定线按下对应颜色，维持共享连击并把舞台推到更炫的视觉层级。</p>
+        <p class="hint">Arcade Rhythm Party</p>
+        <h1>节奏色块：合作打碟小游戏</h1>
+        <p class="lede">四条轨道的彩色色块会从上方落到底线。单人模式下一人负责全部 <strong>D / F / J / K</strong>，双人模式下玩家 1 负责左半边、玩家 2 负责右半边。两边都稳，连击和全屏特效才会越打越夸张。</p>
         <div class="stats">
+          <div class="stat"><div class="stat-label">Score</div><div class="stat-value" id="score-display">0</div></div>
           <div class="stat"><div class="stat-label">Combo</div><div class="stat-value" id="combo-display">0</div></div>
-          <div class="stat"><div class="stat-label">Left Score</div><div class="stat-value" id="left-score">0</div></div>
-          <div class="stat"><div class="stat-label">Right Score</div><div class="stat-value" id="right-score">0</div></div>
-          <div class="stat"><div class="stat-label">Visual Level</div><div class="stat-value" id="level-display">1</div></div>
+          <div class="stat"><div class="stat-label">Max Combo</div><div class="stat-value" id="max-combo-display">0</div></div>
+          <div class="stat"><div class="stat-label">Judgement</div><div class="stat-value" id="judgement-display">READY</div></div>
+          <div class="stat"><div class="stat-label">Time</div><div class="stat-value" id="time-display">45.0</div></div>
         </div>
       </div>
       <div class="controls">
-        <div class="control-group">
+        <div>
           <strong>模式</strong>
           <div class="mode-buttons">
-            <button class="mode-button active" data-mode="coop">双人合作</button>
-            <button class="mode-button" data-mode="solo-left">左侧单人</button>
-            <button class="mode-button" data-mode="solo-right">右侧单人</button>
+            <button class="mode-button active" data-mode="solo" type="button">单人模式</button>
+            <button class="mode-button" data-mode="coop" type="button">双人合作</button>
           </div>
         </div>
-        <div class="control-group">
-          <strong>BPM</strong>
-          <div class="slider-row">
-            <span>84</span>
-            <input id="bpm-input" type="range" min="84" max="144" step="6" value="108">
-            <span id="bpm-display">108</span>
-          </div>
+        <p class="mode-note" id="mode-note">单人：一人负责全部四键。双人：P1 负责 `D / F`，P2 负责 `J / K`。</p>
+        <div class="key-layout">
+          <div class="key-box">左两轨 / 玩家 1：<strong>D</strong>、<strong>F</strong></div>
+          <div class="key-box">右两轨 / 玩家 2：<strong>J</strong>、<strong>K</strong></div>
         </div>
+        <p class="hint">判定窗口：Perfect ±50ms，Good ±120ms，其余 Miss。速度会逐步加快，连击达到 10 / 25 / 50 会触发粒子爆发和背景变色。</p>
         <button class="action-button" id="start-button" type="button">开始 / 重新开始</button>
-        <p class="hint">Perfect: ±60ms，Good: ±130ms。任何一侧 Miss 都会清空共享连击。每拍用 Web Audio 生成底鼓，不依赖外部音频文件。</p>
       </div>
     </section>
 
-    <section class="panel game-panel">
-      <canvas id="game-canvas" width="1200" height="700" aria-label="节奏色块游戏画布"></canvas>
-      <div class="overlay" id="intro-overlay">
+    <section class="panel canvas-panel">
+      <canvas id="game-canvas" width="960" height="640" aria-label="节奏色块合作打碟游戏画布"></canvas>
+      <div class="overlay" id="start-overlay">
         <div class="overlay-card">
-          <h2>按开始后立刻开打</h2>
-          <p class="lede">中央每一拍会推出新的色块。左右玩家各守一边，命中越稳，背景光效、尾迹和震动层级越高。单人模式只会生成一侧方块。</p>
-          <div class="key-grid">
-            <div class="key-row">左侧玩家: A 红 / S 蓝 / D 绿 / F 黄</div>
-            <div class="key-row">右侧玩家: J 红 / K 蓝 / L 绿 / ; 黄</div>
+          <h2>准备接拍</h2>
+          <p class="lede">按开始后进入 45 秒回合。漏键或提前乱按都会 Miss，双人模式下必须同时守住自己的半边。首次点击会初始化 Web Audio 节拍音与反馈音。</p>
+        </div>
+      </div>
+      <div class="overlay hidden" id="result-overlay">
+        <div class="overlay-card">
+          <h2>回合结束</h2>
+          <p id="final-score">总分 0</p>
+          <p id="final-max-combo">最高连击 0</p>
+          <div class="overlay-actions">
+            <button class="action-button" id="restart-button" type="button">再来一局</button>
           </div>
         </div>
       </div>
     </section>
 
-    <p class="footer-note">如果浏览器尚未授权音频，点击“开始 / 重新开始”会初始化 AudioContext 并启用节拍和击打音效。</p>
+    <p class="footer-note">浏览器如果拦截自动播放，点击“开始 / 重新开始”会恢复 AudioContext。建议在桌面浏览器直接打开此文件游玩。</p>
   </main>
 
   <script>
     const canvas = document.querySelector("#game-canvas");
     const ctx = canvas.getContext("2d");
+    const scoreDisplay = document.querySelector("#score-display");
     const comboDisplay = document.querySelector("#combo-display");
-    const leftScoreDisplay = document.querySelector("#left-score");
-    const rightScoreDisplay = document.querySelector("#right-score");
-    const levelDisplay = document.querySelector("#level-display");
-    const bpmInput = document.querySelector("#bpm-input");
-    const bpmDisplay = document.querySelector("#bpm-display");
+    const maxComboDisplay = document.querySelector("#max-combo-display");
+    const judgementDisplay = document.querySelector("#judgement-display");
+    const timeDisplay = document.querySelector("#time-display");
+    const modeNote = document.querySelector("#mode-note");
     const startButton = document.querySelector("#start-button");
-    const introOverlay = document.querySelector("#intro-overlay");
+    const restartButton = document.querySelector("#restart-button");
+    const startOverlay = document.querySelector("#start-overlay");
+    const resultOverlay = document.querySelector("#result-overlay");
+    const finalScore = document.querySelector("#final-score");
+    const finalMaxCombo = document.querySelector("#final-max-combo");
     const modeButtons = Array.from(document.querySelectorAll(".mode-button"));
 
-    const colorLanes = [
-      { name: "red", fill: "#ff5d73", glow: "rgba(255, 93, 115, 0.35)", tone: 220 },
-      { name: "blue", fill: "#57a6ff", glow: "rgba(87, 166, 255, 0.35)", tone: 277.18 },
-      { name: "green", fill: "#5de4a4", glow: "rgba(93, 228, 164, 0.35)", tone: 329.63 },
-      { name: "yellow", fill: "#ffd35d", glow: "rgba(255, 211, 93, 0.35)", tone: 392.0 }
-    ];
-
-    const sideConfigs = {
-      left: { keys: ["a", "s", "d", "f"], direction: -1, scoreKey: "leftScore", label: "LEFT", xLine: 180 },
-      right: { keys: ["j", "k", "l", ";"], direction: 1, scoreKey: "rightScore", label: "RIGHT", xLine: canvas.width - 180 }
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    const PERFECT_WINDOW_MS = 50;
+    const GOOD_WINDOW_MS = 120;
+    const GAME_DURATION_MS = 45000;
+    const LANE_KEYS = ["d", "f", "j", "k"];
+    const LANE_COLORS = ["#53b3ff", "#7b72ff", "#ff6f91", "#ffc857"];
+    const LANE_TONES = [246.94, 293.66, 369.99, 440.0];
+    const MODE_TEXT = {
+      solo: "单人：一人负责全部四键。双人：P1 负责 `D / F`，P2 负责 `J / K`。",
+      coop: "双人合作：P1 负责左半边 D / F，P2 负责右半边 J / K，需要同步稳住共享连击。"
+    };
+    const KEY_TO_LANE = {
+      d: 0,
+      f: 1,
+      j: 2,
+      k: 3
     };
 
     const state = {
-      mode: "coop",
+      mode: "solo",
       running: false,
-      bpm: Number(bpmInput.value),
-      beatInterval: 60000 / Number(bpmInput.value),
-      travelMs: 1500,
-      perfectWindow: 60,
-      goodWindow: 130,
       notes: [],
-      feedbacks: [],
       particles: [],
+      flashes: [],
+      feedbacks: [],
+      score: 0,
       combo: 0,
       maxCombo: 0,
-      leftScore: 0,
-      rightScore: 0,
-      visualLevel: 1,
-      beatIndex: 0,
-      lastFrame: 0,
+      judgement: "READY",
       startTime: 0,
-      nextBeatAt: 0,
+      elapsedMs: 0,
+      lastFrame: 0,
+      nextSpawnAt: 0,
+      spawnIndex: 0,
+      songProgress: 0,
       audioContext: null,
-      masterGain: null,
-      pulse: 0,
-      shake: 0,
-      lastJudgement: "READY"
+      masterGain: null
     };
+
+    function createChart() {
+      const chart = [];
+      let cursor = 800;
+      for (let index = 0; index < 88; index += 1) {
+        const phrase = index % 8;
+        const baseGap = phrase === 6 ? 300 : phrase === 7 ? 250 : 470;
+        const jitter = (index % 3) * 18;
+        const lane = (index * 3 + Math.floor(index / 5)) % 4;
+        chart.push({ lane, hitTime: cursor });
+        if (index % 5 === 2) {
+          chart.push({ lane: (lane + 1) % 4, hitTime: cursor + 170 });
+        }
+        cursor += Math.max(180, baseGap - Math.floor(index * 1.4) - jitter);
+      }
+      return chart.filter((note) => note.hitTime < GAME_DURATION_MS - 450);
+    }
+
+    const chart = createChart();
+
+    function laneX(laneIndex) {
+      const laneWidth = 170;
+      const startX = (canvas.width - laneWidth * 4) / 2;
+      return startX + laneWidth * laneIndex + laneWidth / 2;
+    }
+
+    function travelDurationMs(now) {
+      const elapsed = Math.max(0, now - state.startTime);
+      const progress = Math.min(1, elapsed / GAME_DURATION_MS);
+      return 1750 - progress * 700;
+    }
 
     function setMode(mode) {
       state.mode = mode;
       modeButtons.forEach((button) => {
         button.classList.toggle("active", button.dataset.mode === mode);
       });
+      modeNote.textContent = MODE_TEXT[mode];
     }
 
-    function activeSides() {
-      if (state.mode === "solo-left") {
-        return ["left"];
-      }
-      if (state.mode === "solo-right") {
-        return ["right"];
-      }
-      return ["left", "right"];
-    }
-
-    function updateBeatInterval() {
-      state.bpm = Number(bpmInput.value);
-      state.beatInterval = 60000 / state.bpm;
-      bpmDisplay.textContent = String(state.bpm);
-    }
-
-    function updateHud() {
+    function updateHud(now = state.lastFrame || performance.now()) {
+      const elapsed = state.running
+        ? Math.max(0, now - state.startTime)
+        : state.elapsedMs;
+      const remaining = Math.max(0, GAME_DURATION_MS - elapsed);
+      scoreDisplay.textContent = String(state.score);
       comboDisplay.textContent = String(state.combo);
-      leftScoreDisplay.textContent = String(state.leftScore);
-      rightScoreDisplay.textContent = String(state.rightScore);
-      levelDisplay.textContent = String(state.visualLevel);
+      maxComboDisplay.textContent = String(state.maxCombo);
+      judgementDisplay.textContent = state.judgement;
+      timeDisplay.textContent = (remaining / 1000).toFixed(1);
     }
 
-    function computeVisualLevel() {
-      if (state.combo >= 24) {
+    function comboTier() {
+      if (state.combo >= 50) {
         return 3;
       }
-      if (state.combo >= 10) {
+      if (state.combo >= 25) {
         return 2;
       }
-      return 1;
+      if (state.combo >= 10) {
+        return 1;
+      }
+      return 0;
     }
 
-    function addFeedback(x, y, text, type) {
-      state.feedbacks.push({ x, y, text, type, life: 0, ttl: 700 });
+    function ensureAudio() {
+      if (!AudioContextClass) {
+        return;
+      }
+      if (!state.audioContext) {
+        state.audioContext = new AudioContextClass();
+        state.masterGain = state.audioContext.createGain();
+        state.masterGain.gain.value = 0.16;
+        state.masterGain.connect(state.audioContext.destination);
+      }
+      if (state.audioContext.state === "suspended") {
+        state.audioContext.resume();
+      }
     }
 
-    function spawnSparkBurst(note, count) {
-      for (let index = 0; index < count; index += 1) {
-        const angle = (Math.PI * 2 * index) / count + Math.random() * 0.3;
-        const speed = 1.5 + Math.random() * 2.8;
+    function playTone(frequency, type, duration, volume, slideTo = null) {
+      if (!state.audioContext || !state.masterGain) {
+        return;
+      }
+      const now = state.audioContext.currentTime;
+      const oscillator = state.audioContext.createOscillator();
+      const gain = state.audioContext.createGain();
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, now);
+      if (slideTo !== null) {
+        oscillator.frequency.exponentialRampToValueAtTime(slideTo, now + duration);
+      }
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(volume, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+      oscillator.connect(gain);
+      gain.connect(state.masterGain);
+      oscillator.start(now);
+      oscillator.stop(now + duration + 0.02);
+    }
+
+    function playBeatPulse(strongBeat) {
+      playTone(strongBeat ? 120 : 190, "triangle", 0.12, strongBeat ? 0.18 : 0.12, strongBeat ? 65 : 120);
+    }
+
+    function playJudgeSound(lane, judgement) {
+      if (judgement === "Miss") {
+        playTone(160, "sawtooth", 0.16, 0.08, 90);
+        return;
+      }
+      const baseTone = LANE_TONES[lane];
+      const gain = judgement === "Perfect" ? 0.14 : 0.1;
+      playTone(baseTone, "square", 0.11, gain, baseTone * 1.35);
+      if (judgement === "Perfect") {
+        playTone(baseTone * 2, "sine", 0.09, 0.07, baseTone * 2.4);
+      }
+    }
+
+    function addFeedback(text, lane, color) {
+      state.feedbacks.push({
+        text,
+        x: laneX(lane),
+        y: canvas.height - 110,
+        color,
+        life: 0,
+        ttl: 780
+      });
+    }
+
+    function spawnParticles(x, y, color, amount) {
+      for (let index = 0; index < amount; index += 1) {
+        const angle = (Math.PI * 2 * index) / amount + Math.random() * 0.35;
+        const speed = 1.6 + Math.random() * 2.8;
         state.particles.push({
-          x: note.x,
-          y: note.y,
+          x,
+          y,
           vx: Math.cos(angle) * speed,
           vy: Math.sin(angle) * speed,
-          radius: 2 + Math.random() * 2,
+          radius: 2 + Math.random() * 2.2,
           life: 0,
-          ttl: 420 + Math.random() * 260,
-          color: colorLanes[note.lane].fill
+          ttl: 420 + Math.random() * 280,
+          color
         });
       }
     }
 
+    function triggerComboFx() {
+      const tier = comboTier();
+      if (tier === 0) {
+        return;
+      }
+      state.flashes.push({
+        color: tier === 1 ? "143, 243, 193" : tier === 2 ? "123, 114, 255" : "255, 111, 145",
+        life: 0,
+        ttl: 380 + tier * 90
+      });
+      spawnParticles(canvas.width / 2, canvas.height / 2, tier === 1 ? "#8ff3c1" : tier === 2 ? "#7b72ff" : "#ff6f91", 18 + tier * 10);
+    }
+
     function resetState() {
+      state.running = true;
       state.notes = [];
-      state.feedbacks = [];
       state.particles = [];
+      state.flashes = [];
+      state.feedbacks = [];
+      state.score = 0;
       state.combo = 0;
       state.maxCombo = 0;
-      state.leftScore = 0;
-      state.rightScore = 0;
-      state.visualLevel = 1;
-      state.beatIndex = 0;
-      state.lastFrame = 0;
+      state.judgement = "READY";
       state.startTime = performance.now();
-      state.nextBeatAt = state.startTime + 250;
-      state.pulse = 0;
-      state.shake = 0;
-      state.lastJudgement = "READY";
-      state.running = true;
-      updateHud();
+      state.elapsedMs = 0;
+      state.lastFrame = state.startTime;
+      state.nextSpawnAt = state.startTime;
+      state.spawnIndex = 0;
+      state.songProgress = 0;
+      updateHud(state.startTime);
     }
 
-    function ensureAudio() {
-      if (state.audioContext) {
-        if (state.audioContext.state === "suspended") {
-          state.audioContext.resume();
-        }
-        return;
-      }
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const masterGain = audioContext.createGain();
-      masterGain.gain.value = 0.18;
-      masterGain.connect(audioContext.destination);
-      state.audioContext = audioContext;
-      state.masterGain = masterGain;
+    function startGame() {
+      ensureAudio();
+      resetState();
+      startOverlay.classList.add("hidden");
+      resultOverlay.classList.add("hidden");
     }
 
-    function playEnvelope(frequency, type, duration, volume, when, slideTo = null) {
-      if (!state.audioContext || !state.masterGain) {
-        return;
-      }
-      const oscillator = state.audioContext.createOscillator();
-      const gain = state.audioContext.createGain();
-      oscillator.type = type;
-      oscillator.frequency.setValueAtTime(frequency, when);
-      if (slideTo !== null) {
-        oscillator.frequency.exponentialRampToValueAtTime(slideTo, when + duration);
-      }
-      gain.gain.setValueAtTime(0.0001, when);
-      gain.gain.exponentialRampToValueAtTime(volume, when + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, when + duration);
-      oscillator.connect(gain);
-      gain.connect(state.masterGain);
-      oscillator.start(when);
-      oscillator.stop(when + duration + 0.02);
+    function endGame(now) {
+      state.running = false;
+      state.elapsedMs = Math.max(0, now - state.startTime);
+      state.notes = [];
+      finalScore.textContent = `总分 ${state.score}`;
+      finalMaxCombo.textContent = `最高连击 ${state.maxCombo}`;
+      updateHud(now);
+      resultOverlay.classList.remove("hidden");
     }
 
-    function playKick() {
-      if (!state.audioContext) {
-        return;
-      }
-      const when = state.audioContext.currentTime;
-      playEnvelope(110, "sine", 0.16, 0.44, when, 42);
-      playEnvelope(54, "triangle", 0.24, 0.18, when, 28);
+    function canHitLane(lane) {
+      return state.mode === "solo" || lane < 2 || lane >= 2;
     }
 
-    function playHit(lane, judgement) {
-      if (!state.audioContext) {
-        return;
-      }
-      const when = state.audioContext.currentTime;
-      const tone = colorLanes[lane].tone;
-      const volume = judgement === "Perfect" ? 0.18 : 0.12;
-      playEnvelope(tone, "square", 0.11, volume, when, tone * 1.45);
-    }
-
-    function playMiss() {
-      if (!state.audioContext) {
-        return;
-      }
-      const when = state.audioContext.currentTime;
-      playEnvelope(180, "sawtooth", 0.18, 0.1, when, 90);
-    }
-
-    function spawnNote(side, lane, beatTime) {
-      const config = sideConfigs[side];
-      const centerX = canvas.width / 2;
-      const y = 180 + lane * 110;
-      state.notes.push({
-        side,
-        lane,
-        color: colorLanes[lane].fill,
-        spawnTime: beatTime - state.travelMs,
-        hitTime: beatTime,
-        missTime: beatTime + state.goodWindow,
-        x: centerX,
-        y,
-        judged: false
-      });
-    }
-
-    function spawnBeatPattern(beatTime) {
-      const sides = activeSides();
-      const emphasisLane = state.beatIndex % colorLanes.length;
-      sides.forEach((side, sideIndex) => {
-        const lane = (emphasisLane + sideIndex + Math.floor(state.beatIndex / 3)) % colorLanes.length;
-        spawnNote(side, lane, beatTime + state.travelMs);
-        if (state.beatIndex % 4 === 2 && state.bpm >= 108) {
-          spawnNote(side, (lane + 2) % colorLanes.length, beatTime + state.travelMs + state.beatInterval * 0.5);
-        }
-      });
-      state.beatIndex += 1;
-    }
-
-    function registerMiss(note, reason) {
-      note.judged = true;
+    function registerMiss(note, label = "Miss") {
+      note.hit = true;
       state.combo = 0;
-      state.visualLevel = computeVisualLevel();
-      state.lastJudgement = "MISS";
-      addFeedback(note.x, note.y, reason, "miss");
-      playMiss();
+      state.judgement = "MISS";
+      addFeedback(label, note.lane, "var(--miss)");
+      playJudgeSound(note.lane, "Miss");
       updateHud();
     }
 
-    function scoreNote(note, judgement, deltaMs) {
-      note.judged = true;
-      const scoreGain = judgement === "Perfect" ? 120 : 70;
-      state[note.side === "left" ? "leftScore" : "rightScore"] += scoreGain;
+    function scoreHit(note, judgement, deltaMs) {
+      note.hit = true;
+      state.score += judgement === "Perfect" ? 100 : 60;
       state.combo += 1;
       state.maxCombo = Math.max(state.maxCombo, state.combo);
-      state.visualLevel = computeVisualLevel();
-      state.lastJudgement = judgement.toUpperCase();
-      state.pulse = 1;
-      if (judgement === "Perfect" && state.visualLevel >= 3) {
-        state.shake = 10;
+      state.judgement = judgement.toUpperCase();
+      addFeedback(`${judgement} ${Math.abs(deltaMs)}ms`, note.lane, judgement === "Perfect" ? "var(--perfect)" : "var(--good)");
+      spawnParticles(laneX(note.lane), canvas.height - 118, LANE_COLORS[note.lane], judgement === "Perfect" ? 12 : 8);
+      if (state.combo === 10 || state.combo === 25 || state.combo === 50) {
+        triggerComboFx();
       }
-      addFeedback(note.x, note.y - 12, `${judgement} ${Math.abs(deltaMs)}ms`, judgement.toLowerCase());
-      spawnSparkBurst(note, state.visualLevel >= 2 ? 12 : 7);
-      playHit(note.lane, judgement);
+      playJudgeSound(note.lane, judgement);
       updateHud();
     }
 
-    function judgePress(side, lane, pressedAt) {
-      const candidates = state.notes.filter((note) => note.side === side && note.lane === lane && !note.judged);
+    function judgeLanePress(lane, pressedAt) {
+      const songNow = pressedAt - state.startTime;
+      const candidates = state.notes.filter((note) => !note.hit && note.lane === lane);
       if (!candidates.length) {
         state.combo = 0;
-        state.visualLevel = computeVisualLevel();
-        state.lastJudgement = "MISS";
-        addFeedback(sideConfigs[side].xLine, 120 + lane * 110, "Miss", "miss");
-        playMiss();
-        updateHud();
+        state.judgement = "MISS";
+        addFeedback("Miss", lane, "var(--miss)");
+        playJudgeSound(lane, "Miss");
+        updateHud(pressedAt);
         return;
       }
 
       let target = candidates[0];
       for (const note of candidates) {
-        if (Math.abs(note.hitTime - pressedAt) < Math.abs(target.hitTime - pressedAt)) {
+        if (Math.abs(note.hitTime - songNow) < Math.abs(target.hitTime - songNow)) {
           target = note;
         }
       }
 
-      const deltaMs = Math.round(pressedAt - target.hitTime);
-      if (Math.abs(deltaMs) <= state.perfectWindow) {
-        scoreNote(target, "Perfect", deltaMs);
+      const deltaMs = Math.round(songNow - target.hitTime);
+      if (Math.abs(deltaMs) <= PERFECT_WINDOW_MS) {
+        scoreHit(target, "Perfect", deltaMs);
         return;
       }
-      if (Math.abs(deltaMs) <= state.goodWindow) {
-        scoreNote(target, "Good", deltaMs);
+      if (Math.abs(deltaMs) <= GOOD_WINDOW_MS) {
+        scoreHit(target, "Good", deltaMs);
         return;
       }
 
       state.combo = 0;
-      state.visualLevel = computeVisualLevel();
-      state.lastJudgement = "MISS";
-      addFeedback(sideConfigs[side].xLine, 120 + lane * 110, "Miss", "miss");
-      playMiss();
-      updateHud();
+      state.judgement = "MISS";
+      addFeedback("Miss", lane, "var(--miss)");
+      playJudgeSound(lane, "Miss");
+      updateHud(pressedAt);
     }
 
     function handleKeydown(event) {
       const key = event.key.toLowerCase();
-      if (!state.running) {
+      if (!state.running || !(key in KEY_TO_LANE)) {
         return;
       }
-      for (const [side, config] of Object.entries(sideConfigs)) {
-        const lane = config.keys.indexOf(key);
-        if (lane !== -1 && activeSides().includes(side)) {
-          judgePress(side, lane, performance.now());
-          event.preventDefault();
-          return;
-        }
+      const lane = KEY_TO_LANE[key];
+      if (!canHitLane(lane)) {
+        return;
+      }
+      judgeLanePress(lane, performance.now());
+      event.preventDefault();
+    }
+
+    function spawnNotes(now) {
+      const songNow = now - state.startTime;
+      const travelMs = travelDurationMs(now);
+      while (state.spawnIndex < chart.length && chart[state.spawnIndex].hitTime - travelMs <= songNow) {
+        const source = chart[state.spawnIndex];
+        state.notes.push({
+          lane: source.lane,
+          hitTime: source.hitTime,
+          hit: false,
+          y: -40
+        });
+        state.spawnIndex += 1;
       }
     }
 
-    function update(now) {
+    function updateGame(now) {
       if (!state.running) {
         return;
       }
 
-      while (now >= state.nextBeatAt) {
-        spawnBeatPattern(state.nextBeatAt);
-        playKick();
-        state.nextBeatAt += state.beatInterval;
+      const elapsed = now - state.startTime;
+      state.elapsedMs = elapsed;
+      state.songProgress = Math.min(1, elapsed / GAME_DURATION_MS);
+      spawnNotes(now);
+
+      const beatCount = Math.floor(elapsed / 500);
+      if (beatCount !== Math.floor((state.lastFrame - state.startTime) / 500)) {
+        playBeatPulse(beatCount % 4 === 0);
       }
 
-      state.notes.forEach((note) => {
-        if (note.judged) {
-          return;
+      const currentTravelMs = travelDurationMs(now);
+      for (const note of state.notes) {
+        if (note.hit) {
+          continue;
         }
-        if (now > note.missTime) {
-          registerMiss(note, "Miss");
-          return;
+        const progress = 1 - (note.hitTime - elapsed) / currentTravelMs;
+        note.y = -30 + Math.max(0, progress) * (canvas.height - 150);
+        if (elapsed - note.hitTime > GOOD_WINDOW_MS) {
+          registerMiss(note);
         }
-        const progress = Math.max(0, Math.min(1, (now - note.spawnTime) / state.travelMs));
-        const centerX = canvas.width / 2;
-        const xLine = sideConfigs[note.side].xLine;
-        note.x = centerX + (xLine - centerX) * progress;
-      });
+      }
 
+      const delta = now - state.lastFrame;
       state.feedbacks = state.feedbacks.filter((feedback) => {
-        feedback.life += now - state.lastFrame;
-        feedback.y -= 0.04 * (now - state.lastFrame);
+        feedback.life += delta;
+        feedback.y -= delta * 0.05;
         return feedback.life < feedback.ttl;
       });
-
       state.particles = state.particles.filter((particle) => {
-        particle.life += now - state.lastFrame;
+        particle.life += delta;
         particle.x += particle.vx;
         particle.y += particle.vy;
         particle.vx *= 0.992;
-        particle.vy *= 0.992;
+        particle.vy = particle.vy * 0.992 + 0.012;
         return particle.life < particle.ttl;
       });
+      state.flashes = state.flashes.filter((flash) => {
+        flash.life += delta;
+        return flash.life < flash.ttl;
+      });
+      state.notes = state.notes.filter((note) => !note.hit || elapsed - note.hitTime < 180);
 
-      state.notes = state.notes.filter((note) => !note.judged || now - note.missTime < 220);
-      state.pulse = Math.max(0, state.pulse - 0.025);
-      state.shake = Math.max(0, state.shake * 0.86 - 0.1);
-      state.visualLevel = computeVisualLevel();
+      updateHud(now);
+      if (elapsed >= GAME_DURATION_MS) {
+        endGame(now);
+      }
     }
 
-    function drawBackdrop() {
+    function drawBackground() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const levelTint = state.visualLevel === 1 ? 0.12 : state.visualLevel === 2 ? 0.22 : 0.36;
-      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      gradient.addColorStop(0, `rgba(8, 16, 34, ${0.95 - levelTint * 0.08})`);
-      gradient.addColorStop(1, `rgba(18, 8, 28, ${0.98 - levelTint * 0.04})`);
-      ctx.fillStyle = gradient;
+      const tier = comboTier();
+      const background = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      if (tier === 0) {
+        background.addColorStop(0, "rgba(8, 14, 30, 1)");
+        background.addColorStop(1, "rgba(14, 22, 44, 1)");
+      } else if (tier === 1) {
+        background.addColorStop(0, "rgba(10, 24, 36, 1)");
+        background.addColorStop(1, "rgba(16, 25, 55, 1)");
+      } else if (tier === 2) {
+        background.addColorStop(0, "rgba(24, 16, 52, 1)");
+        background.addColorStop(1, "rgba(12, 26, 62, 1)");
+      } else {
+        background.addColorStop(0, "rgba(46, 14, 42, 1)");
+        background.addColorStop(1, "rgba(20, 24, 72, 1)");
+      }
+      ctx.fillStyle = background;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      const centerGlow = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, 40, canvas.width / 2, canvas.height / 2, 320);
-      centerGlow.addColorStop(0, `rgba(124, 247, 255, ${0.18 + state.pulse * 0.12})`);
-      centerGlow.addColorStop(1, "rgba(124, 247, 255, 0)");
-      ctx.fillStyle = centerGlow;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      if (state.visualLevel >= 3) {
-        const halo = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, 60, canvas.width / 2, canvas.height / 2, 460);
-        halo.addColorStop(0, "rgba(255, 211, 93, 0.14)");
-        halo.addColorStop(1, "rgba(255, 93, 115, 0)");
-        ctx.fillStyle = halo;
+      for (const flash of state.flashes) {
+        const alpha = 1 - flash.life / flash.ttl;
+        ctx.fillStyle = `rgba(${flash.color}, ${alpha * 0.22})`;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
     }
 
-    function drawStage() {
-      const shakeX = state.shake > 0 ? (Math.random() - 0.5) * state.shake : 0;
-      const shakeY = state.shake > 0 ? (Math.random() - 0.5) * state.shake : 0;
-      ctx.save();
-      ctx.translate(shakeX, shakeY);
-      drawBackdrop();
+    function drawBoard() {
+      drawBackground();
 
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
-      ctx.lineWidth = 2;
-      ctx.fillStyle = "rgba(255, 255, 255, 0.04)";
-      ctx.fillRect(canvas.width / 2 - 72, 90, 144, 520);
-      ctx.strokeRect(canvas.width / 2 - 72, 90, 144, 520);
+      const laneWidth = 170;
+      const boardLeft = (canvas.width - laneWidth * 4) / 2;
+      const hitLineY = canvas.height - 110;
 
-      ["left", "right"].forEach((side) => {
-        const active = activeSides().includes(side);
-        const x = sideConfigs[side].xLine;
-        ctx.strokeStyle = active ? "rgba(124, 247, 255, 0.75)" : "rgba(255, 255, 255, 0.15)";
-        ctx.lineWidth = active ? 4 : 2;
-        ctx.beginPath();
-        ctx.moveTo(x, 90);
-        ctx.lineTo(x, 610);
-        ctx.stroke();
-        ctx.fillStyle = active ? "rgba(124, 247, 255, 0.12)" : "rgba(255, 255, 255, 0.05)";
-        ctx.fillRect(side === "left" ? x - 30 : x - 6, 90, 36, 520);
-      });
+      ctx.fillStyle = "rgba(255, 255, 255, 0.03)";
+      ctx.fillRect(boardLeft, 40, laneWidth * 4, canvas.height - 80);
 
-      colorLanes.forEach((lane, laneIndex) => {
-        const y = 180 + laneIndex * 110;
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.06)";
-        ctx.beginPath();
-        ctx.moveTo(120, y + 26);
-        ctx.lineTo(canvas.width - 120, y + 26);
-        ctx.stroke();
-        ctx.fillStyle = lane.fill;
-        ctx.fillRect(canvas.width / 2 - 18, y + 10, 36, 36);
-      });
+      for (let lane = 0; lane < 4; lane += 1) {
+        const x = boardLeft + laneWidth * lane;
+        ctx.fillStyle = lane < 2 ? "rgba(83, 179, 255, 0.05)" : "rgba(255, 111, 145, 0.05)";
+        ctx.fillRect(x, 40, laneWidth - 2, canvas.height - 80);
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+        ctx.strokeRect(x, 40, laneWidth, canvas.height - 80);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.78)";
+        ctx.font = "700 22px Trebuchet MS";
+        ctx.textAlign = "center";
+        ctx.fillText(LANE_KEYS[lane].toUpperCase(), x + laneWidth / 2, canvas.height - 52);
+      }
 
-      state.notes.forEach((note) => {
-        const lane = colorLanes[note.lane];
-        if (state.visualLevel >= 2) {
-          ctx.strokeStyle = lane.glow;
-          ctx.lineWidth = 8;
-          ctx.beginPath();
-          ctx.moveTo(canvas.width / 2, note.y + 24);
-          ctx.lineTo(note.x, note.y + 24);
-          ctx.stroke();
+      ctx.fillStyle = "rgba(255, 255, 255, 0.16)";
+      ctx.fillRect(boardLeft, hitLineY - 18, laneWidth * 4, 36);
+      ctx.fillStyle = "rgba(143, 243, 193, 0.35)";
+      ctx.fillRect(boardLeft, hitLineY - 6, laneWidth * 4, 12);
+
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+      ctx.beginPath();
+      ctx.moveTo(boardLeft + laneWidth * 2, 40);
+      ctx.lineTo(boardLeft + laneWidth * 2, canvas.height - 40);
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(255, 255, 255, 0.62)";
+      ctx.font = "600 18px Trebuchet MS";
+      ctx.fillText("P1", laneX(0.5), 66);
+      ctx.fillText("P2", laneX(2.5), 66);
+
+      for (const note of state.notes) {
+        if (note.hit) {
+          continue;
         }
-        ctx.fillStyle = lane.glow;
-        ctx.fillRect(note.x - 34, note.y - 4, 68, 56);
-        ctx.fillStyle = lane.fill;
-        ctx.fillRect(note.x - 28, note.y + 2, 56, 44);
-        ctx.fillStyle = "rgba(255, 255, 255, 0.32)";
-        ctx.fillRect(note.x - 18, note.y + 8, 36, 10);
-      });
+        const x = laneX(note.lane);
+        const glow = ctx.createRadialGradient(x, note.y + 12, 6, x, note.y + 12, 48);
+        glow.addColorStop(0, `${LANE_COLORS[note.lane]}cc`);
+        glow.addColorStop(1, "rgba(255, 255, 255, 0)");
+        ctx.fillStyle = glow;
+        ctx.fillRect(x - 48, note.y - 28, 96, 96);
+        ctx.fillStyle = LANE_COLORS[note.lane];
+        ctx.fillRect(x - 46, note.y - 16, 92, 34);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.28)";
+        ctx.fillRect(x - 28, note.y - 10, 56, 8);
+      }
 
-      state.particles.forEach((particle) => {
+      for (const particle of state.particles) {
         const alpha = 1 - particle.life / particle.ttl;
-        ctx.fillStyle = particle.color.replace(")", `, ${alpha})`).replace("rgb", "rgba");
+        const color = particle.color.startsWith("#") ? particle.color : "#ffffff";
+        const r = Number.parseInt(color.slice(1, 3), 16);
+        const g = Number.parseInt(color.slice(3, 5), 16);
+        const b = Number.parseInt(color.slice(5, 7), 16);
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
         ctx.beginPath();
         ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
         ctx.fill();
-      });
+      }
 
-      state.feedbacks.forEach((feedback) => {
+      for (const feedback of state.feedbacks) {
         const alpha = 1 - feedback.life / feedback.ttl;
-        ctx.fillStyle = feedback.type === "perfect"
-          ? `rgba(158, 247, 216, ${alpha})`
-          : feedback.type === "good"
-            ? `rgba(255, 231, 163, ${alpha})`
-            : `rgba(255, 125, 150, ${alpha})`;
-        ctx.font = `700 ${feedback.type === "perfect" ? 28 : 24}px Trebuchet MS`;
+        const cssVar = feedback.color === "var(--perfect)"
+          ? "143, 243, 193"
+          : feedback.color === "var(--good)"
+            ? "255, 225, 140"
+            : "255, 125, 156";
+        ctx.fillStyle = `rgba(${cssVar}, ${alpha})`;
+        ctx.font = "700 24px Trebuchet MS";
         ctx.textAlign = "center";
         ctx.fillText(feedback.text, feedback.x, feedback.y);
-      });
-
-      ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-      ctx.font = "700 32px Trebuchet MS";
-      ctx.textAlign = "center";
-      ctx.fillText(`COMBO ${state.combo}`, canvas.width / 2, 54);
-      ctx.font = "600 18px Trebuchet MS";
-      ctx.fillStyle = "rgba(255, 255, 255, 0.68)";
-      ctx.fillText(`LAST ${state.lastJudgement}  •  BPM ${state.bpm}`, canvas.width / 2, 82);
-
-      ctx.textAlign = "left";
-      ctx.font = "700 22px Trebuchet MS";
-      ctx.fillStyle = "rgba(255, 255, 255, 0.86)";
-      ctx.fillText(`LEFT ${state.leftScore}`, 40, 48);
-      ctx.textAlign = "right";
-      ctx.fillText(`RIGHT ${state.rightScore}`, canvas.width - 40, 48);
-      ctx.restore();
+      }
     }
 
     function frame(now) {
-      if (!state.lastFrame) {
-        state.lastFrame = now;
-      }
-      update(now);
-      drawStage();
+      updateGame(now);
+      drawBoard();
       state.lastFrame = now;
       requestAnimationFrame(frame);
     }
@@ -778,22 +809,13 @@
       button.addEventListener("click", () => setMode(button.dataset.mode));
     });
 
-    bpmInput.addEventListener("input", () => {
-      updateBeatInterval();
-    });
-
-    startButton.addEventListener("click", () => {
-      ensureAudio();
-      updateBeatInterval();
-      resetState();
-      introOverlay.classList.add("hidden");
-    });
-
+    startButton.addEventListener("click", startGame);
+    restartButton.addEventListener("click", startGame);
     window.addEventListener("keydown", handleKeydown);
 
-    updateBeatInterval();
+    setMode("solo");
     updateHud();
-    drawStage();
+    drawBoard();
     requestAnimationFrame(frame);
   </script>
 </body>
