@@ -172,14 +172,15 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 ## 节奏色块记忆挑战
 
-新增 `rhythm-memory-grid/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的节奏合作记忆小游戏，包含：
+新增 `rhythm-color-blocks/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的节奏记忆小游戏，包含：
 
-- 单人模式与双人合作模式切换
-- 双人模式下玩家 1 控制左侧 `A / S / D`，玩家 2 控制右侧 `J / K / L`
-- 系统先演示颜色加节拍序列，再由玩家按原顺序和节奏复现，判定支持 `Perfect / Good / Miss`
-- 关卡推进时序列逐步变长且 BPM 提升，失败后显示最终成绩与重新开始入口
+- 单人模式与热座双人模式切换
+- 系统按固定 BPM 演示色块序列，玩家必须在每拍时限内按原顺序点击复现
+- 初始序列长度为 3，成功过关后序列逐步变长且 BPM 提升
+- 双人模式下两位玩家依次挑战同一随机种子，最终按得分比较胜负
+- 使用 Web Audio API 实时合成节拍与反馈音效，无需外部音频文件
 
-直接用浏览器打开 `rhythm-memory-grid/index.html` 即可游玩。
+直接用浏览器打开 `rhythm-color-blocks/index.html` 即可游玩。
 
 ## 节奏切水果
 
