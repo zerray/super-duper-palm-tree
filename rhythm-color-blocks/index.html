@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>节奏色块生成器</title>
+  <title>节奏色块记忆挑战</title>
   <style>
     :root {
-      --bg: #141218;
-      --panel: rgba(27, 24, 36, 0.92);
-      --panel-soft: rgba(39, 34, 52, 0.72);
-      --line: rgba(255, 255, 255, 0.1);
-      --text: #f7f1ff;
-      --muted: #b7abc8;
-      --accent: #ffcf5c;
-      --accent-strong: #ff8f3f;
-      --scan: #fff4d4;
-      --grid: rgba(255, 255, 255, 0.06);
+      --bg: #0c1220;
+      --panel: rgba(13, 22, 38, 0.88);
+      --panel-soft: rgba(21, 32, 54, 0.86);
+      --line: rgba(255, 255, 255, 0.08);
+      --text: #eef5ff;
+      --muted: #91a3c2;
+      --accent: #ffd166;
+      --good: #7ef0b8;
+      --bad: #ff6e7a;
+      --glow: rgba(255, 209, 102, 0.35);
     }
 
     * {
@@ -25,655 +25,747 @@
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      font-family: "Segoe UI", "PingFang SC", sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at top left, rgba(255, 138, 92, 0.14), transparent 28%),
-        radial-gradient(circle at 80% 10%, rgba(106, 149, 255, 0.14), transparent 26%),
-        linear-gradient(180deg, #100e14 0%, #1a1522 45%, #110f17 100%);
+        radial-gradient(circle at top left, rgba(88, 168, 255, 0.22), transparent 28%),
+        radial-gradient(circle at 85% 12%, rgba(255, 110, 122, 0.18), transparent 22%),
+        linear-gradient(180deg, #0a101b 0%, #111a2c 52%, #0a111c 100%);
     }
 
-    button,
-    input {
+    button {
       font: inherit;
+      color: inherit;
     }
 
     .app {
-      width: min(1200px, calc(100vw - 24px));
+      width: min(980px, calc(100vw - 24px));
       margin: 0 auto;
       padding: 20px 0 28px;
       display: grid;
       gap: 16px;
     }
 
-    .panel,
-    .stage {
-      border: 1px solid var(--line);
-      border-radius: 24px;
+    .panel {
       background: var(--panel);
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      box-shadow: 0 28px 70px rgba(0, 0, 0, 0.28);
       overflow: hidden;
     }
 
-    .panel {
-      padding: 18px;
+    .hero {
       display: grid;
-      gap: 16px;
+      grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+      gap: 18px;
+      padding: 22px;
     }
 
-    .toolbar {
+    .copy,
+    .menu,
+    .board-shell,
+    .result-panel {
       display: grid;
-      grid-template-columns: 1.4fr 1fr 1fr;
       gap: 14px;
-      align-items: start;
-    }
-
-    .section {
-      display: grid;
-      gap: 10px;
-      padding: 14px;
-      border-radius: 18px;
-      background: var(--panel-soft);
-      border: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     h1,
-    p,
-    h2 {
+    h2,
+    p {
       margin: 0;
     }
 
     h1 {
-      font-size: clamp(2rem, 4vw, 3.4rem);
-      letter-spacing: -0.05em;
-      line-height: 0.92;
+      font-size: clamp(2.4rem, 5vw, 4.4rem);
+      line-height: 0.94;
+      letter-spacing: -0.06em;
+    }
+
+    .eyebrow,
+    .micro {
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.76rem;
     }
 
     .lede,
-    .help,
-    .meta {
+    .hint,
+    .muted {
       color: var(--muted);
-      line-height: 1.5;
+      line-height: 1.6;
     }
 
-    .meta-grid,
-    .value-row,
-    .button-row,
-    .color-row {
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stat,
+    .menu,
+    .result-panel {
+      padding: 16px;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background: var(--panel-soft);
+    }
+
+    .stat-value {
+      margin-top: 6px;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .mode-row,
+    .button-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .mode-button,
+    .action-button,
+    .pad {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+    }
+
+    .mode-button,
+    .action-button {
+      min-height: 48px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      cursor: pointer;
+    }
+
+    .mode-button.active,
+    .mode-button:hover,
+    .action-button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255, 209, 102, 0.42);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
+    }
+
+    .action-button.primary {
+      color: #11111a;
+      font-weight: 700;
+      border: 0;
+      background: linear-gradient(180deg, #ffe289 0%, #ffb347 100%);
+    }
+
+    .board-shell {
+      padding: 18px;
+      position: relative;
+    }
+
+    .status-bar {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      justify-content: space-between;
+      gap: 12px;
       align-items: center;
     }
 
     .pill {
-      padding: 8px 12px;
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.04);
-      color: var(--text);
-      font-size: 0.92rem;
-    }
-
-    .color-chip,
-    .action {
-      appearance: none;
-      border: 0;
-      cursor: pointer;
-      transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
-    }
-
-    .color-chip {
-      width: 42px;
-      height: 42px;
-      border-radius: 14px;
-      position: relative;
-      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.15);
-    }
-
-    .color-chip[data-active="true"] {
-      transform: translateY(-1px) scale(1.04);
-      box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.78), 0 10px 22px rgba(0, 0, 0, 0.25);
-    }
-
-    .action {
-      min-height: 42px;
-      padding: 0 16px;
-      border-radius: 999px;
-      color: #1a1510;
-      background: linear-gradient(180deg, var(--accent) 0%, var(--accent-strong) 100%);
-      font-weight: 700;
-    }
-
-    .action.secondary {
-      color: var(--text);
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid var(--line);
-    }
-
-    .action:hover,
-    .color-chip:hover {
-      transform: translateY(-1px);
-    }
-
-    label {
-      display: grid;
-      gap: 8px;
-      color: var(--muted);
-      font-size: 0.95rem;
-    }
-
-    input[type="range"] {
-      width: 100%;
-      accent-color: var(--accent);
-    }
-
-    .stage {
-      position: relative;
-      min-height: 66vh;
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
-        linear-gradient(90deg, transparent 0 24px, rgba(255, 255, 255, 0.02) 24px 25px),
-        linear-gradient(transparent 0 24px, rgba(255, 255, 255, 0.02) 24px 25px),
-        #0f0d14;
-      background-size: auto, 25px 25px, 25px 25px, auto;
-    }
-
-    canvas {
-      display: block;
-      width: 100%;
-      height: 66vh;
-      touch-action: none;
-      cursor: crosshair;
-    }
-
-    .overlay {
-      position: absolute;
-      inset: auto 18px 18px auto;
       padding: 10px 14px;
-      border-radius: 16px;
-      background: rgba(15, 13, 20, 0.78);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--line);
       color: var(--muted);
-      max-width: min(320px, calc(100vw - 56px));
-      line-height: 1.45;
+    }
+
+    .progress-track {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 100%;
+      transform-origin: left center;
+      background: linear-gradient(90deg, #7ef0b8, #ffd166, #ff6e7a);
+      transition: transform 80ms linear;
+    }
+
+    .board {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      padding: 16px;
+      border-radius: 28px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01)),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.02), transparent 48%),
+        #0b1322;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .board::after {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
       pointer-events: none;
     }
 
-    @media (max-width: 920px) {
-      .toolbar {
+    .pad {
+      position: relative;
+      min-height: 168px;
+      border-radius: 24px;
+      cursor: pointer;
+      overflow: hidden;
+      box-shadow: inset 0 -12px 26px rgba(0, 0, 0, 0.18);
+    }
+
+    .pad::before,
+    .pad::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      transition: opacity 120ms ease, transform 120ms ease;
+    }
+
+    .pad::before {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), transparent 45%);
+      opacity: 0.5;
+    }
+
+    .pad::after {
+      background: radial-gradient(circle at center, rgba(255, 255, 255, 0.46), transparent 58%);
+      opacity: 0;
+      transform: scale(0.92);
+    }
+
+    .pad.active,
+    .pad:active {
+      transform: scale(0.97);
+      filter: brightness(1.14) saturate(1.08);
+      box-shadow:
+        inset 0 -12px 26px rgba(0, 0, 0, 0.14),
+        0 0 0 2px rgba(255, 255, 255, 0.2),
+        0 0 28px var(--glow);
+    }
+
+    .pad.active::after,
+    .pad:active::after {
+      opacity: 1;
+      transform: scale(1.02);
+    }
+
+    .pad span {
+      position: absolute;
+      left: 18px;
+      bottom: 16px;
+      font-size: 1rem;
+      font-weight: 700;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.24);
+    }
+
+    .result-panel {
+      display: none;
+    }
+
+    .result-panel.visible {
+      display: grid;
+    }
+
+    .result-panel.good {
+      border-color: rgba(126, 240, 184, 0.34);
+    }
+
+    .result-panel.bad {
+      border-color: rgba(255, 110, 122, 0.3);
+    }
+
+    @media (max-width: 860px) {
+      .hero {
         grid-template-columns: 1fr;
       }
 
-      .stage,
-      canvas {
-        min-height: 58vh;
-        height: 58vh;
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .pad {
+        min-height: 140px;
       }
     }
   </style>
 </head>
 <body>
   <main class="app">
-    <section class="panel">
-      <div class="toolbar">
-        <section class="section">
-          <h1>节奏色块生成器</h1>
-          <p class="lede">点击画布放置色块，扫描线会按固定 BPM 循环触发。颜色决定音色，纵向位置决定音高，尺寸决定音量。</p>
-          <div class="meta-grid">
-            <div class="pill" id="transport-label">扫描中</div>
-            <div class="pill" id="loop-label">第 1 轮</div>
-            <div class="pill" id="block-count-label">0 个色块</div>
+    <section class="panel hero">
+      <section class="copy">
+        <div class="eyebrow">party-toy</div>
+        <h1>节奏色块记忆挑战</h1>
+        <p class="lede">系统先按节拍点亮色块，你必须在每一拍窗口内按正确顺序复现。每过一轮，序列加长、BPM 提升。双人热座模式下，两位玩家会挑战同一随机种子。</p>
+        <div class="stats">
+          <div class="stat">
+            <div class="micro">模式</div>
+            <div class="stat-value" id="mode-stat">单人</div>
           </div>
-        </section>
-
-        <section class="section">
-          <h2>工具</h2>
-          <div class="color-row" id="color-row" aria-label="Color instruments"></div>
-          <label for="size-slider">
-            <div class="value-row"><span>默认尺寸</span><span id="size-value">28</span></div>
-            <input id="size-slider" type="range" min="16" max="54" step="1" value="28">
-          </label>
-          <div class="button-row">
-            <button id="random-button" class="action" type="button">随机填充</button>
-            <button id="clear-button" class="action secondary" type="button">清除全部</button>
+          <div class="stat">
+            <div class="micro">当前玩家</div>
+            <div class="stat-value" id="player-stat">玩家 1</div>
           </div>
-        </section>
+          <div class="stat">
+            <div class="micro">当前回合</div>
+            <div class="stat-value" id="round-stat">1</div>
+          </div>
+          <div class="stat">
+            <div class="micro">BPM</div>
+            <div class="stat-value" id="bpm-stat">92</div>
+          </div>
+        </div>
+      </section>
 
-        <section class="section">
-          <h2>节奏</h2>
-          <label for="bpm-slider">
-            <div class="value-row"><span>BPM</span><span id="bpm-value">112</span></div>
-            <input id="bpm-slider" type="range" min="72" max="168" step="1" value="112">
-          </label>
-          <p class="help">拖拽色块可改位置；按住 <strong>Alt</strong> 点击或右键点击可删除。首次交互会自动解锁 Web Audio。</p>
-          <p class="meta">音高使用五声音阶映射，避免随机摆放时过于刺耳。</p>
-        </section>
-      </div>
+      <section class="menu">
+        <h2>开始设置</h2>
+        <div class="mode-row">
+          <button class="mode-button active" data-mode="solo" type="button">单人</button>
+          <button class="mode-button" data-mode="versus" type="button">热座双人</button>
+        </div>
+        <div class="button-row">
+          <button class="action-button primary" id="start-button" type="button">开始挑战</button>
+          <button class="action-button" id="retry-button" type="button">重新开局</button>
+        </div>
+        <p class="hint" id="seed-label">随机种子: 等待开始</p>
+        <p class="muted" id="status-text">首次点击会解锁 Web Audio。观看演示后，在每拍倒计时归零前点对下一个色块。</p>
+      </section>
     </section>
 
-    <section class="stage">
-      <canvas id="playfield" aria-label="Rhythm color block canvas"></canvas>
-      <div class="overlay" id="status-text">点击画布开始放置。扫描线经过色块时会立即发声。</div>
+    <section class="panel board-shell">
+      <div class="status-bar">
+        <div class="pill" id="phase-pill">待机</div>
+        <div class="pill" id="score-pill">得分 0</div>
+        <div class="pill" id="sequence-pill">序列长度 3</div>
+      </div>
+      <div class="progress-track" aria-label="Beat timer">
+        <div class="progress-bar" id="timer-bar"></div>
+      </div>
+      <section class="board" id="board" aria-label="Rhythm color pads">
+        <button class="pad" data-pad="0" type="button" aria-label="琥珀">
+          <span>琥珀</span>
+        </button>
+        <button class="pad" data-pad="1" type="button" aria-label="海蓝">
+          <span>海蓝</span>
+        </button>
+        <button class="pad" data-pad="2" type="button" aria-label="薄荷">
+          <span>薄荷</span>
+        </button>
+        <button class="pad" data-pad="3" type="button" aria-label="莓红">
+          <span>莓红</span>
+        </button>
+      </section>
+      <section class="result-panel" id="result-panel">
+        <h2 id="result-title">结果</h2>
+        <p class="lede" id="result-copy"></p>
+      </section>
     </section>
   </main>
 
   <script>
+    const BASE_BPM = 92;
+    const BPM_STEP = 6;
+    const START_LENGTH = 3;
+    const INPUT_WINDOW_RATIO = 0.92;
+    const FLASH_RATIO = 0.54;
+    const pads = Array.from(document.querySelectorAll(".pad"));
+    const modeButtons = Array.from(document.querySelectorAll(".mode-button"));
+    const board = document.querySelector("#board");
+    const startButton = document.querySelector("#start-button");
+    const retryButton = document.querySelector("#retry-button");
+    const modeStat = document.querySelector("#mode-stat");
+    const playerStat = document.querySelector("#player-stat");
+    const roundStat = document.querySelector("#round-stat");
+    const bpmStat = document.querySelector("#bpm-stat");
+    const phasePill = document.querySelector("#phase-pill");
+    const scorePill = document.querySelector("#score-pill");
+    const sequencePill = document.querySelector("#sequence-pill");
+    const seedLabel = document.querySelector("#seed-label");
+    const statusText = document.querySelector("#status-text");
+    const timerBar = document.querySelector("#timer-bar");
+    const resultPanel = document.querySelector("#result-panel");
+    const resultTitle = document.querySelector("#result-title");
+    const resultCopy = document.querySelector("#result-copy");
+
     const palette = [
-      { color: "#ff6b6b", label: "Lead", waveform: "sine" },
-      { color: "#ffd166", label: "Pluck", waveform: "triangle" },
-      { color: "#4dd4ac", label: "Bass", waveform: "square" },
-      { color: "#5ea5ff", label: "Air", waveform: "sawtooth" }
+      { name: "琥珀", color: "#ffb347", freq: 392 },
+      { name: "海蓝", color: "#5caeff", freq: 466.16 },
+      { name: "薄荷", color: "#57e8b4", freq: 523.25 },
+      { name: "莓红", color: "#ff6e7a", freq: 587.33 }
     ];
 
-    const pentatonicScale = [220.0, 261.63, 293.66, 329.63, 392.0, 440.0, 523.25, 587.33, 659.25, 783.99];
-    const canvas = document.getElementById("playfield");
-    const context = canvas.getContext("2d");
-    const colorRow = document.getElementById("color-row");
-    const bpmSlider = document.getElementById("bpm-slider");
-    const bpmValue = document.getElementById("bpm-value");
-    const sizeSlider = document.getElementById("size-slider");
-    const sizeValue = document.getElementById("size-value");
-    const randomButton = document.getElementById("random-button");
-    const clearButton = document.getElementById("clear-button");
-    const statusText = document.getElementById("status-text");
-    const transportLabel = document.getElementById("transport-label");
-    const loopLabel = document.getElementById("loop-label");
-    const blockCountLabel = document.getElementById("block-count-label");
+    pads.forEach((pad, index) => {
+      pad.style.background = `linear-gradient(180deg, ${palette[index].color}, ${shadeColor(palette[index].color, -22)})`;
+    });
 
-    const blocks = [];
-    let blockId = 0;
-    let activeColor = palette[0];
-    let audioContext;
-    let dragState = null;
-    let loopCount = 0;
-    let lastScanX = 0;
-    let lastTimestamp = 0;
-    let scanProgress = 0;
+    let audioContext = null;
+    let selectedMode = "solo";
+    let currentSeed = 0;
+    let turnState = null;
+    let sequence = [];
+    let sequenceRng = null;
+    let playbackToken = 0;
+    let inputDeadline = 0;
+    let inputLoopId = 0;
+    let versusScores = [];
+    let startAction = "new-match";
 
-    function ensureAudioContext() {
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContextClass) {
-        statusText.textContent = "当前浏览器不支持 Web Audio API。";
-        return null;
+    modeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        if ((turnState && turnState.locked) || startAction === "player-two") {
+          return;
+        }
+        selectedMode = button.dataset.mode;
+        modeButtons.forEach((candidate) => candidate.classList.toggle("active", candidate === button));
+        syncStaticLabels();
+      });
+    });
+
+    startButton.addEventListener("click", () => {
+      unlockAudio();
+      if (startAction === "player-two") {
+        beginTurn(2);
+        return;
+      }
+      startMatch();
+    });
+
+    retryButton.addEventListener("click", () => {
+      unlockAudio();
+      startMatch(currentSeed || randomSeed());
+    });
+
+    board.addEventListener("click", (event) => {
+      const pad = event.target.closest(".pad");
+      if (!pad || !turnState || turnState.phase !== "input") {
+        return;
+      }
+      handlePadInput(Number(pad.dataset.pad));
+    });
+
+    syncStaticLabels();
+    resetBoardMessage();
+
+    function syncStaticLabels() {
+      modeStat.textContent = selectedMode === "solo" ? "单人" : "热座双人";
+      if (!turnState || !turnState.activePlayer) {
+        playerStat.textContent = "玩家 1";
+      }
+    }
+
+    function startMatch(seed = randomSeed()) {
+      currentSeed = seed;
+      startAction = "new-match";
+      startButton.textContent = "开始挑战";
+      versusScores = [];
+      resultPanel.className = "result-panel";
+      resultTitle.textContent = "结果";
+      resultCopy.textContent = "";
+      seedLabel.textContent = `随机种子: ${seed}`;
+      if (selectedMode === "solo") {
+        beginTurn(1);
+        return;
+      }
+      beginTurn(1);
+    }
+
+    function beginTurn(playerIndex) {
+      playbackToken += 1;
+      clearTimeout(inputLoopId);
+      startAction = "new-match";
+      startButton.textContent = "开始挑战";
+      resultPanel.className = "result-panel";
+      sequence = [];
+      sequenceRng = mulberry32(currentSeed);
+      turnState = {
+        activePlayer: playerIndex,
+        phase: "playback",
+        round: 1,
+        score: 0,
+        bpm: BASE_BPM,
+        inputIndex: 0,
+        locked: true
+      };
+      updateHud();
+      statusText.textContent = `玩家 ${playerIndex} 准备中。先观看序列，再在每拍内点击复现。`;
+      playRound();
+    }
+
+    function playRound() {
+      if (!turnState) {
+        return;
+      }
+      turnState.phase = "playback";
+      turnState.locked = true;
+      turnState.inputIndex = 0;
+      turnState.bpm = BASE_BPM + (turnState.round - 1) * BPM_STEP;
+      ensureSequenceLength(START_LENGTH + turnState.round - 1);
+      const currentSequence = sequence.slice(0, START_LENGTH + turnState.round - 1);
+      const beatMs = beatDurationMs(turnState.bpm);
+      const flashMs = beatMs * FLASH_RATIO;
+      const token = ++playbackToken;
+
+      updateHud();
+      statusText.textContent = `第 ${turnState.round} 轮演示中，记住 ${currentSequence.length} 个色块。`;
+      timerBar.style.transform = "scaleX(1)";
+
+      currentSequence.forEach((padIndex, stepIndex) => {
+        const when = stepIndex * beatMs;
+        window.setTimeout(() => {
+          if (!turnState || token !== playbackToken) {
+            return;
+          }
+          flashPad(padIndex, flashMs);
+          playTone(palette[padIndex].freq, flashMs * 0.001, "sine", 0.12);
+        }, when);
+      });
+
+      window.setTimeout(() => {
+        if (!turnState || token !== playbackToken) {
+          return;
+        }
+        startInputPhase(currentSequence);
+      }, currentSequence.length * beatMs + 120);
+    }
+
+    function startInputPhase(currentSequence) {
+      if (!turnState) {
+        return;
+      }
+      turnState.phase = "input";
+      turnState.locked = false;
+      turnState.inputIndex = 0;
+      updateHud();
+      statusText.textContent = "轮到你了。按同样顺序点击，并在每拍结束前完成当前一步。";
+      scheduleInputDeadline();
+
+      function tick() {
+        if (!turnState || turnState.phase !== "input") {
+          return;
+        }
+        const remaining = Math.max(0, inputDeadline - performance.now());
+        const beatMs = beatDurationMs(turnState.bpm) * INPUT_WINDOW_RATIO;
+        timerBar.style.transform = `scaleX(${remaining / beatMs})`;
+        if (remaining <= 0) {
+          endTurn(false, "超时");
+          return;
+        }
+        inputLoopId = window.setTimeout(tick, 50);
       }
 
+      tick();
+
+      function scheduleInputDeadline() {
+        inputDeadline = performance.now() + beatDurationMs(turnState.bpm) * INPUT_WINDOW_RATIO;
+      }
+
+      turnState.scheduleInputDeadline = scheduleInputDeadline;
+      turnState.currentSequence = currentSequence;
+    }
+
+    function handlePadInput(padIndex) {
+      if (!turnState || turnState.phase !== "input") {
+        return;
+      }
+      const currentSequence = turnState.currentSequence;
+      const expectedPad = currentSequence[turnState.inputIndex];
+      flashPad(padIndex, 180);
+      if (padIndex !== expectedPad) {
+        playTone(160, 0.18, "square", 0.16);
+        endTurn(false, "点错了");
+        return;
+      }
+      playTone(palette[padIndex].freq * 1.08, 0.12, "triangle", 0.12);
+      turnState.inputIndex += 1;
+      scorePill.textContent = `得分 ${turnState.score}`;
+      if (turnState.inputIndex >= currentSequence.length) {
+        turnState.score = currentSequence.length;
+        turnState.round += 1;
+        statusText.textContent = "正确复现，下一轮会更快。";
+        playTone(660, 0.09, "triangle", 0.1);
+        playTone(880, 0.12, "triangle", 0.08, 0.06);
+        clearTimeout(inputLoopId);
+        timerBar.style.transform = "scaleX(1)";
+        window.setTimeout(() => {
+          if (turnState) {
+            playRound();
+          }
+        }, 520);
+        return;
+      }
+      turnState.scheduleInputDeadline();
+      timerBar.style.transform = "scaleX(1)";
+      updateHud();
+    }
+
+    function endTurn(survived, reason) {
+      if (!turnState) {
+        return;
+      }
+      clearTimeout(inputLoopId);
+      playbackToken += 1;
+      turnState.phase = "ended";
+      turnState.locked = false;
+      timerBar.style.transform = "scaleX(0)";
+      const finalScore = turnState.score;
+      const playerIndex = turnState.activePlayer;
+
+      if (!survived && finalScore === 0 && turnState.round > 1) {
+        turnState.score = START_LENGTH + turnState.round - 2;
+      }
+
+      const resolvedScore = turnState.score;
+      if (!survived) {
+        resultPanel.className = "result-panel visible bad";
+        resultTitle.textContent = `玩家 ${playerIndex} 结束`;
+        resultCopy.textContent = `${reason}。最终得分 ${resolvedScore}，最高复现长度 ${resolvedScore}。`;
+        statusText.textContent = `${reason}，本回合结束。`;
+      } else {
+        resultPanel.className = "result-panel visible good";
+      }
+
+      if (selectedMode === "solo") {
+        phasePill.textContent = "单人结束";
+        scorePill.textContent = `得分 ${resolvedScore}`;
+        return;
+      }
+
+      versusScores[playerIndex - 1] = resolvedScore;
+      if (playerIndex === 1) {
+        phasePill.textContent = "玩家 1 完成";
+        statusText.textContent = `玩家 1 得分 ${resolvedScore}。点击“开始玩家 2”让玩家 2 使用同一种子接棒。`;
+        startAction = "player-two";
+        startButton.textContent = "开始玩家 2";
+        return;
+      }
+
+      phasePill.textContent = "双人结算";
+      const [scoreA, scoreB] = versusScores;
+      const summary = compareScores(scoreA, scoreB);
+      resultPanel.className = `result-panel visible ${summary.tied ? "good" : "bad"}`;
+      resultTitle.textContent = summary.title;
+      resultCopy.textContent = `玩家 1 得分 ${scoreA}，玩家 2 得分 ${scoreB}。${summary.copy}`;
+      statusText.textContent = "同一随机种子的双人热座挑战完成。";
+      startButton.textContent = "再来一局";
+      startAction = "new-match";
+    }
+
+    function updateHud() {
+      if (!turnState) {
+        return;
+      }
+      playerStat.textContent = `玩家 ${turnState.activePlayer}`;
+      roundStat.textContent = `${turnState.round}`;
+      bpmStat.textContent = `${turnState.bpm}`;
+      scorePill.textContent = `得分 ${turnState.score}`;
+      sequencePill.textContent = `序列长度 ${START_LENGTH + turnState.round - 1}`;
+      if (turnState.phase === "playback") {
+        phasePill.textContent = "系统演示";
+      } else if (turnState.phase === "input") {
+        phasePill.textContent = "玩家输入";
+      }
+    }
+
+    function ensureSequenceLength(length) {
+      while (sequence.length < length) {
+        sequence.push(Math.floor(sequenceRng() * palette.length));
+      }
+    }
+
+    function beatDurationMs(bpm) {
+      return 60000 / bpm;
+    }
+
+    function flashPad(index, durationMs) {
+      const pad = pads[index];
+      pad.classList.add("active");
+      window.setTimeout(() => pad.classList.remove("active"), durationMs);
+    }
+
+    function unlockAudio() {
       if (!audioContext) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) {
+          return;
+        }
         audioContext = new AudioContextClass();
       }
-
       if (audioContext.state === "suspended") {
         audioContext.resume();
       }
-
-      return audioContext;
     }
 
-    function getSecondsPerLoop() {
-      return 240 / Number(bpmSlider.value);
-    }
-
-    function updateLabels() {
-      bpmValue.textContent = bpmSlider.value;
-      sizeValue.textContent = sizeSlider.value;
-      loopLabel.textContent = `第 ${loopCount + 1} 轮`;
-      blockCountLabel.textContent = `${blocks.length} 个色块`;
-      transportLabel.textContent = `扫描中 · ${bpmSlider.value} BPM`;
-    }
-
-    function resizeCanvas() {
-      const ratio = window.devicePixelRatio || 1;
-      const rect = canvas.getBoundingClientRect();
-      canvas.width = Math.round(rect.width * ratio);
-      canvas.height = Math.round(rect.height * ratio);
-      context.setTransform(ratio, 0, 0, ratio, 0, 0);
-      drawScene();
-    }
-
-    function renderPalette() {
-      const chips = palette.map((entry) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "color-chip";
-        button.style.background = entry.color;
-        button.title = `${entry.label} · ${entry.waveform}`;
-        button.dataset.active = String(entry === activeColor);
-        button.addEventListener("click", () => {
-          activeColor = entry;
-          renderPalette();
-          statusText.textContent = `当前音色：${entry.label} / ${entry.waveform}`;
-        });
-        return button;
-      });
-
-      colorRow.replaceChildren(...chips);
-    }
-
-    function clamp(value, min, max) {
-      return Math.max(min, Math.min(max, value));
-    }
-
-    function getCanvasPoint(event) {
-      const rect = canvas.getBoundingClientRect();
-      return {
-        x: clamp(event.clientX - rect.left, 0, rect.width),
-        y: clamp(event.clientY - rect.top, 0, rect.height)
-      };
-    }
-
-    function createBlock(x, y, size = Number(sizeSlider.value), color = activeColor) {
-      return {
-        id: blockId += 1,
-        x,
-        y,
-        size,
-        color: color.color,
-        label: color.label,
-        waveform: color.waveform,
-        lastTriggeredLoop: -1
-      };
-    }
-
-    function pickBlock(x, y) {
-      for (let index = blocks.length - 1; index >= 0; index -= 1) {
-        const block = blocks[index];
-        const distance = Math.hypot(x - block.x, y - block.y);
-        if (distance <= block.size * 0.62) {
-          return block;
-        }
-      }
-      return null;
-    }
-
-    function deleteBlock(target) {
-      const index = blocks.findIndex((block) => block.id === target.id);
-      if (index >= 0) {
-        blocks.splice(index, 1);
-        updateLabels();
-        drawScene();
-      }
-    }
-
-    function mapYToFrequency(y) {
-      const height = canvas.getBoundingClientRect().height || 1;
-      const normalized = 1 - clamp(y / height, 0, 0.9999);
-      const scaleIndex = Math.min(pentatonicScale.length - 1, Math.floor(normalized * pentatonicScale.length));
-      return pentatonicScale[scaleIndex];
-    }
-
-    function playBlock(block) {
-      const currentContext = ensureAudioContext();
-      if (!currentContext) {
+    function playTone(frequency, durationSeconds, type, gainAmount, delaySeconds = 0) {
+      if (!audioContext) {
         return;
       }
-
-      const now = currentContext.currentTime;
-      const oscillator = currentContext.createOscillator();
-      const gainNode = currentContext.createGain();
-      const filterNode = currentContext.createBiquadFilter();
-      const frequency = mapYToFrequency(block.y);
-      const normalizedSize = clamp((block.size - 16) / (54 - 16), 0, 1);
-      const gain = 0.04 + normalizedSize * 0.14;
-
-      oscillator.type = block.waveform;
-      oscillator.frequency.setValueAtTime(frequency, now);
-      oscillator.detune.setValueAtTime((Math.random() - 0.5) * 6, now);
-
-      filterNode.type = "lowpass";
-      filterNode.frequency.setValueAtTime(800 + normalizedSize * 2200, now);
-      filterNode.Q.setValueAtTime(1.2, now);
-
-      gainNode.gain.setValueAtTime(0.0001, now);
-      gainNode.gain.linearRampToValueAtTime(gain, now + 0.012);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.26);
-
-      oscillator.connect(filterNode);
-      filterNode.connect(gainNode);
-      gainNode.connect(currentContext.destination);
-
-      oscillator.start(now);
-      oscillator.stop(now + 0.28);
+      const startTime = audioContext.currentTime + delaySeconds;
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, startTime);
+      gain.gain.setValueAtTime(0.0001, startTime);
+      gain.gain.exponentialRampToValueAtTime(gainAmount, startTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + durationSeconds);
+      oscillator.connect(gain);
+      gain.connect(audioContext.destination);
+      oscillator.start(startTime);
+      oscillator.stop(startTime + durationSeconds + 0.02);
     }
 
-    function maybeTriggerBlocks(scanX, previousX) {
-      const width = canvas.getBoundingClientRect().width || 1;
-      const wrapped = scanX < previousX;
-
-      for (const block of blocks) {
-        if (block.lastTriggeredLoop === loopCount) {
-          continue;
-        }
-
-        const hit = wrapped
-          ? block.x >= previousX || block.x <= scanX
-          : block.x >= previousX && block.x <= scanX;
-
-        if (hit && block.x <= width) {
-          block.lastTriggeredLoop = loopCount;
-          playBlock(block);
-        }
-      }
-    }
-
-    function drawGrid(width, height) {
-      context.save();
-      context.strokeStyle = "rgba(255,255,255,0.06)";
-      context.lineWidth = 1;
-
-      for (let x = 0; x <= width; x += 80) {
-        context.beginPath();
-        context.moveTo(x, 0);
-        context.lineTo(x, height);
-        context.stroke();
-      }
-
-      for (let y = 0; y <= height; y += 80) {
-        context.beginPath();
-        context.moveTo(0, y);
-        context.lineTo(width, y);
-        context.stroke();
-      }
-      context.restore();
-    }
-
-    function drawBlock(block, isDragging) {
-      const radius = block.size * 0.26;
-      context.save();
-      context.shadowColor = block.color;
-      context.shadowBlur = isDragging ? 28 : 18;
-      context.fillStyle = block.color;
-      context.globalAlpha = isDragging ? 0.92 : 0.84;
-      context.beginPath();
-      context.roundRect(block.x - block.size / 2, block.y - block.size / 2, block.size, block.size, radius);
-      context.fill();
-      context.shadowBlur = 0;
-      context.lineWidth = 2;
-      context.strokeStyle = "rgba(255,255,255,0.85)";
-      context.stroke();
-      context.restore();
-    }
-
-    function drawPitchGuides(width) {
-      const height = canvas.getBoundingClientRect().height;
-      context.save();
-      context.font = "12px Trebuchet MS, sans-serif";
-      context.fillStyle = "rgba(255,255,255,0.42)";
-      context.textAlign = "right";
-
-      pentatonicScale.forEach((frequency, index) => {
-        const y = (index + 0.5) * (height / pentatonicScale.length);
-        context.fillText(`${Math.round(frequency)}Hz`, width - 10, height - y + 4);
-      });
-      context.restore();
-    }
-
-    function drawScene() {
-      const rect = canvas.getBoundingClientRect();
-      const width = rect.width;
-      const height = rect.height;
-
-      context.clearRect(0, 0, width, height);
-      drawGrid(width, height);
-      drawPitchGuides(width);
-
-      context.save();
-      const gradient = context.createLinearGradient(0, 0, width, 0);
-      gradient.addColorStop(0, "rgba(255,244,212,0.06)");
-      gradient.addColorStop(Math.max(0, scanProgress - 0.08), "rgba(255,244,212,0.06)");
-      gradient.addColorStop(scanProgress, "rgba(255,244,212,0.18)");
-      gradient.addColorStop(Math.min(1, scanProgress + 0.02), "rgba(255,244,212,0.02)");
-      gradient.addColorStop(1, "rgba(255,244,212,0)");
-      context.fillStyle = gradient;
-      context.fillRect(0, 0, width, height);
-      context.restore();
-
-      for (const block of blocks) {
-        drawBlock(block, dragState && dragState.block.id === block.id);
-      }
-
-      const scanX = scanProgress * width;
-      context.save();
-      context.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--scan").trim();
-      context.lineWidth = 3;
-      context.shadowColor = "rgba(255,244,212,0.8)";
-      context.shadowBlur = 16;
-      context.beginPath();
-      context.moveTo(scanX, 0);
-      context.lineTo(scanX, height);
-      context.stroke();
-      context.restore();
-    }
-
-    function animate(timestamp) {
-      if (!lastTimestamp) {
-        lastTimestamp = timestamp;
-      }
-
-      const delta = (timestamp - lastTimestamp) / 1000;
-      lastTimestamp = timestamp;
-
-      const previousX = lastScanX;
-      scanProgress += delta / getSecondsPerLoop();
-      if (scanProgress >= 1) {
-        scanProgress %= 1;
-        loopCount += 1;
-        updateLabels();
-      }
-
-      const width = canvas.getBoundingClientRect().width || 1;
-      const currentX = scanProgress * width;
-      maybeTriggerBlocks(currentX, previousX);
-      lastScanX = currentX;
-
-      drawScene();
-      window.requestAnimationFrame(animate);
-    }
-
-    function addRandomBlocks() {
-      const rect = canvas.getBoundingClientRect();
-      blocks.length = 0;
-      const count = 22;
-      for (let index = 0; index < count; index += 1) {
-        const color = palette[index % palette.length];
-        const size = 18 + Math.round(Math.random() * 28);
-        const x = 32 + Math.random() * Math.max(32, rect.width - 64);
-        const y = 32 + Math.random() * Math.max(32, rect.height - 64);
-        blocks.push(createBlock(x, y, size, color));
-      }
-      updateLabels();
-      drawScene();
-      statusText.textContent = "已随机填充一轮循环色块。";
-    }
-
-    canvas.addEventListener("contextmenu", (event) => {
-      event.preventDefault();
-      const point = getCanvasPoint(event);
-      const block = pickBlock(point.x, point.y);
-      if (block) {
-        deleteBlock(block);
-        statusText.textContent = "已删除色块。";
-      }
-    });
-
-    canvas.addEventListener("pointerdown", (event) => {
-      ensureAudioContext();
-      const point = getCanvasPoint(event);
-      const target = pickBlock(point.x, point.y);
-
-      if (event.altKey && target) {
-        deleteBlock(target);
-        statusText.textContent = "已删除色块。";
-        return;
-      }
-
-      if (target) {
-        dragState = {
-          block: target,
-          offsetX: point.x - target.x,
-          offsetY: point.y - target.y
+    function compareScores(scoreA, scoreB) {
+      if (scoreA === scoreB) {
+        return {
+          title: "平局",
+          copy: "两位玩家都撑到了同一轮次，下一局可以继续拼更快的 BPM。",
+          tied: true
         };
-        canvas.setPointerCapture(event.pointerId);
-        canvas.style.cursor = "grabbing";
-        statusText.textContent = `拖拽中：${target.label}`;
-        drawScene();
-        return;
       }
-
-      const block = createBlock(point.x, point.y);
-      blocks.push(block);
-      updateLabels();
-      drawScene();
-      statusText.textContent = `已放置 ${block.label} 色块。`;
-    });
-
-    canvas.addEventListener("pointermove", (event) => {
-      if (!dragState) {
-        return;
-      }
-
-      const point = getCanvasPoint(event);
-      const rect = canvas.getBoundingClientRect();
-      dragState.block.x = clamp(point.x - dragState.offsetX, dragState.block.size / 2, rect.width - dragState.block.size / 2);
-      dragState.block.y = clamp(point.y - dragState.offsetY, dragState.block.size / 2, rect.height - dragState.block.size / 2);
-      drawScene();
-    });
-
-    function releaseDrag(pointerId) {
-      if (!dragState) {
-        return;
-      }
-      dragState = null;
-      canvas.style.cursor = "crosshair";
-      if (pointerId !== undefined && canvas.hasPointerCapture(pointerId)) {
-        canvas.releasePointerCapture(pointerId);
-      }
-      statusText.textContent = "色块位置已更新。";
+      const winner = scoreA > scoreB ? 1 : 2;
+      return {
+        title: `玩家 ${winner} 获胜`,
+        copy: `玩家 ${winner} 在相同种子下复现了更长的序列。`,
+        tied: false
+      };
     }
 
-    canvas.addEventListener("pointerup", (event) => releaseDrag(event.pointerId));
-    canvas.addEventListener("pointercancel", (event) => releaseDrag(event.pointerId));
+    function randomSeed() {
+      return Math.floor(Math.random() * 0xffffffff);
+    }
 
-    bpmSlider.addEventListener("input", updateLabels);
-    sizeSlider.addEventListener("input", updateLabels);
+    function mulberry32(seed) {
+      let t = seed >>> 0;
+      return function() {
+        t += 0x6d2b79f5;
+        let value = Math.imul(t ^ (t >>> 15), t | 1);
+        value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+        return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+      };
+    }
 
-    clearButton.addEventListener("click", () => {
-      blocks.length = 0;
-      updateLabels();
-      drawScene();
-      statusText.textContent = "已清空全部色块。";
-    });
+    function shadeColor(hex, offset) {
+      const value = hex.replace("#", "");
+      const number = Number.parseInt(value, 16);
+      const red = Math.max(0, Math.min(255, (number >> 16) + offset));
+      const green = Math.max(0, Math.min(255, ((number >> 8) & 255) + offset));
+      const blue = Math.max(0, Math.min(255, (number & 255) + offset));
+      return `rgb(${red}, ${green}, ${blue})`;
+    }
 
-    randomButton.addEventListener("click", () => {
-      ensureAudioContext();
-      addRandomBlocks();
-    });
-
-    window.addEventListener("resize", resizeCanvas);
-
-    renderPalette();
-    updateLabels();
-    resizeCanvas();
-    window.requestAnimationFrame(animate);
+    function resetBoardMessage() {
+      phasePill.textContent = "待机";
+      scorePill.textContent = "得分 0";
+      sequencePill.textContent = `序列长度 ${START_LENGTH}`;
+      timerBar.style.transform = "scaleX(1)";
+    }
   </script>
 </body>
 </html>
