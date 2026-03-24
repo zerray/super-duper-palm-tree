@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>节奏涂鸦：音乐驱动的生成画布</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07111f;
+      --panel: rgba(8, 16, 28, 0.84);
+      --panel-strong: rgba(12, 24, 40, 0.95);
+      --line: rgba(255, 255, 255, 0.12);
+      --text: #f4f7fb;
+      --muted: rgba(244, 247, 251, 0.68);
+      --accent: #ffd166;
+      --accent-2: #6ae0ff;
+      --shadow: 0 22px 60px rgba(0, 0, 0, 0.4);
+      --radius: 24px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top left, rgba(106, 224, 255, 0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(255, 112, 166, 0.16), transparent 30%),
+        linear-gradient(180deg, #0b1628 0%, var(--bg) 52%, #040812 100%);
+      color: var(--text);
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      padding: 18px;
+    }
+
+    button,
+    select {
+      font: inherit;
+      color: inherit;
+    }
+
+    .app {
+      width: min(1200px, 100%);
+      display: grid;
+      grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .panel,
+    .stage {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .panel {
+      padding: 20px;
+      display: grid;
+      gap: 18px;
+      align-content: start;
+    }
+
+    .panel h1,
+    .panel p,
+    .stage p {
+      margin: 0;
+    }
+
+    .panel h1 {
+      font-size: 1.5rem;
+      line-height: 1.1;
+    }
+
+    .subtle,
+    .status-line,
+    .hint-list {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .control-block {
+      display: grid;
+      gap: 10px;
+    }
+
+    .control-block h2 {
+      margin: 0;
+      font-size: 0.92rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+    }
+
+    .button-row,
+    .palette-row,
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .toggle,
+    .action,
+    .palette-button,
+    .start-button,
+    .shape-select {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 14px;
+      padding: 10px 14px;
+    }
+
+    .toggle,
+    .action,
+    .palette-button,
+    .start-button {
+      cursor: pointer;
+    }
+
+    .toggle.active,
+    .palette-button.active {
+      background: linear-gradient(135deg, rgba(255, 209, 102, 0.28), rgba(106, 224, 255, 0.2));
+      border-color: rgba(255, 209, 102, 0.5);
+    }
+
+    .palette-button {
+      width: 42px;
+      height: 42px;
+      padding: 0;
+      border-radius: 50%;
+    }
+
+    .stats span {
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 0.92rem;
+    }
+
+    .shape-select,
+    .action,
+    .start-button {
+      width: 100%;
+    }
+
+    .action,
+    .start-button {
+      background: linear-gradient(135deg, rgba(255, 209, 102, 0.28), rgba(106, 224, 255, 0.22));
+      font-weight: 700;
+    }
+
+    .stage {
+      position: relative;
+      overflow: hidden;
+      min-height: 72vh;
+      padding: 12px;
+    }
+
+    #art-canvas {
+      width: 100%;
+      height: 100%;
+      min-height: calc(72vh - 24px);
+      display: block;
+      border-radius: 18px;
+      background:
+        radial-gradient(circle at center, rgba(255, 255, 255, 0.02), transparent 45%),
+        linear-gradient(180deg, rgba(9, 18, 30, 0.94), rgba(4, 10, 20, 0.98));
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .corner-hud {
+      position: absolute;
+      left: 24px;
+      bottom: 24px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(7, 14, 24, 0.74);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(12px);
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 12px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      background: rgba(1, 8, 16, 0.58);
+      backdrop-filter: blur(12px);
+    }
+
+    .overlay[hidden] {
+      display: none;
+    }
+
+    .overlay-card {
+      width: min(460px, calc(100% - 32px));
+      padding: 24px;
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      background: var(--panel-strong);
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+
+    .overlay-card h2,
+    .overlay-card p {
+      margin: 0;
+    }
+
+    .overlay-card p {
+      margin-top: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .hint-list {
+      display: grid;
+      gap: 6px;
+      font-size: 0.92rem;
+    }
+
+    @media (max-width: 900px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .stage {
+        min-height: 58vh;
+      }
+
+      #art-canvas {
+        min-height: calc(58vh - 24px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel" aria-label="节奏涂鸦控制面板">
+      <div>
+        <h1>节奏涂鸦</h1>
+        <p class="subtle">内置鼓点循环会驱动画布自动生长。切换配色、图形规则与对称模式，再用空格、点击或拖拽插入自己的即兴笔触。</p>
+      </div>
+
+      <div class="stats" aria-label="当前状态">
+        <span id="beat-readout">Beat 0</span>
+        <span id="palette-readout">Palette Neon</span>
+        <span id="shape-readout">Rule Mixed</span>
+      </div>
+
+      <div class="control-block">
+        <h2>Symmetry</h2>
+        <div class="button-row" id="symmetry-controls">
+          <button class="toggle active" type="button" data-mode="radial">Radial</button>
+          <button class="toggle" type="button" data-mode="mirror">Mirror</button>
+          <button class="toggle" type="button" data-mode="translate">Translate</button>
+        </div>
+      </div>
+
+      <div class="control-block">
+        <h2>Palette</h2>
+        <div class="palette-row" id="palette-controls" aria-label="配色方案选择"></div>
+      </div>
+
+      <div class="control-block">
+        <h2>Shape Rule</h2>
+        <select class="shape-select" id="shape-rule" aria-label="图形规则选择">
+          <option value="mixed">Mixed</option>
+          <option value="circle">Circle Only</option>
+          <option value="triangle">Triangle Only</option>
+          <option value="line">Line Only</option>
+          <option value="pulse">Pulse Combo</option>
+        </select>
+      </div>
+
+      <div class="control-block">
+        <button class="action" id="save-button" type="button">保存为图片</button>
+        <button class="toggle" id="clear-button" type="button">清空画布</button>
+      </div>
+
+      <div class="hint-list">
+        <span>空格键：在节拍间隙打击，插入自定义元素</span>
+        <span>点击画布：在当前位置落下一次点状/线状笔触</span>
+        <span>拖拽画布：连续插入即兴元素，画面会跟着节奏继续扩张</span>
+      </div>
+    </section>
+
+    <section class="stage">
+      <canvas id="art-canvas" aria-label="节奏涂鸦生成画布"></canvas>
+      <div class="corner-hud">
+        <p id="status-line" class="status-line">尝试自动启动音频；若浏览器阻止，请点击下方按钮。</p>
+      </div>
+      <div class="overlay" id="start-overlay">
+        <div class="overlay-card">
+          <h2>启动节拍循环</h2>
+          <p>页面会立即尝试启动 Web Audio 鼓点。如果浏览器仍拦截音频，点击开始后会继续精准调度节拍并驱动图形生成。</p>
+          <button class="start-button" id="start-button" type="button">开始循环</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("art-canvas");
+    const ctx = canvas.getContext("2d");
+    const startOverlay = document.getElementById("start-overlay");
+    const startButton = document.getElementById("start-button");
+    const statusLine = document.getElementById("status-line");
+    const beatReadout = document.getElementById("beat-readout");
+    const paletteReadout = document.getElementById("palette-readout");
+    const shapeReadout = document.getElementById("shape-readout");
+    const symmetryControls = document.getElementById("symmetry-controls");
+    const paletteControls = document.getElementById("palette-controls");
+    const shapeRuleSelect = document.getElementById("shape-rule");
+    const saveButton = document.getElementById("save-button");
+    const clearButton = document.getElementById("clear-button");
+
+    const paletteOptions = [
+      { name: "Neon", colors: ["#7df9ff", "#ff4d9d", "#ffd166", "#7cff8a", "#b98bff"] },
+      { name: "Pastel", colors: ["#ffd6e0", "#d9f0ff", "#fef0b8", "#d7ffd9", "#d8d5ff"] },
+      { name: "Heat", colors: ["#ff6b35", "#f7c948", "#ff8fab", "#ffb703", "#fb5607"] },
+      { name: "Ocean", colors: ["#6ae0ff", "#37b6ff", "#13c4a3", "#d0f4ff", "#7b9acc"] },
+      { name: "Ink", colors: ["#f7f7ff", "#c77dff", "#80ffdb", "#ffd166", "#ff5d8f"] }
+    ];
+
+    const shapeModes = {
+      mixed: ["circle", "triangle", "line"],
+      circle: ["circle"],
+      triangle: ["triangle"],
+      line: ["line"],
+      pulse: ["circle", "line", "triangle", "circle"]
+    };
+
+    const state = {
+      symmetryMode: "radial",
+      paletteIndex: 0,
+      shapeRule: "mixed",
+      beatIndex: 0,
+      scheduledBeatIndex: 0,
+      lastBeatTime: 0,
+      dragActive: false,
+      pointerX: 0.5,
+      pointerY: 0.5,
+      phase: 0
+    };
+
+    const elements = [];
+    const MAX_ELEMENTS = 720;
+    const bpm = 120;
+    const beatInterval = 60 / bpm;
+    const scheduleAheadTime = 0.18;
+    const schedulerIntervalMs = 25;
+    const radialCopies = 8;
+
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    let audioContext = null;
+    let schedulerHandle = null;
+    let nextBeatTime = 0;
+
+    function resizeCanvas() {
+      const ratio = window.devicePixelRatio || 1;
+      const bounds = canvas.getBoundingClientRect();
+      canvas.width = Math.floor(bounds.width * ratio);
+      canvas.height = Math.floor(bounds.height * ratio);
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    }
+
+    function createPaletteButtons() {
+      paletteOptions.forEach((palette, index) => {
+        const button = document.createElement("button");
+        button.className = index === state.paletteIndex ? "palette-button active" : "palette-button";
+        button.type = "button";
+        button.title = palette.name;
+        button.setAttribute("aria-label", palette.name);
+        button.style.background = `linear-gradient(135deg, ${palette.colors.join(", ")})`;
+        button.addEventListener("click", () => {
+          state.paletteIndex = index;
+          updateControls();
+        });
+        paletteControls.appendChild(button);
+      });
+    }
+
+    function updateControls() {
+      paletteReadout.textContent = `Palette ${paletteOptions[state.paletteIndex].name}`;
+      shapeReadout.textContent = `Rule ${shapeRuleSelect.value[0].toUpperCase()}${shapeRuleSelect.value.slice(1)}`;
+
+      [...symmetryControls.querySelectorAll(".toggle")].forEach((button) => {
+        button.classList.toggle("active", button.dataset.mode === state.symmetryMode);
+      });
+
+      [...paletteControls.children].forEach((button, index) => {
+        button.classList.toggle("active", index === state.paletteIndex);
+      });
+    }
+
+    function getCurrentPalette() {
+      return paletteOptions[state.paletteIndex];
+    }
+
+    function getCanvasSize() {
+      return {
+        width: canvas.clientWidth,
+        height: canvas.clientHeight
+      };
+    }
+
+    function createElement(type, x, y, strength, source, eventTime) {
+      const palette = getCurrentPalette();
+      const { width, height } = getCanvasSize();
+      const sizeBase = Math.min(width, height);
+      const color = palette.colors[(state.beatIndex + Math.floor(x * 7) + Math.floor(y * 11)) % palette.colors.length];
+      const jitter = source === "user" ? 0.22 : 0.12;
+
+      return {
+        type,
+        x,
+        y,
+        size: 18 + strength * sizeBase * (source === "user" ? 0.07 : 0.05),
+        rotation: (state.phase + x * 4 + y * 3) * Math.PI,
+        color,
+        alpha: source === "user" ? 0.92 : 0.72,
+        lineWidth: 1.5 + strength * 5,
+        length: 20 + strength * sizeBase * 0.08,
+        birthTime: eventTime,
+        life: source === "user" ? 12 : 18,
+        driftX: (Math.sin(x * 20 + state.phase) * jitter) * 14,
+        driftY: (Math.cos(y * 20 + state.phase * 0.8) * jitter) * 14
+      };
+    }
+
+    function pushElement(element) {
+      elements.push(element);
+      if (elements.length > MAX_ELEMENTS) {
+        elements.splice(0, elements.length - MAX_ELEMENTS);
+      }
+    }
+
+    function resolveShape(eventType) {
+      const sequence = shapeModes[state.shapeRule];
+      return sequence[(state.scheduledBeatIndex + eventType.length) % sequence.length];
+    }
+
+    function generateBeatElement(eventTime) {
+      const phase = state.scheduledBeatIndex % 16;
+      const offset = 0.14 + (phase % 4) * 0.04;
+      const baseX = 0.5 + Math.cos(state.scheduledBeatIndex * 0.74) * (0.1 + offset);
+      const baseY = 0.5 + Math.sin(state.scheduledBeatIndex * 0.52) * (0.08 + offset * 0.8);
+      const x = Math.min(0.86, Math.max(0.14, baseX));
+      const y = Math.min(0.86, Math.max(0.14, baseY));
+      pushElement(createElement(resolveShape("beat"), x, y, 0.35 + (phase % 4) * 0.08, "beat", eventTime));
+      state.beatIndex = state.scheduledBeatIndex + 1;
+      state.lastBeatTime = eventTime;
+      beatReadout.textContent = `Beat ${state.beatIndex}`;
+      state.scheduledBeatIndex += 1;
+    }
+
+    function scheduleDrum(time, beatStep) {
+      const kickOsc = audioContext.createOscillator();
+      const kickGain = audioContext.createGain();
+      kickOsc.type = "sine";
+      kickOsc.frequency.setValueAtTime(150, time);
+      kickOsc.frequency.exponentialRampToValueAtTime(50, time + 0.12);
+      kickGain.gain.setValueAtTime(0.0001, time);
+      kickGain.gain.exponentialRampToValueAtTime(0.5, time + 0.01);
+      kickGain.gain.exponentialRampToValueAtTime(0.0001, time + 0.16);
+      kickOsc.connect(kickGain).connect(audioContext.destination);
+      kickOsc.start(time);
+      kickOsc.stop(time + 0.18);
+
+      if (beatStep % 2 === 1) {
+        const hatOsc = audioContext.createOscillator();
+        const hatGain = audioContext.createGain();
+        hatOsc.type = "square";
+        hatOsc.frequency.setValueAtTime(900, time);
+        hatGain.gain.setValueAtTime(0.0001, time);
+        hatGain.gain.exponentialRampToValueAtTime(0.08, time + 0.005);
+        hatGain.gain.exponentialRampToValueAtTime(0.0001, time + 0.05);
+        hatOsc.connect(hatGain).connect(audioContext.destination);
+        hatOsc.start(time);
+        hatOsc.stop(time + 0.06);
+      }
+
+      if (beatStep % 4 === 2) {
+        const snareOsc = audioContext.createOscillator();
+        const snareGain = audioContext.createGain();
+        snareOsc.type = "triangle";
+        snareOsc.frequency.setValueAtTime(220, time);
+        snareGain.gain.setValueAtTime(0.0001, time);
+        snareGain.gain.exponentialRampToValueAtTime(0.15, time + 0.01);
+        snareGain.gain.exponentialRampToValueAtTime(0.0001, time + 0.1);
+        snareOsc.connect(snareGain).connect(audioContext.destination);
+        snareOsc.start(time);
+        snareOsc.stop(time + 0.12);
+      }
+    }
+
+    function scheduler() {
+      if (!audioContext) {
+        return;
+      }
+
+      while (nextBeatTime < audioContext.currentTime + scheduleAheadTime) {
+        scheduleDrum(nextBeatTime, state.scheduledBeatIndex);
+        generateBeatElement(nextBeatTime);
+        nextBeatTime += beatInterval;
+      }
+    }
+
+    function startScheduler() {
+      if (schedulerHandle !== null) {
+        window.clearInterval(schedulerHandle);
+      }
+      scheduler();
+      schedulerHandle = window.setInterval(scheduler, schedulerIntervalMs);
+    }
+
+    function ensureAudioContext() {
+      if (!AudioContextCtor) {
+        statusLine.textContent = "当前浏览器不支持 Web Audio API。";
+        return false;
+      }
+
+      if (!audioContext) {
+        audioContext = new AudioContextCtor();
+        nextBeatTime = audioContext.currentTime + 0.08;
+      }
+
+      return true;
+    }
+
+    async function tryStartAudio() {
+      if (!ensureAudioContext()) {
+        return;
+      }
+
+      if (audioContext.state !== "running") {
+        try {
+          await audioContext.resume();
+        } catch (error) {
+          statusLine.textContent = "音频仍被浏览器拦截，请点击“开始循环”。";
+          startOverlay.hidden = false;
+          return;
+        }
+      }
+
+      startOverlay.hidden = true;
+      statusLine.textContent = "鼓点循环运行中。空格、点击或拖拽都可以插入自定义元素。";
+      if (schedulerHandle === null) {
+        startScheduler();
+      }
+    }
+
+    function drawCircle(element) {
+      ctx.beginPath();
+      ctx.arc(0, 0, element.size * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawTriangle(element) {
+      const radius = element.size * 0.62;
+      ctx.beginPath();
+      for (let i = 0; i < 3; i += 1) {
+        const angle = -Math.PI / 2 + i * (Math.PI * 2 / 3);
+        const px = Math.cos(angle) * radius;
+        const py = Math.sin(angle) * radius;
+        if (i === 0) {
+          ctx.moveTo(px, py);
+        } else {
+          ctx.lineTo(px, py);
+        }
+      }
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drawLine(element) {
+      ctx.beginPath();
+      ctx.moveTo(-element.length * 0.5, 0);
+      ctx.lineTo(element.length * 0.5, 0);
+      ctx.stroke();
+    }
+
+    function paintElement(element, nowSeconds) {
+      const { width, height } = getCanvasSize();
+      const age = Math.max(0, nowSeconds - element.birthTime);
+      const remaining = Math.max(0, 1 - age / element.life);
+      const px = element.x * width + element.driftX * (1 - remaining);
+      const py = element.y * height + element.driftY * (1 - remaining);
+
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.rotate(element.rotation + age * 0.35);
+      ctx.globalAlpha = element.alpha * remaining;
+      ctx.fillStyle = element.color;
+      ctx.strokeStyle = element.color;
+      ctx.lineWidth = element.lineWidth;
+
+      if (element.type === "circle") {
+        drawCircle(element);
+      } else if (element.type === "triangle") {
+        drawTriangle(element);
+      } else {
+        drawLine(element);
+      }
+      ctx.restore();
+    }
+
+    function applySymmetry(element, nowSeconds) {
+      if (state.symmetryMode === "radial") {
+        const { width, height } = getCanvasSize();
+        for (let i = 0; i < radialCopies; i += 1) {
+          ctx.save();
+          ctx.translate(width / 2, height / 2);
+          ctx.rotate((Math.PI * 2 * i) / radialCopies);
+          ctx.translate(-width / 2, -height / 2);
+          paintElement(element, nowSeconds);
+          ctx.restore();
+        }
+        return;
+      }
+
+      paintElement(element, nowSeconds);
+
+      if (state.symmetryMode === "mirror") {
+        const { width } = getCanvasSize();
+        ctx.save();
+        ctx.translate(width, 0);
+        ctx.scale(-1, 1);
+        paintElement(element, nowSeconds);
+        ctx.restore();
+      }
+
+      if (state.symmetryMode === "translate") {
+        const { width, height } = getCanvasSize();
+        const offsets = [
+          [width * 0.12, height * 0.08],
+          [-width * 0.14, height * 0.14],
+          [width * 0.18, -height * 0.12]
+        ];
+        offsets.forEach(([dx, dy]) => {
+          ctx.save();
+          ctx.translate(dx, dy);
+          paintElement(element, nowSeconds);
+          ctx.restore();
+        });
+      }
+    }
+
+    function drawBackground(nowMs) {
+      const { width, height } = getCanvasSize();
+      const gradient = ctx.createRadialGradient(
+        width * 0.5,
+        height * 0.48,
+        40,
+        width * 0.5,
+        height * 0.48,
+        Math.max(width, height) * 0.6
+      );
+      gradient.addColorStop(0, "rgba(28, 52, 88, 0.22)");
+      gradient.addColorStop(1, "rgba(3, 8, 16, 0.98)");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+
+      const gridAlpha = 0.07 + Math.sin(nowMs * 0.0006) * 0.015;
+      ctx.strokeStyle = `rgba(255,255,255,${gridAlpha})`;
+      ctx.lineWidth = 1;
+
+      for (let x = 0; x <= width; x += 48) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+
+      for (let y = 0; y <= height; y += 48) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+    }
+
+    function render(nowMs) {
+      state.phase = nowMs * 0.00025;
+      drawBackground(nowMs);
+
+      const nowSeconds = audioContext ? audioContext.currentTime : performance.now() / 1000;
+      for (let i = 0; i < elements.length; i += 1) {
+        applySymmetry(elements[i], nowSeconds);
+      }
+
+      window.requestAnimationFrame(render);
+    }
+
+    function queueUserHit(x, y) {
+      const nowSeconds = audioContext ? audioContext.currentTime : performance.now() / 1000;
+      const beatGap = Math.max(0, nowSeconds - state.lastBeatTime);
+      const normalizedGap = Math.min(1, beatGap / beatInterval);
+      const strength = 0.4 + normalizedGap * 0.7;
+      const shape = resolveShape("user");
+      pushElement(createElement(shape, x, y, strength, "user", nowSeconds));
+    }
+
+    function getNormalizedPointerPosition(event) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = event.clientX ?? (event.touches && event.touches[0] ? event.touches[0].clientX : rect.left + rect.width / 2);
+      const clientY = event.clientY ?? (event.touches && event.touches[0] ? event.touches[0].clientY : rect.top + rect.height / 2);
+      return {
+        x: Math.min(0.96, Math.max(0.04, (clientX - rect.left) / rect.width)),
+        y: Math.min(0.96, Math.max(0.04, (clientY - rect.top) / rect.height))
+      };
+    }
+
+    function handleCanvasPress(event) {
+      event.preventDefault();
+      const point = getNormalizedPointerPosition(event);
+      state.pointerX = point.x;
+      state.pointerY = point.y;
+      queueUserHit(point.x, point.y);
+      tryStartAudio();
+    }
+
+    function handlePointerDown(event) {
+      state.dragActive = true;
+      handleCanvasPress(event);
+    }
+
+    function handlePointerMove(event) {
+      if (!state.dragActive) {
+        return;
+      }
+      const point = getNormalizedPointerPosition(event);
+      state.pointerX = point.x;
+      state.pointerY = point.y;
+      queueUserHit(point.x, point.y);
+    }
+
+    function handlePointerUp() {
+      state.dragActive = false;
+    }
+
+    function handleKeyDown(event) {
+      if (event.code !== "Space") {
+        return;
+      }
+      event.preventDefault();
+      queueUserHit(state.pointerX, state.pointerY);
+      tryStartAudio();
+    }
+
+    function clearCanvasState() {
+      elements.length = 0;
+      state.beatIndex = 0;
+      state.scheduledBeatIndex = 0;
+      state.lastBeatTime = audioContext ? audioContext.currentTime : 0;
+      beatReadout.textContent = "Beat 0";
+      if (audioContext) {
+        nextBeatTime = audioContext.currentTime + 0.08;
+      }
+    }
+
+    function saveImage() {
+      const dataUrl = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = "rhythm-doodle.png";
+      link.click();
+    }
+
+    symmetryControls.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-mode]");
+      if (!button) {
+        return;
+      }
+      state.symmetryMode = button.dataset.mode;
+      updateControls();
+    });
+
+    shapeRuleSelect.addEventListener("change", () => {
+      state.shapeRule = shapeRuleSelect.value;
+      updateControls();
+    });
+
+    saveButton.addEventListener("click", saveImage);
+    clearButton.addEventListener("click", clearCanvasState);
+    startButton.addEventListener("click", tryStartAudio);
+    canvas.addEventListener("pointerdown", handlePointerDown);
+    canvas.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("resize", resizeCanvas);
+    window.addEventListener("load", () => {
+      resizeCanvas();
+      render(performance.now());
+      createPaletteButtons();
+      updateControls();
+      tryStartAudio();
+    });
+  </script>
+</body>
+</html>
