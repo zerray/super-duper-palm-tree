@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>六角领地争夺战</title>
+  <style>
+    :root {
+      --bg: #f2ead7;
+      --panel: rgba(255, 250, 241, 0.92);
+      --line: rgba(57, 44, 26, 0.16);
+      --ink: #2f2418;
+      --muted: #6c5c4c;
+      --p1: #2d78c4;
+      --p1-soft: #dbeaff;
+      --p2: #c45539;
+      --p2-soft: #ffdcd1;
+      --neutral: #efe0bf;
+      --resource: #ddb64e;
+      --accent: #2b5f39;
+      --accent-dark: #20482b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "PingFang SC", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.75), transparent 30%),
+        linear-gradient(180deg, #f7f2e8 0%, var(--bg) 100%);
+    }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(1180px, calc(100vw - 24px));
+      margin: 0 auto;
+      padding: 18px 0 28px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(290px, 360px);
+      gap: 18px;
+    }
+
+    .surface,
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: 0 18px 40px rgba(57, 44, 26, 0.1);
+    }
+
+    .surface {
+      padding: 20px;
+    }
+
+    .panel {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 6vw, 4.4rem);
+      line-height: 0.92;
+      letter-spacing: -0.05em;
+      max-width: 8ch;
+    }
+
+    .lede,
+    .muted,
+    .status-log {
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .topbar {
+      display: grid;
+      gap: 14px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .chip {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+      font-size: 0.94rem;
+    }
+
+    .chip strong {
+      color: var(--ink);
+    }
+
+    .chip.p1 strong {
+      color: var(--p1);
+    }
+
+    .chip.p2 strong {
+      color: var(--p2);
+    }
+
+    .share {
+      display: grid;
+      gap: 8px;
+    }
+
+    .share-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .share-meter {
+      height: 12px;
+      overflow: hidden;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.74);
+    }
+
+    .share-fill {
+      height: 100%;
+      width: 50%;
+      transition: width 220ms ease;
+      background: linear-gradient(90deg, var(--p1), #5c9ae0);
+    }
+
+    .board-wrap {
+      position: relative;
+      margin-top: 18px;
+      border-radius: 20px;
+      border: 1px solid rgba(57, 44, 26, 0.12);
+      padding: 14px;
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.84), rgba(244, 234, 214, 0.95)),
+        repeating-linear-gradient(135deg, rgba(57, 44, 26, 0.03) 0 18px, transparent 18px 36px);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 16px;
+      touch-action: manipulation;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 14px;
+      display: none;
+      place-items: center;
+      padding: 16px;
+      border-radius: 16px;
+      background: rgba(34, 24, 14, 0.54);
+    }
+
+    .overlay.show {
+      display: grid;
+    }
+
+    .overlay-card,
+    .card {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(57, 44, 26, 0.1);
+      background: rgba(255, 255, 255, 0.82);
+    }
+
+    .overlay-card {
+      width: min(340px, 100%);
+      text-align: center;
+      padding: 22px;
+    }
+
+    .action-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .action-button,
+    .control-button {
+      min-height: 46px;
+      border: 0;
+      border-radius: 14px;
+      background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+      color: #f8f4ec;
+      box-shadow: 0 10px 16px rgba(32, 72, 43, 0.18);
+    }
+
+    .action-button.secondary {
+      background: linear-gradient(180deg, #846b43, #665132);
+      box-shadow: 0 10px 16px rgba(102, 81, 50, 0.18);
+    }
+
+    .action-button.active {
+      outline: 3px solid rgba(221, 182, 78, 0.58);
+      outline-offset: 2px;
+    }
+
+    .action-button:disabled,
+    .control-button:disabled {
+      opacity: 0.55;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    .legend {
+      display: grid;
+      gap: 8px;
+      font-size: 0.93rem;
+      color: var(--muted);
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(57, 44, 26, 0.18);
+    }
+
+    .swatch.p1 { background: var(--p1-soft); border-color: var(--p1); }
+    .swatch.p2 { background: var(--p2-soft); border-color: var(--p2); }
+    .swatch.resource { background: #f4dc88; border-color: #c79d2f; }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="surface">
+      <div class="topbar">
+        <div>
+          <h1>六角领地争夺战</h1>
+          <p class="lede">双人热座回合策略。每回合选择扩张或强化，争夺资源点和六角边界，率先占领超过 60% 地图即可获胜。</p>
+        </div>
+        <div class="chips">
+          <div class="chip"><strong id="turn-label">当前：玩家 1</strong></div>
+          <div class="chip"><strong id="ap-label">行动点：1 / 1</strong></div>
+          <div class="chip p1">蓝方 <strong id="p1-count">1 格</strong></div>
+          <div class="chip p2">红方 <strong id="p2-count">1 格</strong></div>
+          <div class="chip"><strong id="resource-label">资源点：0 / 0</strong></div>
+        </div>
+        <div class="share">
+          <div class="share-row">
+            <div class="muted" id="p1-share">玩家 1 占比 0%</div>
+            <div class="muted" id="p2-share" style="text-align:right">玩家 2 占比 0%</div>
+          </div>
+          <div class="share-meter" aria-label="territory share">
+            <div class="share-fill" id="share-fill"></div>
+          </div>
+        </div>
+      </div>
+      <div class="board-wrap">
+        <canvas id="game-board" width="920" height="760" aria-label="六角格战场"></canvas>
+        <div class="overlay" id="victory-overlay">
+          <div class="overlay-card">
+            <h2 id="victory-title">玩家 1 获胜</h2>
+            <p class="muted" id="victory-copy">占领过半领地并稳住边界。</p>
+            <button class="control-button" id="restart-button" type="button">再来一局</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <section class="card">
+        <h2>行动</h2>
+        <div class="action-grid">
+          <button class="action-button active" id="expand-button" type="button">扩张</button>
+          <button class="action-button secondary" id="fortify-button" type="button">强化</button>
+        </div>
+        <p class="status-log" id="status-log">点击与己方领地相邻的空格进行扩张，或点击己方格子强化防御力。每个资源点在回合开始提供 +1 行动点。</p>
+      </section>
+
+      <section class="card">
+        <h2>规则</h2>
+        <p class="muted">扩张会占领相邻空格，初始力量为 1。强化会让已有己方格子力量 +1，最高 5。</p>
+        <p class="muted">相邻敌对格子会自动比较力量，强者吞并弱者，并播放吞并动画。</p>
+        <p class="muted">实时显示当前领地占比。任意一方占领超过 60% 地图时立即结算。</p>
+      </section>
+
+      <section class="card">
+        <h2>图例</h2>
+        <div class="legend">
+          <span><i class="swatch p1"></i>玩家 1 领地</span>
+          <span><i class="swatch p2"></i>玩家 2 领地</span>
+          <span><i class="swatch resource"></i>资源点，每回合 +1 行动点</span>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    const GRID_ROWS = 7;
+    const GRID_COLS = 7;
+    const HEX_SIZE = 44;
+    const RESOURCE_RATIO = 0.16;
+    const BASE_ACTION_POINTS = 1;
+    const MAX_STRENGTH = 5;
+    const WIN_THRESHOLD = 0.6;
+    const PLAYER_STYLES = {
+      1: { fill: "#dbeaff", stroke: "#2d78c4", core: "#2d78c4", glow: "rgba(45, 120, 196, 0.18)" },
+      2: { fill: "#ffdcd1", stroke: "#c45539", core: "#c45539", glow: "rgba(196, 85, 57, 0.18)" }
+    };
+
+    const canvas = document.querySelector("#game-board");
+    const ctx = canvas.getContext("2d");
+    const turnLabel = document.querySelector("#turn-label");
+    const apLabel = document.querySelector("#ap-label");
+    const p1CountLabel = document.querySelector("#p1-count");
+    const p2CountLabel = document.querySelector("#p2-count");
+    const resourceLabel = document.querySelector("#resource-label");
+    const p1ShareLabel = document.querySelector("#p1-share");
+    const p2ShareLabel = document.querySelector("#p2-share");
+    const shareFill = document.querySelector("#share-fill");
+    const statusLog = document.querySelector("#status-log");
+    const expandButton = document.querySelector("#expand-button");
+    const fortifyButton = document.querySelector("#fortify-button");
+    const victoryOverlay = document.querySelector("#victory-overlay");
+    const victoryTitle = document.querySelector("#victory-title");
+    const victoryCopy = document.querySelector("#victory-copy");
+    const restartButton = document.querySelector("#restart-button");
+
+    let board = [];
+    let currentPlayer = 1;
+    let selectedAction = "expand";
+    let actionPoints = BASE_ACTION_POINTS;
+    let maxActionPoints = BASE_ACTION_POINTS;
+    let hoverCell = null;
+    let gameOver = false;
+    let animationFrame = 0;
+    let conquestAnimations = [];
+
+    function createHexPath(centerX, centerY, size) {
+      const path = new Path2D();
+      for (let side = 0; side < 6; side += 1) {
+        const angle = (Math.PI / 180) * (60 * side - 30);
+        const x = centerX + size * Math.cos(angle);
+        const y = centerY + size * Math.sin(angle);
+        if (side === 0) {
+          path.moveTo(x, y);
+        } else {
+          path.lineTo(x, y);
+        }
+      }
+      path.closePath();
+      return path;
+    }
+
+    function getCellCenter(row, col) {
+      const hexWidth = Math.sqrt(3) * HEX_SIZE;
+      const x = 92 + col * hexWidth + (row % 2 ? hexWidth / 2 : 0);
+      const y = 98 + row * HEX_SIZE * 1.5;
+      return { x, y };
+    }
+
+    function getNeighbors(row, col) {
+      const evenOffsets = [
+        [-1, -1], [-1, 0], [0, -1],
+        [0, 1], [1, -1], [1, 0]
+      ];
+      const oddOffsets = [
+        [-1, 0], [-1, 1], [0, -1],
+        [0, 1], [1, 0], [1, 1]
+      ];
+      const offsets = row % 2 === 0 ? evenOffsets : oddOffsets;
+      return offsets
+        .map(([dr, dc]) => ({ row: row + dr, col: col + dc }))
+        .filter(({ row: nextRow, col: nextCol }) => nextRow >= 0 && nextRow < GRID_ROWS && nextCol >= 0 && nextCol < GRID_COLS);
+    }
+
+    function hasAdjacentOwner(row, col, owner) {
+      return getNeighbors(row, col).some(({ row: nextRow, col: nextCol }) => board[nextRow][nextCol].owner === owner);
+    }
+
+    function getResourceIncome(player) {
+      let income = 0;
+      for (const row of board) {
+        for (const cell of row) {
+          if (cell.owner === player && cell.isResource) {
+            income += 1;
+          }
+        }
+      }
+      return income;
+    }
+
+    function calculateActionPoints(player) {
+      return BASE_ACTION_POINTS + getResourceIncome(player);
+    }
+
+    function randomizeResources(excludedKeys) {
+      const candidates = [];
+      for (let row = 0; row < GRID_ROWS; row += 1) {
+        for (let col = 0; col < GRID_COLS; col += 1) {
+          const key = `${row},${col}`;
+          if (!excludedKeys.has(key)) {
+            candidates.push({ row, col, sort: Math.random() });
+          }
+        }
+      }
+      candidates.sort((a, b) => a.sort - b.sort);
+      const resourceCount = Math.max(6, Math.round(GRID_ROWS * GRID_COLS * RESOURCE_RATIO));
+      for (const cell of candidates.slice(0, resourceCount)) {
+        board[cell.row][cell.col].isResource = true;
+      }
+    }
+
+    function createBoard() {
+      board = [];
+      for (let row = 0; row < GRID_ROWS; row += 1) {
+        const cells = [];
+        for (let col = 0; col < GRID_COLS; col += 1) {
+          const center = getCellCenter(row, col);
+          cells.push({
+            row,
+            col,
+            owner: 0,
+            strength: 0,
+            isResource: false,
+            center,
+            path: createHexPath(center.x, center.y, HEX_SIZE)
+          });
+        }
+        board.push(cells);
+      }
+
+      board[0][0].owner = 1;
+      board[0][0].strength = 2;
+      board[GRID_ROWS - 1][GRID_COLS - 1].owner = 2;
+      board[GRID_ROWS - 1][GRID_COLS - 1].strength = 2;
+      randomizeResources(new Set(["0,0", `${GRID_ROWS - 1},${GRID_COLS - 1}`]));
+    }
+
+    function startGame() {
+      createBoard();
+      currentPlayer = 1;
+      selectedAction = "expand";
+      actionPoints = calculateActionPoints(currentPlayer);
+      maxActionPoints = actionPoints;
+      hoverCell = null;
+      gameOver = false;
+      conquestAnimations = [];
+      victoryOverlay.classList.remove("show");
+      updateActionButtons();
+      updateHud();
+      drawBoard();
+      statusLog.textContent = "玩家 1 先手。先抢资源点扩大行动点，再用强化守住边线。";
+    }
+
+    function updateActionButtons() {
+      expandButton.classList.toggle("active", selectedAction === "expand");
+      fortifyButton.classList.toggle("active", selectedAction === "fortify");
+      expandButton.classList.toggle("secondary", selectedAction !== "expand");
+      fortifyButton.classList.toggle("secondary", selectedAction !== "fortify");
+    }
+
+    function getTerritoryStats() {
+      let p1 = 0;
+      let p2 = 0;
+      let resources = 0;
+      for (const row of board) {
+        for (const cell of row) {
+          if (cell.owner === 1) {
+            p1 += 1;
+          } else if (cell.owner === 2) {
+            p2 += 1;
+          }
+          if (cell.isResource) {
+            resources += 1;
+          }
+        }
+      }
+      return { p1, p2, resources, total: GRID_ROWS * GRID_COLS };
+    }
+
+    function updateHud() {
+      const stats = getTerritoryStats();
+      const p1Percent = Math.round((stats.p1 / stats.total) * 100);
+      const p2Percent = Math.round((stats.p2 / stats.total) * 100);
+      const p1Income = getResourceIncome(1);
+      const p2Income = getResourceIncome(2);
+
+      turnLabel.textContent = `当前：玩家 ${currentPlayer}`;
+      apLabel.textContent = `行动点：${actionPoints} / ${maxActionPoints}`;
+      p1CountLabel.textContent = `${stats.p1} 格 (+${p1Income} AP)`;
+      p2CountLabel.textContent = `${stats.p2} 格 (+${p2Income} AP)`;
+      resourceLabel.textContent = `资源点：${stats.resources} / ${stats.total}`;
+      p1ShareLabel.textContent = `玩家 1 占比 ${p1Percent}%`;
+      p2ShareLabel.textContent = `玩家 2 占比 ${p2Percent}%`;
+      shareFill.style.width = `${p1Percent}%`;
+      shareFill.style.background = p1Percent >= p2Percent
+        ? "linear-gradient(90deg, #2d78c4, #5c9ae0)"
+        : "linear-gradient(90deg, #c45539, #e28a73)";
+    }
+
+    function getCellAtPoint(x, y) {
+      for (const row of board) {
+        for (const cell of row) {
+          if (ctx.isPointInPath(cell.path, x, y)) {
+            return cell;
+          }
+        }
+      }
+      return null;
+    }
+
+    function isLegalMove(cell) {
+      if (!cell || gameOver || actionPoints <= 0) {
+        return false;
+      }
+      if (selectedAction === "expand") {
+        return cell.owner === 0 && hasAdjacentOwner(cell.row, cell.col, currentPlayer);
+      }
+      return cell.owner === currentPlayer && cell.strength < MAX_STRENGTH;
+    }
+
+    function addConquestAnimation(cell, attacker) {
+      conquestAnimations.push({
+        row: cell.row,
+        col: cell.col,
+        owner: attacker.owner,
+        strength: attacker.strength,
+        startedAt: performance.now()
+      });
+    }
+
+    function resolveCombat() {
+      let changed = false;
+      const visited = new Set();
+      const conversions = [];
+      for (let row = 0; row < GRID_ROWS; row += 1) {
+        for (let col = 0; col < GRID_COLS; col += 1) {
+          const attacker = board[row][col];
+          if (!attacker.owner) {
+            continue;
+          }
+          for (const { row: nextRow, col: nextCol } of getNeighbors(row, col)) {
+            const defender = board[nextRow][nextCol];
+            if (!defender.owner || defender.owner === attacker.owner) {
+              continue;
+            }
+            const pairKey = [`${row},${col}`, `${nextRow},${nextCol}`].sort().join("|");
+            if (visited.has(pairKey)) {
+              continue;
+            }
+            visited.add(pairKey);
+            if (attacker.strength === defender.strength) {
+              continue;
+            }
+            const winner = attacker.strength > defender.strength ? attacker : defender;
+            const loser = winner === attacker ? defender : attacker;
+            conversions.push({
+              winner,
+              loser,
+              nextStrength: Math.max(1, winner.strength - loser.strength + 1)
+            });
+          }
+        }
+      }
+
+      conversions.sort((left, right) => (right.winner.strength - right.loser.strength) - (left.winner.strength - left.loser.strength));
+
+      for (const conversion of conversions) {
+        const loserCell = board[conversion.loser.row][conversion.loser.col];
+        const winnerCell = board[conversion.winner.row][conversion.winner.col];
+        if (loserCell.owner === 0 || winnerCell.owner === 0 || loserCell.owner === winnerCell.owner) {
+          continue;
+        }
+        if (winnerCell.strength <= loserCell.strength) {
+          continue;
+        }
+        loserCell.owner = winnerCell.owner;
+        loserCell.strength = Math.min(MAX_STRENGTH, conversion.nextStrength);
+        addConquestAnimation(loserCell, winnerCell);
+        changed = true;
+      }
+
+      return changed;
+    }
+
+    function resolveCombatChain() {
+      let safety = 0;
+      let happened = false;
+      while (safety < 8) {
+        const changed = resolveCombat();
+        if (!changed) {
+          break;
+        }
+        happened = true;
+        safety += 1;
+      }
+      return happened;
+    }
+
+    function finishTurn() {
+      if (checkVictory()) {
+        return;
+      }
+      currentPlayer = currentPlayer === 1 ? 2 : 1;
+      maxActionPoints = calculateActionPoints(currentPlayer);
+      actionPoints = maxActionPoints;
+      hoverCell = null;
+      updateHud();
+      drawBoard();
+      statusLog.textContent = `轮到玩家 ${currentPlayer}。当前模式：${selectedAction === "expand" ? "扩张" : "强化"}。`;
+    }
+
+    function checkVictory() {
+      const stats = getTerritoryStats();
+      const p1Share = stats.p1 / stats.total;
+      const p2Share = stats.p2 / stats.total;
+      if (p1Share > WIN_THRESHOLD || p2Share > WIN_THRESHOLD) {
+        gameOver = true;
+        const winner = p1Share > WIN_THRESHOLD ? 1 : 2;
+        const share = Math.round((winner === 1 ? p1Share : p2Share) * 100);
+        victoryTitle.textContent = `玩家 ${winner} 获胜`;
+        victoryCopy.textContent = `以 ${share}% 的领地占比完成压制。点击“再来一局”重新生成资源点。`;
+        victoryOverlay.classList.add("show");
+        statusLog.textContent = `玩家 ${winner} 已占领超过 60% 地图，比赛结束。`;
+        updateHud();
+        drawBoard();
+        return true;
+      }
+      return false;
+    }
+
+    function applyMove(cell) {
+      if (!isLegalMove(cell)) {
+        if (selectedAction === "expand") {
+          statusLog.textContent = "扩张只能点击与己方相邻的空白六角格。";
+        } else {
+          statusLog.textContent = "强化只能点击己方且未达到上限的格子。";
+        }
+        return;
+      }
+
+      if (selectedAction === "expand") {
+        cell.owner = currentPlayer;
+        cell.strength = 1;
+        statusLog.textContent = `玩家 ${currentPlayer} 完成扩张。`;
+      } else {
+        cell.strength = Math.min(MAX_STRENGTH, cell.strength + 1);
+        statusLog.textContent = `玩家 ${currentPlayer} 将该格强化到 ${cell.strength}。`;
+      }
+
+      const combatHappened = resolveCombatChain();
+      if (combatHappened) {
+        statusLog.textContent += " 边境发生力量比较，弱方被吞并。";
+      }
+
+      actionPoints -= 1;
+      updateHud();
+      drawBoard();
+
+      if (checkVictory()) {
+        return;
+      }
+
+      if (actionPoints <= 0) {
+        finishTurn();
+      }
+    }
+
+    function drawHexCell(cell) {
+      const style = cell.owner ? PLAYER_STYLES[cell.owner] : null;
+      ctx.fillStyle = style ? style.fill : "#efe0bf";
+      ctx.strokeStyle = style ? style.stroke : "#baa682";
+      ctx.lineWidth = cell === hoverCell && isLegalMove(cell) ? 4 : 2;
+      if (cell === hoverCell && isLegalMove(cell)) {
+        ctx.shadowColor = style ? style.glow : "rgba(221, 182, 78, 0.22)";
+        ctx.shadowBlur = 20;
+      } else {
+        ctx.shadowBlur = 0;
+      }
+      ctx.fill(cell.path);
+      ctx.stroke(cell.path);
+      ctx.shadowBlur = 0;
+
+      if (cell.isResource) {
+        ctx.beginPath();
+        ctx.fillStyle = "#f0cf63";
+        ctx.strokeStyle = "#b78624";
+        ctx.lineWidth = 2;
+        ctx.arc(cell.center.x, cell.center.y - 6, 9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cell.center.x - 6, cell.center.y + 4);
+        ctx.lineTo(cell.center.x, cell.center.y - 2);
+        ctx.lineTo(cell.center.x + 6, cell.center.y + 4);
+        ctx.stroke();
+      }
+
+      if (cell.owner) {
+        ctx.beginPath();
+        ctx.fillStyle = style.core;
+        ctx.arc(cell.center.x, cell.center.y + 10, 14, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#fff7ef";
+        ctx.font = "bold 16px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(cell.strength), cell.center.x, cell.center.y + 10);
+      }
+    }
+
+    function drawConquestAnimations(now) {
+      conquestAnimations = conquestAnimations.filter((animation) => now - animation.startedAt < 340);
+      for (const animation of conquestAnimations) {
+        const progress = (now - animation.startedAt) / 340;
+        const cell = board[animation.row][animation.col];
+        const radius = HEX_SIZE * (0.36 + progress * 0.84);
+        ctx.beginPath();
+        ctx.globalAlpha = 0.36 * (1 - progress);
+        ctx.fillStyle = PLAYER_STYLES[animation.owner].core;
+        ctx.arc(cell.center.x, cell.center.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    function drawBoard(now = performance.now()) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const row of board) {
+        for (const cell of row) {
+          drawHexCell(cell);
+        }
+      }
+      drawConquestAnimations(now);
+    }
+
+    function tick(now) {
+      drawBoard(now);
+      animationFrame = requestAnimationFrame(tick);
+    }
+
+    function handlePointer(event) {
+      const rect = canvas.getBoundingClientRect();
+      const x = (event.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (event.clientY - rect.top) * (canvas.height / rect.height);
+      return { x, y };
+    }
+
+    canvas.addEventListener("mousemove", (event) => {
+      const { x, y } = handlePointer(event);
+      hoverCell = getCellAtPoint(x, y);
+      drawBoard();
+    });
+
+    canvas.addEventListener("mouseleave", () => {
+      hoverCell = null;
+      drawBoard();
+    });
+
+    canvas.addEventListener("click", (event) => {
+      const { x, y } = handlePointer(event);
+      const cell = getCellAtPoint(x, y);
+      applyMove(cell);
+    });
+
+    expandButton.addEventListener("click", () => {
+      selectedAction = "expand";
+      updateActionButtons();
+      statusLog.textContent = "已切换到扩张。点击与己方领地相邻的空白格。";
+    });
+
+    fortifyButton.addEventListener("click", () => {
+      selectedAction = "fortify";
+      updateActionButtons();
+      statusLog.textContent = "已切换到强化。点击己方格子提高防御力。";
+    });
+
+    restartButton.addEventListener("click", startGame);
+
+    startGame();
+    cancelAnimationFrame(animationFrame);
+    animationFrame = requestAnimationFrame(tick);
+  </script>
+</body>
+</html>
