@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>领地争夺棋</title>
+  <style>
+    :root {
+      --bg: #f4efe6;
+      --panel: rgba(255, 250, 243, 0.92);
+      --panel-line: rgba(87, 67, 44, 0.14);
+      --text: #2f241a;
+      --muted: #6f6257;
+      --empty: #efe3c7;
+      --empty-stroke: #b89d75;
+      --p1: #d96c3f;
+      --p1-soft: #f8ccbb;
+      --p2: #2d7dd2;
+      --p2-soft: #bedbfa;
+      --contested: #d8ceb7;
+      --accent: #5a8f45;
+      --accent-dark: #456e35;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.8), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(45, 125, 210, 0.12), transparent 28%),
+        linear-gradient(180deg, #f7f2e7 0%, var(--bg) 100%);
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1240px, calc(100vw - 28px));
+      margin: 0 auto;
+      padding: 24px 0 36px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(280px, 360px);
+      gap: 18px;
+    }
+
+    .panel,
+    .sidebar {
+      border: 1px solid var(--panel-line);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: 0 18px 42px rgba(71, 49, 26, 0.12);
+      backdrop-filter: blur(10px);
+    }
+
+    .panel {
+      padding: 22px;
+    }
+
+    .sidebar {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      line-height: 0.94;
+      letter-spacing: -0.05em;
+    }
+
+    .lede {
+      margin-top: 10px;
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 62ch;
+    }
+
+    .stats {
+      margin-top: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .stat {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--panel-line);
+      background: rgba(255, 255, 255, 0.68);
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    .stat strong {
+      color: var(--text);
+    }
+
+    .board-shell {
+      margin-top: 18px;
+      padding: 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(87, 67, 44, 0.12);
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.8), transparent 36%),
+        linear-gradient(180deg, rgba(247, 239, 224, 0.96), rgba(241, 232, 214, 0.98));
+      overflow: auto;
+    }
+
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      min-height: 520px;
+    }
+
+    .cell-shape {
+      fill: var(--empty);
+      stroke: var(--empty-stroke);
+      stroke-width: 1.8;
+      transition: fill 220ms ease, stroke 220ms ease, transform 220ms ease, filter 220ms ease;
+      transform-box: fill-box;
+      transform-origin: center;
+      cursor: pointer;
+    }
+
+    .cell-group.blocked .cell-shape {
+      cursor: default;
+    }
+
+    .cell-group.p1 .cell-shape {
+      fill: var(--p1-soft);
+      stroke: var(--p1);
+    }
+
+    .cell-group.p2 .cell-shape {
+      fill: var(--p2-soft);
+      stroke: var(--p2);
+    }
+
+    .cell-group.contested .cell-shape {
+      fill: var(--contested);
+    }
+
+    .cell-group.fresh .cell-shape {
+      transform: scale(1.08);
+      filter: brightness(1.03);
+    }
+
+    .cell-group.preview-p1:not(.blocked):hover .cell-shape {
+      fill: #f5d7cb;
+    }
+
+    .cell-group.preview-p2:not(.blocked):hover .cell-shape {
+      fill: #d8e8fb;
+    }
+
+    .owner-label,
+    .influence-label,
+    .coord-label {
+      pointer-events: none;
+      text-anchor: middle;
+      user-select: none;
+    }
+
+    .owner-label {
+      font-size: 10px;
+      font-weight: 700;
+      fill: rgba(47, 36, 26, 0.74);
+    }
+
+    .influence-label {
+      font-size: 11px;
+      font-weight: 700;
+      fill: rgba(47, 36, 26, 0.84);
+    }
+
+    .coord-label {
+      font-size: 9px;
+      fill: rgba(47, 36, 26, 0.42);
+    }
+
+    .stone {
+      pointer-events: none;
+      transition: transform 220ms ease;
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+
+    .stone.p1 {
+      fill: var(--p1);
+    }
+
+    .stone.p2 {
+      fill: var(--p2);
+    }
+
+    .card {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(87, 67, 44, 0.1);
+      background: rgba(255, 255, 255, 0.7);
+      display: grid;
+      gap: 10px;
+    }
+
+    .status {
+      min-height: 4.5em;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .score-box {
+      padding: 12px;
+      border-radius: 16px;
+      color: #fffaf4;
+    }
+
+    .score-box strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 1.5rem;
+    }
+
+    .score-box.p1 {
+      background: linear-gradient(180deg, #e78158, var(--p1));
+    }
+
+    .score-box.p2 {
+      background: linear-gradient(180deg, #5c9be0, var(--p2));
+    }
+
+    .control-row {
+      display: grid;
+      gap: 10px;
+    }
+
+    .control-row label {
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .control-row select,
+    .control-row button {
+      min-height: 46px;
+      border-radius: 14px;
+      border: 1px solid rgba(87, 67, 44, 0.16);
+      padding: 0 14px;
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--text);
+    }
+
+    .control-row button {
+      border: 0;
+      background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+      color: #f6f3ea;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 12px 20px rgba(69, 110, 53, 0.18);
+    }
+
+    .legend {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.94rem;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      svg {
+        min-height: 440px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel">
+      <h1>领地争夺棋</h1>
+      <p class="lede">
+        双人热座六边形策略小游戏。点击空格落子后，棋子会向相邻 6 格施加 influence；空格任一方 influence 总值达到 3 时，会自动变成该方领地。双方各下 10 手后立刻结算。
+      </p>
+      <div class="stats">
+        <div class="stat">当前回合: <strong id="turn-player">红方</strong></div>
+        <div class="stat">剩余手数: <strong id="turn-remaining">10 / 10</strong></div>
+        <div class="stat">地图尺寸: <strong id="board-size-label">中 9×9</strong></div>
+      </div>
+      <div class="board-shell">
+        <svg id="hex-board" aria-label="领地争夺棋盘"></svg>
+      </div>
+    </section>
+
+    <aside class="sidebar">
+      <section class="card">
+        <h2>比分</h2>
+        <div class="score-grid">
+          <div class="score-box p1">红方领地<strong id="score-p1">0</strong></div>
+          <div class="score-box p2">蓝方领地<strong id="score-p2">0</strong></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>状态</h2>
+        <p class="status" id="status-text"></p>
+      </section>
+
+      <section class="card">
+        <h2>控制</h2>
+        <div class="control-row">
+          <label for="size-select">地图大小</label>
+          <select id="size-select">
+            <option value="small">小 7×7</option>
+            <option value="medium" selected>中 9×9</option>
+            <option value="large">大 11×11</option>
+          </select>
+        </div>
+        <div class="control-row">
+          <button type="button" id="restart-button">重新开始</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>规则提示</h2>
+        <div class="legend">
+          <div>每个落子会立刻占领当前六边形，并在相邻 6 格各增加 1 点 influence。</div>
+          <div>空格若某一方 influence ≥ 3，就自动转化为该方领地，并播放平滑变色动画。</div>
+          <div>格内显示为 `红/蓝` influence 数值；中央圆点代表真正下过的棋子。</div>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    const BOARD_SIZES = {
+      small: { rows: 7, cols: 7, label: "小 7×7" },
+      medium: { rows: 9, cols: 9, label: "中 9×9" },
+      large: { rows: 11, cols: 11, label: "大 11×11" }
+    };
+    const MAX_PLACEMENTS = 10;
+    const CAPTURE_THRESHOLD = 3;
+    const HEX_SIZE = 28;
+    const HEX_WIDTH = Math.sqrt(3) * HEX_SIZE;
+    const ROW_STEP = HEX_SIZE * 1.5;
+    const COL_STEP = HEX_WIDTH;
+    const boardEl = document.querySelector("#hex-board");
+    const scoreP1El = document.querySelector("#score-p1");
+    const scoreP2El = document.querySelector("#score-p2");
+    const turnPlayerEl = document.querySelector("#turn-player");
+    const turnRemainingEl = document.querySelector("#turn-remaining");
+    const statusTextEl = document.querySelector("#status-text");
+    const sizeSelectEl = document.querySelector("#size-select");
+    const restartButtonEl = document.querySelector("#restart-button");
+    const boardSizeLabelEl = document.querySelector("#board-size-label");
+
+    const state = {
+      sizeKey: "medium",
+      board: [],
+      rows: 0,
+      cols: 0,
+      currentPlayer: 1,
+      placementsRemaining: { 1: MAX_PLACEMENTS, 2: MAX_PLACEMENTS },
+      phase: "playing",
+      recentCaptures: new Set()
+    };
+
+    function makeCell(row, col) {
+      return {
+        row,
+        col,
+        owner: 0,
+        pieceOwner: 0,
+        influence: [0, 0]
+      };
+    }
+
+    function createBoard(sizeKey) {
+      const { rows, cols } = BOARD_SIZES[sizeKey];
+      state.sizeKey = sizeKey;
+      state.rows = rows;
+      state.cols = cols;
+      state.currentPlayer = 1;
+      state.phase = "playing";
+      state.placementsRemaining = { 1: MAX_PLACEMENTS, 2: MAX_PLACEMENTS };
+      state.recentCaptures = new Set();
+      state.board = Array.from({ length: rows }, (_, row) =>
+        Array.from({ length: cols }, (_, col) => makeCell(row, col))
+      );
+    }
+
+    function isInside(row, col) {
+      return row >= 0 && row < state.rows && col >= 0 && col < state.cols;
+    }
+
+    function getNeighbors(row, col) {
+      const evenRowOffsets = [
+        [-1, -1], [-1, 0],
+        [0, -1], [0, 1],
+        [1, -1], [1, 0]
+      ];
+      const oddRowOffsets = [
+        [-1, 0], [-1, 1],
+        [0, -1], [0, 1],
+        [1, 0], [1, 1]
+      ];
+      const offsets = row % 2 === 0 ? evenRowOffsets : oddRowOffsets;
+      return offsets
+        .map(([dr, dc]) => [row + dr, col + dc])
+        .filter(([nextRow, nextCol]) => isInside(nextRow, nextCol));
+    }
+
+    function hexPoints(cx, cy, size) {
+      const points = [];
+      for (let i = 0; i < 6; i += 1) {
+        const angle = (Math.PI / 180) * (60 * i - 30);
+        points.push(`${cx + size * Math.cos(angle)},${cy + size * Math.sin(angle)}`);
+      }
+      return points.join(" ");
+    }
+
+    function cellCenter(row, col) {
+      const x = 48 + col * COL_STEP + (row % 2) * (HEX_WIDTH / 2);
+      const y = 48 + row * ROW_STEP;
+      return { x, y };
+    }
+
+    function sumScores() {
+      let p1 = 0;
+      let p2 = 0;
+      for (const row of state.board) {
+        for (const cell of row) {
+          if (cell.owner === 1) {
+            p1 += 1;
+          } else if (cell.owner === 2) {
+            p2 += 1;
+          }
+        }
+      }
+      return { p1, p2 };
+    }
+
+    function playerName(player) {
+      return player === 1 ? "红方" : "蓝方";
+    }
+
+    function playerClass(player) {
+      return player === 1 ? "p1" : "p2";
+    }
+
+    function captureByInfluence(player) {
+      const newCaptures = [];
+      for (const row of state.board) {
+        for (const cell of row) {
+          if (cell.owner !== 0) {
+            continue;
+          }
+          const ownInfluence = cell.influence[player - 1];
+          const enemyInfluence = cell.influence[(player % 2)];
+          if (ownInfluence >= CAPTURE_THRESHOLD && ownInfluence > enemyInfluence) {
+            cell.owner = player;
+            newCaptures.push(`${cell.row},${cell.col}`);
+          }
+        }
+      }
+      state.recentCaptures = new Set(newCaptures);
+    }
+
+    function applyPlacement(row, col) {
+      if (state.phase !== "playing") {
+        return;
+      }
+      const cell = state.board[row][col];
+      if (cell.owner !== 0) {
+        return;
+      }
+      const player = state.currentPlayer;
+      cell.owner = player;
+      cell.pieceOwner = player;
+      for (const [nextRow, nextCol] of getNeighbors(row, col)) {
+        state.board[nextRow][nextCol].influence[player - 1] += 1;
+      }
+      captureByInfluence(player);
+      state.placementsRemaining[player] -= 1;
+      if (state.placementsRemaining[1] === 0 && state.placementsRemaining[2] === 0) {
+        state.phase = "result";
+      } else {
+        state.currentPlayer = player === 1 ? 2 : 1;
+      }
+      render();
+    }
+
+    function winnerText(scores) {
+      if (scores.p1 === scores.p2) {
+        return `双方各占 ${scores.p1} 格，平局。`;
+      }
+      const winner = scores.p1 > scores.p2 ? 1 : 2;
+      return `${playerName(winner)}获胜，最终比分 ${scores.p1} : ${scores.p2}。`;
+    }
+
+    function buildStatus(scores) {
+      if (state.phase === "result") {
+        return `20 手结束。${winnerText(scores)} 点击“重新开始”或切换地图尺寸可立即再开一局。`;
+      }
+      const player = state.currentPlayer;
+      const remaining = state.placementsRemaining[player];
+      return `${playerName(player)}行动中。点击任意未被占领的空格落子；若相邻 influence 堆到 ${CAPTURE_THRESHOLD}，空格会自动转成该方领地。当前该方还剩 ${remaining} 手。`;
+    }
+
+    function render() {
+      const width = 96 + (state.cols - 1) * COL_STEP + HEX_WIDTH;
+      const height = 96 + (state.rows - 1) * ROW_STEP + HEX_SIZE * 2;
+      boardEl.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      boardEl.innerHTML = "";
+
+      for (const row of state.board) {
+        for (const cell of row) {
+          const { x, y } = cellCenter(cell.row, cell.col);
+          const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+          const isBlocked = cell.owner !== 0 || state.phase !== "playing";
+          const influenceP1 = cell.influence[0];
+          const influenceP2 = cell.influence[1];
+          group.classList.add("cell-group");
+          group.classList.add(isBlocked ? "blocked" : `preview-${playerClass(state.currentPlayer)}`);
+          if (cell.owner === 1) {
+            group.classList.add("p1");
+          } else if (cell.owner === 2) {
+            group.classList.add("p2");
+          } else if (influenceP1 > 0 && influenceP2 > 0) {
+            group.classList.add("contested");
+          }
+          if (state.recentCaptures.has(`${cell.row},${cell.col}`) && cell.pieceOwner === 0) {
+            group.classList.add("fresh");
+          }
+
+          const shape = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+          shape.setAttribute("class", "cell-shape");
+          shape.setAttribute("points", hexPoints(x, y, HEX_SIZE));
+          shape.addEventListener("click", () => applyPlacement(cell.row, cell.col));
+
+          const influenceLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          influenceLabel.setAttribute("class", "influence-label");
+          influenceLabel.setAttribute("x", x);
+          influenceLabel.setAttribute("y", y + 4);
+          influenceLabel.textContent = `${influenceP1}/${influenceP2}`;
+
+          const coordLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          coordLabel.setAttribute("class", "coord-label");
+          coordLabel.setAttribute("x", x);
+          coordLabel.setAttribute("y", y - 12);
+          coordLabel.textContent = `${cell.row + 1}-${cell.col + 1}`;
+
+          const ownerLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          ownerLabel.setAttribute("class", "owner-label");
+          ownerLabel.setAttribute("x", x);
+          ownerLabel.setAttribute("y", y + 18);
+          ownerLabel.textContent = cell.owner === 0 ? "空地" : "领地";
+
+          group.append(shape, coordLabel, influenceLabel, ownerLabel);
+
+          if (cell.pieceOwner !== 0) {
+            const stone = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            stone.setAttribute("class", `stone ${playerClass(cell.pieceOwner)}`);
+            stone.setAttribute("cx", x);
+            stone.setAttribute("cy", y - 7);
+            stone.setAttribute("r", "8");
+            group.append(stone);
+          }
+
+          boardEl.append(group);
+        }
+      }
+
+      const scores = sumScores();
+      scoreP1El.textContent = String(scores.p1);
+      scoreP2El.textContent = String(scores.p2);
+      turnPlayerEl.textContent = state.phase === "result" ? "结算完成" : playerName(state.currentPlayer);
+      turnRemainingEl.textContent = `${state.placementsRemaining[1]} / ${state.placementsRemaining[2]}`;
+      statusTextEl.textContent = buildStatus(scores);
+      boardSizeLabelEl.textContent = BOARD_SIZES[state.sizeKey].label;
+
+      window.setTimeout(() => {
+        for (const group of boardEl.querySelectorAll(".cell-group.fresh")) {
+          group.classList.remove("fresh");
+        }
+      }, 220);
+    }
+
+    sizeSelectEl.addEventListener("change", () => {
+      createBoard(sizeSelectEl.value);
+      render();
+    });
+
+    restartButtonEl.addEventListener("click", () => {
+      createBoard(state.sizeKey);
+      render();
+    });
+
+    createBoard(state.sizeKey);
+    render();
+  </script>
+</body>
+</html>
