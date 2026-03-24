@@ -3,23 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>领地争夺棋</title>
+  <title>双人领地争夺棋</title>
   <style>
     :root {
-      --bg: #f4efe6;
-      --panel: rgba(255, 250, 243, 0.92);
-      --panel-line: rgba(87, 67, 44, 0.14);
-      --text: #2f241a;
-      --muted: #6f6257;
-      --empty: #efe3c7;
-      --empty-stroke: #b89d75;
-      --p1: #d96c3f;
-      --p1-soft: #f8ccbb;
-      --p2: #2d7dd2;
-      --p2-soft: #bedbfa;
-      --contested: #d8ceb7;
-      --accent: #5a8f45;
-      --accent-dark: #456e35;
+      --bg: #f5f0e7;
+      --panel: rgba(255, 250, 242, 0.92);
+      --line: rgba(72, 52, 31, 0.14);
+      --text: #2c2218;
+      --muted: #6d6258;
+      --board: #efe0c3;
+      --board-stroke: #b99b6e;
+      --p1: #db5e4f;
+      --p1-soft: #f8c7bf;
+      --p2: #3479cc;
+      --p2-soft: #c4dcfa;
+      --legal: #f5d86e;
+      --barrier: #62564c;
+      --booster: #f0a53a;
+      --portal: #7a52c4;
+      --accent: #4f8a4e;
+      --accent-dark: #3f6f40;
+      --shadow: 0 20px 48px rgba(60, 41, 23, 0.12);
     }
 
     * {
@@ -32,13 +36,12 @@
       font-family: "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at top left, rgba(255, 255, 255, 0.8), transparent 30%),
-        radial-gradient(circle at bottom right, rgba(45, 125, 210, 0.12), transparent 28%),
-        linear-gradient(180deg, #f7f2e7 0%, var(--bg) 100%);
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.9), transparent 26%),
+        radial-gradient(circle at bottom right, rgba(52, 121, 204, 0.12), transparent 22%),
+        linear-gradient(180deg, #fbf7f1 0%, var(--bg) 100%);
     }
 
-    button,
-    select {
+    button {
       font: inherit;
     }
 
@@ -47,16 +50,16 @@
       margin: 0 auto;
       padding: 24px 0 36px;
       display: grid;
-      grid-template-columns: minmax(0, 1.6fr) minmax(280px, 360px);
+      grid-template-columns: minmax(0, 1.65fr) minmax(300px, 360px);
       gap: 18px;
     }
 
     .panel,
     .sidebar {
-      border: 1px solid var(--panel-line);
+      border: 1px solid var(--line);
       border-radius: 24px;
       background: var(--panel);
-      box-shadow: 0 18px 42px rgba(71, 49, 26, 0.12);
+      box-shadow: var(--shadow);
       backdrop-filter: blur(10px);
     }
 
@@ -73,12 +76,13 @@
 
     h1,
     h2,
+    h3,
     p {
       margin: 0;
     }
 
     h1 {
-      font-size: clamp(2.2rem, 5vw, 4rem);
+      font-size: clamp(2.3rem, 5vw, 4rem);
       line-height: 0.94;
       letter-spacing: -0.05em;
     }
@@ -87,7 +91,7 @@
       margin-top: 10px;
       color: var(--muted);
       line-height: 1.6;
-      max-width: 62ch;
+      max-width: 64ch;
     }
 
     .stats {
@@ -100,10 +104,10 @@
     .stat {
       padding: 10px 14px;
       border-radius: 999px;
-      border: 1px solid var(--panel-line);
-      background: rgba(255, 255, 255, 0.68);
-      font-size: 0.95rem;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
       color: var(--muted);
+      font-size: 0.95rem;
     }
 
     .stat strong {
@@ -111,13 +115,14 @@
     }
 
     .board-shell {
+      position: relative;
       margin-top: 18px;
       padding: 14px;
       border-radius: 20px;
-      border: 1px solid rgba(87, 67, 44, 0.12);
+      border: 1px solid rgba(72, 52, 31, 0.12);
       background:
-        radial-gradient(circle at top, rgba(255, 255, 255, 0.8), transparent 36%),
-        linear-gradient(180deg, rgba(247, 239, 224, 0.96), rgba(241, 232, 214, 0.98));
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.86), transparent 34%),
+        linear-gradient(180deg, rgba(248, 241, 228, 0.98), rgba(238, 228, 210, 0.98));
       overflow: auto;
     }
 
@@ -125,103 +130,131 @@
       display: block;
       width: 100%;
       height: auto;
-      min-height: 520px;
+      min-height: 560px;
+    }
+
+    .tooltip {
+      position: absolute;
+      z-index: 5;
+      max-width: 240px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(44, 34, 24, 0.94);
+      color: #fff9ef;
+      font-size: 0.9rem;
+      line-height: 1.45;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+      pointer-events: none;
+      opacity: 0;
+      transform: translate(-50%, -8px);
+      transition: opacity 120ms ease;
+    }
+
+    .tooltip.visible {
+      opacity: 1;
     }
 
     .cell-shape {
-      fill: var(--empty);
-      stroke: var(--empty-stroke);
-      stroke-width: 1.8;
-      transition: fill 220ms ease, stroke 220ms ease, transform 220ms ease, filter 220ms ease;
-      transform-box: fill-box;
-      transform-origin: center;
+      fill: var(--board);
+      stroke: var(--board-stroke);
+      stroke-width: 1.9;
+      transition: fill 180ms ease, stroke 180ms ease, transform 180ms ease, filter 180ms ease;
       cursor: pointer;
     }
 
-    .cell-group.blocked .cell-shape {
+    .cell.blocked .cell-shape,
+    .cell.disabled .cell-shape {
       cursor: default;
     }
 
-    .cell-group.p1 .cell-shape {
-      fill: var(--p1-soft);
+    .cell.legal .cell-shape {
+      stroke: var(--legal);
+      stroke-width: 2.6;
+      filter: drop-shadow(0 0 10px rgba(245, 216, 110, 0.56));
+    }
+
+    .cell.barrier .cell-shape {
+      fill: #d5cdc4;
+      stroke: #7e7267;
+    }
+
+    .piece-ring {
+      fill: none;
+      stroke-width: 3;
+      opacity: 0.24;
+    }
+
+    .piece-ring.p1 {
       stroke: var(--p1);
     }
 
-    .cell-group.p2 .cell-shape {
-      fill: var(--p2-soft);
+    .piece-ring.p2 {
       stroke: var(--p2);
     }
 
-    .cell-group.contested .cell-shape {
-      fill: var(--contested);
+    .piece {
+      transition: transform 380ms cubic-bezier(0.2, 0.7, 0.2, 1), fill 260ms ease;
+      transform-box: fill-box;
+      transform-origin: center;
     }
 
-    .cell-group.fresh .cell-shape {
-      transform: scale(1.08);
-      filter: brightness(1.03);
+    .piece.p1 {
+      fill: var(--p1);
     }
 
-    .cell-group.preview-p1:not(.blocked):hover .cell-shape {
-      fill: #f5d7cb;
+    .piece.p2 {
+      fill: var(--p2);
     }
 
-    .cell-group.preview-p2:not(.blocked):hover .cell-shape {
-      fill: #d8e8fb;
+    .piece.flipped {
+      animation: flipPiece 420ms ease;
     }
 
-    .owner-label,
-    .influence-label,
+    @keyframes flipPiece {
+      0% { transform: scaleX(1) scale(1); }
+      45% { transform: scaleX(0.18) scale(0.92); }
+      100% { transform: scaleX(1) scale(1); }
+    }
+
+    .special-mark,
     .coord-label {
       pointer-events: none;
-      text-anchor: middle;
       user-select: none;
+      text-anchor: middle;
     }
 
-    .owner-label {
-      font-size: 10px;
-      font-weight: 700;
-      fill: rgba(47, 36, 26, 0.74);
-    }
-
-    .influence-label {
-      font-size: 11px;
-      font-weight: 700;
-      fill: rgba(47, 36, 26, 0.84);
+    .special-mark {
+      font-size: 15px;
+      font-weight: 800;
+      fill: rgba(44, 34, 24, 0.78);
     }
 
     .coord-label {
       font-size: 9px;
-      fill: rgba(47, 36, 26, 0.42);
+      fill: rgba(44, 34, 24, 0.38);
     }
 
-    .stone {
+    .portal-link {
+      stroke: rgba(122, 82, 196, 0.34);
+      stroke-width: 3;
+      stroke-dasharray: 8 7;
+      fill: none;
       pointer-events: none;
-      transition: transform 220ms ease;
-      transform-box: fill-box;
-      transform-origin: center;
-    }
-
-    .stone.p1 {
-      fill: var(--p1);
-    }
-
-    .stone.p2 {
-      fill: var(--p2);
     }
 
     .card {
       padding: 14px;
       border-radius: 18px;
-      border: 1px solid rgba(87, 67, 44, 0.1);
+      border: 1px solid rgba(72, 52, 31, 0.1);
       background: rgba(255, 255, 255, 0.7);
       display: grid;
       gap: 10px;
     }
 
     .status {
-      min-height: 4.5em;
+      min-height: 5.2em;
       color: var(--muted);
-      line-height: 1.55;
+      line-height: 1.58;
     }
 
     .score-grid {
@@ -239,38 +272,26 @@
     .score-box strong {
       display: block;
       margin-top: 4px;
-      font-size: 1.5rem;
+      font-size: 1.55rem;
     }
 
     .score-box.p1 {
-      background: linear-gradient(180deg, #e78158, var(--p1));
+      background: linear-gradient(180deg, #ea836d, var(--p1));
     }
 
     .score-box.p2 {
-      background: linear-gradient(180deg, #5c9be0, var(--p2));
+      background: linear-gradient(180deg, #5d9be0, var(--p2));
     }
 
-    .control-row {
+    .actions {
       display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
     }
 
-    .control-row label {
-      font-size: 0.92rem;
-      color: var(--muted);
-    }
-
-    .control-row select,
-    .control-row button {
+    button {
       min-height: 46px;
       border-radius: 14px;
-      border: 1px solid rgba(87, 67, 44, 0.16);
-      padding: 0 14px;
-      background: rgba(255, 255, 255, 0.9);
-      color: var(--text);
-    }
-
-    .control-row button {
       border: 0;
       background: linear-gradient(180deg, var(--accent), var(--accent-dark));
       color: #f6f3ea;
@@ -279,12 +300,59 @@
       box-shadow: 0 12px 20px rgba(69, 110, 53, 0.18);
     }
 
+    button.secondary {
+      background: linear-gradient(180deg, #8a7765, #6e5c4d);
+      box-shadow: 0 12px 20px rgba(71, 56, 44, 0.16);
+    }
+
     .legend {
       display: grid;
       gap: 8px;
       color: var(--muted);
       font-size: 0.94rem;
-      line-height: 1.5;
+      line-height: 1.52;
+    }
+
+    .legend strong {
+      color: var(--text);
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(26, 19, 12, 0.46);
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .overlay[hidden] {
+      display: none;
+    }
+
+    .overlay-card {
+      width: min(460px, 100%);
+      padding: 24px;
+      border-radius: 24px;
+      background: rgba(255, 250, 242, 0.96);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 12px;
+      text-align: center;
+    }
+
+    .overlay-score {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .overlay-score div {
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(245, 240, 232, 0.95);
+      border: 1px solid rgba(72, 52, 31, 0.1);
     }
 
     @media (max-width: 980px) {
@@ -293,7 +361,13 @@
       }
 
       svg {
-        min-height: 440px;
+        min-height: 480px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .actions {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -301,26 +375,27 @@
 <body>
   <main class="app">
     <section class="panel">
-      <h1>领地争夺棋</h1>
+      <h1>双人领地争夺棋</h1>
       <p class="lede">
-        双人热座六边形策略小游戏。点击空格落子后，棋子会向相邻 6 格施加 influence；空格任一方 influence 总值达到 3 时，会自动变成该方领地。双方各下 10 手后立刻结算。
+        六边形黑白棋变体。双方轮流在合法空格落子，沿六个方向包夹并翻转对手棋子；倍增格会额外翻转一圈，屏障格不可落子，传送格会把一颗己方棋子送到配对传送格旁。棋盘填满或双方都无合法落子时自动结算。
       </p>
       <div class="stats">
-        <div class="stat">当前回合: <strong id="turn-player">红方</strong></div>
-        <div class="stat">剩余手数: <strong id="turn-remaining">10 / 10</strong></div>
-        <div class="stat">地图尺寸: <strong id="board-size-label">中 9×9</strong></div>
+        <div class="stat">当前行动: <strong id="turn-player">红方</strong></div>
+        <div class="stat">合法落点: <strong id="legal-count">0</strong></div>
+        <div class="stat">随机布局: <strong id="seed-label">-</strong></div>
       </div>
       <div class="board-shell">
-        <svg id="hex-board" aria-label="领地争夺棋盘"></svg>
+        <svg id="hex-board" aria-label="双人领地争夺棋棋盘"></svg>
+        <div id="tile-tooltip" class="tooltip" role="tooltip"></div>
       </div>
     </section>
 
     <aside class="sidebar">
       <section class="card">
-        <h2>比分</h2>
+        <h2>占地统计</h2>
         <div class="score-grid">
-          <div class="score-box p1">红方领地<strong id="score-p1">0</strong></div>
-          <div class="score-box p2">蓝方领地<strong id="score-p2">0</strong></div>
+          <div class="score-box p1">红方<strong id="score-p1">0</strong></div>
+          <div class="score-box p2">蓝方<strong id="score-p2">0</strong></div>
         </div>
       </section>
 
@@ -331,106 +406,107 @@
 
       <section class="card">
         <h2>控制</h2>
-        <div class="control-row">
-          <label for="size-select">地图大小</label>
-          <select id="size-select">
-            <option value="small">小 7×7</option>
-            <option value="medium" selected>中 9×9</option>
-            <option value="large">大 11×11</option>
-          </select>
-        </div>
-        <div class="control-row">
+        <div class="actions">
           <button type="button" id="restart-button">重新开始</button>
+          <button type="button" id="randomize-button" class="secondary">随机新地图</button>
         </div>
       </section>
 
       <section class="card">
-        <h2>规则提示</h2>
+        <h2>特殊格说明</h2>
         <div class="legend">
-          <div>每个落子会立刻占领当前六边形，并在相邻 6 格各增加 1 点 influence。</div>
-          <div>空格若某一方 influence ≥ 3，就自动转化为该方领地，并播放平滑变色动画。</div>
-          <div>格内显示为 `红/蓝` influence 数值；中央圆点代表真正下过的棋子。</div>
+          <div><strong>◎ 倍增格</strong>：按正常规则翻转后，再额外翻转距离 2 内的一圈敌方棋子。</div>
+          <div><strong>■ 屏障格</strong>：永久阻挡，不可放置，也会打断包夹线路。</div>
+          <div><strong>◇ 传送格</strong>：落子后，若能找到己方棋子与目标空位，会把一颗己方棋子送到另一枚传送格旁。</div>
+          <div>悬停特殊格可查看 tooltip，合法落点会发光提示；若当前玩家无路可走会自动跳过回合。</div>
         </div>
       </section>
     </aside>
   </main>
 
+  <section id="result-overlay" class="overlay" hidden>
+    <div class="overlay-card">
+      <h2 id="result-title">对局结束</h2>
+      <p id="result-text"></p>
+      <div class="overlay-score">
+        <div>红方占地<br><strong id="result-p1">0</strong></div>
+        <div>蓝方占地<br><strong id="result-p2">0</strong></div>
+      </div>
+      <button type="button" id="overlay-restart-button">再开一局</button>
+    </div>
+  </section>
+
   <script>
-    const BOARD_SIZES = {
-      small: { rows: 7, cols: 7, label: "小 7×7" },
-      medium: { rows: 9, cols: 9, label: "中 9×9" },
-      large: { rows: 11, cols: 11, label: "大 11×11" }
+    const HEX_DIRECTIONS = [
+      [1, 0], [1, -1], [0, -1],
+      [-1, 0], [-1, 1], [0, 1]
+    ];
+    const BOARD_RADIUS = 4;
+    const HEX_SIZE = 34;
+    const SVG_NS = "http://www.w3.org/2000/svg";
+    const SPECIAL_TILE_INFO = {
+      booster: { label: "倍增格", mark: "◎", text: "本回合落在这里后，除常规包夹外，还会额外翻转距离 2 内的一圈敌方棋子。" },
+      barrier: { label: "屏障格", mark: "■", text: "不可放置，也会阻断六方向上的包夹路径。" },
+      portal: { label: "传送格", mark: "◇", text: "落子后会尝试把一颗己方棋子送到配对传送格旁的空位，制造新的前线。" },
+      normal: { label: "普通格", mark: "", text: "普通六边形地块，仅执行标准六方向包夹翻转。" }
     };
-    const MAX_PLACEMENTS = 10;
-    const CAPTURE_THRESHOLD = 3;
-    const HEX_SIZE = 28;
-    const HEX_WIDTH = Math.sqrt(3) * HEX_SIZE;
-    const ROW_STEP = HEX_SIZE * 1.5;
-    const COL_STEP = HEX_WIDTH;
+
     const boardEl = document.querySelector("#hex-board");
+    const tooltipEl = document.querySelector("#tile-tooltip");
     const scoreP1El = document.querySelector("#score-p1");
     const scoreP2El = document.querySelector("#score-p2");
     const turnPlayerEl = document.querySelector("#turn-player");
-    const turnRemainingEl = document.querySelector("#turn-remaining");
+    const legalCountEl = document.querySelector("#legal-count");
+    const seedLabelEl = document.querySelector("#seed-label");
     const statusTextEl = document.querySelector("#status-text");
-    const sizeSelectEl = document.querySelector("#size-select");
     const restartButtonEl = document.querySelector("#restart-button");
-    const boardSizeLabelEl = document.querySelector("#board-size-label");
+    const randomizeButtonEl = document.querySelector("#randomize-button");
+    const resultOverlayEl = document.querySelector("#result-overlay");
+    const resultTitleEl = document.querySelector("#result-title");
+    const resultTextEl = document.querySelector("#result-text");
+    const resultP1El = document.querySelector("#result-p1");
+    const resultP2El = document.querySelector("#result-p2");
+    const overlayRestartButtonEl = document.querySelector("#overlay-restart-button");
 
     const state = {
-      sizeKey: "medium",
-      board: [],
-      rows: 0,
-      cols: 0,
+      cells: [],
+      cellMap: new Map(),
       currentPlayer: 1,
-      placementsRemaining: { 1: MAX_PLACEMENTS, 2: MAX_PLACEMENTS },
-      phase: "playing",
-      recentCaptures: new Set()
+      passCount: 0,
+      gameOver: false,
+      winner: 0,
+      seed: 0,
+      legalMoves: new Map(),
+      flipAnimationKeys: new Set()
     };
 
-    function makeCell(row, col) {
-      return {
-        row,
-        col,
-        owner: 0,
-        pieceOwner: 0,
-        influence: [0, 0]
+    function createRng(seed) {
+      let value = seed >>> 0;
+      return function next() {
+        value = (value * 1664525 + 1013904223) >>> 0;
+        return value / 4294967296;
       };
     }
 
-    function createBoard(sizeKey) {
-      const { rows, cols } = BOARD_SIZES[sizeKey];
-      state.sizeKey = sizeKey;
-      state.rows = rows;
-      state.cols = cols;
-      state.currentPlayer = 1;
-      state.phase = "playing";
-      state.placementsRemaining = { 1: MAX_PLACEMENTS, 2: MAX_PLACEMENTS };
-      state.recentCaptures = new Set();
-      state.board = Array.from({ length: rows }, (_, row) =>
-        Array.from({ length: cols }, (_, col) => makeCell(row, col))
-      );
+    function keyOf(q, r) {
+      return `${q},${r}`;
     }
 
-    function isInside(row, col) {
-      return row >= 0 && row < state.rows && col >= 0 && col < state.cols;
+    function getCell(q, r) {
+      return state.cellMap.get(keyOf(q, r)) ?? null;
     }
 
-    function getNeighbors(row, col) {
-      const evenRowOffsets = [
-        [-1, -1], [-1, 0],
-        [0, -1], [0, 1],
-        [1, -1], [1, 0]
-      ];
-      const oddRowOffsets = [
-        [-1, 0], [-1, 1],
-        [0, -1], [0, 1],
-        [1, 0], [1, 1]
-      ];
-      const offsets = row % 2 === 0 ? evenRowOffsets : oddRowOffsets;
-      return offsets
-        .map(([dr, dc]) => [row + dr, col + dc])
-        .filter(([nextRow, nextCol]) => isInside(nextRow, nextCol));
+    function axialDistance(a, b) {
+      const s1 = -a.q - a.r;
+      const s2 = -b.q - b.r;
+      return Math.max(Math.abs(a.q - b.q), Math.abs(a.r - b.r), Math.abs(s1 - s2));
+    }
+
+    function cellToPixel(q, r) {
+      return {
+        x: HEX_SIZE * Math.sqrt(3) * (q + r / 2),
+        y: HEX_SIZE * 1.5 * r
+      };
     }
 
     function hexPoints(cx, cy, size) {
@@ -442,27 +518,6 @@
       return points.join(" ");
     }
 
-    function cellCenter(row, col) {
-      const x = 48 + col * COL_STEP + (row % 2) * (HEX_WIDTH / 2);
-      const y = 48 + row * ROW_STEP;
-      return { x, y };
-    }
-
-    function sumScores() {
-      let p1 = 0;
-      let p2 = 0;
-      for (const row of state.board) {
-        for (const cell of row) {
-          if (cell.owner === 1) {
-            p1 += 1;
-          } else if (cell.owner === 2) {
-            p2 += 1;
-          }
-        }
-      }
-      return { p1, p2 };
-    }
-
     function playerName(player) {
       return player === 1 ? "红方" : "蓝方";
     }
@@ -471,156 +526,470 @@
       return player === 1 ? "p1" : "p2";
     }
 
-    function captureByInfluence(player) {
-      const newCaptures = [];
-      for (const row of state.board) {
-        for (const cell of row) {
-          if (cell.owner !== 0) {
-            continue;
-          }
-          const ownInfluence = cell.influence[player - 1];
-          const enemyInfluence = cell.influence[(player % 2)];
-          if (ownInfluence >= CAPTURE_THRESHOLD && ownInfluence > enemyInfluence) {
-            cell.owner = player;
-            newCaptures.push(`${cell.row},${cell.col}`);
+    function otherPlayer(player) {
+      return player === 1 ? 2 : 1;
+    }
+
+    function createCell(q, r) {
+      const pixel = cellToPixel(q, r);
+      return {
+        q,
+        r,
+        x: pixel.x,
+        y: pixel.y,
+        owner: 0,
+        special: "normal",
+        portalId: null
+      };
+    }
+
+    function resetBoard(seed) {
+      state.cells = [];
+      state.cellMap = new Map();
+      state.currentPlayer = 1;
+      state.passCount = 0;
+      state.gameOver = false;
+      state.winner = 0;
+      state.seed = seed;
+      state.flipAnimationKeys = new Set();
+
+      for (let q = -BOARD_RADIUS; q <= BOARD_RADIUS; q += 1) {
+        for (let r = -BOARD_RADIUS; r <= BOARD_RADIUS; r += 1) {
+          const s = -q - r;
+          if (Math.max(Math.abs(q), Math.abs(r), Math.abs(s)) <= BOARD_RADIUS) {
+            const cell = createCell(q, r);
+            state.cells.push(cell);
+            state.cellMap.set(keyOf(q, r), cell);
           }
         }
       }
-      state.recentCaptures = new Set(newCaptures);
-    }
 
-    function applyPlacement(row, col) {
-      if (state.phase !== "playing") {
-        return;
-      }
-      const cell = state.board[row][col];
-      if (cell.owner !== 0) {
-        return;
-      }
-      const player = state.currentPlayer;
-      cell.owner = player;
-      cell.pieceOwner = player;
-      for (const [nextRow, nextCol] of getNeighbors(row, col)) {
-        state.board[nextRow][nextCol].influence[player - 1] += 1;
-      }
-      captureByInfluence(player);
-      state.placementsRemaining[player] -= 1;
-      if (state.placementsRemaining[1] === 0 && state.placementsRemaining[2] === 0) {
-        state.phase = "result";
-      } else {
-        state.currentPlayer = player === 1 ? 2 : 1;
-      }
+      const rng = createRng(seed);
+      assignSpecialTiles(rng);
+      assignStartingPieces();
+      updateLegalMoves();
+      finishIfNeeded(false);
       render();
     }
 
-    function winnerText(scores) {
-      if (scores.p1 === scores.p2) {
-        return `双方各占 ${scores.p1} 格，平局。`;
-      }
-      const winner = scores.p1 > scores.p2 ? 1 : 2;
-      return `${playerName(winner)}获胜，最终比分 ${scores.p1} : ${scores.p2}。`;
+    function mirrorKey(cell) {
+      return keyOf(-cell.q, -cell.r);
     }
 
-    function buildStatus(scores) {
-      if (state.phase === "result") {
-        return `20 手结束。${winnerText(scores)} 点击“重新开始”或切换地图尺寸可立即再开一局。`;
+    function chooseSymmetricCells(candidates, pairCount, rng) {
+      const pool = candidates.slice();
+      const picks = [];
+      while (pool.length > 0 && picks.length < pairCount) {
+        const index = Math.floor(rng() * pool.length);
+        const cell = pool.splice(index, 1)[0];
+        if (!cell || cell.q < 0 || (cell.q === 0 && cell.r <= 0)) {
+          continue;
+        }
+        const mirror = getCell(-cell.q, -cell.r);
+        if (!mirror || mirror.special !== "normal") {
+          continue;
+        }
+        picks.push([cell, mirror]);
       }
+      return picks;
+    }
+
+    function assignSpecialTiles(rng) {
+      const coreKeys = new Set(["0,0", "1,0", "0,-1", "-1,0", "0,1", "1,-1", "-1,1"]);
+      const candidates = state.cells.filter((cell) => {
+        if (coreKeys.has(keyOf(cell.q, cell.r))) {
+          return false;
+        }
+        return axialDistance(cell, { q: 0, r: 0 }) >= 2;
+      });
+
+      const barrierPairs = chooseSymmetricCells(candidates, 2, rng);
+      for (const [a, b] of barrierPairs) {
+        a.special = "barrier";
+        b.special = "barrier";
+      }
+
+      const boosterCandidates = state.cells.filter((cell) => cell.special === "normal" && axialDistance(cell, { q: 0, r: 0 }) >= 1);
+      const boosterPairs = chooseSymmetricCells(boosterCandidates, 2, rng);
+      for (const [a, b] of boosterPairs) {
+        a.special = "booster";
+        b.special = "booster";
+      }
+
+      const portalCandidates = state.cells.filter((cell) => cell.special === "normal" && axialDistance(cell, { q: 0, r: 0 }) >= 2);
+      const portalPairs = chooseSymmetricCells(portalCandidates, 1, rng);
+      if (portalPairs.length > 0) {
+        const [a, b] = portalPairs[0];
+        a.special = "portal";
+        b.special = "portal";
+        a.portalId = "A";
+        b.portalId = "A";
+      }
+    }
+
+    function assignStartingPieces() {
+      const redSeeds = [[-1, 0], [0, 1]];
+      const blueSeeds = [[1, 0], [0, -1]];
+      for (const [q, r] of redSeeds) {
+        const cell = getCell(q, r);
+        if (cell) {
+          cell.owner = 1;
+          cell.special = "normal";
+          cell.portalId = null;
+        }
+      }
+      for (const [q, r] of blueSeeds) {
+        const cell = getCell(q, r);
+        if (cell) {
+          cell.owner = 2;
+          cell.special = "normal";
+          cell.portalId = null;
+        }
+      }
+    }
+
+    function collectDirectionalFlips(cell, player, direction) {
+      const captures = [];
+      let q = cell.q + direction[0];
+      let r = cell.r + direction[1];
+      while (true) {
+        const nextCell = getCell(q, r);
+        if (!nextCell || nextCell.special === "barrier" || nextCell.owner === 0) {
+          return [];
+        }
+        if (nextCell.owner === player) {
+          return captures.length > 0 ? captures : [];
+        }
+        captures.push(nextCell);
+        q += direction[0];
+        r += direction[1];
+      }
+    }
+
+    function getMoveData(cell, player) {
+      if (!cell || cell.owner !== 0 || cell.special === "barrier") {
+        return null;
+      }
+      const directionalFlips = [];
+      for (const direction of HEX_DIRECTIONS) {
+        directionalFlips.push(...collectDirectionalFlips(cell, player, direction));
+      }
+      if (directionalFlips.length === 0) {
+        return null;
+      }
+      return { flips: directionalFlips };
+    }
+
+    function updateLegalMoves() {
+      const nextMoves = new Map();
+      for (const cell of state.cells) {
+        const moveData = getMoveData(cell, state.currentPlayer);
+        if (moveData) {
+          nextMoves.set(keyOf(cell.q, cell.r), moveData);
+        }
+      }
+      state.legalMoves = nextMoves;
+    }
+
+    function countScores() {
+      let p1 = 0;
+      let p2 = 0;
+      for (const cell of state.cells) {
+        if (cell.owner === 1) {
+          p1 += 1;
+        } else if (cell.owner === 2) {
+          p2 += 1;
+        }
+      }
+      return { p1, p2 };
+    }
+
+    function boardIsFull() {
+      return state.cells.every((cell) => cell.owner !== 0 || cell.special === "barrier");
+    }
+
+    function hasLegalMove(player) {
+      return state.cells.some((cell) => getMoveData(cell, player));
+    }
+
+    function setTooltip(content, clientX, clientY) {
+      tooltipEl.textContent = content;
+      const boardRect = boardEl.getBoundingClientRect();
+      tooltipEl.style.left = `${clientX - boardRect.left}px`;
+      tooltipEl.style.top = `${clientY - boardRect.top - 10}px`;
+      tooltipEl.classList.add("visible");
+    }
+
+    function hideTooltip() {
+      tooltipEl.classList.remove("visible");
+    }
+
+    function getPortalPair(cell) {
+      if (cell.special !== "portal" || !cell.portalId) {
+        return null;
+      }
+      return state.cells.find((candidate) =>
+        candidate !== cell &&
+        candidate.special === "portal" &&
+        candidate.portalId === cell.portalId
+      ) ?? null;
+    }
+
+    function applyBoosterFlip(cell, player, flips) {
+      if (cell.special !== "booster") {
+        return;
+      }
+      for (const candidate of state.cells) {
+        if (candidate.owner === otherPlayer(player) && axialDistance(cell, candidate) <= 2) {
+          flips.add(candidate);
+        }
+      }
+    }
+
+    function tryPortalTeleport(cell, player) {
+      if (cell.special !== "portal") {
+        return false;
+      }
+      const pair = getPortalPair(cell);
+      if (!pair) {
+        return false;
+      }
+
+      let source = null;
+      for (const direction of HEX_DIRECTIONS) {
+        const adjacent = getCell(cell.q + direction[0], cell.r + direction[1]);
+        if (adjacent && adjacent.owner === player) {
+          source = adjacent;
+          break;
+        }
+      }
+      if (!source) {
+        for (const candidate of state.cells) {
+          if (candidate.owner === player && candidate !== cell && candidate.special !== "barrier") {
+            source = candidate;
+            break;
+          }
+        }
+      }
+      if (!source) {
+        return false;
+      }
+
+      let destination = null;
+      for (const direction of HEX_DIRECTIONS) {
+        const target = getCell(pair.q + direction[0], pair.r + direction[1]);
+        if (target && target.owner === 0 && target.special !== "barrier") {
+          destination = target;
+          break;
+        }
+      }
+      if (!destination) {
+        return false;
+      }
+
+      source.owner = 0;
+      destination.owner = player;
+      state.flipAnimationKeys.add(keyOf(destination.q, destination.r));
+      return true;
+    }
+
+    function applyMove(cell) {
+      if (state.gameOver) {
+        return;
+      }
+      const moveData = state.legalMoves.get(keyOf(cell.q, cell.r));
+      if (!moveData) {
+        return;
+      }
+
       const player = state.currentPlayer;
-      const remaining = state.placementsRemaining[player];
-      return `${playerName(player)}行动中。点击任意未被占领的空格落子；若相邻 influence 堆到 ${CAPTURE_THRESHOLD}，空格会自动转成该方领地。当前该方还剩 ${remaining} 手。`;
+      const flips = new Set(moveData.flips);
+      cell.owner = player;
+      state.flipAnimationKeys = new Set([keyOf(cell.q, cell.r)]);
+      applyBoosterFlip(cell, player, flips);
+
+      for (const flipCell of flips) {
+        flipCell.owner = player;
+        state.flipAnimationKeys.add(keyOf(flipCell.q, flipCell.r));
+      }
+
+      const teleported = tryPortalTeleport(cell, player);
+      state.passCount = 0;
+      state.currentPlayer = otherPlayer(player);
+      updateLegalMoves();
+
+      if (state.legalMoves.size === 0 && !state.gameOver) {
+        state.passCount += 1;
+        const skippedPlayer = state.currentPlayer;
+        state.currentPlayer = otherPlayer(state.currentPlayer);
+        updateLegalMoves();
+        if (state.legalMoves.size === 0) {
+          state.passCount += 1;
+        } else {
+          statusTextEl.textContent = `${playerName(skippedPlayer)}无合法落子，已自动跳过。`;
+        }
+      }
+
+      finishIfNeeded(teleported);
+      render();
+    }
+
+    function finishIfNeeded(teleported) {
+      const scores = countScores();
+      const bothBlocked = !hasLegalMove(1) && !hasLegalMove(2);
+      if (boardIsFull() || bothBlocked) {
+        state.gameOver = true;
+        state.winner = scores.p1 === scores.p2 ? 0 : (scores.p1 > scores.p2 ? 1 : 2);
+        resultTitleEl.textContent = state.winner === 0 ? "平局" : `${playerName(state.winner)}获胜`;
+        resultTextEl.textContent = bothBlocked
+          ? "双方都没有合法落子，按当前占地数结算。"
+          : "棋盘已填满，按当前占地数结算。";
+        resultP1El.textContent = String(scores.p1);
+        resultP2El.textContent = String(scores.p2);
+        resultOverlayEl.hidden = false;
+      } else {
+        resultOverlayEl.hidden = true;
+      }
+
+      if (!state.gameOver) {
+        const currentMoves = state.legalMoves.size;
+        const statusSegments = [
+          `${playerName(state.currentPlayer)}行动中，可落子 ${currentMoves} 处。`
+        ];
+        if (teleported) {
+          statusSegments.push("本回合触发了传送格，额外转移了一颗己方棋子。");
+        }
+        statusSegments.push("常规规则为六方向包夹翻转，屏障会阻断线路。");
+        statusTextEl.textContent = statusSegments.join("");
+      } else {
+        const winnerText = state.winner === 0 ? "双方平分秋色。" : `${playerName(state.winner)}占地更多。`;
+        statusTextEl.textContent = `对局结束。红方 ${scores.p1} 格，蓝方 ${scores.p2} 格。${winnerText}`;
+      }
     }
 
     function render() {
-      const width = 96 + (state.cols - 1) * COL_STEP + HEX_WIDTH;
-      const height = 96 + (state.rows - 1) * ROW_STEP + HEX_SIZE * 2;
-      boardEl.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      const margin = 74;
+      const xs = state.cells.map((cell) => cell.x);
+      const ys = state.cells.map((cell) => cell.y);
+      const minX = Math.min(...xs) - HEX_SIZE - margin;
+      const maxX = Math.max(...xs) + HEX_SIZE + margin;
+      const minY = Math.min(...ys) - HEX_SIZE - margin;
+      const maxY = Math.max(...ys) + HEX_SIZE + margin;
+      boardEl.setAttribute("viewBox", `${minX} ${minY} ${maxX - minX} ${maxY - minY}`);
       boardEl.innerHTML = "";
 
-      for (const row of state.board) {
-        for (const cell of row) {
-          const { x, y } = cellCenter(cell.row, cell.col);
-          const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
-          const isBlocked = cell.owner !== 0 || state.phase !== "playing";
-          const influenceP1 = cell.influence[0];
-          const influenceP2 = cell.influence[1];
-          group.classList.add("cell-group");
-          group.classList.add(isBlocked ? "blocked" : `preview-${playerClass(state.currentPlayer)}`);
-          if (cell.owner === 1) {
-            group.classList.add("p1");
-          } else if (cell.owner === 2) {
-            group.classList.add("p2");
-          } else if (influenceP1 > 0 && influenceP2 > 0) {
-            group.classList.add("contested");
-          }
-          if (state.recentCaptures.has(`${cell.row},${cell.col}`) && cell.pieceOwner === 0) {
-            group.classList.add("fresh");
-          }
-
-          const shape = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-          shape.setAttribute("class", "cell-shape");
-          shape.setAttribute("points", hexPoints(x, y, HEX_SIZE));
-          shape.addEventListener("click", () => applyPlacement(cell.row, cell.col));
-
-          const influenceLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
-          influenceLabel.setAttribute("class", "influence-label");
-          influenceLabel.setAttribute("x", x);
-          influenceLabel.setAttribute("y", y + 4);
-          influenceLabel.textContent = `${influenceP1}/${influenceP2}`;
-
-          const coordLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
-          coordLabel.setAttribute("class", "coord-label");
-          coordLabel.setAttribute("x", x);
-          coordLabel.setAttribute("y", y - 12);
-          coordLabel.textContent = `${cell.row + 1}-${cell.col + 1}`;
-
-          const ownerLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
-          ownerLabel.setAttribute("class", "owner-label");
-          ownerLabel.setAttribute("x", x);
-          ownerLabel.setAttribute("y", y + 18);
-          ownerLabel.textContent = cell.owner === 0 ? "空地" : "领地";
-
-          group.append(shape, coordLabel, influenceLabel, ownerLabel);
-
-          if (cell.pieceOwner !== 0) {
-            const stone = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-            stone.setAttribute("class", `stone ${playerClass(cell.pieceOwner)}`);
-            stone.setAttribute("cx", x);
-            stone.setAttribute("cy", y - 7);
-            stone.setAttribute("r", "8");
-            group.append(stone);
-          }
-
-          boardEl.append(group);
-        }
+      const portalCells = state.cells.filter((cell) => cell.special === "portal");
+      if (portalCells.length === 2) {
+        const path = document.createElementNS(SVG_NS, "path");
+        path.setAttribute("class", "portal-link");
+        path.setAttribute("d", `M ${portalCells[0].x} ${portalCells[0].y} Q 0 ${Math.min(portalCells[0].y, portalCells[1].y) - 80} ${portalCells[1].x} ${portalCells[1].y}`);
+        boardEl.append(path);
       }
 
-      const scores = sumScores();
+      for (const cell of state.cells) {
+        const group = document.createElementNS(SVG_NS, "g");
+        group.setAttribute("class", "cell");
+        if (cell.special === "barrier") {
+          group.classList.add("barrier", "blocked");
+        } else if (state.gameOver) {
+          group.classList.add("disabled");
+        }
+        if (state.legalMoves.has(keyOf(cell.q, cell.r)) && !state.gameOver) {
+          group.classList.add("legal");
+        }
+
+        const shape = document.createElementNS(SVG_NS, "polygon");
+        shape.setAttribute("class", "cell-shape");
+        shape.setAttribute("points", hexPoints(cell.x, cell.y, HEX_SIZE));
+
+        const info = SPECIAL_TILE_INFO[cell.special];
+        shape.addEventListener("mouseenter", (event) => {
+          if (cell.special !== "normal") {
+            setTooltip(`${info.label}：${info.text}`, event.clientX, event.clientY);
+          }
+        });
+        shape.addEventListener("mousemove", (event) => {
+          if (cell.special !== "normal" && tooltipEl.classList.contains("visible")) {
+            setTooltip(`${info.label}：${info.text}`, event.clientX, event.clientY);
+          }
+        });
+        shape.addEventListener("mouseleave", hideTooltip);
+        shape.addEventListener("click", () => applyMove(cell));
+        group.append(shape);
+
+        const coord = document.createElementNS(SVG_NS, "text");
+        coord.setAttribute("class", "coord-label");
+        coord.setAttribute("x", cell.x);
+        coord.setAttribute("y", cell.y - 19);
+        coord.textContent = `${cell.q},${cell.r}`;
+        group.append(coord);
+
+        if (cell.special !== "normal") {
+          const mark = document.createElementNS(SVG_NS, "text");
+          mark.setAttribute("class", "special-mark");
+          mark.setAttribute("x", cell.x);
+          mark.setAttribute("y", cell.y + 5);
+          mark.textContent = info.mark;
+          group.append(mark);
+        }
+
+        if (cell.owner !== 0) {
+          const ring = document.createElementNS(SVG_NS, "circle");
+          ring.setAttribute("class", `piece-ring ${playerClass(cell.owner)}`);
+          ring.setAttribute("cx", cell.x);
+          ring.setAttribute("cy", cell.y);
+          ring.setAttribute("r", "16");
+          group.append(ring);
+
+          const piece = document.createElementNS(SVG_NS, "circle");
+          piece.setAttribute("class", `piece ${playerClass(cell.owner)}`);
+          if (state.flipAnimationKeys.has(keyOf(cell.q, cell.r))) {
+            piece.classList.add("flipped");
+          }
+          piece.setAttribute("cx", cell.x);
+          piece.setAttribute("cy", cell.y);
+          piece.setAttribute("r", "12.6");
+          group.append(piece);
+        }
+
+        const title = document.createElementNS(SVG_NS, "title");
+        title.textContent = `${info.label}${cell.owner ? ` | ${playerName(cell.owner)}棋子` : ""}`;
+        group.append(title);
+        boardEl.append(group);
+      }
+
+      const scores = countScores();
       scoreP1El.textContent = String(scores.p1);
       scoreP2El.textContent = String(scores.p2);
-      turnPlayerEl.textContent = state.phase === "result" ? "结算完成" : playerName(state.currentPlayer);
-      turnRemainingEl.textContent = `${state.placementsRemaining[1]} / ${state.placementsRemaining[2]}`;
-      statusTextEl.textContent = buildStatus(scores);
-      boardSizeLabelEl.textContent = BOARD_SIZES[state.sizeKey].label;
-
-      window.setTimeout(() => {
-        for (const group of boardEl.querySelectorAll(".cell-group.fresh")) {
-          group.classList.remove("fresh");
-        }
-      }, 220);
+      turnPlayerEl.textContent = state.gameOver ? "对局结束" : playerName(state.currentPlayer);
+      legalCountEl.textContent = state.gameOver ? "0" : String(state.legalMoves.size);
+      seedLabelEl.textContent = String(state.seed);
     }
 
-    sizeSelectEl.addEventListener("change", () => {
-      createBoard(sizeSelectEl.value);
-      render();
-    });
+    function randomSeed() {
+      return Math.floor(Math.random() * 900000) + 100000;
+    }
 
     restartButtonEl.addEventListener("click", () => {
-      createBoard(state.sizeKey);
-      render();
+      resetBoard(state.seed);
     });
 
-    createBoard(state.sizeKey);
-    render();
+    randomizeButtonEl.addEventListener("click", () => {
+      resetBoard(randomSeed());
+    });
+
+    overlayRestartButtonEl.addEventListener("click", () => {
+      resultOverlayEl.hidden = true;
+      resetBoard(randomSeed());
+    });
+
+    window.addEventListener("keydown", (event) => {
+      if (event.key.toLowerCase() === "r") {
+        resetBoard(randomSeed());
+      }
+    });
+
+    resetBoard(randomSeed());
   </script>
 </body>
 </html>
