@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>节奏色块记忆派对</title>
+  <style>
+    :root {
+      --bg: #0e1224;
+      --panel: rgba(16, 22, 44, 0.88);
+      --panel-strong: rgba(23, 31, 62, 0.96);
+      --line: rgba(255, 255, 255, 0.1);
+      --text: #edf4ff;
+      --muted: #9eadd3;
+      --accent: #7cf0ff;
+      --good: #7effb9;
+      --bad: #ff6c98;
+      --warn: #ffd870;
+      --shadow: 0 24px 64px rgba(0, 0, 0, 0.34);
+      --radius: 26px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "PingFang SC", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(124, 240, 255, 0.18), transparent 24%),
+        radial-gradient(circle at top right, rgba(255, 108, 152, 0.16), transparent 26%),
+        linear-gradient(180deg, #090d18 0%, #10162c 55%, #0a0f1d 100%);
+    }
+
+    button,
+    select {
+      font: inherit;
+      color: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(1160px, calc(100vw - 24px));
+      margin: 0 auto;
+      padding: 20px 0 32px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .hero {
+      padding: 24px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+      gap: 16px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    .eyebrow,
+    .label {
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 0.78rem;
+    }
+
+    h1 {
+      margin-top: 8px;
+      font-size: clamp(2.6rem, 7vw, 4.8rem);
+      line-height: 0.92;
+      letter-spacing: -0.06em;
+    }
+
+    .lede,
+    .muted,
+    .rule-list li,
+    .player-item small {
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .hero-copy,
+    .setup-card,
+    .hud,
+    .board-shell,
+    .sidebar,
+    .player-list,
+    .rule-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .stats,
+    .setup-row,
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stat,
+    .setup-card,
+    .sidebar-card {
+      padding: 16px;
+      border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .value {
+      margin-top: 8px;
+      font-size: 1.36rem;
+      font-weight: 700;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.28fr) minmax(280px, 0.72fr);
+      gap: 16px;
+    }
+
+    .hud {
+      padding: 18px;
+    }
+
+    .meta-pill {
+      padding: 12px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .meta-pill strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 1.06rem;
+    }
+
+    .setup-row {
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      align-items: end;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    select,
+    .button {
+      min-height: 48px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.07);
+      padding: 0 16px;
+    }
+
+    .button:hover,
+    .button:focus-visible,
+    select:focus-visible,
+    .tile:focus-visible {
+      outline: none;
+      border-color: rgba(124, 240, 255, 0.56);
+      box-shadow: 0 0 0 3px rgba(124, 240, 255, 0.16);
+    }
+
+    .button.primary {
+      border: 0;
+      background: linear-gradient(180deg, #8ef8ff, #69a8ff);
+      color: #08111d;
+      font-weight: 800;
+    }
+
+    .button.ghost {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .board-shell {
+      position: relative;
+      padding: 18px;
+      overflow: hidden;
+    }
+
+    .status-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .turn-banner {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 18px rgba(124, 240, 255, 0.8);
+    }
+
+    .timer-track {
+      width: min(360px, 100%);
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .timer-fill {
+      height: 100%;
+      width: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--good), var(--warn), var(--bad));
+      transform-origin: left center;
+      transition: width 120ms linear;
+    }
+
+    .board {
+      position: relative;
+      padding: 20px;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background:
+        radial-gradient(circle at center, rgba(124, 240, 255, 0.08), transparent 34%),
+        linear-gradient(180deg, rgba(6, 11, 24, 0.96), rgba(12, 19, 40, 0.96));
+      transition: transform 180ms ease, box-shadow 180ms ease;
+    }
+
+    .board.correct {
+      box-shadow: 0 0 32px rgba(126, 255, 185, 0.3);
+    }
+
+    .board.wrong {
+      box-shadow: 0 0 36px rgba(255, 108, 152, 0.34);
+      transform: translateX(-3px);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .tile {
+      position: relative;
+      min-height: 110px;
+      border: 0;
+      border-radius: 22px;
+      background: linear-gradient(145deg, var(--tile-a), var(--tile-b));
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.18),
+        0 18px 28px rgba(0, 0, 0, 0.22);
+      transition: transform 140ms ease, filter 140ms ease, box-shadow 140ms ease;
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+
+    .tile::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.26), transparent 42%);
+      opacity: 0.54;
+      pointer-events: none;
+    }
+
+    .tile span {
+      position: absolute;
+      left: 12px;
+      bottom: 12px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      text-shadow: 0 1px 10px rgba(0, 0, 0, 0.28);
+    }
+
+    .tile.active,
+    .tile:hover {
+      transform: translateY(-2px) scale(1.02);
+      filter: brightness(1.22) saturate(1.15);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.24),
+        0 22px 34px rgba(0, 0, 0, 0.28),
+        0 0 28px rgba(255, 255, 255, 0.18);
+    }
+
+    .tile.correct {
+      box-shadow:
+        inset 0 0 0 2px rgba(126, 255, 185, 0.68),
+        0 0 26px rgba(126, 255, 185, 0.44);
+    }
+
+    .tile.wrong {
+      box-shadow:
+        inset 0 0 0 2px rgba(255, 108, 152, 0.72),
+        0 0 28px rgba(255, 108, 152, 0.48);
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 18px;
+      display: grid;
+      place-items: center;
+      border-radius: 24px;
+      background: rgba(7, 11, 24, 0.82);
+      backdrop-filter: blur(8px);
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.98);
+      transition: opacity 220ms ease, transform 220ms ease;
+    }
+
+    .overlay.show {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .overlay-card {
+      padding: 28px 32px;
+      border-radius: 28px;
+      text-align: center;
+      background: rgba(17, 24, 46, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: var(--shadow);
+      animation: pulseIn 600ms ease;
+    }
+
+    @keyframes pulseIn {
+      0% {
+        opacity: 0;
+        transform: translateY(10px) scale(0.94);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .overlay-card h2 {
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      letter-spacing: -0.04em;
+    }
+
+    .overlay-card p {
+      margin-top: 10px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .sidebar {
+      padding: 18px;
+    }
+
+    .player-item {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      transition: transform 140ms ease, border-color 140ms ease, opacity 140ms ease;
+    }
+
+    .player-item.active {
+      border-color: rgba(124, 240, 255, 0.5);
+      transform: translateX(3px);
+    }
+
+    .player-item.eliminated {
+      opacity: 0.48;
+      border-color: rgba(255, 108, 152, 0.3);
+    }
+
+    .player-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .badge.good {
+      color: #07181a;
+      background: var(--good);
+    }
+
+    .badge.bad {
+      background: rgba(255, 108, 152, 0.18);
+      color: #ff9dbb;
+    }
+
+    .feedback {
+      min-height: 46px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      line-height: 1.6;
+    }
+
+    .feedback.good {
+      border-color: rgba(126, 255, 185, 0.38);
+      color: var(--good);
+    }
+
+    .feedback.bad {
+      border-color: rgba(255, 108, 152, 0.42);
+      color: #ff9dbb;
+    }
+
+    .rule-list {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .small {
+      font-size: 0.94rem;
+    }
+
+    @media (max-width: 920px) {
+      .hero,
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .stats,
+      .meta-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .app {
+        width: min(100vw - 16px, 1160px);
+      }
+
+      .hero,
+      .hud,
+      .board-shell,
+      .sidebar {
+        padding: 16px;
+      }
+
+      .setup-row {
+        grid-template-columns: 1fr;
+      }
+
+      .grid {
+        gap: 10px;
+      }
+
+      .tile {
+        min-height: 82px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Party Toy</p>
+        <h1>节奏色块记忆派对</h1>
+        <p class="lede">
+          4x4 色块会按固定节拍依次点亮，玩家需要在倒计时内按顺序复现整段记忆。支持 1-4 人热座挑战，答错就淘汰，单人模式会记录最高连续正确轮数。
+        </p>
+        <div class="stats">
+          <div class="stat">
+            <div class="label">起始序列</div>
+            <div class="value">3 格起步</div>
+          </div>
+          <div class="stat">
+            <div class="label">玩家人数</div>
+            <div class="value">1-4 人</div>
+          </div>
+          <div class="stat">
+            <div class="label">回合节拍</div>
+            <div class="value">固定高亮节奏</div>
+          </div>
+          <div class="stat">
+            <div class="label">胜负条件</div>
+            <div class="value">最后存活</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="setup-card">
+        <p class="label">开始游戏</p>
+        <div class="setup-row">
+          <label class="field" for="player-count">
+            <span>玩家数量</span>
+            <select id="player-count">
+              <option value="1">1 人练习</option>
+              <option value="2">2 人热座</option>
+              <option value="3">3 人热座</option>
+              <option value="4">4 人热座</option>
+            </select>
+          </label>
+          <button class="button primary" id="start-button" type="button">开始派对</button>
+          <button class="button ghost" id="restart-button" type="button">重新开局</button>
+        </div>
+        <div class="meta-grid">
+          <div class="meta-pill">
+            当前模式
+            <strong id="mode-label">单人练习</strong>
+          </div>
+          <div class="meta-pill">
+            最高连胜
+            <strong id="best-score">0</strong>
+          </div>
+          <div class="meta-pill">
+            当前玩家
+            <strong id="player-indicator">等待开始</strong>
+          </div>
+          <div class="meta-pill">
+            存活人数
+            <strong id="alive-indicator">0 / 0</strong>
+          </div>
+        </div>
+        <div class="feedback small" id="feedback">
+          选择人数后开始。多人模式会让所有存活玩家轮流挑战同一条序列。
+        </div>
+      </div>
+    </section>
+
+    <section class="layout">
+      <div class="panel">
+        <div class="hud">
+          <div class="status-bar">
+            <div class="turn-banner">
+              <span class="dot"></span>
+              <strong id="phase-label">准备中</strong>
+            </div>
+            <div class="timer-track" aria-label="倒计时">
+              <div class="timer-fill" id="timer-fill"></div>
+            </div>
+          </div>
+          <div class="meta-grid">
+            <div class="meta-pill">
+              回合
+              <strong id="round-label">1</strong>
+            </div>
+            <div class="meta-pill">
+              序列长度
+              <strong id="sequence-label">3</strong>
+            </div>
+            <div class="meta-pill">
+              输入进度
+              <strong id="progress-label">0 / 3</strong>
+            </div>
+            <div class="meta-pill">
+              倒计时
+              <strong id="timer-label">0.0s</strong>
+            </div>
+          </div>
+        </div>
+        <div class="board-shell">
+          <div class="board" id="board">
+            <div class="grid" id="grid"></div>
+          </div>
+          <div class="overlay show" id="overlay">
+            <div class="overlay-card">
+              <p class="eyebrow">Ready</p>
+              <h2 id="overlay-title">节奏色块记忆派对</h2>
+              <p id="overlay-copy">选择人数后开始。系统会先播放一段高亮序列，再轮到玩家点击复现。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="panel sidebar">
+        <div class="sidebar-card">
+          <p class="label">玩家状态</p>
+          <div class="player-list" id="player-list"></div>
+        </div>
+        <div class="sidebar-card">
+          <p class="label">规则</p>
+          <ol class="rule-list">
+            <li>系统先播放本轮色块序列，初始长度为 3，每轮 +1。</li>
+            <li>当前玩家需要在倒计时内按正确顺序点击色块。</li>
+            <li>多人模式下答错立即淘汰，最后一名存活玩家获胜。</li>
+            <li>单人模式会记录最高连续正确轮数。</li>
+          </ol>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const GRID_SIZE = 16;
+    const START_LENGTH = 3;
+    const MAX_PLAYERS = 4;
+    const BEAT_MS = 620;
+    const FLASH_MS = 320;
+    const TURN_BUFFER_MS = 900;
+    const MIN_TURN_MS = 5000;
+    const TIME_PER_STEP_MS = 1500;
+    const OVERLAY_MS = 1500;
+    const STORAGE_KEY = "rhythm-color-memory-party-best";
+    const TILE_COLORS = [
+      ["#ff7a9c", "#ff4f6c"],
+      ["#ff9d66", "#ff7043"],
+      ["#ffd86e", "#ffb938"],
+      ["#b8f36b", "#76d943"],
+      ["#57f3a0", "#1fd88e"],
+      ["#64f5ef", "#2ac5d7"],
+      ["#62c7ff", "#3c8dff"],
+      ["#8392ff", "#5a66ff"],
+      ["#b288ff", "#8b5dff"],
+      ["#ff88eb", "#ff58c9"],
+      ["#ff7ec2", "#ff4fa1"],
+      ["#ff9280", "#ff664d"],
+      ["#ffa84c", "#ff7d23"],
+      ["#d1f05e", "#a8d93d"],
+      ["#78ffce", "#37df9b"],
+      ["#89f3ff", "#49b8ff"]
+    ];
+
+    const state = {
+      audioContext: null,
+      playerCount: 1,
+      players: [],
+      sequence: [],
+      round: 1,
+      currentSequenceLength: START_LENGTH,
+      currentPlayerIndex: -1,
+      currentTurnOrder: [],
+      turnCursor: 0,
+      inputIndex: 0,
+      awaitingInput: false,
+      playbackToken: 0,
+      countdownId: 0,
+      turnDeadline: 0,
+      phase: "idle",
+      soloBest: Number(window.localStorage.getItem(STORAGE_KEY) || 0),
+      soloScore: 0
+    };
+
+    const board = document.querySelector("#board");
+    const grid = document.querySelector("#grid");
+    const playerCountSelect = document.querySelector("#player-count");
+    const startButton = document.querySelector("#start-button");
+    const restartButton = document.querySelector("#restart-button");
+    const overlay = document.querySelector("#overlay");
+    const overlayTitle = document.querySelector("#overlay-title");
+    const overlayCopy = document.querySelector("#overlay-copy");
+    const feedback = document.querySelector("#feedback");
+    const phaseLabel = document.querySelector("#phase-label");
+    const roundLabel = document.querySelector("#round-label");
+    const sequenceLabel = document.querySelector("#sequence-label");
+    const progressLabel = document.querySelector("#progress-label");
+    const timerLabel = document.querySelector("#timer-label");
+    const timerFill = document.querySelector("#timer-fill");
+    const playerIndicator = document.querySelector("#player-indicator");
+    const aliveIndicator = document.querySelector("#alive-indicator");
+    const bestScore = document.querySelector("#best-score");
+    const modeLabel = document.querySelector("#mode-label");
+    const playerList = document.querySelector("#player-list");
+
+    function wait(ms) {
+      return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+
+    function getAlivePlayers() {
+      return state.players.filter((player) => player.alive);
+    }
+
+    function getCurrentPlayer() {
+      return state.players[state.currentPlayerIndex] ?? null;
+    }
+
+    function ensureAudioContext() {
+      if (!state.audioContext) {
+        const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+        state.audioContext = AudioContextCtor ? new AudioContextCtor() : null;
+      }
+      if (state.audioContext && state.audioContext.state === "suspended") {
+        state.audioContext.resume().catch(() => {});
+      }
+    }
+
+    function playTone(frequency, duration, type, volume) {
+      ensureAudioContext();
+      if (!state.audioContext) {
+        return;
+      }
+      const now = state.audioContext.currentTime;
+      const oscillator = state.audioContext.createOscillator();
+      const gain = state.audioContext.createGain();
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, now);
+      gain.gain.setValueAtTime(volume, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+      oscillator.connect(gain);
+      gain.connect(state.audioContext.destination);
+      oscillator.start(now);
+      oscillator.stop(now + duration);
+    }
+
+    function playTileTone(tileIndex) {
+      playTone(220 + tileIndex * 22, 0.22, "triangle", 0.06);
+    }
+
+    function playCorrectTone() {
+      playTone(660, 0.12, "sine", 0.07);
+      window.setTimeout(() => playTone(880, 0.18, "sine", 0.05), 80);
+    }
+
+    function playWrongTone() {
+      playTone(150, 0.28, "sawtooth", 0.08);
+    }
+
+    function playTimeoutTone() {
+      playTone(120, 0.36, "square", 0.08);
+    }
+
+    function showFeedback(message, tone = "neutral") {
+      feedback.textContent = message;
+      feedback.className = "feedback";
+      if (tone === "good") {
+        feedback.classList.add("good");
+      }
+      if (tone === "bad") {
+        feedback.classList.add("bad");
+      }
+    }
+
+    function updateHud() {
+      const currentPlayer = getCurrentPlayer();
+      const alivePlayers = getAlivePlayers();
+      const totalPlayers = state.players.length || state.playerCount;
+      const remainingMs = Math.max(0, state.turnDeadline - performance.now());
+      const targetLength = state.currentSequenceLength;
+      const currentProgress = Math.min(state.inputIndex, targetLength);
+
+      roundLabel.textContent = String(state.round);
+      sequenceLabel.textContent = String(targetLength);
+      progressLabel.textContent = `${currentProgress} / ${targetLength}`;
+      timerLabel.textContent = state.awaitingInput ? `${(remainingMs / 1000).toFixed(1)}s` : "--";
+      playerIndicator.textContent = currentPlayer ? currentPlayer.name : "等待开始";
+      aliveIndicator.textContent = `${alivePlayers.length} / ${totalPlayers}`;
+      bestScore.textContent = String(state.soloBest);
+      modeLabel.textContent = state.playerCount === 1 ? "单人练习" : `${state.playerCount} 人热座`;
+
+      if (state.awaitingInput) {
+        const totalTime = Math.max(MIN_TURN_MS, state.currentSequenceLength * TIME_PER_STEP_MS);
+        timerFill.style.width = `${Math.max(0, (remainingMs / totalTime) * 100)}%`;
+      } else {
+        timerFill.style.width = "100%";
+      }
+    }
+
+    function renderPlayers() {
+      playerList.replaceChildren(
+        ...state.players.map((player, index) => {
+          const item = document.createElement("div");
+          item.className = "player-item";
+          if (index === state.currentPlayerIndex) {
+            item.classList.add("active");
+          }
+          if (!player.alive) {
+            item.classList.add("eliminated");
+          }
+
+          const head = document.createElement("div");
+          head.className = "player-head";
+
+          const title = document.createElement("strong");
+          title.textContent = player.name;
+
+          const badge = document.createElement("span");
+          badge.className = "badge";
+          if (!player.alive) {
+            badge.classList.add("bad");
+            badge.textContent = "已淘汰";
+          } else if (player.clearedRounds >= state.round) {
+            badge.classList.add("good");
+            badge.textContent = "本轮通过";
+          } else {
+            badge.textContent = "待挑战";
+          }
+
+          const detail = document.createElement("small");
+          if (state.playerCount === 1) {
+            detail.textContent = `连续正确轮数 ${state.soloScore}，个人最佳 ${state.soloBest}`;
+          } else {
+            detail.textContent = `已通过 ${player.clearedRounds} 轮，淘汰前保持冷静。`;
+          }
+
+          head.append(title, badge);
+          item.append(head, detail);
+          return item;
+        })
+      );
+      updateHud();
+    }
+
+    function renderBoard() {
+      grid.replaceChildren(
+        ...Array.from({ length: GRID_SIZE }, (_, index) => {
+          const tile = document.createElement("button");
+          tile.type = "button";
+          tile.className = "tile";
+          tile.dataset.index = String(index);
+          tile.style.setProperty("--tile-a", TILE_COLORS[index][0]);
+          tile.style.setProperty("--tile-b", TILE_COLORS[index][1]);
+          tile.innerHTML = `<span>${index + 1}</span>`;
+          tile.addEventListener("pointerdown", () => handlePadInput(index));
+          return tile;
+        })
+      );
+    }
+
+    function setOverlay(title, copy, visible) {
+      overlayTitle.textContent = title;
+      overlayCopy.textContent = copy;
+      overlay.classList.toggle("show", visible);
+    }
+
+    async function showOverlayMessage(title, copy, ms = OVERLAY_MS) {
+      setOverlay(title, copy, true);
+      await wait(ms);
+      overlay.classList.remove("show");
+    }
+
+    function appendSequenceStep() {
+      state.sequence.push(Math.floor(Math.random() * GRID_SIZE));
+    }
+
+    function resetPlayers() {
+      state.players = Array.from({ length: state.playerCount }, (_, index) => ({
+        id: index + 1,
+        name: `P${index + 1}`,
+        alive: true,
+        clearedRounds: 0
+      }));
+    }
+
+    function clearCountdown() {
+      if (state.countdownId) {
+        window.clearInterval(state.countdownId);
+        state.countdownId = 0;
+      }
+      state.turnDeadline = 0;
+      state.awaitingInput = false;
+      updateHud();
+    }
+
+    function flashBoard(className) {
+      board.classList.remove("correct", "wrong");
+      board.classList.add(className);
+      window.setTimeout(() => board.classList.remove(className), 260);
+    }
+
+    async function flashTile(tileIndex, className = "active", duration = FLASH_MS) {
+      const tile = grid.children[tileIndex];
+      if (!tile) {
+        return;
+      }
+      tile.classList.add(className);
+      if (className === "active") {
+        playTileTone(tileIndex);
+      }
+      await wait(duration);
+      tile.classList.remove(className);
+    }
+
+    function beginCountdown() {
+      clearCountdown();
+      const totalTime = Math.max(MIN_TURN_MS, state.currentSequenceLength * TIME_PER_STEP_MS);
+      state.turnDeadline = performance.now() + totalTime;
+      state.awaitingInput = true;
+      state.countdownId = window.setInterval(() => {
+        updateHud();
+        if (performance.now() >= state.turnDeadline) {
+          clearCountdown();
+          playTimeoutTone();
+          handleFailure("时间到，节拍已经溜走了。");
+        }
+      }, 100);
+      updateHud();
+    }
+
+    async function playbackSequence() {
+      state.phase = "playback";
+      phaseLabel.textContent = "系统回放中";
+      state.playbackToken += 1;
+      const playbackToken = state.playbackToken;
+      showFeedback("观察高亮顺序，暂时不能输入。");
+      updateHud();
+
+      for (let step = 0; step < state.currentSequenceLength; step += 1) {
+        if (playbackToken !== state.playbackToken) {
+          return;
+        }
+        await flashTile(state.sequence[step], "active", FLASH_MS);
+        await wait(BEAT_MS - FLASH_MS);
+      }
+
+      if (playbackToken !== state.playbackToken) {
+        return;
+      }
+
+      state.inputIndex = 0;
+      phaseLabel.textContent = "输入阶段";
+      showFeedback("按顺序点击色块，别被倒计时打乱节奏。");
+      beginCountdown();
+    }
+
+    async function advanceTurn() {
+      const alivePlayers = getAlivePlayers();
+      if (state.playerCount > 1 && alivePlayers.length <= 1) {
+        if (alivePlayers.length === 1) {
+          await finishGame(`${alivePlayers[0].name} 获胜`, `其余玩家已被淘汰，${alivePlayers[0].name} 成为最后存活者。`);
+        }
+        return;
+      }
+
+      if (state.turnCursor >= state.currentTurnOrder.length) {
+        state.round += 1;
+        state.currentSequenceLength += 1;
+        appendSequenceStep();
+        state.turnCursor = 0;
+        state.currentTurnOrder = getAlivePlayers().map((player) => player.id - 1);
+        state.players.forEach((player) => {
+          if (player.alive) {
+            player.clearedRounds = Math.min(player.clearedRounds, state.round - 1);
+          }
+        });
+        renderPlayers();
+        await showOverlayMessage(`第 ${state.round} 轮`, `序列长度提升到 ${state.currentSequenceLength}，所有存活玩家将挑战同一条新序列。`);
+      }
+
+      state.currentPlayerIndex = state.currentTurnOrder[state.turnCursor];
+      state.turnCursor += 1;
+      const player = getCurrentPlayer();
+      renderPlayers();
+      await showOverlayMessage(`${player.name} 的回合`, state.playerCount === 1 ? "记住节奏，争取继续刷新最高连胜。" : "同一条序列，轮到你上场了。");
+      await playbackSequence();
+    }
+
+    async function handleSuccess() {
+      clearCountdown();
+      playCorrectTone();
+      flashBoard("correct");
+      const player = getCurrentPlayer();
+      player.clearedRounds = Math.max(player.clearedRounds, state.round);
+
+      if (state.playerCount === 1) {
+        state.soloScore += 1;
+        state.soloBest = Math.max(state.soloBest, state.soloScore);
+        window.localStorage.setItem(STORAGE_KEY, String(state.soloBest));
+        showFeedback(`连续正确 ${state.soloScore} 轮，准备进入下一轮。`, "good");
+      } else {
+        showFeedback(`${player.name} 通过本轮，继续保持。`, "good");
+      }
+
+      renderPlayers();
+      await wait(TURN_BUFFER_MS);
+      await advanceTurn();
+    }
+
+    async function handleFailure(reason) {
+      clearCountdown();
+      state.playbackToken += 1;
+      const player = getCurrentPlayer();
+      if (!player) {
+        return;
+      }
+
+      if (state.playerCount === 1) {
+        playWrongTone();
+        flashBoard("wrong");
+        showFeedback(`挑战结束：${reason} 本次成绩 ${state.soloScore}。`, "bad");
+        state.soloBest = Math.max(state.soloBest, state.soloScore);
+        window.localStorage.setItem(STORAGE_KEY, String(state.soloBest));
+        renderPlayers();
+        await finishGame("练习结束", `你连续完成了 ${state.soloScore} 轮，个人最佳为 ${state.soloBest}。`);
+        return;
+      }
+
+      playWrongTone();
+      flashBoard("wrong");
+      player.alive = false;
+      showFeedback(`${player.name} 淘汰：${reason}`, "bad");
+      renderPlayers();
+      await wait(TURN_BUFFER_MS);
+      await advanceTurn();
+    }
+
+    async function finishGame(title, copy) {
+      clearCountdown();
+      state.phase = "finished";
+      phaseLabel.textContent = "对局结束";
+      renderPlayers();
+      setOverlay(title, copy, true);
+    }
+
+    async function handlePadInput(padIndex) {
+      if (!state.awaitingInput || state.phase === "finished") {
+        return;
+      }
+      const expectedIndex = state.sequence[state.inputIndex];
+      const tile = grid.children[padIndex];
+      if (!tile) {
+        return;
+      }
+
+      if (padIndex === expectedIndex) {
+        tile.classList.add("correct");
+        playTileTone(padIndex);
+        window.setTimeout(() => tile.classList.remove("correct"), 220);
+        state.inputIndex += 1;
+        updateHud();
+        if (state.inputIndex >= state.currentSequenceLength) {
+          await handleSuccess();
+        }
+        return;
+      }
+
+      tile.classList.add("wrong");
+      window.setTimeout(() => tile.classList.remove("wrong"), 260);
+      await handleFailure(`按错了第 ${state.inputIndex + 1} 步。`);
+    }
+
+    async function startGame() {
+      ensureAudioContext();
+      state.playerCount = Math.min(MAX_PLAYERS, Math.max(1, Number(playerCountSelect.value) || 1));
+      state.round = 1;
+      state.currentSequenceLength = START_LENGTH;
+      state.currentPlayerIndex = -1;
+      state.currentTurnOrder = [];
+      state.turnCursor = 0;
+      state.inputIndex = 0;
+      state.phase = "starting";
+      state.playbackToken += 1;
+      state.soloScore = 0;
+      clearCountdown();
+      resetPlayers();
+      state.sequence = [];
+      while (state.sequence.length < START_LENGTH) {
+        appendSequenceStep();
+      }
+      state.currentTurnOrder = state.players.map((player) => player.id - 1);
+      showFeedback(state.playerCount === 1 ? "单人练习开始，连续过关会刷新个人最佳。" : `热座派对开始，共 ${state.playerCount} 位玩家。`);
+      renderPlayers();
+      await showOverlayMessage("准备开始", state.playerCount === 1 ? "单人练习模式，记住每一轮都会变长。" : "多人模式下答错就淘汰，最后存活者获胜。");
+      await advanceTurn();
+    }
+
+    playerCountSelect.addEventListener("change", () => {
+      state.playerCount = Number(playerCountSelect.value) || 1;
+      updateHud();
+      modeLabel.textContent = state.playerCount === 1 ? "单人练习" : `${state.playerCount} 人热座`;
+    });
+
+    startButton.addEventListener("click", () => {
+      startGame().catch((error) => {
+        console.error(error);
+        showFeedback("启动失败，请刷新页面重试。", "bad");
+      });
+    });
+
+    restartButton.addEventListener("click", () => {
+      startGame().catch((error) => {
+        console.error(error);
+        showFeedback("重开失败，请刷新页面重试。", "bad");
+      });
+    });
+
+    renderBoard();
+    resetPlayers();
+    renderPlayers();
+    updateHud();
+  </script>
+</body>
+</html>
