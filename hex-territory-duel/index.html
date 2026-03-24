@@ -3,27 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>双人领地争夺棋</title>
+  <title>领地争夺：双人策略涂色</title>
   <style>
     :root {
-      --bg: #f5f0e7;
-      --panel: rgba(255, 250, 242, 0.92);
-      --line: rgba(72, 52, 31, 0.14);
-      --text: #2c2218;
-      --muted: #6d6258;
-      --board: #efe0c3;
-      --board-stroke: #b99b6e;
-      --p1: #db5e4f;
-      --p1-soft: #f8c7bf;
-      --p2: #3479cc;
-      --p2-soft: #c4dcfa;
-      --legal: #f5d86e;
-      --barrier: #62564c;
-      --booster: #f0a53a;
-      --portal: #7a52c4;
-      --accent: #4f8a4e;
-      --accent-dark: #3f6f40;
-      --shadow: 0 20px 48px rgba(60, 41, 23, 0.12);
+      --bg: #f3efe5;
+      --panel: rgba(255, 251, 244, 0.94);
+      --text: #2e261f;
+      --muted: #6e6255;
+      --grid: #c8b9a0;
+      --hex: #f2e6cf;
+      --legal: #f2c94c;
+      --p1: #d95c45;
+      --p1-soft: #f4c1b5;
+      --p2: #3478c8;
+      --p2-soft: #bfd8f8;
+      --bomb: #3f3125;
+      --portal: #7d58d7;
+      --accent: #56793e;
+      --accent-dark: #3f5c2f;
+      --shadow: 0 18px 40px rgba(57, 43, 27, 0.14);
     }
 
     * {
@@ -36,31 +34,33 @@
       font-family: "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at top left, rgba(255, 255, 255, 0.9), transparent 26%),
-        radial-gradient(circle at bottom right, rgba(52, 121, 204, 0.12), transparent 22%),
-        linear-gradient(180deg, #fbf7f1 0%, var(--bg) 100%);
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.88), transparent 22%),
+        linear-gradient(180deg, #faf6ef 0%, var(--bg) 100%);
     }
 
-    button {
+    h1, h2, p {
+      margin: 0;
+    }
+
+    button, input {
       font: inherit;
     }
 
     .app {
-      width: min(1240px, calc(100vw - 28px));
+      width: min(1180px, calc(100vw - 28px));
       margin: 0 auto;
-      padding: 24px 0 36px;
+      padding: 24px 0 32px;
       display: grid;
-      grid-template-columns: minmax(0, 1.65fr) minmax(300px, 360px);
+      grid-template-columns: minmax(0, 1.65fr) minmax(280px, 360px);
       gap: 18px;
     }
 
     .panel,
     .sidebar {
-      border: 1px solid var(--line);
-      border-radius: 24px;
       background: var(--panel);
+      border: 1px solid rgba(76, 57, 37, 0.12);
+      border-radius: 24px;
       box-shadow: var(--shadow);
-      backdrop-filter: blur(10px);
     }
 
     .panel {
@@ -74,17 +74,10 @@
       align-content: start;
     }
 
-    h1,
-    h2,
-    h3,
-    p {
-      margin: 0;
-    }
-
     h1 {
-      font-size: clamp(2.3rem, 5vw, 4rem);
-      line-height: 0.94;
-      letter-spacing: -0.05em;
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      line-height: 0.95;
+      letter-spacing: -0.04em;
     }
 
     .lede {
@@ -104,10 +97,9 @@
     .stat {
       padding: 10px 14px;
       border-radius: 999px;
-      border: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.72);
+      background: rgba(255, 255, 255, 0.75);
+      border: 1px solid rgba(76, 57, 37, 0.1);
       color: var(--muted);
-      font-size: 0.95rem;
     }
 
     .stat strong {
@@ -115,146 +107,27 @@
     }
 
     .board-shell {
-      position: relative;
       margin-top: 18px;
       padding: 14px;
       border-radius: 20px;
-      border: 1px solid rgba(72, 52, 31, 0.12);
-      background:
-        radial-gradient(circle at top, rgba(255, 255, 255, 0.86), transparent 34%),
-        linear-gradient(180deg, rgba(248, 241, 228, 0.98), rgba(238, 228, 210, 0.98));
+      background: linear-gradient(180deg, rgba(250, 244, 232, 0.98), rgba(238, 228, 210, 0.98));
+      border: 1px solid rgba(76, 57, 37, 0.1);
       overflow: auto;
     }
 
     svg {
       display: block;
       width: 100%;
-      height: auto;
-      min-height: 560px;
-    }
-
-    .tooltip {
-      position: absolute;
-      z-index: 5;
-      max-width: 240px;
-      padding: 10px 12px;
-      border-radius: 14px;
-      background: rgba(44, 34, 24, 0.94);
-      color: #fff9ef;
-      font-size: 0.9rem;
-      line-height: 1.45;
-      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
-      pointer-events: none;
-      opacity: 0;
-      transform: translate(-50%, -8px);
-      transition: opacity 120ms ease;
-    }
-
-    .tooltip.visible {
-      opacity: 1;
-    }
-
-    .cell-shape {
-      fill: var(--board);
-      stroke: var(--board-stroke);
-      stroke-width: 1.9;
-      transition: fill 180ms ease, stroke 180ms ease, transform 180ms ease, filter 180ms ease;
-      cursor: pointer;
-    }
-
-    .cell.blocked .cell-shape,
-    .cell.disabled .cell-shape {
-      cursor: default;
-    }
-
-    .cell.legal .cell-shape {
-      stroke: var(--legal);
-      stroke-width: 2.6;
-      filter: drop-shadow(0 0 10px rgba(245, 216, 110, 0.56));
-    }
-
-    .cell.barrier .cell-shape {
-      fill: #d5cdc4;
-      stroke: #7e7267;
-    }
-
-    .piece-ring {
-      fill: none;
-      stroke-width: 3;
-      opacity: 0.24;
-    }
-
-    .piece-ring.p1 {
-      stroke: var(--p1);
-    }
-
-    .piece-ring.p2 {
-      stroke: var(--p2);
-    }
-
-    .piece {
-      transition: transform 380ms cubic-bezier(0.2, 0.7, 0.2, 1), fill 260ms ease;
-      transform-box: fill-box;
-      transform-origin: center;
-    }
-
-    .piece.p1 {
-      fill: var(--p1);
-    }
-
-    .piece.p2 {
-      fill: var(--p2);
-    }
-
-    .piece.flipped {
-      animation: flipPiece 420ms ease;
-    }
-
-    @keyframes flipPiece {
-      0% { transform: scaleX(1) scale(1); }
-      45% { transform: scaleX(0.18) scale(0.92); }
-      100% { transform: scaleX(1) scale(1); }
-    }
-
-    .special-mark,
-    .coord-label {
-      pointer-events: none;
-      user-select: none;
-      text-anchor: middle;
-    }
-
-    .special-mark {
-      font-size: 15px;
-      font-weight: 800;
-      fill: rgba(44, 34, 24, 0.78);
-    }
-
-    .coord-label {
-      font-size: 9px;
-      fill: rgba(44, 34, 24, 0.38);
-    }
-
-    .portal-link {
-      stroke: rgba(122, 82, 196, 0.34);
-      stroke-width: 3;
-      stroke-dasharray: 8 7;
-      fill: none;
-      pointer-events: none;
+      min-height: 620px;
     }
 
     .card {
       padding: 14px;
       border-radius: 18px;
-      border: 1px solid rgba(72, 52, 31, 0.1);
-      background: rgba(255, 255, 255, 0.7);
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(76, 57, 37, 0.1);
       display: grid;
       gap: 10px;
-    }
-
-    .status {
-      min-height: 5.2em;
-      color: var(--muted);
-      line-height: 1.58;
     }
 
     .score-grid {
@@ -271,16 +144,22 @@
 
     .score-box strong {
       display: block;
+      font-size: 1.6rem;
       margin-top: 4px;
-      font-size: 1.55rem;
     }
 
     .score-box.p1 {
-      background: linear-gradient(180deg, #ea836d, var(--p1));
+      background: linear-gradient(180deg, #e27f69, var(--p1));
     }
 
     .score-box.p2 {
-      background: linear-gradient(180deg, #5d9be0, var(--p2));
+      background: linear-gradient(180deg, #5e9de1, var(--p2));
+    }
+
+    .status {
+      min-height: 5em;
+      color: var(--muted);
+      line-height: 1.58;
     }
 
     .actions {
@@ -291,39 +170,96 @@
 
     button {
       min-height: 46px;
-      border-radius: 14px;
       border: 0;
-      background: linear-gradient(180deg, var(--accent), var(--accent-dark));
-      color: #f6f3ea;
+      border-radius: 14px;
       font-weight: 700;
+      color: #f7f3e8;
       cursor: pointer;
-      box-shadow: 0 12px 20px rgba(69, 110, 53, 0.18);
+      background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+      box-shadow: 0 10px 18px rgba(71, 104, 49, 0.18);
     }
 
     button.secondary {
-      background: linear-gradient(180deg, #8a7765, #6e5c4d);
-      box-shadow: 0 12px 20px rgba(71, 56, 44, 0.16);
+      background: linear-gradient(180deg, #8a7765, #6f5d4e);
+      box-shadow: 0 10px 18px rgba(74, 56, 43, 0.16);
+    }
+
+    label.toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
     }
 
     .legend {
       display: grid;
       gap: 8px;
       color: var(--muted);
-      font-size: 0.94rem;
       line-height: 1.52;
+      font-size: 0.95rem;
     }
 
     .legend strong {
       color: var(--text);
     }
 
+    .hex-shape {
+      fill: var(--hex);
+      stroke: var(--grid);
+      stroke-width: 2;
+      transition: transform 160ms ease, fill 160ms ease, stroke 160ms ease;
+      cursor: pointer;
+    }
+
+    .cell.legal .hex-shape {
+      stroke: var(--legal);
+      stroke-width: 3;
+      filter: drop-shadow(0 0 8px rgba(242, 201, 76, 0.58));
+    }
+
+    .cell.unplayable .hex-shape {
+      cursor: default;
+    }
+
+    .cell.p1 .hex-shape {
+      fill: var(--p1-soft);
+    }
+
+    .cell.p2 .hex-shape {
+      fill: var(--p2-soft);
+    }
+
+    .cell-badge {
+      font-size: 11px;
+      font-weight: 800;
+      fill: rgba(46, 38, 31, 0.8);
+      text-anchor: middle;
+      pointer-events: none;
+    }
+
+    .cell-points {
+      font-size: 18px;
+      font-weight: 800;
+      fill: var(--text);
+      text-anchor: middle;
+      pointer-events: none;
+    }
+
+    .cell-owner {
+      font-size: 10px;
+      font-weight: 700;
+      fill: rgba(46, 38, 31, 0.55);
+      text-anchor: middle;
+      pointer-events: none;
+    }
+
     .overlay {
       position: fixed;
       inset: 0;
-      background: rgba(26, 19, 12, 0.46);
       display: grid;
       place-items: center;
       padding: 24px;
+      background: rgba(28, 20, 14, 0.48);
     }
 
     .overlay[hidden] {
@@ -334,12 +270,12 @@
       width: min(460px, 100%);
       padding: 24px;
       border-radius: 24px;
-      background: rgba(255, 250, 242, 0.96);
-      border: 1px solid var(--line);
+      text-align: center;
+      background: rgba(255, 250, 242, 0.97);
+      border: 1px solid rgba(76, 57, 37, 0.12);
       box-shadow: var(--shadow);
       display: grid;
       gap: 12px;
-      text-align: center;
     }
 
     .overlay-score {
@@ -351,23 +287,24 @@
     .overlay-score div {
       padding: 12px;
       border-radius: 16px;
-      background: rgba(245, 240, 232, 0.95);
-      border: 1px solid rgba(72, 52, 31, 0.1);
+      background: rgba(244, 237, 226, 0.96);
+      border: 1px solid rgba(76, 57, 37, 0.08);
     }
 
     @media (max-width: 980px) {
       .app {
         grid-template-columns: 1fr;
       }
-
-      svg {
-        min-height: 480px;
-      }
     }
 
     @media (max-width: 640px) {
-      .actions {
+      .actions,
+      .score-grid {
         grid-template-columns: 1fr;
+      }
+
+      svg {
+        min-height: 520px;
       }
     }
   </style>
@@ -375,24 +312,23 @@
 <body>
   <main class="app">
     <section class="panel">
-      <h1>双人领地争夺棋</h1>
+      <h1>领地争夺：双人策略涂色</h1>
       <p class="lede">
-        六边形黑白棋变体。双方轮流在合法空格落子，沿六个方向包夹并翻转对手棋子；倍增格会额外翻转一圈，屏障格不可落子，传送格会把一颗己方棋子送到配对传送格旁。棋盘填满或双方都无合法落子时自动结算。
+        双人热座回合制六边形扩张。双方从角落出发，只能点击与己方领地相邻的空格扩张，每格都会贡献 1-3 分。炸弹格会清空周围一圈已占领地块，传送门会顺手占领中心对称位置，地图填满或双方都无路可走时自动结算。
       </p>
       <div class="stats">
         <div class="stat">当前行动: <strong id="turn-player">红方</strong></div>
-        <div class="stat">合法落点: <strong id="legal-count">0</strong></div>
-        <div class="stat">随机布局: <strong id="seed-label">-</strong></div>
+        <div class="stat">可走步数: <strong id="legal-count">0</strong></div>
+        <div class="stat">地图种子: <strong id="seed-label">-</strong></div>
       </div>
       <div class="board-shell">
-        <svg id="hex-board" aria-label="双人领地争夺棋棋盘"></svg>
-        <div id="tile-tooltip" class="tooltip" role="tooltip"></div>
+        <svg id="hex-board" aria-label="六边形领地争夺棋盘"></svg>
       </div>
     </section>
 
     <aside class="sidebar">
       <section class="card">
-        <h2>占地统计</h2>
+        <h2>得分</h2>
         <div class="score-grid">
           <div class="score-box p1">红方<strong id="score-p1">0</strong></div>
           <div class="score-box p2">蓝方<strong id="score-p2">0</strong></div>
@@ -407,18 +343,22 @@
       <section class="card">
         <h2>控制</h2>
         <div class="actions">
-          <button type="button" id="restart-button">重新开始</button>
-          <button type="button" id="randomize-button" class="secondary">随机新地图</button>
+          <button type="button" id="restart-button">重新开局</button>
+          <button type="button" id="randomize-button" class="secondary">随机地图</button>
         </div>
+        <label class="toggle">
+          <input id="ai-toggle" type="checkbox">
+          开启单人模式（蓝方使用贪心 AI）
+        </label>
       </section>
 
       <section class="card">
         <h2>特殊格说明</h2>
         <div class="legend">
-          <div><strong>◎ 倍增格</strong>：按正常规则翻转后，再额外翻转距离 2 内的一圈敌方棋子。</div>
-          <div><strong>■ 屏障格</strong>：永久阻挡，不可放置，也会打断包夹线路。</div>
-          <div><strong>◇ 传送格</strong>：落子后，若能找到己方棋子与目标空位，会把一颗己方棋子送到另一枚传送格旁。</div>
-          <div>悬停特殊格可查看 tooltip，合法落点会发光提示；若当前玩家无路可走会自动跳过回合。</div>
+          <div><strong>💣 炸弹格</strong>：占领后清除周围 1 圈内所有已占领地块，但保留当前落子。</div>
+          <div><strong>🌀 传送门</strong>：占领后会额外占领中心对称位置；若目标已被占领则不触发。</div>
+          <div><strong>数字点数</strong>：每格随机 1-3 分，占领后立即计入总分。</div>
+          <div>若当前玩家没有相邻空格可走，会自动跳过；双方都无法行动时直接结算。</div>
         </div>
       </section>
     </aside>
@@ -429,38 +369,38 @@
       <h2 id="result-title">对局结束</h2>
       <p id="result-text"></p>
       <div class="overlay-score">
-        <div>红方占地<br><strong id="result-p1">0</strong></div>
-        <div>蓝方占地<br><strong id="result-p2">0</strong></div>
+        <div>红方得分<br><strong id="result-p1">0</strong></div>
+        <div>蓝方得分<br><strong id="result-p2">0</strong></div>
       </div>
-      <button type="button" id="overlay-restart-button">再开一局</button>
+      <button type="button" id="overlay-restart-button">再来一局</button>
     </div>
   </section>
 
   <script>
-    const HEX_DIRECTIONS = [
-      [1, 0], [1, -1], [0, -1],
-      [-1, 0], [-1, 1], [0, 1]
-    ];
-    const BOARD_RADIUS = 4;
-    const HEX_SIZE = 34;
+    const ROWS = 7;
+    const COLS = 7;
+    const HEX_SIZE = 36;
     const SVG_NS = "http://www.w3.org/2000/svg";
-    const SPECIAL_TILE_INFO = {
-      booster: { label: "倍增格", mark: "◎", text: "本回合落在这里后，除常规包夹外，还会额外翻转距离 2 内的一圈敌方棋子。" },
-      barrier: { label: "屏障格", mark: "■", text: "不可放置，也会阻断六方向上的包夹路径。" },
-      portal: { label: "传送格", mark: "◇", text: "落子后会尝试把一颗己方棋子送到配对传送格旁的空位，制造新的前线。" },
-      normal: { label: "普通格", mark: "", text: "普通六边形地块，仅执行标准六方向包夹翻转。" }
-    };
+    const SPECIAL_TILE_RATIO = 0.15;
+    const DIRECTIONS_EVEN = [
+      [-1, -1], [-1, 0], [0, -1],
+      [0, 1], [1, -1], [1, 0]
+    ];
+    const DIRECTIONS_ODD = [
+      [-1, 0], [-1, 1], [0, -1],
+      [0, 1], [1, 0], [1, 1]
+    ];
 
     const boardEl = document.querySelector("#hex-board");
-    const tooltipEl = document.querySelector("#tile-tooltip");
-    const scoreP1El = document.querySelector("#score-p1");
-    const scoreP2El = document.querySelector("#score-p2");
     const turnPlayerEl = document.querySelector("#turn-player");
     const legalCountEl = document.querySelector("#legal-count");
     const seedLabelEl = document.querySelector("#seed-label");
+    const scoreP1El = document.querySelector("#score-p1");
+    const scoreP2El = document.querySelector("#score-p2");
     const statusTextEl = document.querySelector("#status-text");
     const restartButtonEl = document.querySelector("#restart-button");
     const randomizeButtonEl = document.querySelector("#randomize-button");
+    const aiToggleEl = document.querySelector("#ai-toggle");
     const resultOverlayEl = document.querySelector("#result-overlay");
     const resultTitleEl = document.querySelector("#result-title");
     const resultTextEl = document.querySelector("#result-text");
@@ -469,16 +409,18 @@
     const overlayRestartButtonEl = document.querySelector("#overlay-restart-button");
 
     const state = {
-      cells: [],
-      cellMap: new Map(),
-      currentPlayer: 1,
-      passCount: 0,
-      gameOver: false,
-      winner: 0,
       seed: 0,
-      legalMoves: new Map(),
-      flipAnimationKeys: new Set()
+      cells: [],
+      currentPlayer: 1,
+      gameOver: false,
+      legalMoves: [],
+      skipStreak: 0,
+      aiEnabled: false
     };
+
+    function randomSeed() {
+      return Math.floor(Math.random() * 900000) + 100000;
+    }
 
     function createRng(seed) {
       let value = seed >>> 0;
@@ -488,25 +430,42 @@
       };
     }
 
-    function keyOf(q, r) {
-      return `${q},${r}`;
+    function keyOf(row, col) {
+      return `${row},${col}`;
     }
 
-    function getCell(q, r) {
-      return state.cellMap.get(keyOf(q, r)) ?? null;
+    function playerName(player) {
+      return player === 1 ? "红方" : "蓝方";
     }
 
-    function axialDistance(a, b) {
-      const s1 = -a.q - a.r;
-      const s2 = -b.q - b.r;
-      return Math.max(Math.abs(a.q - b.q), Math.abs(a.r - b.r), Math.abs(s1 - s2));
+    function otherPlayer(player) {
+      return player === 1 ? 2 : 1;
     }
 
-    function cellToPixel(q, r) {
-      return {
-        x: HEX_SIZE * Math.sqrt(3) * (q + r / 2),
-        y: HEX_SIZE * 1.5 * r
-      };
+    function isInside(row, col) {
+      return row >= 0 && row < ROWS && col >= 0 && col < COLS;
+    }
+
+    function getCell(row, col) {
+      if (!isInside(row, col)) {
+        return null;
+      }
+      return state.cells[row][col];
+    }
+
+    function neighborsOf(row, col) {
+      const offsets = row % 2 === 0 ? DIRECTIONS_EVEN : DIRECTIONS_ODD;
+      return offsets
+        .map(([dr, dc]) => getCell(row + dr, col + dc))
+        .filter(Boolean);
+    }
+
+    function cellToPixel(row, col) {
+      const width = Math.sqrt(3) * HEX_SIZE;
+      const height = HEX_SIZE * 2;
+      const x = col * width + (row % 2 ? width / 2 : 0);
+      const y = row * (height * 0.75);
+      return { x, y };
     }
 
     function hexPoints(cx, cy, size) {
@@ -518,478 +477,319 @@
       return points.join(" ");
     }
 
-    function playerName(player) {
-      return player === 1 ? "红方" : "蓝方";
+    function shuffle(list, rng) {
+      const copy = list.slice();
+      for (let i = copy.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(rng() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
     }
 
-    function playerClass(player) {
-      return player === 1 ? "p1" : "p2";
-    }
-
-    function otherPlayer(player) {
-      return player === 1 ? 2 : 1;
-    }
-
-    function createCell(q, r) {
-      const pixel = cellToPixel(q, r);
-      return {
-        q,
-        r,
-        x: pixel.x,
-        y: pixel.y,
-        owner: 0,
-        special: "normal",
-        portalId: null
-      };
-    }
-
-    function resetBoard(seed) {
-      state.cells = [];
-      state.cellMap = new Map();
-      state.currentPlayer = 1;
-      state.passCount = 0;
-      state.gameOver = false;
-      state.winner = 0;
-      state.seed = seed;
-      state.flipAnimationKeys = new Set();
-
-      for (let q = -BOARD_RADIUS; q <= BOARD_RADIUS; q += 1) {
-        for (let r = -BOARD_RADIUS; r <= BOARD_RADIUS; r += 1) {
-          const s = -q - r;
-          if (Math.max(Math.abs(q), Math.abs(r), Math.abs(s)) <= BOARD_RADIUS) {
-            const cell = createCell(q, r);
-            state.cells.push(cell);
-            state.cellMap.set(keyOf(q, r), cell);
-          }
-        }
-      }
-
-      const rng = createRng(seed);
-      assignSpecialTiles(rng);
-      assignStartingPieces();
-      updateLegalMoves();
-      finishIfNeeded(false);
-      render();
-    }
-
-    function mirrorKey(cell) {
-      return keyOf(-cell.q, -cell.r);
-    }
-
-    function chooseSymmetricCells(candidates, pairCount, rng) {
-      const pool = candidates.slice();
-      const picks = [];
-      while (pool.length > 0 && picks.length < pairCount) {
-        const index = Math.floor(rng() * pool.length);
-        const cell = pool.splice(index, 1)[0];
-        if (!cell || cell.q < 0 || (cell.q === 0 && cell.r <= 0)) {
-          continue;
-        }
-        const mirror = getCell(-cell.q, -cell.r);
-        if (!mirror || mirror.special !== "normal") {
-          continue;
-        }
-        picks.push([cell, mirror]);
-      }
-      return picks;
-    }
-
-    function assignSpecialTiles(rng) {
-      const coreKeys = new Set(["0,0", "1,0", "0,-1", "-1,0", "0,1", "1,-1", "-1,1"]);
-      const candidates = state.cells.filter((cell) => {
-        if (coreKeys.has(keyOf(cell.q, cell.r))) {
-          return false;
-        }
-        return axialDistance(cell, { q: 0, r: 0 }) >= 2;
-      });
-
-      const barrierPairs = chooseSymmetricCells(candidates, 2, rng);
-      for (const [a, b] of barrierPairs) {
-        a.special = "barrier";
-        b.special = "barrier";
-      }
-
-      const boosterCandidates = state.cells.filter((cell) => cell.special === "normal" && axialDistance(cell, { q: 0, r: 0 }) >= 1);
-      const boosterPairs = chooseSymmetricCells(boosterCandidates, 2, rng);
-      for (const [a, b] of boosterPairs) {
-        a.special = "booster";
-        b.special = "booster";
-      }
-
-      const portalCandidates = state.cells.filter((cell) => cell.special === "normal" && axialDistance(cell, { q: 0, r: 0 }) >= 2);
-      const portalPairs = chooseSymmetricCells(portalCandidates, 1, rng);
-      if (portalPairs.length > 0) {
-        const [a, b] = portalPairs[0];
-        a.special = "portal";
-        b.special = "portal";
-        a.portalId = "A";
-        b.portalId = "A";
-      }
-    }
-
-    function assignStartingPieces() {
-      const redSeeds = [[-1, 0], [0, 1]];
-      const blueSeeds = [[1, 0], [0, -1]];
-      for (const [q, r] of redSeeds) {
-        const cell = getCell(q, r);
-        if (cell) {
-          cell.owner = 1;
-          cell.special = "normal";
-          cell.portalId = null;
-        }
-      }
-      for (const [q, r] of blueSeeds) {
-        const cell = getCell(q, r);
-        if (cell) {
-          cell.owner = 2;
-          cell.special = "normal";
-          cell.portalId = null;
-        }
-      }
-    }
-
-    function collectDirectionalFlips(cell, player, direction) {
-      const captures = [];
-      let q = cell.q + direction[0];
-      let r = cell.r + direction[1];
-      while (true) {
-        const nextCell = getCell(q, r);
-        if (!nextCell || nextCell.special === "barrier" || nextCell.owner === 0) {
-          return [];
-        }
-        if (nextCell.owner === player) {
-          return captures.length > 0 ? captures : [];
-        }
-        captures.push(nextCell);
-        q += direction[0];
-        r += direction[1];
-      }
-    }
-
-    function getMoveData(cell, player) {
-      if (!cell || cell.owner !== 0 || cell.special === "barrier") {
-        return null;
-      }
-      const directionalFlips = [];
-      for (const direction of HEX_DIRECTIONS) {
-        directionalFlips.push(...collectDirectionalFlips(cell, player, direction));
-      }
-      if (directionalFlips.length === 0) {
-        return null;
-      }
-      return { flips: directionalFlips };
-    }
-
-    function updateLegalMoves() {
-      const nextMoves = new Map();
-      for (const cell of state.cells) {
-        const moveData = getMoveData(cell, state.currentPlayer);
-        if (moveData) {
-          nextMoves.set(keyOf(cell.q, cell.r), moveData);
-        }
-      }
-      state.legalMoves = nextMoves;
-    }
-
-    function countScores() {
+    function computeScores() {
       let p1 = 0;
       let p2 = 0;
-      for (const cell of state.cells) {
-        if (cell.owner === 1) {
-          p1 += 1;
-        } else if (cell.owner === 2) {
-          p2 += 1;
-        }
-      }
-      return { p1, p2 };
-    }
-
-    function boardIsFull() {
-      return state.cells.every((cell) => cell.owner !== 0 || cell.special === "barrier");
-    }
-
-    function hasLegalMove(player) {
-      return state.cells.some((cell) => getMoveData(cell, player));
-    }
-
-    function setTooltip(content, clientX, clientY) {
-      tooltipEl.textContent = content;
-      const boardRect = boardEl.getBoundingClientRect();
-      tooltipEl.style.left = `${clientX - boardRect.left}px`;
-      tooltipEl.style.top = `${clientY - boardRect.top - 10}px`;
-      tooltipEl.classList.add("visible");
-    }
-
-    function hideTooltip() {
-      tooltipEl.classList.remove("visible");
-    }
-
-    function getPortalPair(cell) {
-      if (cell.special !== "portal" || !cell.portalId) {
-        return null;
-      }
-      return state.cells.find((candidate) =>
-        candidate !== cell &&
-        candidate.special === "portal" &&
-        candidate.portalId === cell.portalId
-      ) ?? null;
-    }
-
-    function applyBoosterFlip(cell, player, flips) {
-      if (cell.special !== "booster") {
-        return;
-      }
-      for (const candidate of state.cells) {
-        if (candidate.owner === otherPlayer(player) && axialDistance(cell, candidate) <= 2) {
-          flips.add(candidate);
-        }
-      }
-    }
-
-    function tryPortalTeleport(cell, player) {
-      if (cell.special !== "portal") {
-        return false;
-      }
-      const pair = getPortalPair(cell);
-      if (!pair) {
-        return false;
-      }
-
-      let source = null;
-      for (const direction of HEX_DIRECTIONS) {
-        const adjacent = getCell(cell.q + direction[0], cell.r + direction[1]);
-        if (adjacent && adjacent.owner === player) {
-          source = adjacent;
-          break;
-        }
-      }
-      if (!source) {
-        for (const candidate of state.cells) {
-          if (candidate.owner === player && candidate !== cell && candidate.special !== "barrier") {
-            source = candidate;
-            break;
+      let claimed = 0;
+      for (const row of state.cells) {
+        for (const cell of row) {
+          if (cell.owner === 1) {
+            p1 += cell.points;
+            claimed += 1;
+          } else if (cell.owner === 2) {
+            p2 += cell.points;
+            claimed += 1;
           }
         }
       }
-      if (!source) {
-        return false;
-      }
-
-      let destination = null;
-      for (const direction of HEX_DIRECTIONS) {
-        const target = getCell(pair.q + direction[0], pair.r + direction[1]);
-        if (target && target.owner === 0 && target.special !== "barrier") {
-          destination = target;
-          break;
-        }
-      }
-      if (!destination) {
-        return false;
-      }
-
-      source.owner = 0;
-      destination.owner = player;
-      state.flipAnimationKeys.add(keyOf(destination.q, destination.r));
-      return true;
+      return { p1, p2, claimed };
     }
 
-    function applyMove(cell) {
+    function hasAdjacentOwner(cell, player) {
+      return neighborsOf(cell.row, cell.col).some((neighbor) => neighbor.owner === player);
+    }
+
+    function computeLegalMoves(player) {
+      const moves = [];
+      for (const row of state.cells) {
+        for (const cell of row) {
+          if (cell.owner === 0 && hasAdjacentOwner(cell, player)) {
+            moves.push(cell);
+          }
+        }
+      }
+      return moves;
+    }
+
+    function clearBombRing(center) {
+      for (const neighbor of neighborsOf(center.row, center.col)) {
+        if (neighbor.owner !== 0) {
+          neighbor.owner = 0;
+        }
+      }
+    }
+
+    function applyPortal(center, player) {
+      const targetRow = ROWS - 1 - center.row;
+      const targetCol = COLS - 1 - center.col;
+      const target = getCell(targetRow, targetCol);
+      if (target && target.owner === 0) {
+        target.owner = player;
+        return target;
+      }
+      return null;
+    }
+
+    function updateStatus(extraText = "") {
+      const scores = computeScores();
+      scoreP1El.textContent = String(scores.p1);
+      scoreP2El.textContent = String(scores.p2);
+      turnPlayerEl.textContent = state.gameOver ? "对局结束" : playerName(state.currentPlayer);
+      legalCountEl.textContent = state.gameOver ? "0" : String(state.legalMoves.length);
+      seedLabelEl.textContent = String(state.seed);
+
+      if (state.gameOver) {
+        const winner = scores.p1 === scores.p2 ? 0 : (scores.p1 > scores.p2 ? 1 : 2);
+        const summary = winner === 0 ? "双方战平。" : `${playerName(winner)}获胜。`;
+        statusTextEl.textContent = `地图已结算。红方 ${scores.p1} 分，蓝方 ${scores.p2} 分。${summary}`;
+        return;
+      }
+
+      statusTextEl.textContent = `${playerName(state.currentPlayer)}行动中，可扩张 ${state.legalMoves.length} 格。${extraText}`;
+    }
+
+    function finishGame() {
+      const scores = computeScores();
+      const winner = scores.p1 === scores.p2 ? 0 : (scores.p1 > scores.p2 ? 1 : 2);
+      state.gameOver = true;
+      resultTitleEl.textContent = winner === 0 ? "平局" : `${playerName(winner)}获胜`;
+      resultTextEl.textContent = `49 格地图已完成结算。红方 ${scores.p1} 分，蓝方 ${scores.p2} 分。`;
+      resultP1El.textContent = String(scores.p1);
+      resultP2El.textContent = String(scores.p2);
+      resultOverlayEl.hidden = false;
+      updateStatus();
+    }
+
+    function advanceTurn(reason = "") {
       if (state.gameOver) {
         return;
       }
-      const moveData = state.legalMoves.get(keyOf(cell.q, cell.r));
-      if (!moveData) {
+
+      const scores = computeScores();
+      if (scores.claimed === ROWS * COLS) {
+        finishGame();
+        render();
+        return;
+      }
+
+      state.currentPlayer = otherPlayer(state.currentPlayer);
+      state.legalMoves = computeLegalMoves(state.currentPlayer);
+
+      if (state.legalMoves.length === 0) {
+        state.skipStreak += 1;
+        if (state.skipStreak >= 2) {
+          finishGame();
+          render();
+          return;
+        }
+        const skippedPlayer = playerName(state.currentPlayer);
+        state.currentPlayer = otherPlayer(state.currentPlayer);
+        state.legalMoves = computeLegalMoves(state.currentPlayer);
+        updateStatus(`${skippedPlayer}无相邻空格，已自动跳过。`);
+      } else {
+        state.skipStreak = 0;
+        updateStatus(reason);
+      }
+
+      render();
+      queueAiTurn();
+    }
+
+    function placeAt(cell) {
+      if (state.gameOver || cell.owner !== 0) {
+        return;
+      }
+      if (!state.legalMoves.some((move) => move.row === cell.row && move.col === cell.col)) {
         return;
       }
 
       const player = state.currentPlayer;
-      const flips = new Set(moveData.flips);
       cell.owner = player;
-      state.flipAnimationKeys = new Set([keyOf(cell.q, cell.r)]);
-      applyBoosterFlip(cell, player, flips);
+      let reason = `占领 ${cell.points} 分格。`;
 
-      for (const flipCell of flips) {
-        flipCell.owner = player;
-        state.flipAnimationKeys.add(keyOf(flipCell.q, flipCell.r));
+      if (cell.special === "bomb") {
+        clearBombRing(cell);
+        reason += " 触发炸弹，周围一圈已清空。";
+      } else if (cell.special === "portal") {
+        const claimed = applyPortal(cell, player);
+        reason += claimed ? " 传送门额外拿下了对称格。" : " 传送门目标已被占领，未额外扩张。";
       }
 
-      const teleported = tryPortalTeleport(cell, player);
-      state.passCount = 0;
-      state.currentPlayer = otherPlayer(player);
-      updateLegalMoves();
-
-      if (state.legalMoves.size === 0 && !state.gameOver) {
-        state.passCount += 1;
-        const skippedPlayer = state.currentPlayer;
-        state.currentPlayer = otherPlayer(state.currentPlayer);
-        updateLegalMoves();
-        if (state.legalMoves.size === 0) {
-          state.passCount += 1;
-        } else {
-          statusTextEl.textContent = `${playerName(skippedPlayer)}无合法落子，已自动跳过。`;
-        }
-      }
-
-      finishIfNeeded(teleported);
-      render();
+      advanceTurn(reason);
     }
 
-    function finishIfNeeded(teleported) {
-      const scores = countScores();
-      const bothBlocked = !hasLegalMove(1) && !hasLegalMove(2);
-      if (boardIsFull() || bothBlocked) {
-        state.gameOver = true;
-        state.winner = scores.p1 === scores.p2 ? 0 : (scores.p1 > scores.p2 ? 1 : 2);
-        resultTitleEl.textContent = state.winner === 0 ? "平局" : `${playerName(state.winner)}获胜`;
-        resultTextEl.textContent = bothBlocked
-          ? "双方都没有合法落子，按当前占地数结算。"
-          : "棋盘已填满，按当前占地数结算。";
-        resultP1El.textContent = String(scores.p1);
-        resultP2El.textContent = String(scores.p2);
-        resultOverlayEl.hidden = false;
-      } else {
-        resultOverlayEl.hidden = true;
-      }
+    function pickAiMove() {
+      const ranked = state.legalMoves.slice().sort((a, b) => {
+        const aPortal = a.special === "portal" ? 4 : 0;
+        const bPortal = b.special === "portal" ? 4 : 0;
+        const aBomb = a.special === "bomb" ? 2 : 0;
+        const bBomb = b.special === "bomb" ? 2 : 0;
+        return (b.points + bPortal + bBomb) - (a.points + aPortal + aBomb);
+      });
+      return ranked[0] ?? null;
+    }
 
-      if (!state.gameOver) {
-        const currentMoves = state.legalMoves.size;
-        const statusSegments = [
-          `${playerName(state.currentPlayer)}行动中，可落子 ${currentMoves} 处。`
-        ];
-        if (teleported) {
-          statusSegments.push("本回合触发了传送格，额外转移了一颗己方棋子。");
-        }
-        statusSegments.push("常规规则为六方向包夹翻转，屏障会阻断线路。");
-        statusTextEl.textContent = statusSegments.join("");
-      } else {
-        const winnerText = state.winner === 0 ? "双方平分秋色。" : `${playerName(state.winner)}占地更多。`;
-        statusTextEl.textContent = `对局结束。红方 ${scores.p1} 格，蓝方 ${scores.p2} 格。${winnerText}`;
+    function queueAiTurn() {
+      if (state.gameOver || !state.aiEnabled || state.currentPlayer !== 2 || state.legalMoves.length === 0) {
+        return;
       }
+      window.setTimeout(() => {
+        const move = pickAiMove();
+        if (move) {
+          placeAt(move);
+        }
+      }, 260);
     }
 
     function render() {
-      const margin = 74;
-      const xs = state.cells.map((cell) => cell.x);
-      const ys = state.cells.map((cell) => cell.y);
-      const minX = Math.min(...xs) - HEX_SIZE - margin;
-      const maxX = Math.max(...xs) + HEX_SIZE + margin;
-      const minY = Math.min(...ys) - HEX_SIZE - margin;
-      const maxY = Math.max(...ys) + HEX_SIZE + margin;
-      boardEl.setAttribute("viewBox", `${minX} ${minY} ${maxX - minX} ${maxY - minY}`);
+      const width = Math.sqrt(3) * HEX_SIZE;
+      const boardWidth = COLS * width + width / 2 + 30;
+      const boardHeight = ROWS * HEX_SIZE * 1.5 + HEX_SIZE + 30;
+      boardEl.setAttribute("viewBox", `-15 -15 ${boardWidth} ${boardHeight}`);
       boardEl.innerHTML = "";
 
-      const portalCells = state.cells.filter((cell) => cell.special === "portal");
-      if (portalCells.length === 2) {
-        const path = document.createElementNS(SVG_NS, "path");
-        path.setAttribute("class", "portal-link");
-        path.setAttribute("d", `M ${portalCells[0].x} ${portalCells[0].y} Q 0 ${Math.min(portalCells[0].y, portalCells[1].y) - 80} ${portalCells[1].x} ${portalCells[1].y}`);
-        boardEl.append(path);
-      }
+      const legalKeys = new Set(state.legalMoves.map((cell) => keyOf(cell.row, cell.col)));
 
-      for (const cell of state.cells) {
-        const group = document.createElementNS(SVG_NS, "g");
-        group.setAttribute("class", "cell");
-        if (cell.special === "barrier") {
-          group.classList.add("barrier", "blocked");
-        } else if (state.gameOver) {
-          group.classList.add("disabled");
-        }
-        if (state.legalMoves.has(keyOf(cell.q, cell.r)) && !state.gameOver) {
-          group.classList.add("legal");
-        }
+      for (const row of state.cells) {
+        for (const cell of row) {
+          const group = document.createElementNS(SVG_NS, "g");
+          const classNames = ["cell"];
+          if (cell.owner === 1) classNames.push("p1");
+          if (cell.owner === 2) classNames.push("p2");
+          if (!state.gameOver && legalKeys.has(keyOf(cell.row, cell.col))) classNames.push("legal");
+          if (state.gameOver || (cell.owner === 0 && !legalKeys.has(keyOf(cell.row, cell.col)))) classNames.push("unplayable");
+          group.setAttribute("class", classNames.join(" "));
 
-        const shape = document.createElementNS(SVG_NS, "polygon");
-        shape.setAttribute("class", "cell-shape");
-        shape.setAttribute("points", hexPoints(cell.x, cell.y, HEX_SIZE));
+          const { x, y } = cellToPixel(cell.row, cell.col);
+          const shape = document.createElementNS(SVG_NS, "polygon");
+          shape.setAttribute("class", "hex-shape");
+          shape.setAttribute("points", hexPoints(x, y, HEX_SIZE));
+          shape.addEventListener("click", () => placeAt(cell));
+          group.append(shape);
 
-        const info = SPECIAL_TILE_INFO[cell.special];
-        shape.addEventListener("mouseenter", (event) => {
           if (cell.special !== "normal") {
-            setTooltip(`${info.label}：${info.text}`, event.clientX, event.clientY);
+            const badge = document.createElementNS(SVG_NS, "text");
+            badge.setAttribute("class", "cell-badge");
+            badge.setAttribute("x", x);
+            badge.setAttribute("y", y - 14);
+            badge.textContent = cell.special === "bomb" ? "💣" : "🌀";
+            group.append(badge);
           }
-        });
-        shape.addEventListener("mousemove", (event) => {
-          if (cell.special !== "normal" && tooltipEl.classList.contains("visible")) {
-            setTooltip(`${info.label}：${info.text}`, event.clientX, event.clientY);
+
+          const points = document.createElementNS(SVG_NS, "text");
+          points.setAttribute("class", "cell-points");
+          points.setAttribute("x", x);
+          points.setAttribute("y", y + 6);
+          points.textContent = String(cell.points);
+          group.append(points);
+
+          if (cell.owner !== 0) {
+            const owner = document.createElementNS(SVG_NS, "text");
+            owner.setAttribute("class", "cell-owner");
+            owner.setAttribute("x", x);
+            owner.setAttribute("y", y + 20);
+            owner.textContent = cell.owner === 1 ? "红方" : "蓝方";
+            group.append(owner);
           }
-        });
-        shape.addEventListener("mouseleave", hideTooltip);
-        shape.addEventListener("click", () => applyMove(cell));
-        group.append(shape);
 
-        const coord = document.createElementNS(SVG_NS, "text");
-        coord.setAttribute("class", "coord-label");
-        coord.setAttribute("x", cell.x);
-        coord.setAttribute("y", cell.y - 19);
-        coord.textContent = `${cell.q},${cell.r}`;
-        group.append(coord);
-
-        if (cell.special !== "normal") {
-          const mark = document.createElementNS(SVG_NS, "text");
-          mark.setAttribute("class", "special-mark");
-          mark.setAttribute("x", cell.x);
-          mark.setAttribute("y", cell.y + 5);
-          mark.textContent = info.mark;
-          group.append(mark);
+          const title = document.createElementNS(SVG_NS, "title");
+          const special = cell.special === "bomb" ? "炸弹格" : (cell.special === "portal" ? "传送门" : "普通格");
+          title.textContent = `${cell.row + 1}-${cell.col + 1} ${special} ${cell.points} 分`;
+          group.append(title);
+          boardEl.append(group);
         }
-
-        if (cell.owner !== 0) {
-          const ring = document.createElementNS(SVG_NS, "circle");
-          ring.setAttribute("class", `piece-ring ${playerClass(cell.owner)}`);
-          ring.setAttribute("cx", cell.x);
-          ring.setAttribute("cy", cell.y);
-          ring.setAttribute("r", "16");
-          group.append(ring);
-
-          const piece = document.createElementNS(SVG_NS, "circle");
-          piece.setAttribute("class", `piece ${playerClass(cell.owner)}`);
-          if (state.flipAnimationKeys.has(keyOf(cell.q, cell.r))) {
-            piece.classList.add("flipped");
-          }
-          piece.setAttribute("cx", cell.x);
-          piece.setAttribute("cy", cell.y);
-          piece.setAttribute("r", "12.6");
-          group.append(piece);
-        }
-
-        const title = document.createElementNS(SVG_NS, "title");
-        title.textContent = `${info.label}${cell.owner ? ` | ${playerName(cell.owner)}棋子` : ""}`;
-        group.append(title);
-        boardEl.append(group);
       }
-
-      const scores = countScores();
-      scoreP1El.textContent = String(scores.p1);
-      scoreP2El.textContent = String(scores.p2);
-      turnPlayerEl.textContent = state.gameOver ? "对局结束" : playerName(state.currentPlayer);
-      legalCountEl.textContent = state.gameOver ? "0" : String(state.legalMoves.size);
-      seedLabelEl.textContent = String(state.seed);
     }
 
-    function randomSeed() {
-      return Math.floor(Math.random() * 900000) + 100000;
+    function createBoard(seed) {
+      const rng = createRng(seed);
+      state.cells = [];
+      for (let row = 0; row < ROWS; row += 1) {
+        const line = [];
+        for (let col = 0; col < COLS; col += 1) {
+          line.push({
+            row,
+            col,
+            points: 1 + Math.floor(rng() * 3),
+            owner: 0,
+            special: "normal"
+          });
+        }
+        state.cells.push(line);
+      }
+
+      const candidates = [];
+      for (let row = 0; row < ROWS; row += 1) {
+        for (let col = 0; col < COLS; col += 1) {
+          const startCell = (row === 0 && col === 0) || (row === ROWS - 1 && col === COLS - 1);
+          if (!startCell) {
+            candidates.push(state.cells[row][col]);
+          }
+        }
+      }
+
+      const shuffled = shuffle(candidates, rng);
+      const specialCount = Math.max(6, Math.round(ROWS * COLS * SPECIAL_TILE_RATIO));
+      const bombCount = Math.floor(specialCount / 2);
+      const portalCount = specialCount - bombCount;
+      for (let i = 0; i < bombCount; i += 1) {
+        shuffled[i].special = "bomb";
+      }
+      for (let i = bombCount; i < bombCount + portalCount; i += 1) {
+        shuffled[i].special = "portal";
+      }
+
+      state.cells[0][0].owner = 1;
+      state.cells[ROWS - 1][COLS - 1].owner = 2;
+    }
+
+    function startGame(seed) {
+      state.seed = seed;
+      state.currentPlayer = 1;
+      state.gameOver = false;
+      state.skipStreak = 0;
+      state.aiEnabled = aiToggleEl.checked;
+      resultOverlayEl.hidden = true;
+      createBoard(seed);
+      state.legalMoves = computeLegalMoves(state.currentPlayer);
+      updateStatus("红方从左上开始，蓝方从右下开始。");
+      render();
+      queueAiTurn();
     }
 
     restartButtonEl.addEventListener("click", () => {
-      resetBoard(state.seed);
+      startGame(state.seed);
     });
 
     randomizeButtonEl.addEventListener("click", () => {
-      resetBoard(randomSeed());
+      startGame(randomSeed());
     });
 
     overlayRestartButtonEl.addEventListener("click", () => {
-      resultOverlayEl.hidden = true;
-      resetBoard(randomSeed());
+      startGame(randomSeed());
+    });
+
+    aiToggleEl.addEventListener("change", () => {
+      state.aiEnabled = aiToggleEl.checked;
+      queueAiTurn();
     });
 
     window.addEventListener("keydown", (event) => {
       if (event.key.toLowerCase() === "r") {
-        resetBoard(randomSeed());
+        startGame(randomSeed());
       }
     });
 
-    resetBoard(randomSeed());
+    startGame(randomSeed());
   </script>
 </body>
 </html>
