@@ -6,17 +6,24 @@
   <title>像素生态缸</title>
   <style>
     :root {
-      --bg: #07131b;
-      --panel: rgba(10, 24, 34, 0.92);
-      --panel-soft: rgba(17, 38, 52, 0.94);
-      --line: rgba(170, 226, 242, 0.18);
-      --text: #edf9fb;
-      --muted: #8eb4c1;
-      --gold: #ffd577;
-      --algae: #74d46b;
-      --plankton: #6fcaff;
-      --predator: #ff8a70;
-      --rock: #8f99a3;
+      --bg-top: #d7f1ff;
+      --bg-bottom: #7ca9bf;
+      --glass: rgba(235, 250, 255, 0.38);
+      --panel: rgba(246, 255, 252, 0.82);
+      --panel-line: rgba(37, 72, 83, 0.18);
+      --text: #17323f;
+      --muted: #4c6a73;
+      --accent: #ffd46e;
+      --water: #4b84c8;
+      --sand: #d8bc74;
+      --seed: #805f3b;
+      --sun: #ffe789;
+      --fish: #ff916a;
+      --plant: #3f9552;
+      --leaf: #8ee07d;
+      --bubble: #c7f3ff;
+      --algae: #5db86f;
+      --erase: #e78484;
     }
 
     * {
@@ -26,16 +33,16 @@
     body {
       margin: 0;
       min-height: 100vh;
-      padding: 18px;
+      padding: 20px;
       color: var(--text);
       font-family: "Trebuchet MS", "Microsoft YaHei", sans-serif;
       background:
-        radial-gradient(circle at top, rgba(77, 143, 177, 0.24), transparent 28%),
-        linear-gradient(180deg, #08131a 0%, #0b1f2c 50%, #050b10 100%);
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.7), transparent 32%),
+        linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
     }
 
-    .app {
-      width: min(1220px, 100%);
+    main {
+      width: min(1180px, 100%);
       margin: 0 auto;
       display: grid;
       grid-template-columns: minmax(0, 1fr) 320px;
@@ -43,10 +50,10 @@
     }
 
     .panel {
-      border: 1px solid var(--line);
+      border: 1px solid var(--panel-line);
       border-radius: 24px;
       background: var(--panel);
-      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.32);
+      box-shadow: 0 20px 48px rgba(15, 43, 55, 0.18);
       backdrop-filter: blur(8px);
     }
 
@@ -61,16 +68,17 @@
     }
 
     h1 {
-      font-size: clamp(2.3rem, 5vw, 4.2rem);
-      line-height: 0.95;
+      font-size: clamp(2.4rem, 4vw, 4.1rem);
+      line-height: 0.92;
       letter-spacing: -0.05em;
     }
 
     h2 {
-      font-size: 1.15rem;
+      font-size: 1.12rem;
     }
 
     .lede,
+    .hint,
     .small,
     .stat span {
       color: var(--muted);
@@ -79,27 +87,27 @@
     .lede {
       margin-top: 12px;
       max-width: 62ch;
-      line-height: 1.65;
+      line-height: 1.6;
     }
 
     .tank-shell {
       margin-top: 18px;
       padding: 16px;
-      border-radius: 24px;
-      border: 1px solid rgba(168, 224, 241, 0.14);
+      border-radius: 26px;
+      border: 1px solid rgba(255, 255, 255, 0.45);
       background:
-        linear-gradient(180deg, rgba(113, 189, 225, 0.16), rgba(9, 19, 29, 0.08)),
-        linear-gradient(180deg, rgba(255, 216, 128, 0.08), transparent 30%);
+        linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(193, 227, 238, 0.22)),
+        linear-gradient(180deg, rgba(255, 242, 181, 0.45), rgba(255, 255, 255, 0));
     }
 
     #tank {
       display: block;
-      width: min(100%, 840px);
-      aspect-ratio: 1;
+      width: min(100%, 820px);
+      aspect-ratio: 4 / 3;
       margin: 0 auto;
       border-radius: 18px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      background: #0b1620;
+      border: 1px solid rgba(23, 50, 63, 0.16);
+      background: linear-gradient(180deg, #b8e3ff 0%, #79abc9 48%, #3b6984 100%);
       cursor: crosshair;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
@@ -115,10 +123,9 @@
 
     .stat,
     .card,
-    .tool,
-    .count-row {
-      border: 1px solid var(--line);
-      background: var(--panel-soft);
+    .tool-button {
+      border: 1px solid var(--panel-line);
+      background: rgba(255, 255, 255, 0.64);
     }
 
     .stat {
@@ -128,7 +135,7 @@
 
     .stat span {
       display: block;
-      font-size: 0.78rem;
+      font-size: 0.76rem;
       text-transform: uppercase;
       letter-spacing: 0.08em;
     }
@@ -136,10 +143,10 @@
     .stat strong {
       display: block;
       margin-top: 6px;
-      font-size: 1.2rem;
+      font-size: 1.14rem;
     }
 
-    .sidebar {
+    aside {
       padding: 18px;
       display: grid;
       align-content: start;
@@ -159,7 +166,7 @@
       gap: 10px;
     }
 
-    .tool {
+    .tool-button {
       display: flex;
       align-items: center;
       gap: 10px;
@@ -167,21 +174,22 @@
       padding: 10px 12px;
       border-radius: 14px;
       color: var(--text);
+      font: inherit;
       cursor: pointer;
       text-align: left;
     }
 
-    .tool.active {
-      outline: 2px solid var(--gold);
+    .tool-button.active {
+      outline: 2px solid var(--accent);
       transform: translateY(-1px);
     }
 
     .swatch {
       width: 16px;
       height: 16px;
-      flex: 0 0 auto;
       border-radius: 4px;
-      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+      box-shadow: 0 0 0 1px rgba(23, 50, 63, 0.12);
+      flex: 0 0 auto;
     }
 
     .slider-row {
@@ -191,18 +199,7 @@
 
     input[type="range"] {
       width: 100%;
-      accent-color: var(--gold);
-    }
-
-    button {
-      min-height: 40px;
-      border: 0;
-      border-radius: 999px;
-      padding: 0 16px;
-      font: inherit;
-      color: #11202a;
-      background: linear-gradient(180deg, #ffdf8f, #e0ad4d);
-      cursor: pointer;
+      accent-color: #ecb13d;
     }
 
     .actions {
@@ -211,709 +208,859 @@
       flex-wrap: wrap;
     }
 
-    .count-list {
+    button.action {
+      min-height: 40px;
+      border: 0;
+      border-radius: 999px;
+      padding: 0 16px;
+      font: inherit;
+      color: #18303a;
+      background: linear-gradient(180deg, #ffe291, #e4b451);
+      cursor: pointer;
+    }
+
+    .legend {
       display: grid;
       gap: 8px;
     }
 
-    .count-row {
+    .legend-row {
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      gap: 10px;
+      gap: 12px;
       padding: 10px 12px;
       border-radius: 12px;
-    }
-
-    #chart {
-      display: block;
-      width: 100%;
-      height: 160px;
-      border-radius: 14px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(4, 10, 15, 0.55);
-      image-rendering: pixelated;
+      background: rgba(255, 255, 255, 0.54);
+      border: 1px solid rgba(23, 50, 63, 0.1);
     }
 
     @media (max-width: 980px) {
-      .app {
+      main {
         grid-template-columns: 1fr;
       }
     }
 
     @media (max-width: 720px) {
-      .hud {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+      body {
+        padding: 12px;
       }
 
+      .hud,
       .tool-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
       }
     }
   </style>
 </head>
 <body>
-  <main class="app">
+  <main>
     <section class="panel stage">
       <h1>像素生态缸</h1>
       <p class="lede">
-        在透明像素缸中投放藻类、浮游生物、捕食者和矿石障碍，观察它们按简单规则形成食物链。拖拽即可连续投放，右侧光照强度会直接影响藻类生长速度。
+        在透明像素缸里投放水、沙、种子、阳光灯和小鱼。水会下落扩散，沙会堆积，种子在有水且有光的地方慢慢长成水草并吐出氧气泡，小鱼会在水域里轻轻游动。
       </p>
       <div class="tank-shell">
-        <canvas id="tank" width="180" height="180" aria-label="像素生态缸"></canvas>
+        <canvas id="tank" width="96" height="72" aria-label="像素生态缸画布"></canvas>
       </div>
       <div class="hud">
-        <div class="stat"><span>运行时长</span><strong id="time-value">0.0s</strong></div>
-        <div class="stat"><span>光照强度</span><strong id="light-value">65%</strong></div>
-        <div class="stat"><span>总生物数</span><strong id="life-value">0</strong></div>
-        <div class="stat"><span>障碍物</span><strong id="rock-value">0</strong></div>
+        <div class="stat"><span>当前工具</span><strong id="tool-label">水</strong></div>
+        <div class="stat"><span>缸内水量</span><strong id="water-count">0</strong></div>
+        <div class="stat"><span>植物像素</span><strong id="plant-count">0</strong></div>
+        <div class="stat"><span>小鱼数量</span><strong id="fish-count">0</strong></div>
       </div>
     </section>
 
-    <aside class="panel sidebar">
+    <aside class="panel">
       <section class="card">
-        <h2>投放工具</h2>
-        <div class="tool-grid" id="tool-grid"></div>
-        <div class="actions">
-          <button id="seed-button" type="button">生成样例</button>
-          <button id="reset-button" type="button">重置缸体</button>
+        <h2>工具栏</h2>
+        <div class="tool-grid">
+          <button class="tool-button active" data-tool="water" type="button"><span class="swatch" style="background: var(--water)"></span>水</button>
+          <button class="tool-button" data-tool="sand" type="button"><span class="swatch" style="background: var(--sand)"></span>沙</button>
+          <button class="tool-button" data-tool="seed" type="button"><span class="swatch" style="background: var(--seed)"></span>种子</button>
+          <button class="tool-button" data-tool="sun" type="button"><span class="swatch" style="background: var(--sun)"></span>阳光</button>
+          <button class="tool-button" data-tool="fish" type="button"><span class="swatch" style="background: var(--fish)"></span>小鱼</button>
         </div>
-        <p class="small">食物链：藻类 → 浮游生物 → 捕食者。点击或拖拽可连续投放，矿石会形成不可穿越的障碍。</p>
+        <p class="hint">左键绘制，拖拽可连续放置；右键擦除。先铺水域，再撒一点沙和种子，放上阳光灯，最后投放小鱼。</p>
       </section>
 
       <section class="card">
-        <h2>环境参数</h2>
-        <label class="slider-row" for="light-slider">
-          <span>光照强度</span>
-          <input id="light-slider" type="range" min="10" max="100" value="65">
+        <h2>笔刷</h2>
+        <label class="slider-row" for="brush-size">
+          <span>笔刷大小</span>
+          <input id="brush-size" type="range" min="1" max="3" value="2">
         </label>
-        <p class="small">光照越高，藻类繁殖越快，整条食物链会更活跃。</p>
-      </section>
-
-      <section class="card">
-        <h2>种群统计</h2>
-        <canvas id="chart" width="280" height="160" aria-label="种群数量折线图"></canvas>
-        <div class="count-list" id="count-list"></div>
+        <div class="actions">
+          <button class="action" id="seed-scene" type="button">生成样例</button>
+          <button class="action" id="clear-scene" type="button">清空生态缸</button>
+        </div>
       </section>
 
       <section class="card">
         <h2>规则</h2>
-        <p class="small">核心循环为移动 → 碰撞 → 进食 → 繁殖 → 死亡。系统包含容量上限、能量衰减和自然寿命，避免种群无限膨胀。</p>
+        <div class="legend">
+          <div class="legend-row"><span>落沙逻辑</span><strong>水下流扩散，沙会堆积</strong></div>
+          <div class="legend-row"><span>植物生长</span><strong>种子 + 水 + 光 → 水草</strong></div>
+          <div class="legend-row"><span>放松观赏</span><strong>氧气泡上浮，小鱼随机游走</strong></div>
+        </div>
+        <p class="small">植物状态机会按 <strong>seed → sprout → stem → leaf</strong> 推进。成熟叶片偶尔生成浮藻，小鱼会优先游过去吃掉。</p>
       </section>
     </aside>
   </main>
 
   <script>
-    const WORLD_SIZE = 180;
-    const MAX_ALGAE = 220;
-    const MAX_PLANKTON = 90;
-    const MAX_PREDATORS = 40;
-    const MAX_ROCKS = 28;
-    const HISTORY_LIMIT = 180;
-    const CHART_INTERVAL = 0.35;
-    const TOOL_RADIUS = {
-      algae: 16,
-      plankton: 14,
-      predator: 12,
-      rock: 18
+    const GRID_WIDTH = 96;
+    const GRID_HEIGHT = 72;
+    const CELL_EMPTY = "empty";
+    const CELL_WATER = "water";
+    const CELL_SAND = "sand";
+    const CELL_SEED = "seed";
+    const CELL_SUN = "sun";
+    const CELL_PLANT = "plant";
+    const CELL_BUBBLE = "bubble";
+    const CELL_ALGAE = "algae";
+    const plantStages = ["seed", "sprout", "stem", "leaf"];
+    const colors = {
+      water: "#4b84c8",
+      waterFoam: "#75b5ff",
+      sand: "#d8bc74",
+      seed: "#805f3b",
+      sun: "#ffe789",
+      plantRoot: "#2f7041",
+      plantStem: "#47a45b",
+      plantLeaf: "#8ee07d",
+      bubble: "#d1f5ff",
+      algae: "#5db86f",
+      fish: "#ff916a",
+      fishDark: "#b7573a",
+      glass: "rgba(255,255,255,0.18)",
+      light: "rgba(255, 241, 176, 0.28)"
     };
 
-    const sprites = {
-      algae: {
-        size: 4,
-        colors: ["#3d7a2d", "#74d46b", "#baf08c"],
-        pixels: [
-          [0, 1, 0, 0],
-          [1, 2, 1, 0],
-          [2, 1, 2, 1],
-          [0, 1, 0, 0]
-        ]
-      },
-      plankton: {
-        size: 5,
-        colors: ["#153344", "#6fcaff", "#d9f5ff"],
-        pixels: [
-          [0, 1, 1, 0, 0],
-          [1, 2, 2, 1, 0],
-          [0, 2, 1, 2, 1],
-          [0, 1, 2, 1, 0],
-          [0, 0, 1, 0, 0]
-        ]
-      },
-      predator: {
-        size: 6,
-        colors: ["#551f16", "#ff8a70", "#ffd0c3"],
-        pixels: [
-          [0, 1, 1, 1, 0, 0],
-          [1, 2, 2, 2, 1, 0],
-          [1, 2, 1, 2, 2, 1],
-          [0, 1, 2, 2, 1, 0],
-          [0, 0, 1, 1, 0, 0],
-          [0, 1, 0, 0, 1, 0]
-        ]
-      }
+    const toolLabels = {
+      water: "水",
+      sand: "沙",
+      seed: "种子",
+      sun: "阳光",
+      fish: "小鱼"
     };
-
-    const toolConfig = [
-      { key: "algae", label: "藻类", color: "var(--algae)" },
-      { key: "plankton", label: "浮游生物", color: "var(--plankton)" },
-      { key: "predator", label: "捕食者", color: "var(--predator)" },
-      { key: "rock", label: "矿石障碍", color: "var(--rock)" }
-    ];
 
     const tank = document.getElementById("tank");
     const ctx = tank.getContext("2d");
-    const chart = document.getElementById("chart");
-    const chartCtx = chart.getContext("2d");
-    const toolGrid = document.getElementById("tool-grid");
-    const countList = document.getElementById("count-list");
-    const lightSlider = document.getElementById("light-slider");
-    const seedButton = document.getElementById("seed-button");
-    const resetButton = document.getElementById("reset-button");
-    const timeValue = document.getElementById("time-value");
-    const lightValue = document.getElementById("light-value");
-    const lifeValue = document.getElementById("life-value");
-    const rockValue = document.getElementById("rock-value");
+    const toolLabel = document.getElementById("tool-label");
+    const waterCount = document.getElementById("water-count");
+    const plantCount = document.getElementById("plant-count");
+    const fishCount = document.getElementById("fish-count");
+    const brushSizeInput = document.getElementById("brush-size");
+    const seedSceneButton = document.getElementById("seed-scene");
+    const clearSceneButton = document.getElementById("clear-scene");
+    const toolButtons = [...document.querySelectorAll(".tool-button")];
 
     ctx.imageSmoothingEnabled = false;
-    chartCtx.imageSmoothingEnabled = false;
+
+    function createCell(type = CELL_EMPTY, extra = {}) {
+      return {
+        type,
+        updated: false,
+        age: 0,
+        growth: 0,
+        stage: 0,
+        part: "",
+        rootX: -1,
+        rootY: -1,
+        ...extra
+      };
+    }
+
+    function buildGrid() {
+      return Array.from({ length: GRID_HEIGHT }, () =>
+        Array.from({ length: GRID_WIDTH }, () => createCell())
+      );
+    }
 
     const state = {
-      algae: [],
-      plankton: [],
-      predators: [],
-      rocks: [],
-      history: [],
-      selectedTool: "algae",
+      grid: buildGrid(),
+      lightMap: Array.from({ length: GRID_HEIGHT }, () => Array(GRID_WIDTH).fill(0)),
+      selectedTool: "water",
+      brushSize: Number(brushSizeInput.value),
       pointerDown: false,
-      elapsed: 0,
-      chartTimer: 0,
-      lightIntensity: Number(lightSlider.value) / 100
+      eraseMode: false,
+      fish: [],
+      tick: 0
     };
 
-    function clamp(value, min, max) {
-      return Math.max(min, Math.min(max, value));
+    function inBounds(x, y) {
+      return x >= 0 && x < GRID_WIDTH && y >= 0 && y < GRID_HEIGHT;
     }
 
-    function rand(min, max) {
-      return Math.random() * (max - min) + min;
-    }
-
-    function createAlgae(x, y) {
-      return {
-        x,
-        y,
-        age: 0,
-        energy: rand(0.8, 1.2),
-        drift: rand(-0.4, 0.4)
-      };
-    }
-
-    function createPlankton(x, y) {
-      return {
-        x,
-        y,
-        age: 0,
-        energy: rand(8, 12),
-        vx: rand(-0.5, 0.5),
-        vy: rand(-0.5, 0.5),
-        cooldown: rand(0, 1)
-      };
-    }
-
-    function createPredator(x, y) {
-      return {
-        x,
-        y,
-        age: 0,
-        energy: rand(15, 20),
-        vx: rand(-0.5, 0.5),
-        vy: rand(-0.5, 0.5),
-        cooldown: rand(0, 1)
-      };
-    }
-
-    function createRock(x, y) {
-      return {
-        x,
-        y,
-        size: rand(7, 14)
-      };
-    }
-
-    function distanceSquared(a, b) {
-      const dx = a.x - b.x;
-      const dy = a.y - b.y;
-      return dx * dx + dy * dy;
-    }
-
-    function findNearest(source, list, radius) {
-      const radiusSq = radius * radius;
-      let best = null;
-      let bestDistance = radiusSq;
-      for (const item of list) {
-        const dist = distanceSquared(source, item);
-        if (dist < bestDistance) {
-          bestDistance = dist;
-          best = item;
-        }
+    function cellAt(x, y) {
+      if (!inBounds(x, y)) {
+        return createCell();
       }
-      return best;
+      return state.grid[y][x];
     }
 
-    function collidesWithRock(x, y, padding = 1) {
-      return state.rocks.some((rock) => {
-        const dx = x - rock.x;
-        const dy = y - rock.y;
-        const radius = rock.size + padding;
-        return dx * dx + dy * dy < radius * radius;
-      });
-    }
-
-    function keepInside(entity, radius) {
-      if (entity.x < radius || entity.x > WORLD_SIZE - radius) {
-        entity.vx *= -0.75;
-      }
-      if (entity.y < radius || entity.y > WORLD_SIZE - radius) {
-        entity.vy *= -0.75;
-      }
-      entity.x = clamp(entity.x, radius, WORLD_SIZE - radius);
-      entity.y = clamp(entity.y, radius, WORLD_SIZE - radius);
-    }
-
-    function avoidRocks(entity, radius) {
-      for (const rock of state.rocks) {
-        const dx = entity.x - rock.x;
-        const dy = entity.y - rock.y;
-        const limit = rock.size + radius;
-        const dist = Math.hypot(dx, dy) || 0.001;
-        if (dist < limit) {
-          const push = (limit - dist) / dist;
-          entity.x += dx * push;
-          entity.y += dy * push;
-          entity.vx += dx * 0.02;
-          entity.vy += dy * 0.02;
-        }
+    function setCell(x, y, cell) {
+      if (inBounds(x, y)) {
+        state.grid[y][x] = cell;
       }
     }
 
-    function updateAlgae(dt) {
-      const next = [];
-      for (const algae of state.algae) {
-        algae.age += dt;
-        algae.energy += dt * (0.32 + state.lightIntensity * 0.85);
-        algae.y -= dt * (0.35 + state.lightIntensity * 0.6);
-        algae.x += algae.drift * dt * 8;
+    function isEmptyLike(cell) {
+      return cell.type === CELL_EMPTY || cell.type === CELL_BUBBLE || cell.type === CELL_ALGAE;
+    }
 
-        if (collidesWithRock(algae.x, algae.y, 3)) {
-          algae.y += 1.2;
-          algae.x -= algae.drift * 1.2;
-        }
+    function isLiquid(cell) {
+      return cell.type === CELL_WATER;
+    }
 
-        algae.x = clamp(algae.x, 4, WORLD_SIZE - 4);
-        algae.y = clamp(algae.y, 4, WORLD_SIZE - 4);
+    function isSwimmable(cell) {
+      return cell.type === CELL_WATER || cell.type === CELL_ALGAE || cell.type === CELL_BUBBLE;
+    }
 
-        const reproductionChance = (0.08 + state.lightIntensity * 0.22) * dt;
-        if (state.algae.length + next.length < MAX_ALGAE && algae.energy > 1.45 && Math.random() < reproductionChance) {
-          algae.energy *= 0.58;
-          next.push(createAlgae(
-            clamp(algae.x + rand(-8, 8), 4, WORLD_SIZE - 4),
-            clamp(algae.y + rand(-8, 8), 4, WORLD_SIZE - 4)
-          ));
-        }
+    function swapCells(ax, ay, bx, by) {
+      const temp = state.grid[ay][ax];
+      state.grid[ay][ax] = state.grid[by][bx];
+      state.grid[by][bx] = temp;
+      state.grid[ay][ax].updated = true;
+      state.grid[by][bx].updated = true;
+    }
 
-        if (algae.age < 45 && Math.random() > 0.0015) {
-          next.push(algae);
-        }
+    function randomItem(items) {
+      return items[Math.floor(Math.random() * items.length)];
+    }
+
+    function hasAdjacentWater(x, y) {
+      const offsets = [
+        [0, 1],
+        [1, 0],
+        [-1, 0],
+        [0, -1]
+      ];
+      return offsets.some(([dx, dy]) => isLiquid(cellAt(x + dx, y + dy)));
+    }
+
+    function isLit(x, y) {
+      return state.lightMap[y][x] > 0;
+    }
+
+    function refreshLightMap() {
+      for (let y = 0; y < GRID_HEIGHT; y += 1) {
+        state.lightMap[y].fill(0);
       }
-      state.algae = next;
-    }
 
-    function updatePlankton(dt) {
-      const next = [];
-      for (const plankton of state.plankton) {
-        plankton.age += dt;
-        plankton.energy -= dt * 1.4;
-        plankton.cooldown = Math.max(0, plankton.cooldown - dt);
-
-        const target = findNearest(plankton, state.algae, 38);
-        if (target) {
-          const dx = target.x - plankton.x;
-          const dy = target.y - plankton.y;
-          const mag = Math.hypot(dx, dy) || 1;
-          plankton.vx += (dx / mag) * dt * 11;
-          plankton.vy += (dy / mag) * dt * 11;
-        } else {
-          plankton.vx += rand(-1, 1) * dt * 5;
-          plankton.vy += rand(-1, 1) * dt * 5;
-        }
-
-        plankton.vx *= 0.92;
-        plankton.vy *= 0.92;
-        plankton.x += plankton.vx * dt * 7;
-        plankton.y += plankton.vy * dt * 7;
-        avoidRocks(plankton, 4);
-        keepInside(plankton, 4);
-
-        for (let i = state.algae.length - 1; i >= 0; i -= 1) {
-          if (distanceSquared(plankton, state.algae[i]) < 36) {
-            state.algae.splice(i, 1);
-            plankton.energy += 5.5;
-            break;
-          }
-        }
-
-        if (plankton.cooldown === 0 && plankton.energy > 18 && state.plankton.length + next.length < MAX_PLANKTON) {
-          plankton.energy *= 0.55;
-          plankton.cooldown = 2.5;
-          next.push(createPlankton(
-            clamp(plankton.x + rand(-10, 10), 5, WORLD_SIZE - 5),
-            clamp(plankton.y + rand(-10, 10), 5, WORLD_SIZE - 5)
-          ));
-        }
-
-        if (plankton.energy > 0 && plankton.age < 55 && Math.random() > 0.0022) {
-          next.push(plankton);
-        }
-      }
-      state.plankton = next;
-    }
-
-    function updatePredators(dt) {
-      const next = [];
-      for (const predator of state.predators) {
-        predator.age += dt;
-        predator.energy -= dt * 1.9;
-        predator.cooldown = Math.max(0, predator.cooldown - dt);
-
-        const target = findNearest(predator, state.plankton, 54);
-        if (target) {
-          const dx = target.x - predator.x;
-          const dy = target.y - predator.y;
-          const mag = Math.hypot(dx, dy) || 1;
-          predator.vx += (dx / mag) * dt * 13;
-          predator.vy += (dy / mag) * dt * 13;
-        } else {
-          predator.vx += rand(-1, 1) * dt * 4;
-          predator.vy += rand(-1, 1) * dt * 4;
-        }
-
-        predator.vx *= 0.94;
-        predator.vy *= 0.94;
-        predator.x += predator.vx * dt * 8;
-        predator.y += predator.vy * dt * 8;
-        avoidRocks(predator, 5);
-        keepInside(predator, 5);
-
-        for (let i = state.plankton.length - 1; i >= 0; i -= 1) {
-          if (distanceSquared(predator, state.plankton[i]) < 49) {
-            state.plankton.splice(i, 1);
-            predator.energy += 8;
-            break;
-          }
-        }
-
-        if (predator.cooldown === 0 && predator.energy > 28 && state.predators.length + next.length < MAX_PREDATORS) {
-          predator.energy *= 0.58;
-          predator.cooldown = 4.5;
-          next.push(createPredator(
-            clamp(predator.x + rand(-12, 12), 6, WORLD_SIZE - 6),
-            clamp(predator.y + rand(-12, 12), 6, WORLD_SIZE - 6)
-          ));
-        }
-
-        if (predator.energy > 0 && predator.age < 70 && Math.random() > 0.0035) {
-          next.push(predator);
-        }
-      }
-      state.predators = next;
-    }
-
-    function updateSimulation(dt) {
-      updateAlgae(dt);
-      updatePlankton(dt);
-      updatePredators(dt);
-    }
-
-    function drawBackground() {
-      const lightGlow = 0.18 + state.lightIntensity * 0.45;
-      const gradient = ctx.createLinearGradient(0, 0, 0, WORLD_SIZE);
-      gradient.addColorStop(0, `rgba(157, 224, 255, ${0.35 + lightGlow})`);
-      gradient.addColorStop(0.14, "rgba(75, 141, 170, 0.22)");
-      gradient.addColorStop(1, "rgba(4, 10, 16, 1)");
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, WORLD_SIZE, WORLD_SIZE);
-
-      ctx.fillStyle = "rgba(255, 219, 119, 0.06)";
-      ctx.fillRect(0, 0, WORLD_SIZE, 24);
-
-      ctx.fillStyle = "rgba(190, 239, 255, 0.06)";
-      for (let i = 0; i < 18; i += 1) {
-        const x = (i * 17 + state.elapsed * 6) % (WORLD_SIZE + 20) - 10;
-        ctx.fillRect(x, 10 + (i % 6) * 5, 3, 3);
-      }
-    }
-
-    function drawSprite(entity, sprite) {
-      const startX = Math.round(entity.x - sprite.size / 2);
-      const startY = Math.round(entity.y - sprite.size / 2);
-      for (let y = 0; y < sprite.size; y += 1) {
-        for (let x = 0; x < sprite.size; x += 1) {
-          const colorIndex = sprite.pixels[y][x];
-          if (colorIndex === 0) {
+      for (let y = 0; y < GRID_HEIGHT; y += 1) {
+        for (let x = 0; x < GRID_WIDTH; x += 1) {
+          if (cellAt(x, y).type !== CELL_SUN) {
             continue;
           }
-          ctx.fillStyle = sprite.colors[colorIndex];
-          ctx.fillRect(startX + x, startY + y, 1, 1);
+          for (let depth = y; depth < GRID_HEIGHT; depth += 1) {
+            for (let spread = -3; spread <= 3; spread += 1) {
+              const targetX = x + spread;
+              if (!inBounds(targetX, depth)) {
+                continue;
+              }
+              const strength = Math.max(0, 1 - Math.abs(spread) * 0.2 - (depth - y) * 0.013);
+              if (strength > 0.1) {
+                state.lightMap[depth][targetX] = Math.max(state.lightMap[depth][targetX], strength);
+              }
+            }
+          }
         }
       }
     }
 
-    function drawRocks() {
-      for (const rock of state.rocks) {
-        ctx.fillStyle = "#5f6772";
-        ctx.beginPath();
-        ctx.arc(rock.x, rock.y, rock.size, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "#9ba7b2";
-        ctx.fillRect(Math.round(rock.x - rock.size / 3), Math.round(rock.y - rock.size / 4), 2, 2);
-        ctx.fillRect(Math.round(rock.x + rock.size / 5), Math.round(rock.y), 2, 2);
+    function findPlantRoot(x, y) {
+      const cell = cellAt(x, y);
+      if (cell.type !== CELL_PLANT) {
+        return null;
       }
+      const root = cell.part === "root" ? cell : cellAt(cell.rootX, cell.rootY);
+      if (root.type !== CELL_PLANT || root.part !== "root") {
+        return null;
+      }
+      return root;
     }
 
-    function drawTank() {
-      drawBackground();
-      drawRocks();
-      for (const algae of state.algae) {
-        drawSprite(algae, sprites.algae);
-      }
-      for (const plankton of state.plankton) {
-        drawSprite(plankton, sprites.plankton);
-      }
-      for (const predator of state.predators) {
-        drawSprite(predator, sprites.predator);
-      }
-      ctx.strokeStyle = "rgba(255,255,255,0.09)";
-      ctx.strokeRect(0.5, 0.5, WORLD_SIZE - 1, WORLD_SIZE - 1);
+    function plantPixel(x, y, part, rootX, rootY) {
+      setCell(x, y, createCell(CELL_PLANT, { part, rootX, rootY, stage: 3 }));
     }
 
-    function renderCounts() {
-      const counts = [
-        { label: "藻类", value: state.algae.length, color: "var(--algae)" },
-        { label: "浮游生物", value: state.plankton.length, color: "var(--plankton)" },
-        { label: "捕食者", value: state.predators.length, color: "var(--predator)" }
-      ];
-      countList.replaceChildren();
-      for (const item of counts) {
-        const row = document.createElement("div");
-        row.className = "count-row";
-        row.innerHTML = `<span><span class="swatch" style="background:${item.color}"></span>${item.label}</span><strong>${item.value}</strong>`;
-        countList.appendChild(row);
+    function growPlant(rootX, rootY) {
+      const root = cellAt(rootX, rootY);
+      if (root.type !== CELL_PLANT || root.part !== "root") {
+        return;
       }
 
-      timeValue.textContent = `${state.elapsed.toFixed(1)}s`;
-      lightValue.textContent = `${Math.round(state.lightIntensity * 100)}%`;
-      lifeValue.textContent = `${state.algae.length + state.plankton.length + state.predators.length}`;
-      rockValue.textContent = `${state.rocks.length}`;
-    }
-
-    function renderChart() {
-      chartCtx.clearRect(0, 0, chart.width, chart.height);
-      chartCtx.fillStyle = "rgba(6, 14, 20, 0.92)";
-      chartCtx.fillRect(0, 0, chart.width, chart.height);
-
-      chartCtx.strokeStyle = "rgba(255,255,255,0.08)";
-      chartCtx.lineWidth = 1;
-      for (let i = 1; i <= 4; i += 1) {
-        const y = (chart.height / 4) * i;
-        chartCtx.beginPath();
-        chartCtx.moveTo(0, y);
-        chartCtx.lineTo(chart.width, y);
-        chartCtx.stroke();
+      const baseGrowth = hasAdjacentWater(rootX, rootY) && isLit(rootX, rootY);
+      if (!baseGrowth) {
+        return;
       }
 
-      const maxCount = Math.max(
-        10,
-        ...state.history.map((entry) => Math.max(entry.algae, entry.plankton, entry.predator))
-      );
-      const lineConfig = [
-        { key: "algae", color: "#74d46b" },
-        { key: "plankton", color: "#6fcaff" },
-        { key: "predator", color: "#ff8a70" }
-      ];
+      root.growth += 1 + Math.random() * 0.6;
 
-      for (const line of lineConfig) {
-        chartCtx.beginPath();
-        chartCtx.strokeStyle = line.color;
-        chartCtx.lineWidth = 2;
-        state.history.forEach((entry, index) => {
-          const x = state.history.length <= 1
-            ? 0
-            : (index / (HISTORY_LIMIT - 1)) * (chart.width - 8) + 4;
-          const y = chart.height - 6 - (entry[line.key] / maxCount) * (chart.height - 16);
-          if (index === 0) {
-            chartCtx.moveTo(x, y);
-          } else {
-            chartCtx.lineTo(x, y);
+      if (root.stage === 1 && root.growth > 20) {
+        const above = cellAt(rootX, rootY - 1);
+        if (isEmptyLike(above) || isLiquid(above)) {
+          root.stage = 2;
+          root.height = 1;
+          plantPixel(rootX, rootY - 1, "stem", rootX, rootY);
+        }
+      } else if (root.stage === 2 && root.growth > 52) {
+        const topY = rootY - root.height - 1;
+        const above = cellAt(rootX, topY);
+        if (isEmptyLike(above) || isLiquid(above)) {
+          root.height += 1;
+          plantPixel(rootX, topY, "stem", rootX, rootY);
+          root.stage = 3;
+        }
+      } else if (root.stage === 3 && root.growth > 88) {
+        const crownY = rootY - root.height;
+        const leaves = [
+          [rootX - 1, crownY],
+          [rootX + 1, crownY],
+          [rootX, crownY - 1]
+        ];
+        let placed = 0;
+        for (const [leafX, leafY] of leaves) {
+          const target = cellAt(leafX, leafY);
+          if (inBounds(leafX, leafY) && (isEmptyLike(target) || isLiquid(target))) {
+            plantPixel(leafX, leafY, "leaf", rootX, rootY);
+            placed += 1;
           }
-        });
-        chartCtx.stroke();
+        }
+        if (placed > 0) {
+          root.stage = 4;
+        }
+      } else if (root.stage >= 4 && Math.random() < 0.02) {
+        spawnBubble(rootX, rootY - root.height - 1);
+        if (Math.random() < 0.04) {
+          spawnAlgae(rootX + (Math.random() < 0.5 ? -1 : 1), rootY - root.height);
+        }
       }
     }
 
-    function recordHistory() {
-      state.history.push({
-        algae: state.algae.length,
-        plankton: state.plankton.length,
-        predator: state.predators.length
+    function spawnBubble(x, y) {
+      if (!inBounds(x, y)) {
+        return;
+      }
+      const cell = cellAt(x, y);
+      if (isLiquid(cell) || cell.type === CELL_EMPTY) {
+        setCell(x, y, createCell(CELL_BUBBLE));
+      }
+    }
+
+    function spawnAlgae(x, y) {
+      if (!inBounds(x, y)) {
+        return;
+      }
+      const cell = cellAt(x, y);
+      if (isLiquid(cell)) {
+        setCell(x, y, createCell(CELL_ALGAE));
+      }
+    }
+
+    function updateSand(x, y) {
+      const below = cellAt(x, y + 1);
+      if (isEmptyLike(below) || isLiquid(below)) {
+        swapCells(x, y, x, y + 1);
+        return;
+      }
+
+      const dirs = Math.random() < 0.5 ? [-1, 1] : [1, -1];
+      for (const dx of dirs) {
+        const diag = cellAt(x + dx, y + 1);
+        if (isEmptyLike(diag) || isLiquid(diag)) {
+          swapCells(x, y, x + dx, y + 1);
+          return;
+        }
+      }
+
+      cellAt(x, y).updated = true;
+    }
+
+    function updateWater(x, y) {
+      const below = cellAt(x, y + 1);
+      if (isEmptyLike(below)) {
+        swapCells(x, y, x, y + 1);
+        return;
+      }
+
+      const sideways = Math.random() < 0.5 ? [-1, 1] : [1, -1];
+      for (const dx of sideways) {
+        const side = cellAt(x + dx, y);
+        const diag = cellAt(x + dx, y + 1);
+        if (isEmptyLike(diag)) {
+          swapCells(x, y, x + dx, y + 1);
+          return;
+        }
+        if (isEmptyLike(side)) {
+          swapCells(x, y, x + dx, y);
+          return;
+        }
+      }
+
+      cellAt(x, y).updated = true;
+    }
+
+    function updateSeed(x, y) {
+      const below = cellAt(x, y + 1);
+      if (isEmptyLike(below) || isLiquid(below)) {
+        swapCells(x, y, x, y + 1);
+        return;
+      }
+
+      const seed = cellAt(x, y);
+      seed.age += 1;
+
+      if (hasAdjacentWater(x, y) && isLit(x, y) && Math.random() < 0.05) {
+        setCell(x, y, createCell(CELL_PLANT, {
+          part: "root",
+          stage: 1,
+          growth: 0,
+          height: 0,
+          rootX: x,
+          rootY: y
+        }));
+        cellAt(x, y).updated = true;
+        return;
+      }
+
+      seed.updated = true;
+    }
+
+    function updateBubble(x, y) {
+      if (y <= 0) {
+        setCell(x, y, createCell());
+        return;
+      }
+
+      const above = cellAt(x, y - 1);
+      if (above.type === CELL_EMPTY || above.type === CELL_WATER || above.type === CELL_ALGAE) {
+        swapCells(x, y, x, y - 1);
+        return;
+      }
+
+      const dirs = Math.random() < 0.5 ? [-1, 1] : [1, -1];
+      for (const dx of dirs) {
+        const diag = cellAt(x + dx, y - 1);
+        if (diag.type === CELL_EMPTY || diag.type === CELL_WATER) {
+          swapCells(x, y, x + dx, y - 1);
+          return;
+        }
+      }
+
+      cellAt(x, y).updated = true;
+    }
+
+    function updateAlgae(x, y) {
+      const below = cellAt(x, y + 1);
+      if (below.type === CELL_WATER && Math.random() < 0.2) {
+        swapCells(x, y, x, y + 1);
+        return;
+      }
+
+      const drift = Math.random() < 0.5 ? -1 : 1;
+      const side = cellAt(x + drift, y);
+      if (side.type === CELL_WATER && Math.random() < 0.18) {
+        swapCells(x, y, x + drift, y);
+        return;
+      }
+
+      cellAt(x, y).updated = true;
+    }
+
+    function updatePlant(x, y) {
+      const cell = cellAt(x, y);
+      cell.updated = true;
+      if (cell.part === "root") {
+        growPlant(x, y);
+      }
+    }
+
+    function updateGrid() {
+      refreshLightMap();
+
+      for (let y = 0; y < GRID_HEIGHT; y += 1) {
+        for (let x = 0; x < GRID_WIDTH; x += 1) {
+          state.grid[y][x].updated = false;
+        }
+      }
+
+      for (let y = GRID_HEIGHT - 1; y >= 0; y -= 1) {
+        for (let x = 0; x < GRID_WIDTH; x += 1) {
+          const cell = cellAt(x, y);
+          if (cell.updated) {
+            continue;
+          }
+          if (cell.type === CELL_SAND) {
+            updateSand(x, y);
+          } else if (cell.type === CELL_WATER) {
+            updateWater(x, y);
+          } else if (cell.type === CELL_SEED) {
+            updateSeed(x, y);
+          } else if (cell.type === CELL_BUBBLE) {
+            updateBubble(x, y);
+          } else if (cell.type === CELL_ALGAE) {
+            updateAlgae(x, y);
+          } else if (cell.type === CELL_PLANT) {
+            updatePlant(x, y);
+          } else if (cell.type === CELL_SUN) {
+            cell.updated = true;
+          }
+        }
+      }
+    }
+
+    function nearestWaterSpot(originX, originY) {
+      for (let radius = 0; radius <= 8; radius += 1) {
+        for (let y = originY - radius; y <= originY + radius; y += 1) {
+          for (let x = originX - radius; x <= originX + radius; x += 1) {
+            if (inBounds(x, y) && isSwimmable(cellAt(x, y))) {
+              return { x, y };
+            }
+          }
+        }
+      }
+      return null;
+    }
+
+    function addFish(gridX, gridY) {
+      const spawn = nearestWaterSpot(gridX, gridY) ?? { x: gridX, y: gridY };
+      state.fish.push({
+        x: spawn.x + 0.5,
+        y: spawn.y + 0.5,
+        vx: Math.random() < 0.5 ? -0.12 : 0.12,
+        vy: (Math.random() - 0.5) * 0.08,
+        cooldown: 0,
+        facing: 1
       });
-      if (state.history.length > HISTORY_LIMIT) {
-        state.history.shift();
+    }
+
+    function eatNearbyAlgae(fish) {
+      const cx = Math.round(fish.x);
+      const cy = Math.round(fish.y);
+      for (let y = cy - 1; y <= cy + 1; y += 1) {
+        for (let x = cx - 1; x <= cx + 1; x += 1) {
+          if (cellAt(x, y).type === CELL_ALGAE) {
+            setCell(x, y, createCell(CELL_WATER));
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function updateFish() {
+      for (const fish of state.fish) {
+        fish.cooldown -= 1;
+
+        const current = cellAt(Math.round(fish.x), Math.round(fish.y));
+        if (!isSwimmable(current)) {
+          const spot = nearestWaterSpot(Math.round(fish.x), Math.round(fish.y));
+          if (spot) {
+            fish.x += (spot.x + 0.5 - fish.x) * 0.24;
+            fish.y += (spot.y + 0.5 - fish.y) * 0.24;
+          }
+          continue;
+        }
+
+        if (fish.cooldown <= 0) {
+          fish.vx += (Math.random() - 0.5) * 0.18;
+          fish.vy += (Math.random() - 0.5) * 0.12;
+          fish.cooldown = 10 + Math.floor(Math.random() * 28);
+        }
+
+        let target = null;
+        for (let y = Math.round(fish.y) - 5; y <= Math.round(fish.y) + 5; y += 1) {
+          for (let x = Math.round(fish.x) - 5; x <= Math.round(fish.x) + 5; x += 1) {
+            if (cellAt(x, y).type === CELL_ALGAE) {
+              target = { x, y };
+              break;
+            }
+          }
+          if (target) {
+            break;
+          }
+        }
+
+        if (target) {
+          fish.vx += Math.sign(target.x + 0.5 - fish.x) * 0.04;
+          fish.vy += Math.sign(target.y + 0.5 - fish.y) * 0.02;
+        }
+
+        fish.vx = Math.max(-0.26, Math.min(0.26, fish.vx * 0.96));
+        fish.vy = Math.max(-0.18, Math.min(0.18, fish.vy * 0.94));
+
+        const nextX = fish.x + fish.vx;
+        const nextY = fish.y + fish.vy;
+        const targetCell = cellAt(Math.round(nextX), Math.round(nextY));
+        if (isSwimmable(targetCell)) {
+          fish.x = nextX;
+          fish.y = nextY;
+        } else {
+          fish.vx *= -0.6;
+          fish.vy *= -0.4;
+          fish.y += Math.sin(state.tick * 0.03 + fish.x) * 0.05;
+        }
+
+        fish.facing = fish.vx >= 0 ? 1 : -1;
+        fish.x = Math.max(1, Math.min(GRID_WIDTH - 2, fish.x));
+        fish.y = Math.max(1, Math.min(GRID_HEIGHT - 2, fish.y));
+        eatNearbyAlgae(fish);
       }
     }
 
-    function addAtPoint(tool, x, y) {
-      const radius = TOOL_RADIUS[tool];
-      const count = tool === "rock" ? 1 : 3;
-      for (let i = 0; i < count; i += 1) {
-        const px = clamp(x + rand(-radius, radius), 6, WORLD_SIZE - 6);
-        const py = clamp(y + rand(-radius, radius), 6, WORLD_SIZE - 6);
-        if (tool === "rock") {
-          if (state.rocks.length < MAX_ROCKS && !collidesWithRock(px, py, 10)) {
-            state.rocks.push(createRock(px, py));
+    function countCells(type) {
+      let total = 0;
+      for (let y = 0; y < GRID_HEIGHT; y += 1) {
+        for (let x = 0; x < GRID_WIDTH; x += 1) {
+          if (cellAt(x, y).type === type) {
+            total += 1;
           }
-        } else if (tool === "algae" && state.algae.length < MAX_ALGAE) {
-          state.algae.push(createAlgae(px, py));
-        } else if (tool === "plankton" && state.plankton.length < MAX_PLANKTON) {
-          state.plankton.push(createPlankton(px, py));
-        } else if (tool === "predator" && state.predators.length < MAX_PREDATORS) {
-          state.predators.push(createPredator(px, py));
+        }
+      }
+      return total;
+    }
+
+    function updateStats() {
+      toolLabel.textContent = toolLabels[state.selectedTool];
+      waterCount.textContent = countCells(CELL_WATER);
+      plantCount.textContent = countCells(CELL_PLANT);
+      fishCount.textContent = state.fish.length;
+    }
+
+    function drawCell(x, y, cell) {
+      if (cell.type === CELL_EMPTY) {
+        return;
+      }
+
+      if (cell.type === CELL_WATER) {
+        ctx.fillStyle = colors.water;
+        ctx.fillRect(x, y, 1, 1);
+        if ((x + y + state.tick) % 7 === 0) {
+          ctx.fillStyle = colors.waterFoam;
+          ctx.fillRect(x, y, 1, 1);
+        }
+      } else if (cell.type === CELL_SAND) {
+        ctx.fillStyle = colors.sand;
+        ctx.fillRect(x, y, 1, 1);
+      } else if (cell.type === CELL_SEED) {
+        ctx.fillStyle = colors.seed;
+        ctx.fillRect(x, y, 1, 1);
+      } else if (cell.type === CELL_SUN) {
+        ctx.fillStyle = colors.sun;
+        ctx.fillRect(x, y, 1, 1);
+      } else if (cell.type === CELL_BUBBLE) {
+        ctx.fillStyle = colors.bubble;
+        ctx.fillRect(x, y, 1, 1);
+      } else if (cell.type === CELL_ALGAE) {
+        ctx.fillStyle = colors.algae;
+        ctx.fillRect(x, y, 1, 1);
+      } else if (cell.type === CELL_PLANT) {
+        const sway = (state.tick + x * 3 + y * 5) % 24 < 12;
+        if (cell.part === "root") {
+          ctx.fillStyle = colors.plantRoot;
+        } else if (cell.part === "stem") {
+          ctx.fillStyle = sway ? colors.plantStem : "#3a8f4d";
+        } else {
+          ctx.fillStyle = sway ? colors.plantLeaf : "#79cf6a";
+        }
+        ctx.fillRect(x, y, 1, 1);
+      }
+    }
+
+    function drawLightOverlay() {
+      for (let y = 0; y < GRID_HEIGHT; y += 1) {
+        for (let x = 0; x < GRID_WIDTH; x += 1) {
+          if (state.lightMap[y][x] > 0.18) {
+            ctx.fillStyle = `rgba(255, 244, 173, ${state.lightMap[y][x] * 0.16})`;
+            ctx.fillRect(x, y, 1, 1);
+          }
         }
       }
     }
 
-    function getCanvasPoint(event) {
+    function drawFish() {
+      for (const fish of state.fish) {
+        const x = Math.round(fish.x);
+        const y = Math.round(fish.y);
+        ctx.fillStyle = colors.fish;
+        ctx.fillRect(x, y, 1, 1);
+        ctx.fillRect(x - fish.facing, y, 1, 1);
+        ctx.fillStyle = colors.fishDark;
+        ctx.fillRect(x + fish.facing, y, 1, 1);
+      }
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, tank.width, tank.height);
+
+      const waterline = 8;
+      ctx.fillStyle = "#caecff";
+      ctx.fillRect(0, 0, GRID_WIDTH, waterline);
+      ctx.fillStyle = "#7fb2cf";
+      ctx.fillRect(0, waterline, GRID_WIDTH, GRID_HEIGHT - waterline);
+
+      drawLightOverlay();
+
+      for (let y = 0; y < GRID_HEIGHT; y += 1) {
+        for (let x = 0; x < GRID_WIDTH; x += 1) {
+          drawCell(x, y, cellAt(x, y));
+        }
+      }
+
+      drawFish();
+
+      ctx.strokeStyle = colors.glass;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(0.5, 0.5, GRID_WIDTH - 1, GRID_HEIGHT - 1);
+    }
+
+    function eraseAt(gridX, gridY) {
+      for (let dy = -state.brushSize + 1; dy < state.brushSize; dy += 1) {
+        for (let dx = -state.brushSize + 1; dx < state.brushSize; dx += 1) {
+          const x = gridX + dx;
+          const y = gridY + dy;
+          if (!inBounds(x, y)) {
+            continue;
+          }
+          setCell(x, y, createCell());
+        }
+      }
+
+      state.fish = state.fish.filter((fish) => Math.hypot(fish.x - gridX, fish.y - gridY) > state.brushSize + 0.5);
+    }
+
+    function paintAt(gridX, gridY) {
+      if (state.eraseMode) {
+        eraseAt(gridX, gridY);
+        return;
+      }
+
+      for (let dy = -state.brushSize + 1; dy < state.brushSize; dy += 1) {
+        for (let dx = -state.brushSize + 1; dx < state.brushSize; dx += 1) {
+          const x = gridX + dx;
+          const y = gridY + dy;
+          if (!inBounds(x, y)) {
+            continue;
+          }
+
+          if (state.selectedTool === "water") {
+            const target = cellAt(x, y);
+            if (target.type === CELL_EMPTY || target.type === CELL_BUBBLE || target.type === CELL_ALGAE) {
+              setCell(x, y, createCell(CELL_WATER));
+            }
+          } else if (state.selectedTool === "sand") {
+            const target = cellAt(x, y);
+            if (target.type === CELL_EMPTY || target.type === CELL_WATER || target.type === CELL_BUBBLE) {
+              setCell(x, y, createCell(CELL_SAND));
+            }
+          } else if (state.selectedTool === "seed") {
+            if (cellAt(x, y).type === CELL_EMPTY || cellAt(x, y).type === CELL_WATER) {
+              setCell(x, y, createCell(CELL_SEED));
+            }
+          } else if (state.selectedTool === "sun") {
+            setCell(x, Math.min(y, 12), createCell(CELL_SUN));
+          } else if (state.selectedTool === "fish") {
+            addFish(x, y);
+          }
+        }
+      }
+    }
+
+    function pointerToGrid(event) {
       const rect = tank.getBoundingClientRect();
-      const clientX = event.clientX ?? event.touches?.[0]?.clientX;
-      const clientY = event.clientY ?? event.touches?.[0]?.clientY;
-      const x = ((clientX - rect.left) / rect.width) * WORLD_SIZE;
-      const y = ((clientY - rect.top) / rect.height) * WORLD_SIZE;
+      const scaleX = GRID_WIDTH / rect.width;
+      const scaleY = GRID_HEIGHT / rect.height;
       return {
-        x: clamp(x, 0, WORLD_SIZE),
-        y: clamp(y, 0, WORLD_SIZE)
+        x: Math.floor((event.clientX - rect.left) * scaleX),
+        y: Math.floor((event.clientY - rect.top) * scaleY)
       };
     }
 
     function handlePaint(event) {
-      const point = getCanvasPoint(event);
-      addAtPoint(state.selectedTool, point.x, point.y);
+      const { x, y } = pointerToGrid(event);
+      paintAt(x, y);
+      updateStats();
     }
 
-    function buildTools() {
-      toolGrid.replaceChildren();
-      for (const tool of toolConfig) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "tool";
-        button.dataset.tool = tool.key;
-        if (tool.key === state.selectedTool) {
-          button.classList.add("active");
-        }
-        button.innerHTML = `<span class="swatch" style="background:${tool.color}"></span><span>${tool.label}</span>`;
-        button.addEventListener("click", () => {
-          state.selectedTool = tool.key;
-          for (const node of toolGrid.children) {
-            node.classList.toggle("active", node.dataset.tool === tool.key);
-          }
-        });
-        toolGrid.appendChild(button);
-      }
+    function setTool(tool) {
+      state.selectedTool = tool;
+      toolButtons.forEach((button) => {
+        button.classList.toggle("active", button.dataset.tool === tool);
+      });
+      toolLabel.textContent = toolLabels[tool];
     }
 
     function resetWorld() {
-      state.algae = [];
-      state.plankton = [];
-      state.predators = [];
-      state.rocks = [];
-      state.history = [];
-      state.elapsed = 0;
-      state.chartTimer = 0;
-      recordHistory();
-      renderCounts();
-      renderChart();
-      drawTank();
+      state.grid = buildGrid();
+      state.fish = [];
+      state.tick = 0;
+      refreshLightMap();
+      updateStats();
     }
 
-    function seedWorld() {
+    function seedScene() {
       resetWorld();
-      for (let i = 0; i < 4; i += 1) {
-        state.rocks.push(createRock(56 + i * 18, 106 + (i % 2) * 12));
+
+      for (let x = 12; x < 84; x += 1) {
+        for (let y = 28; y < 60; y += 1) {
+          setCell(x, y, createCell(CELL_WATER));
+        }
       }
-      for (let i = 0; i < 54; i += 1) {
-        state.algae.push(createAlgae(rand(20, 160), rand(68, 168)));
+
+      for (let x = 10; x < 86; x += 1) {
+        setCell(x, 60, createCell(CELL_SAND));
+        if (x % 2 === 0) {
+          setCell(x, 61, createCell(CELL_SAND));
+        }
       }
-      for (let i = 0; i < 20; i += 1) {
-        state.plankton.push(createPlankton(rand(24, 156), rand(54, 154)));
-      }
-      for (let i = 0; i < 6; i += 1) {
-        state.predators.push(createPredator(rand(28, 152), rand(36, 144)));
-      }
-      recordHistory();
-      renderCounts();
-      renderChart();
-      drawTank();
+
+      [24, 39, 57, 74].forEach((x) => setCell(x, 8, createCell(CELL_SUN)));
+      [28, 48, 67].forEach((x) => setCell(x, 56, createCell(CELL_SEED)));
+      addFish(30, 38);
+      addFish(66, 44);
+
+      updateStats();
     }
 
-    function frame(timestamp) {
-      if (!frame.lastTime) {
-        frame.lastTime = timestamp;
-      }
-      const dt = Math.min((timestamp - frame.lastTime) / 1000, 0.05);
-      frame.lastTime = timestamp;
-
-      state.elapsed += dt;
-      state.chartTimer += dt;
-      updateSimulation(dt);
-      if (state.chartTimer >= CHART_INTERVAL) {
-        state.chartTimer = 0;
-        recordHistory();
-        renderChart();
-      }
-      renderCounts();
-      drawTank();
-      requestAnimationFrame(frame);
-    }
-
-    lightSlider.addEventListener("input", () => {
-      state.lightIntensity = Number(lightSlider.value) / 100;
-      lightValue.textContent = `${Math.round(state.lightIntensity * 100)}%`;
+    toolButtons.forEach((button) => {
+      button.addEventListener("click", () => setTool(button.dataset.tool));
     });
 
+    brushSizeInput.addEventListener("input", () => {
+      state.brushSize = Number(brushSizeInput.value);
+    });
+
+    seedSceneButton.addEventListener("click", seedScene);
+    clearSceneButton.addEventListener("click", resetWorld);
+
+    tank.addEventListener("contextmenu", (event) => event.preventDefault());
     tank.addEventListener("pointerdown", (event) => {
       state.pointerDown = true;
-      tank.setPointerCapture(event.pointerId);
+      state.eraseMode = event.button === 2;
       handlePaint(event);
     });
-
-    tank.addEventListener("pointermove", (event) => {
+    window.addEventListener("pointermove", (event) => {
       if (state.pointerDown) {
         handlePaint(event);
       }
     });
-
-    tank.addEventListener("pointerup", () => {
+    window.addEventListener("pointerup", () => {
       state.pointerDown = false;
+      state.eraseMode = false;
     });
 
-    tank.addEventListener("pointerleave", () => {
-      state.pointerDown = false;
-    });
+    function frame() {
+      state.tick += 1;
+      updateGrid();
+      updateFish();
+      render();
+      updateStats();
+      requestAnimationFrame(frame);
+    }
 
-    seedButton.addEventListener("click", seedWorld);
-    resetButton.addEventListener("click", resetWorld);
-
-    buildTools();
-    seedWorld();
+    seedScene();
     requestAnimationFrame(frame);
   </script>
 </body>
