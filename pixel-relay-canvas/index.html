@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>接力画布：双人合作像素画</title>
+  <style>
+    :root {
+      --bg: #f6efe2;
+      --panel: rgba(255, 251, 245, 0.92);
+      --panel-strong: #fffdf9;
+      --line: rgba(87, 61, 34, 0.16);
+      --text: #24170f;
+      --muted: #6d5a48;
+      --accent: #c45b2d;
+      --accent-soft: rgba(196, 91, 45, 0.14);
+      --blue: #2c6fdb;
+      --pink: #d84d84;
+      --success: #2f8f5b;
+      --shadow: 0 18px 44px rgba(79, 54, 27, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.8), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(196, 91, 45, 0.12), transparent 24%),
+        linear-gradient(180deg, #fbf4e9 0%, var(--bg) 48%, #efe3d0 100%);
+    }
+
+    button,
+    input {
+      font: inherit;
+      color: inherit;
+    }
+
+    button,
+    input[type="text"] {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    button {
+      cursor: pointer;
+      padding: 10px 14px;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    button:hover:not(:disabled),
+    button:focus-visible,
+    input:focus-visible {
+      outline: none;
+      transform: translateY(-1px);
+      border-color: rgba(196, 91, 45, 0.45);
+      background: #fffdf9;
+    }
+
+    button:disabled {
+      opacity: 0.48;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    .page {
+      width: min(1200px, calc(100vw - 28px));
+      margin: 0 auto;
+      padding: 24px 0 40px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .hero,
+    .sidebar,
+    .canvas-panel,
+    .guess-panel {
+      padding: 20px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
+      gap: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero-copy,
+    .rule-box,
+    .sidebar,
+    .canvas-panel,
+    .guess-panel,
+    .toolbar,
+    .palette,
+    .status-grid {
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .eyebrow,
+    .muted,
+    .hint,
+    .small {
+      color: var(--muted);
+    }
+
+    .eyebrow {
+      letter-spacing: 0.18em;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    h1 {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2.7rem, 6vw, 4.8rem);
+      line-height: 0.94;
+      letter-spacing: -0.04em;
+    }
+
+    .hero-copy p,
+    .rule-box li,
+    .muted,
+    .hint {
+      line-height: 1.6;
+    }
+
+    .rule-box,
+    .stat,
+    .palette-button,
+    .guess-panel {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .rule-box {
+      padding: 18px;
+    }
+
+    .rule-box ul {
+      margin: 10px 0 0;
+      padding-left: 18px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+      gap: 18px;
+    }
+
+    .status-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .stat {
+      padding: 14px 16px;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 1.05rem;
+    }
+
+    .player-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .player-badge.player-1 {
+      color: var(--blue);
+      background: rgba(44, 111, 219, 0.12);
+    }
+
+    .player-badge.player-2 {
+      color: var(--pink);
+      background: rgba(216, 77, 132, 0.14);
+    }
+
+    .toolbar {
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    }
+
+    .primary {
+      background: linear-gradient(135deg, #d66b3d, #b84a23);
+      color: #fff8f3;
+      font-weight: 700;
+      border-color: #ab4924;
+    }
+
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.78);
+    }
+
+    .toggle input {
+      accent-color: var(--accent);
+    }
+
+    .canvas-shell {
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.82)),
+        linear-gradient(135deg, rgba(196, 91, 45, 0.08), rgba(44, 111, 219, 0.07));
+    }
+
+    canvas {
+      width: min(100%, 640px);
+      aspect-ratio: 1;
+      border: 1px solid rgba(0, 0, 0, 0.18);
+      border-radius: 14px;
+      image-rendering: pixelated;
+      background: #fff;
+      touch-action: none;
+    }
+
+    .palette {
+      grid-template-columns: repeat(auto-fit, minmax(74px, 1fr));
+    }
+
+    .palette-button {
+      display: grid;
+      place-items: center;
+      gap: 8px;
+      padding: 12px 8px;
+    }
+
+    .palette-button.active {
+      border-color: rgba(196, 91, 45, 0.55);
+      box-shadow: inset 0 0 0 1px rgba(196, 91, 45, 0.2);
+      background: var(--accent-soft);
+    }
+
+    .swatch {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 0, 0, 0.18);
+    }
+
+    .guess-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .guess-row input {
+      flex: 1 1 220px;
+      min-width: 0;
+      padding: 10px 12px;
+    }
+
+    .success {
+      color: var(--success);
+      font-weight: 700;
+    }
+
+    @media (max-width: 840px) {
+      .hero,
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero panel">
+      <div class="hero-copy">
+        <p class="eyebrow">Creative Toy</p>
+        <h1>接力画布</h1>
+        <p>两位玩家轮流在同一张 16×16 像素画布上作画。每回合只能落下 5 个像素，10 秒倒计时结束会自动交棒，适合热座合作或主题词挑战。</p>
+        <div class="toggle">
+          <input id="challenge-mode" type="checkbox">
+          <label for="challenge-mode">挑战模式：开局随机抽主题词，完成后互相猜</label>
+        </div>
+        <div class="toolbar">
+          <button id="new-game" class="primary" type="button">新开一局</button>
+          <button id="clear-board" type="button">清空画布</button>
+          <button id="export-png" type="button">导出 PNG</button>
+          <button id="replay-button" type="button">动画回放</button>
+        </div>
+      </div>
+      <div class="rule-box">
+        <p class="eyebrow">玩法规则</p>
+        <ul>
+          <li>热座双人轮流绘制，界面会显示当前玩家编号。</li>
+          <li>每人每回合限 5 个像素，重复涂改同样会消耗回合次数。</li>
+          <li>倒计时为 10 秒，超时后自动切换到另一位玩家。</li>
+          <li>回放会按时间顺序重新绘制每个像素，便于展示创作过程。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="layout">
+      <aside class="sidebar panel">
+        <div id="player-badge" class="player-badge player-1">当前玩家：1 号</div>
+        <div class="status-grid">
+          <div class="stat">
+            <span class="small">本回合剩余像素</span>
+            <strong id="pixels-left">5 / 5</strong>
+          </div>
+          <div class="stat">
+            <span class="small">倒计时</span>
+            <strong id="timer">10 秒</strong>
+          </div>
+          <div class="stat">
+            <span class="small">已绘制像素</span>
+            <strong id="filled-count">0 / 256</strong>
+          </div>
+          <div class="stat">
+            <span class="small">回放步数</span>
+            <strong id="history-count">0</strong>
+          </div>
+        </div>
+
+        <div>
+          <h2>调色板</h2>
+          <p class="hint">点击或触摸画布即可落点。空白色会作为橡皮擦使用，并记录进回放。</p>
+        </div>
+        <div id="palette" class="palette"></div>
+
+        <div class="guess-panel">
+          <h2>挑战主题</h2>
+          <p id="challenge-status" class="muted">当前为热座模式，直接开始作画即可。</p>
+          <div id="guess-controls" class="hidden">
+            <div class="guess-row">
+              <input id="guess-input" type="text" placeholder="输入你猜的主题词">
+              <button id="submit-guess" type="button">提交猜测</button>
+            </div>
+            <button id="reveal-theme" type="button">揭晓主题</button>
+            <p id="guess-feedback" class="muted">完成画布后可输入猜测，再决定是否揭晓。</p>
+          </div>
+        </div>
+      </aside>
+
+      <section class="canvas-panel panel">
+        <div>
+          <h2>16×16 画布</h2>
+          <p class="hint">支持鼠标点击、拖拽与触摸连续绘制。画满 256 格后会结束本局并保留导出与回放功能。</p>
+        </div>
+        <div class="canvas-shell">
+          <canvas id="pixel-canvas" width="512" height="512" aria-label="16x16 pixel drawing canvas"></canvas>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const GRID_SIZE = 16;
+    const PIXELS_PER_TURN = 5;
+    const TURN_SECONDS = 10;
+    const CANVAS_SIZE = 512;
+    const CELL_SIZE = CANVAS_SIZE / GRID_SIZE;
+    const THEME_WORDS = ["火箭", "蛋糕", "小猫", "西瓜", "城堡", "风筝", "机器人", "蘑菇"];
+    const PALETTE = [
+      { name: "墨黑", value: "#1f2430" },
+      { name: "奶白", value: "#fff7ef" },
+      { name: "樱桃", value: "#e94f64" },
+      { name: "橙子", value: "#f39b3d" },
+      { name: "向日", value: "#f4d35e" },
+      { name: "叶绿", value: "#5dbb63" },
+      { name: "湖蓝", value: "#3ea5d8" },
+      { name: "葡萄", value: "#7c6ee6" },
+      { name: "粉雾", value: "#ef9cc0" },
+      { name: "橡皮", value: null }
+    ];
+
+    const canvas = document.querySelector("#pixel-canvas");
+    const ctx = canvas.getContext("2d");
+    const paletteContainer = document.querySelector("#palette");
+    const pixelsLeftLabel = document.querySelector("#pixels-left");
+    const timerLabel = document.querySelector("#timer");
+    const filledCountLabel = document.querySelector("#filled-count");
+    const historyCountLabel = document.querySelector("#history-count");
+    const playerBadge = document.querySelector("#player-badge");
+    const challengeModeInput = document.querySelector("#challenge-mode");
+    const challengeStatus = document.querySelector("#challenge-status");
+    const guessControls = document.querySelector("#guess-controls");
+    const guessInput = document.querySelector("#guess-input");
+    const guessFeedback = document.querySelector("#guess-feedback");
+
+    let grid = [];
+    let history = [];
+    let currentColor = PALETTE[0].value;
+    let currentPlayer = 1;
+    let remainingPixels = PIXELS_PER_TURN;
+    let timeLeft = TURN_SECONDS;
+    let timerId = null;
+    let pointerDown = false;
+    let replaying = false;
+    let gameFinished = false;
+    let challengeTheme = "";
+
+    function createPixelGrid() {
+      return Array.from({ length: GRID_SIZE }, () =>
+        Array.from({ length: GRID_SIZE }, () => ({
+          color: null,
+          player: null,
+          order: null,
+          timestamp: null
+        }))
+      );
+    }
+
+    function renderPalette() {
+      const buttons = PALETTE.map((entry, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "palette-button";
+        if (entry.value === currentColor) {
+          button.classList.add("active");
+        }
+
+        const swatch = document.createElement("span");
+        swatch.className = "swatch";
+        swatch.style.background = entry.value ?? "linear-gradient(135deg, #ffffff 0%, #ffffff 45%, #d84d84 45%, #d84d84 55%, #ffffff 55%, #ffffff 100%)";
+
+        const name = document.createElement("span");
+        name.textContent = index === PALETTE.length - 1 ? "橡皮" : entry.name;
+
+        button.append(swatch, name);
+        button.addEventListener("click", () => {
+          currentColor = entry.value;
+          renderPalette();
+        });
+        return button;
+      });
+
+      paletteContainer.replaceChildren(...buttons);
+    }
+
+    function drawCanvas(sourceGrid = grid) {
+      ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+      ctx.fillStyle = "#fffdf8";
+      ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+      for (let y = 0; y < GRID_SIZE; y += 1) {
+        for (let x = 0; x < GRID_SIZE; x += 1) {
+          const cell = sourceGrid[y][x];
+          if (cell.color) {
+            ctx.fillStyle = cell.color;
+            ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+          }
+        }
+      }
+
+      ctx.strokeStyle = "rgba(60, 46, 31, 0.16)";
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= GRID_SIZE; i += 1) {
+        const pos = i * CELL_SIZE;
+        ctx.beginPath();
+        ctx.moveTo(pos, 0);
+        ctx.lineTo(pos, CANVAS_SIZE);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, pos);
+        ctx.lineTo(CANVAS_SIZE, pos);
+        ctx.stroke();
+      }
+    }
+
+    function getFilledCount() {
+      let count = 0;
+      for (let y = 0; y < GRID_SIZE; y += 1) {
+        for (let x = 0; x < GRID_SIZE; x += 1) {
+          if (grid[y][x].color) {
+            count += 1;
+          }
+        }
+      }
+      return count;
+    }
+
+    function updateStatus() {
+      pixelsLeftLabel.textContent = `${remainingPixels} / ${PIXELS_PER_TURN}`;
+      timerLabel.textContent = `${timeLeft} 秒`;
+      filledCountLabel.textContent = `${getFilledCount()} / ${GRID_SIZE * GRID_SIZE}`;
+      historyCountLabel.textContent = String(history.length);
+      playerBadge.textContent = `当前玩家：${currentPlayer} 号`;
+      playerBadge.className = `player-badge player-${currentPlayer}`;
+
+      if (gameFinished) {
+        challengeStatus.textContent = challengeModeInput.checked
+          ? "画布已完成。现在轮流猜主题词，或直接揭晓答案。"
+          : "画布已完成。你可以导出 PNG 或观看动画回放。";
+        return;
+      }
+
+      if (challengeModeInput.checked) {
+        challengeStatus.textContent = challengeTheme
+          ? `挑战模式进行中，主题词已抽取。先合作画完，再互相猜。`
+          : "挑战模式待开始，点击“新开一局”抽取主题词。";
+      } else {
+        challengeStatus.textContent = "当前为热座模式，直接开始作画即可。";
+      }
+    }
+
+    function stopTurnTimer() {
+      if (timerId) {
+        clearInterval(timerId);
+        timerId = null;
+      }
+    }
+
+    function startTurnTimer() {
+      stopTurnTimer();
+      timerId = window.setInterval(() => {
+        if (replaying || gameFinished) {
+          return;
+        }
+        timeLeft -= 1;
+        if (timeLeft <= 0) {
+          switchTurn("时间到，自动切换给下一位玩家。");
+          return;
+        }
+        updateStatus();
+      }, 1000);
+      updateStatus();
+    }
+
+    function switchTurn(reason = "") {
+      if (gameFinished) {
+        return;
+      }
+      currentPlayer = currentPlayer === 1 ? 2 : 1;
+      remainingPixels = PIXELS_PER_TURN;
+      timeLeft = TURN_SECONDS;
+      updateStatus();
+      if (reason) {
+        challengeStatus.textContent = reason;
+      }
+    }
+
+    function finishGame() {
+      gameFinished = true;
+      stopTurnTimer();
+      challengeStatus.textContent = challengeModeInput.checked
+        ? "画布已完成。现在轮流猜主题词，或直接揭晓答案。"
+        : "画布已完成。你可以导出 PNG 或观看动画回放。";
+      if (challengeModeInput.checked) {
+        guessControls.classList.remove("hidden");
+      }
+      updateStatus();
+    }
+
+    function getCellFromEvent(event) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+      const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+      const x = Math.floor(((clientX - rect.left) / rect.width) * GRID_SIZE);
+      const y = Math.floor(((clientY - rect.top) / rect.height) * GRID_SIZE);
+
+      if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) {
+        return null;
+      }
+
+      return { x, y };
+    }
+
+    function recordPixel(x, y) {
+      if (replaying || gameFinished || remainingPixels <= 0) {
+        return;
+      }
+
+      const existing = grid[y][x];
+      const nextOrder = history.length + 1;
+      const colorChanged = existing.color !== currentColor;
+
+      if (!colorChanged) {
+        return;
+      }
+
+      grid[y][x] = {
+        color: currentColor,
+        player: currentPlayer,
+        order: nextOrder,
+        timestamp: Date.now()
+      };
+
+      history.push({
+        x,
+        y,
+        color: currentColor,
+        player: currentPlayer,
+        order: nextOrder,
+        timestamp: Date.now()
+      });
+
+      remainingPixels -= 1;
+      drawCanvas();
+
+      if (getFilledCount() === GRID_SIZE * GRID_SIZE) {
+        finishGame();
+        return;
+      }
+
+      if (remainingPixels === 0) {
+        switchTurn("本回合的 5 个像素已用完，自动交棒。");
+      }
+
+      updateStatus();
+    }
+
+    function handlePointerPaint(event) {
+      event.preventDefault();
+      const cell = getCellFromEvent(event);
+      if (!cell) {
+        return;
+      }
+      recordPixel(cell.x, cell.y);
+    }
+
+    function attachCanvasInput() {
+      canvas.addEventListener("pointerdown", (event) => {
+        pointerDown = true;
+        handlePointerPaint(event);
+      });
+      canvas.addEventListener("pointermove", (event) => {
+        if (pointerDown) {
+          handlePointerPaint(event);
+        }
+      });
+      window.addEventListener("pointerup", () => {
+        pointerDown = false;
+      });
+    }
+
+    function resetBoard() {
+      grid = createPixelGrid();
+      history = [];
+      currentPlayer = 1;
+      remainingPixels = PIXELS_PER_TURN;
+      timeLeft = TURN_SECONDS;
+      replaying = false;
+      gameFinished = false;
+      challengeTheme = challengeModeInput.checked
+        ? THEME_WORDS[Math.floor(Math.random() * THEME_WORDS.length)]
+        : "";
+      guessControls.classList.add("hidden");
+      guessInput.value = "";
+      guessFeedback.className = "muted";
+      guessFeedback.textContent = challengeModeInput.checked
+        ? "完成画布后可输入猜测，再决定是否揭晓。"
+        : "挑战模式关闭。";
+      drawCanvas();
+      updateStatus();
+      startTurnTimer();
+    }
+
+    function exportPNG() {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "pixel-relay-canvas.png";
+        link.click();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      });
+    }
+
+    function replayHistory() {
+      if (history.length === 0 || replaying) {
+        return;
+      }
+
+      replaying = true;
+      stopTurnTimer();
+      challengeStatus.textContent = "正在回放创作过程。";
+      const replayGrid = createPixelGrid();
+      let index = 0;
+      let lastFrame = 0;
+
+      function step(timestamp) {
+        if (!lastFrame) {
+          lastFrame = timestamp;
+        }
+
+        if (timestamp - lastFrame >= 90 && index < history.length) {
+          const move = history[index];
+          replayGrid[move.y][move.x] = {
+            color: move.color,
+            player: move.player,
+            order: move.order,
+            timestamp: move.timestamp
+          };
+          drawCanvas(replayGrid);
+          index += 1;
+          lastFrame = timestamp;
+        }
+
+        if (index < history.length) {
+          window.requestAnimationFrame(step);
+          return;
+        }
+
+        replaying = false;
+        drawCanvas();
+        if (!gameFinished) {
+          startTurnTimer();
+        }
+        updateStatus();
+      }
+
+      drawCanvas(replayGrid);
+      window.requestAnimationFrame(step);
+    }
+
+    function submitGuess() {
+      const value = guessInput.value.trim();
+      if (!value) {
+        guessFeedback.textContent = "先输入一个猜测。";
+        return;
+      }
+      if (value === challengeTheme) {
+        guessFeedback.textContent = `猜中了，主题词就是“${challengeTheme}”。`;
+        guessFeedback.className = "success";
+      } else {
+        guessFeedback.textContent = `还没猜中。继续试试，或者直接揭晓主题。`;
+        guessFeedback.className = "muted";
+      }
+    }
+
+    function revealTheme() {
+      guessFeedback.textContent = challengeTheme ? `本局主题词：${challengeTheme}` : "本局未启用挑战模式。";
+      guessFeedback.className = "muted";
+    }
+
+    document.querySelector("#new-game").addEventListener("click", resetBoard);
+    document.querySelector("#clear-board").addEventListener("click", resetBoard);
+    document.querySelector("#export-png").addEventListener("click", exportPNG);
+    document.querySelector("#replay-button").addEventListener("click", replayHistory);
+    document.querySelector("#submit-guess").addEventListener("click", submitGuess);
+    document.querySelector("#reveal-theme").addEventListener("click", revealTheme);
+    challengeModeInput.addEventListener("change", resetBoard);
+
+    renderPalette();
+    attachCanvasInput();
+    resetBoard();
+  </script>
+</body>
+</html>
