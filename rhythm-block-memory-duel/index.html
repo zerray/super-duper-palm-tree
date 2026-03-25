@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>节奏色块记忆：回合制双人派对游戏</title>
+  <style>
+    :root {
+      --bg: #0f1222;
+      --panel: rgba(18, 22, 42, 0.9);
+      --panel-strong: rgba(28, 34, 62, 0.96);
+      --line: rgba(255, 255, 255, 0.1);
+      --text: #eff3ff;
+      --muted: #aeb8dd;
+      --accent: #ffe082;
+      --good: #75f3b5;
+      --bad: #ff7c9f;
+      --shadow: 0 24px 56px rgba(0, 0, 0, 0.32);
+      --radius: 26px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "PingFang SC", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(72, 219, 251, 0.18), transparent 26%),
+        radial-gradient(circle at top right, rgba(255, 122, 162, 0.16), transparent 24%),
+        linear-gradient(180deg, #080b15 0%, #10162c 55%, #090d17 100%);
+    }
+
+    button {
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(1100px, calc(100vw - 24px));
+      margin: 0 auto;
+      padding: 18px 0 28px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .hero,
+    .hud,
+    .sidebar,
+    .result-card {
+      padding: 20px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
+      gap: 16px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    .eyebrow,
+    .label {
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 0.78rem;
+    }
+
+    h1 {
+      margin-top: 8px;
+      font-size: clamp(2.8rem, 7vw, 5rem);
+      line-height: 0.92;
+      letter-spacing: -0.06em;
+    }
+
+    .lede,
+    .muted,
+    li,
+    .key-list span {
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .hero-copy,
+    .hero-side,
+    .layout,
+    .sidebar,
+    .result-card {
+      display: grid;
+      gap: 14px;
+    }
+
+    .stats,
+    .mode-row,
+    .score-grid,
+    .key-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .stats,
+    .score-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .mode-row {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .stat,
+    .mode-button,
+    .card,
+    .result-card,
+    .tile {
+      border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .stat,
+    .card,
+    .result-card {
+      padding: 14px 16px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .value {
+      margin-top: 6px;
+      font-size: 1.35rem;
+      font-weight: 700;
+    }
+
+    .mode-button,
+    .primary-button,
+    .secondary-button {
+      min-height: 48px;
+      padding: 0 16px;
+      background: rgba(255, 255, 255, 0.06);
+      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    .mode-button:hover,
+    .mode-button:focus-visible,
+    .primary-button:hover,
+    .primary-button:focus-visible,
+    .secondary-button:hover,
+    .secondary-button:focus-visible,
+    .tile:focus-visible {
+      outline: none;
+      transform: translateY(-1px);
+      border-color: rgba(255, 224, 130, 0.45);
+      box-shadow: 0 12px 26px rgba(0, 0, 0, 0.24);
+    }
+
+    .mode-button.active {
+      background: linear-gradient(180deg, rgba(255, 224, 130, 0.28), rgba(255, 224, 130, 0.12));
+      border-color: rgba(255, 224, 130, 0.52);
+    }
+
+    .primary-button {
+      border: 0;
+      font-weight: 800;
+      color: #101521;
+      background: linear-gradient(180deg, #ffe38d 0%, #ffbe5c 100%);
+    }
+
+    .secondary-button {
+      color: var(--text);
+    }
+
+    .layout {
+      grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+      gap: 16px;
+    }
+
+    .hud {
+      display: grid;
+      gap: 14px;
+    }
+
+    .status-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .pill {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .tempo-bar {
+      height: 12px;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .tempo-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #76f1b6, #ffe082, #ff7c9f);
+      transition: width 200ms ease;
+    }
+
+    .board-shell {
+      padding: 18px;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background:
+        radial-gradient(circle at center, rgba(112, 219, 255, 0.1), transparent 36%),
+        linear-gradient(180deg, rgba(8, 12, 24, 0.96), rgba(12, 18, 36, 0.96));
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .tile {
+      position: relative;
+      min-height: 150px;
+      display: flex;
+      flex-direction: column;
+      justify-content: end;
+      align-items: start;
+      padding: 16px;
+      color: rgba(255, 255, 255, 0.92);
+      font-weight: 800;
+      text-align: left;
+      overflow: hidden;
+      transform: scale(1);
+      transition: transform 140ms ease, filter 140ms ease, box-shadow 140ms ease;
+    }
+
+    .tile::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), transparent 55%, rgba(0, 0, 0, 0.16));
+      pointer-events: none;
+    }
+
+    .tile small {
+      font-size: 0.85rem;
+      opacity: 0.92;
+    }
+
+    .tile.active {
+      transform: scale(1.06);
+      filter: brightness(1.22) saturate(1.18);
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.16), 0 0 30px rgba(255, 255, 255, 0.16);
+      animation: pulse-tile 240ms ease;
+    }
+
+    @keyframes pulse-tile {
+      0% { transform: scale(1); }
+      45% { transform: scale(1.08); }
+      100% { transform: scale(1.04); }
+    }
+
+    .tile-1 { background: linear-gradient(160deg, #ff6b6b, #d9485f); }
+    .tile-2 { background: linear-gradient(160deg, #ffb74d, #f57c00); }
+    .tile-3 { background: linear-gradient(160deg, #ffe66d, #d9b800); color: #283100; }
+    .tile-4 { background: linear-gradient(160deg, #41ead4, #0aa6a3); }
+    .tile-5 { background: linear-gradient(160deg, #5dade2, #2f6adf); }
+    .tile-6 { background: linear-gradient(160deg, #c792ea, #7f4dd1); }
+
+    .player-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .player-chip {
+      flex: 1 1 120px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .player-chip.active {
+      border-color: rgba(117, 243, 181, 0.48);
+      box-shadow: 0 0 0 2px rgba(117, 243, 181, 0.14);
+    }
+
+    .key-list {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .key-list span {
+      padding: 10px 12px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 20px;
+      background: rgba(3, 6, 13, 0.66);
+      backdrop-filter: blur(6px);
+    }
+
+    .overlay.visible {
+      display: grid;
+    }
+
+    .overlay-card {
+      width: min(460px, 100%);
+      padding: 24px;
+      border-radius: 24px;
+      background: var(--panel-strong);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 14px;
+      text-align: center;
+    }
+
+    .result-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .success {
+      color: var(--good);
+    }
+
+    .danger {
+      color: var(--bad);
+    }
+
+    @media (max-width: 860px) {
+      .hero,
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .board {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 560px) {
+      .stats,
+      .score-grid,
+      .mode-row,
+      .key-list,
+      .board {
+        grid-template-columns: 1fr;
+      }
+
+      .tile {
+        min-height: 112px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Party Toy</p>
+        <h1>节奏色块记忆</h1>
+        <p class="lede">
+          类似 Simon Says 的节奏记忆小游戏。系统会按节拍闪烁 6 个彩色方块，你可以用鼠标点击或按数字键 `1-6` 复现序列；双人热座会轮流挑战同一串记忆，失误就给对手送分。
+        </p>
+        <div class="stats">
+          <div class="stat">
+            <div class="label">色块数量</div>
+            <div class="value">6</div>
+          </div>
+          <div class="stat">
+            <div class="label">模式</div>
+            <div class="value">单人 / 双人</div>
+          </div>
+          <div class="stat">
+            <div class="label">目标</div>
+            <div class="value">记住更长序列</div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-side">
+        <div class="card">
+          <div class="label">模式选择</div>
+          <div class="mode-row">
+            <button class="mode-button active" type="button" data-mode="solo">单人挑战</button>
+            <button class="mode-button" type="button" data-mode="duel">双人热座</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="label">规则摘要</div>
+          <ul>
+            <li>展示序列后进入输入阶段，必须按顺序复现所有色块。</li>
+            <li>双人模式中，答对后序列加长并轮到对手，答错则对手得 1 分。</li>
+            <li>序列越长，展示越快；每局结束显示得分和最长连续正确数。</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="label">键位</div>
+          <div class="key-list">
+            <span>1 红</span>
+            <span>2 橙</span>
+            <span>3 黄</span>
+            <span>4 青</span>
+            <span>5 蓝</span>
+            <span>6 紫</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="layout">
+      <section class="panel hud">
+        <div class="status-row">
+          <div class="pill" id="status-text">选择模式后开始</div>
+          <div class="pill" id="turn-text">当前玩家：玩家 1</div>
+        </div>
+        <div class="score-grid">
+          <div class="stat">
+            <div class="label">当前序列长度</div>
+            <div class="value" id="sequence-length">0</div>
+          </div>
+          <div class="stat">
+            <div class="label">最长连续正确数</div>
+            <div class="value" id="best-streak">0</div>
+          </div>
+          <div class="stat">
+            <div class="label">单人最高纪录</div>
+            <div class="value" id="solo-best">0</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="label">展示速度</div>
+          <div class="tempo-bar"><div class="tempo-fill" id="tempo-fill"></div></div>
+        </div>
+        <div class="board-shell">
+          <div class="board" id="board"></div>
+        </div>
+      </section>
+
+      <aside class="panel sidebar">
+        <div class="card">
+          <div class="label">对局信息</div>
+          <div class="player-row" id="player-row"></div>
+        </div>
+        <div class="card">
+          <div class="label">操作</div>
+          <div class="result-actions">
+            <button class="primary-button" type="button" id="start-button">开始游戏</button>
+            <button class="secondary-button" type="button" id="restart-button">重开本模式</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="label">当前说明</div>
+          <p class="muted" id="helper-text">
+            开始后会先播放一段节奏色块序列。播放期间输入会被锁定，等提示变为“轮到你输入”时再点击或按键。
+          </p>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <div class="overlay" id="overlay" aria-live="polite">
+    <div class="overlay-card">
+      <p class="eyebrow">Result</p>
+      <h2 id="overlay-title">准备开始</h2>
+      <p class="muted" id="overlay-body">选择模式并点击开始游戏。</p>
+      <div class="result-card">
+        <div class="label">结算</div>
+        <p id="overlay-summary">单人会记录最高纪录，双人先到 5 分获胜。</p>
+      </div>
+      <div class="result-actions">
+        <button class="primary-button" type="button" id="overlay-start">开始下一局</button>
+        <button class="secondary-button" type="button" id="overlay-close">继续查看棋盘</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const PAD_LIBRARY = [
+      { id: 0, key: "1", name: "红", frequency: 261.63, cssClass: "tile-1" },
+      { id: 1, key: "2", name: "橙", frequency: 329.63, cssClass: "tile-2" },
+      { id: 2, key: "3", name: "黄", frequency: 392.0, cssClass: "tile-3" },
+      { id: 3, key: "4", name: "青", frequency: 440.0, cssClass: "tile-4" },
+      { id: 4, key: "5", name: "蓝", frequency: 523.25, cssClass: "tile-5" },
+      { id: 5, key: "6", name: "紫", frequency: 659.25, cssClass: "tile-6" }
+    ];
+
+    const STORAGE_KEY = "rhythm-block-memory-duel-best";
+    const TARGET_SCORE = 5;
+    const BASE_SHOW_MS = 680;
+    const MIN_SHOW_MS = 260;
+
+    const state = {
+      mode: "solo",
+      phase: "idle",
+      sequence: [],
+      inputIndex: 0,
+      turn: 0,
+      scores: [0, 0],
+      successfulRounds: 0,
+      bestStreak: 0,
+      soloBest: Number(window.localStorage.getItem(STORAGE_KEY) || 0),
+      lockInput: true,
+      timerId: 0,
+      runId: 0
+    };
+
+    const audioContextClass = window.AudioContext || window.webkitAudioContext;
+    let audioContext;
+
+    const board = document.querySelector("#board");
+    const playerRow = document.querySelector("#player-row");
+    const statusText = document.querySelector("#status-text");
+    const turnText = document.querySelector("#turn-text");
+    const sequenceLength = document.querySelector("#sequence-length");
+    const bestStreak = document.querySelector("#best-streak");
+    const soloBest = document.querySelector("#solo-best");
+    const tempoFill = document.querySelector("#tempo-fill");
+    const helperText = document.querySelector("#helper-text");
+    const startButton = document.querySelector("#start-button");
+    const restartButton = document.querySelector("#restart-button");
+    const overlay = document.querySelector("#overlay");
+    const overlayTitle = document.querySelector("#overlay-title");
+    const overlayBody = document.querySelector("#overlay-body");
+    const overlaySummary = document.querySelector("#overlay-summary");
+    const overlayStart = document.querySelector("#overlay-start");
+    const overlayClose = document.querySelector("#overlay-close");
+    const modeButtons = Array.from(document.querySelectorAll("[data-mode]"));
+
+    function ensureAudioContext() {
+      if (!audioContextClass) {
+        return null;
+      }
+      if (!audioContext) {
+        audioContext = new audioContextClass();
+      }
+      if (audioContext.state === "suspended") {
+        audioContext.resume();
+      }
+      return audioContext;
+    }
+
+    function createBoard() {
+      board.innerHTML = "";
+      for (const pad of PAD_LIBRARY) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `tile ${pad.cssClass}`;
+        button.dataset.padId = String(pad.id);
+        button.innerHTML = `<strong>${pad.name}</strong><small>按键 ${pad.key}</small>`;
+        button.addEventListener("pointerdown", () => handlePadInput(pad.id));
+        board.appendChild(button);
+      }
+    }
+
+    function renderPlayers() {
+      const players = state.mode === "duel" ? ["玩家 1", "玩家 2"] : ["单人挑战"];
+      playerRow.innerHTML = "";
+      players.forEach((name, index) => {
+        const chip = document.createElement("div");
+        chip.className = "player-chip";
+        if (index === state.turn) {
+          chip.classList.add("active");
+        }
+        const score = state.mode === "duel" ? state.scores[index] : state.successfulRounds;
+        chip.innerHTML = `<strong>${name}</strong><div class="muted">得分：${score}</div>`;
+        playerRow.appendChild(chip);
+      });
+    }
+
+    function setStatus(message, help) {
+      statusText.textContent = message;
+      if (help) {
+        helperText.textContent = help;
+      }
+    }
+
+    function getShowDuration() {
+      const speedUp = (state.sequence.length - 1) * 36;
+      return Math.max(MIN_SHOW_MS, BASE_SHOW_MS - speedUp);
+    }
+
+    function updateHud() {
+      sequenceLength.textContent = String(state.sequence.length);
+      bestStreak.textContent = String(state.bestStreak);
+      soloBest.textContent = String(state.soloBest);
+      turnText.textContent = state.mode === "duel" ? `当前玩家：玩家 ${state.turn + 1}` : "当前玩家：你";
+      const progress = ((BASE_SHOW_MS - getShowDuration()) / (BASE_SHOW_MS - MIN_SHOW_MS)) * 100;
+      tempoFill.style.width = `${Math.max(0, Math.min(100, progress))}%`;
+      renderPlayers();
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => {
+        state.timerId = window.setTimeout(resolve, ms);
+      });
+    }
+
+    function clearSleep() {
+      if (state.timerId) {
+        window.clearTimeout(state.timerId);
+        state.timerId = 0;
+      }
+    }
+
+    function appendRandomPad() {
+      const nextPad = Math.floor(Math.random() * PAD_LIBRARY.length);
+      state.sequence.push(nextPad);
+    }
+
+    function flashPad(padId, duration = 220) {
+      const tile = board.querySelector(`[data-pad-id="${padId}"]`);
+      if (!tile) {
+        return;
+      }
+      tile.classList.add("active");
+      window.setTimeout(() => tile.classList.remove("active"), duration);
+    }
+
+    function playTone(padId, duration = 0.22) {
+      const context = ensureAudioContext();
+      if (!context) {
+        return;
+      }
+      const pad = PAD_LIBRARY[padId];
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.value = pad.frequency;
+      gain.gain.setValueAtTime(0.0001, context.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.18, context.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + duration);
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start();
+      oscillator.stop(context.currentTime + duration + 0.02);
+    }
+
+    function activatePad(padId, duration) {
+      flashPad(padId, Math.max(180, duration * 0.8));
+      playTone(padId, Math.min(0.28, duration / 1000));
+    }
+
+    async function playbackSequence(runId) {
+      if (runId !== state.runId) {
+        return;
+      }
+      state.phase = "show-sequence";
+      state.lockInput = true;
+      updateHud();
+      const revealMs = getShowDuration();
+      setStatus("系统展示序列中", "观察闪烁顺序。序列越长，播放速度越快。");
+      for (const padId of state.sequence) {
+        if (runId !== state.runId) {
+          return;
+        }
+        activatePad(padId, revealMs);
+        await sleep(revealMs);
+        await sleep(90);
+      }
+      if (runId !== state.runId) {
+        return;
+      }
+      state.phase = "wait-input";
+      state.lockInput = false;
+      state.inputIndex = 0;
+      setStatus("轮到你输入", "现在可以点击色块或按数字键 1-6。");
+      updateHud();
+    }
+
+    async function startRound() {
+      const runId = state.runId;
+      clearSleep();
+      if (!state.sequence.length) {
+        appendRandomPad();
+      }
+      updateHud();
+      if (state.mode === "duel") {
+        showOverlay(`玩家 ${state.turn + 1} 的回合`, "记住同一串节奏色块，然后完整复现。", `当前比分 ${state.scores[0]} : ${state.scores[1]}`);
+        await sleep(900);
+        if (runId !== state.runId) {
+          return;
+        }
+        hideOverlay();
+      }
+      await playbackSequence(runId);
+    }
+
+    function showOverlay(title, body, summary) {
+      overlayTitle.textContent = title;
+      overlayBody.textContent = body;
+      overlaySummary.textContent = summary;
+      overlay.classList.add("visible");
+    }
+
+    function hideOverlay() {
+      overlay.classList.remove("visible");
+    }
+
+    function persistSoloBest() {
+      if (state.successfulRounds > state.soloBest) {
+        state.soloBest = state.successfulRounds;
+        window.localStorage.setItem(STORAGE_KEY, String(state.soloBest));
+      }
+    }
+
+    function resetState(keepMode = true) {
+      clearSleep();
+      state.runId += 1;
+      state.phase = "idle";
+      state.sequence = [];
+      state.inputIndex = 0;
+      state.turn = 0;
+      state.scores = [0, 0];
+      state.successfulRounds = 0;
+      state.bestStreak = 0;
+      state.lockInput = true;
+      if (!keepMode) {
+        state.mode = "solo";
+      }
+      setStatus("等待开始", "点击“开始游戏”后系统会先播放一轮序列。");
+      updateHud();
+    }
+
+    function finishSoloGame() {
+      persistSoloBest();
+      state.phase = "game-over";
+      state.lockInput = true;
+      setStatus("单人结束", "失误后结束本局，可以直接再来一轮。");
+      showOverlay(
+        "单人挑战结束",
+        `本局得分 ${state.successfulRounds}，最长连续正确 ${state.bestStreak}。`,
+        `历史最高纪录 ${state.soloBest}。`
+      );
+      updateHud();
+    }
+
+    function finishDuelGame(winnerIndex) {
+      state.phase = "game-over";
+      state.lockInput = true;
+      setStatus("双人对局结束", "点击开始即可按当前模式重新开一局。");
+      showOverlay(
+        `玩家 ${winnerIndex + 1} 获胜`,
+        `最终比分 ${state.scores[0]} : ${state.scores[1]}。`,
+        `本局最长连续正确数 ${state.bestStreak}，目标分数 ${TARGET_SCORE}。`
+      );
+      updateHud();
+    }
+
+    async function onRoundSuccess() {
+      const runId = state.runId;
+      state.successfulRounds += 1;
+      state.bestStreak = Math.max(state.bestStreak, state.successfulRounds);
+      if (state.mode === "solo") {
+        appendRandomPad();
+        updateHud();
+        setStatus("正确，准备下一轮", "序列会增加一个新色块。");
+        await sleep(600);
+        if (runId !== state.runId) {
+          return;
+        }
+        await startRound();
+        return;
+      }
+      state.turn = state.turn === 0 ? 1 : 0;
+      appendRandomPad();
+      updateHud();
+      setStatus("正确，轮到对手", "序列加长后会交给下一位玩家。");
+      await sleep(700);
+      if (runId !== state.runId) {
+        return;
+      }
+      await startRound();
+    }
+
+    async function onRoundFail(expectedPadId) {
+      const runId = state.runId;
+      state.lockInput = true;
+      const expectedName = PAD_LIBRARY[expectedPadId].name;
+      if (state.mode === "solo") {
+        setStatus("输入错误", `正确答案应包含 ${expectedName}。`);
+        await sleep(500);
+        if (runId !== state.runId) {
+          return;
+        }
+        finishSoloGame();
+        return;
+      }
+      const winner = state.turn === 0 ? 1 : 0;
+      state.scores[winner] += 1;
+      state.successfulRounds = 0;
+      updateHud();
+      setStatus("本回合失误", `玩家 ${winner + 1} 得 1 分。`);
+      await sleep(600);
+      if (runId !== state.runId) {
+        return;
+      }
+      if (state.scores[winner] >= TARGET_SCORE) {
+        finishDuelGame(winner);
+        return;
+      }
+      state.turn = winner;
+      state.sequence = [];
+      await startRound();
+    }
+
+    async function handlePadInput(padId) {
+      ensureAudioContext();
+      activatePad(padId, 200);
+      if (state.lockInput || state.phase !== "wait-input") {
+        return;
+      }
+      const expectedPadId = state.sequence[state.inputIndex];
+      if (padId !== expectedPadId) {
+        await onRoundFail(expectedPadId);
+        return;
+      }
+      state.inputIndex += 1;
+      if (state.inputIndex < state.sequence.length) {
+        return;
+      }
+      state.lockInput = true;
+      await sleep(220);
+      await onRoundSuccess();
+    }
+
+    function startGame() {
+      ensureAudioContext();
+      hideOverlay();
+      resetState(true);
+      startRound();
+    }
+
+    modeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        state.mode = button.dataset.mode;
+        modeButtons.forEach((item) => item.classList.toggle("active", item === button));
+        resetState(true);
+      });
+    });
+
+    startButton.addEventListener("click", startGame);
+    restartButton.addEventListener("click", startGame);
+    overlayStart.addEventListener("click", startGame);
+    overlayClose.addEventListener("click", hideOverlay);
+
+    window.addEventListener("keydown", (event) => {
+      const pad = PAD_LIBRARY.find((item) => item.key === event.key);
+      if (!pad) {
+        return;
+      }
+      event.preventDefault();
+      handlePadInput(pad.id);
+    });
+
+    createBoard();
+    resetState(true);
+    showOverlay("准备开始", "选择模式并点击开始游戏，浏览器会在首次交互后启用 Web Audio API。", "双人热座先到 5 分获胜，单人模式会记录最高纪录。");
+  </script>
+</body>
+</html>
