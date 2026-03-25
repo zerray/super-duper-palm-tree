@@ -136,13 +136,15 @@
     }
 
     .tool-grid,
+    .unlock-grid,
     .direction-grid,
     .actions {
       display: grid;
       gap: 8px;
     }
 
-    .tool-grid {
+    .tool-grid,
+    .unlock-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
@@ -180,6 +182,10 @@
       opacity: 0.45;
       cursor: not-allowed;
       transform: none;
+    }
+
+    .tool-button.unlocked {
+      border-color: rgba(106, 212, 166, 0.42);
     }
 
     .action-button.danger {
@@ -253,6 +259,13 @@
       gap: 8px;
     }
 
+    .tutorial-box {
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(242, 178, 76, 0.22);
+      background: rgba(242, 178, 76, 0.08);
+    }
+
     .dot {
       width: 12px;
       height: 12px;
@@ -281,7 +294,7 @@
       <section class="hero">
         <p class="eyebrow">Idle Automation</p>
         <h1>无限工厂传送带</h1>
-        <p class="lede">在 16x16 网格上铺机器、摆传送带、自动卖货。金币够了以后再解锁加工站，把两份原材料压成更值钱的板材。</p>
+        <p class="lede">左侧源点会持续吐出原材料，右侧出口负责结算金币。你只需要在 16x16 网格里把传送带接通，再用金币解锁更快的传送带和加工站。</p>
       </section>
 
       <section class="stats">
@@ -290,21 +303,34 @@
           <strong id="gold-value">0</strong>
         </div>
         <div class="stat">
-          <span class="eyebrow">解锁阈值</span>
-          <strong id="unlock-value">40</strong>
+          <span class="eyebrow">下一解锁</span>
+          <strong id="unlock-value">12 金币</strong>
         </div>
       </section>
 
       <section class="section">
         <h2 class="section-title">建造面板</h2>
         <div class="tool-grid" id="tool-grid"></div>
-        <p class="hint" id="tool-hint">点击网格放置。再次点击已有传送带会旋转方向。</p>
+        <p class="hint" id="tool-hint">点击网格放置。再次点击已有建筑会旋转方向，右键可清除。</p>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">解锁</h2>
+        <div class="unlock-grid" id="unlock-grid"></div>
+        <p class="small">交付原材料赚金币，再手动购买两种新建筑。</p>
       </section>
 
       <section class="section">
         <h2 class="section-title">传送方向</h2>
         <div class="direction-grid" id="direction-grid"></div>
-        <p class="small">采矿机和加工站会朝当前方向吐出物品。出货口无方向要求。</p>
+        <p class="small">传送带和加工站会沿当前方向输出。左侧源点固定向右，右侧出口自动收货。</p>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">教程</h2>
+        <div class="tutorial-box">
+          <p class="small" id="tutorial-text">把第一条传送带放在左侧源点右边。</p>
+        </div>
       </section>
 
       <section class="section">
@@ -318,7 +344,7 @@
 
       <section class="section">
         <h2 class="section-title">规则</h2>
-        <p class="small">采矿机每隔一段时间产出原材料。物品每个 tick 沿传送带移动，到达出货口会自动卖出。加工站解锁后会吞下 2 个原材料，产出 1 个高价值板材。</p>
+        <p class="small">源点会定期刷出原材料。物品每个 tick 至少前进一格，高速传送带会在同一 tick 再多滑一格。加工站解锁后会吞下 2 个原材料，延迟几个 tick 后吐出更值钱的板材。</p>
       </section>
     </aside>
 
@@ -326,7 +352,7 @@
       <div class="board-top">
         <div>
           <h2>滚动工厂地图</h2>
-          <p class="hint">拖动滚动条查看整个地图，左键建造，右键清除当前格。</p>
+          <p class="hint">左侧青色源点固定出料，右侧绿色出口固定收货。左键建造，右键清除当前格。</p>
         </div>
         <div class="chip-row">
           <span class="chip" id="selection-chip">当前: 传送带</span>
@@ -341,8 +367,8 @@
       <div class="legend">
         <span><i class="dot" style="background: var(--ore)"></i>原材料</span>
         <span><i class="dot" style="background: var(--plate)"></i>板材成品</span>
-        <span><i class="dot" style="background: var(--mine)"></i>采矿机</span>
-        <span><i class="dot" style="background: var(--ship)"></i>出货口</span>
+        <span><i class="dot" style="background: var(--mine)"></i>左侧源点</span>
+        <span><i class="dot" style="background: var(--ship)"></i>右侧出口</span>
         <span><i class="dot" style="background: var(--processor)"></i>加工站</span>
       </div>
     </section>
@@ -353,8 +379,11 @@
     const GRID_SIZE = 16;
     const CELL_SIZE = 52;
     const TICK_MS = 420;
-    const PROCESSOR_UNLOCK_GOLD = 40;
     const SAVE_INTERVAL_MS = 30000;
+    const SOURCE_POS = { x: 0, y: 7 };
+    const EXIT_POS = { x: GRID_SIZE - 1, y: 7 };
+    const FAST_BELT_UNLOCK_GOLD = 12;
+    const PROCESSOR_UNLOCK_GOLD = 30;
     const DIRECTION_ORDER = ["up", "right", "down", "left"];
     const DIRECTION_LABELS = { up: "↑", right: "→", down: "↓", left: "←" };
     const DIRECTION_VECTORS = {
@@ -366,10 +395,14 @@
     const ITEM_VALUES = { ore: 1, plate: 5 };
 
     const toolDefs = [
-      { key: "belt", name: "传送带", description: "4 个方向可切换，点击已有传送带会旋转。" },
-      { key: "miner", name: "采矿机", description: "自动产出原材料到前方格子。" },
-      { key: "shipper", name: "出货口", description: "物品进入后立即售出换金币。" },
-      { key: "processor", name: "加工站", description: "消耗 2 个原材料，输出 1 个板材。", locked: true }
+      { key: "belt", name: "传送带", description: "基础物流，每 tick 前进 1 格。" },
+      { key: "fastBelt", name: "高速带", description: "解锁后每 tick 额外再滑 1 格。", unlockKey: "fastBelt" },
+      { key: "processor", name: "加工站", description: "消耗 2 个原材料，延迟输出 1 个板材。", unlockKey: "processor" }
+    ];
+
+    const unlockDefs = [
+      { key: "fastBelt", name: "高速传送带", cost: FAST_BELT_UNLOCK_GOLD, description: "让物品在同一 tick 多滑一格。" },
+      { key: "processor", name: "加工站", cost: PROCESSOR_UNLOCK_GOLD, description: "把 2 个原材料压成高价值板材。" }
     ];
 
     const state = createInitialState();
@@ -381,7 +414,9 @@
     const selectionChip = document.querySelector("#selection-chip");
     const toolHint = document.querySelector("#tool-hint");
     const toolGrid = document.querySelector("#tool-grid");
+    const unlockGrid = document.querySelector("#unlock-grid");
     const directionGrid = document.querySelector("#direction-grid");
+    const tutorialText = document.querySelector("#tutorial-text");
     const clearMapButton = document.querySelector("#clear-map-button");
     const restartButton = document.querySelector("#restart-button");
 
@@ -395,9 +430,11 @@
         grid: Array.from({ length: GRID_SIZE }, () => Array.from({ length: GRID_SIZE }, createEmptyCell)),
         items: [],
         gold: 0,
-        unlockedProcessor: false,
+        unlocked: { fastBelt: false, processor: false },
         selectedTool: "belt",
-        selectedDirection: "right"
+        selectedDirection: "right",
+        sourceCooldown: 0,
+        deliveredCount: 0
       };
     }
 
@@ -413,18 +450,57 @@
       return x >= 0 && y >= 0 && x < GRID_SIZE && y < GRID_SIZE;
     }
 
+    function isSource(x, y) {
+      return x === SOURCE_POS.x && y === SOURCE_POS.y;
+    }
+
+    function isExit(x, y) {
+      return x === EXIT_POS.x && y === EXIT_POS.y;
+    }
+
+    function isFixedCell(x, y) {
+      return isSource(x, y) || isExit(x, y);
+    }
+
     function getCell(x, y) {
       return inBounds(x, y) ? state.grid[y][x] : null;
     }
 
+    function getNode(x, y) {
+      if (!inBounds(x, y)) {
+        return null;
+      }
+      if (isSource(x, y)) {
+        return { type: "source", direction: "right", buffer: 0, cooldown: state.sourceCooldown };
+      }
+      if (isExit(x, y)) {
+        return { type: "exit", direction: "left", buffer: 0, cooldown: 0 };
+      }
+      return getCell(x, y);
+    }
+
     function setCell(x, y, cell) {
-      if (inBounds(x, y)) {
+      if (inBounds(x, y) && !isFixedCell(x, y)) {
         state.grid[y][x] = cell;
       }
     }
 
     function itemAt(x, y) {
       return state.items.find((item) => item.x === x && item.y === y) ?? null;
+    }
+
+    function isToolUnlocked(toolKey) {
+      const tool = toolDefs.find((entry) => entry.key === toolKey);
+      return !tool?.unlockKey || state.unlocked[tool.unlockKey];
+    }
+
+    function getToolName(toolKey) {
+      return toolDefs.find((tool) => tool.key === toolKey)?.name ?? "传送带";
+    }
+
+    function nextUnlockText() {
+      const next = unlockDefs.find((entry) => !state.unlocked[entry.key]);
+      return next ? `${next.cost} 金币` : "全部完成";
     }
 
     function loadState() {
@@ -440,7 +516,7 @@
 
         state.grid = parsed.grid.map((row) => row.map((cell) => ({
           type: cell.type ?? "empty",
-          direction: cell.direction ?? "right",
+          direction: DIRECTION_ORDER.includes(cell.direction) ? cell.direction : "right",
           buffer: Number.isFinite(cell.buffer) ? cell.buffer : 0,
           cooldown: Number.isFinite(cell.cooldown) ? cell.cooldown : 0
         })));
@@ -454,8 +530,13 @@
             fromY: item.y
           })) : [];
         state.gold = Number.isFinite(parsed.gold) ? parsed.gold : 0;
-        state.unlockedProcessor = Boolean(parsed.unlockedProcessor || state.gold >= PROCESSOR_UNLOCK_GOLD);
-        state.selectedTool = parsed.selectedTool === "processor" && !state.unlockedProcessor ? "belt" : (parsed.selectedTool ?? "belt");
+        state.sourceCooldown = Number.isFinite(parsed.sourceCooldown) ? parsed.sourceCooldown : 0;
+        state.deliveredCount = Number.isFinite(parsed.deliveredCount) ? parsed.deliveredCount : 0;
+        state.unlocked.fastBelt = Boolean(parsed.unlocked?.fastBelt);
+        state.unlocked.processor = Boolean(parsed.unlocked?.processor);
+        state.selectedTool = toolDefs.some((tool) => tool.key === parsed.selectedTool) && isToolUnlocked(parsed.selectedTool)
+          ? parsed.selectedTool
+          : "belt";
         state.selectedDirection = DIRECTION_ORDER.includes(parsed.selectedDirection) ? parsed.selectedDirection : "right";
       } catch (error) {
         console.warn("Failed to load save", error);
@@ -467,20 +548,13 @@
         grid: state.grid,
         items: state.items.map((item) => ({ kind: item.kind, x: item.x, y: item.y })),
         gold: state.gold,
-        unlockedProcessor: state.unlockedProcessor,
+        unlocked: state.unlocked,
         selectedTool: state.selectedTool,
-        selectedDirection: state.selectedDirection
+        selectedDirection: state.selectedDirection,
+        sourceCooldown: state.sourceCooldown,
+        deliveredCount: state.deliveredCount
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-    }
-
-    function maybeUnlockProcessor() {
-      if (!state.unlockedProcessor && state.gold >= PROCESSOR_UNLOCK_GOLD) {
-        state.unlockedProcessor = true;
-        if (state.selectedTool === "processor") {
-          state.selectedTool = "processor";
-        }
-      }
     }
 
     function rotateDirection(direction) {
@@ -496,7 +570,7 @@
         button.dataset.tool = tool.key;
         button.innerHTML = `<span class="tool-name">${tool.name}</span><span class="small">${tool.description}</span>`;
         button.addEventListener("click", () => {
-          if (tool.key === "processor" && !state.unlockedProcessor) {
+          if (!isToolUnlocked(tool.key)) {
             return;
           }
           state.selectedTool = tool.key;
@@ -505,6 +579,33 @@
         return button;
       });
       toolGrid.replaceChildren(...buttons);
+    }
+
+    function buildUnlockButtons() {
+      const buttons = unlockDefs.map((unlock) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "tool-button";
+        button.dataset.unlock = unlock.key;
+        button.innerHTML = `<span class="tool-name">${unlock.name}</span><span class="small">${unlock.cost} 金币 · ${unlock.description}</span>`;
+        button.addEventListener("click", () => {
+          if (state.unlocked[unlock.key] || state.gold < unlock.cost) {
+            return;
+          }
+          state.gold -= unlock.cost;
+          state.unlocked[unlock.key] = true;
+          if (unlock.key === "fastBelt") {
+            state.selectedTool = "fastBelt";
+          }
+          if (unlock.key === "processor") {
+            state.selectedTool = "processor";
+          }
+          renderUi();
+          saveState();
+        });
+        return button;
+      });
+      unlockGrid.replaceChildren(...buttons);
     }
 
     function buildDirectionButtons() {
@@ -522,19 +623,50 @@
       directionGrid.replaceChildren(...buttons);
     }
 
+    function getTutorialText() {
+      const firstCell = getCell(SOURCE_POS.x + 1, SOURCE_POS.y);
+      if (!firstCell || firstCell.type === "empty") {
+        return "教程 1/3：把第一条传送带放在左侧源点右边。";
+      }
+      if (!pathConnectsSourceToExit()) {
+        return "教程 2/3：继续把线路接到右侧出口。点击已放下的传送带可旋转方向。";
+      }
+      if (state.deliveredCount === 0) {
+        return "教程 3/3：线路已连通，等待原材料滑到最右侧出口赚到第一枚金币。";
+      }
+      if (!state.unlocked.fastBelt) {
+        return "教程完成：已经跑通首条产线。接下来攒到 12 金币解锁高速传送带。";
+      }
+      if (!state.unlocked.processor) {
+        return "进阶提示：把两份原材料送进加工站，再把板材继续运到右侧出口。";
+      }
+      return "两种建筑都已解锁。现在可以优化路径，做更紧凑的自动化流水线。";
+    }
+
     function renderUi() {
-      maybeUnlockProcessor();
       goldValue.textContent = `${Math.floor(state.gold)}`;
-      unlockValue.textContent = state.unlockedProcessor ? "已解锁" : `${PROCESSOR_UNLOCK_GOLD}`;
-      selectionChip.textContent = `当前: ${toolDefs.find((tool) => tool.key === state.selectedTool)?.name ?? "传送带"}`;
-      toolHint.textContent = state.unlockedProcessor
-        ? "加工站已解锁。传送带再次点击会旋转，右键可擦除。"
-        : `金币达到 ${PROCESSOR_UNLOCK_GOLD} 自动解锁加工站。`;
+      unlockValue.textContent = nextUnlockText();
+      selectionChip.textContent = `当前: ${getToolName(state.selectedTool)}`;
+      toolHint.textContent = isToolUnlocked("processor")
+        ? "点击格子可放置建筑；重复点击同类建筑会旋转方向，右键擦除。"
+        : "先用基础传送带把左侧源点连到右侧出口，赚金币解锁新建筑。";
+      tutorialText.textContent = getTutorialText();
 
       Array.from(toolGrid.children).forEach((button) => {
-        const isLockedProcessor = button.dataset.tool === "processor" && !state.unlockedProcessor;
+        const unlocked = isToolUnlocked(button.dataset.tool);
         button.classList.toggle("active", button.dataset.tool === state.selectedTool);
-        button.disabled = isLockedProcessor;
+        button.disabled = !unlocked;
+      });
+
+      Array.from(unlockGrid.children).forEach((button) => {
+        const unlock = unlockDefs.find((entry) => entry.key === button.dataset.unlock);
+        const unlocked = state.unlocked[unlock.key];
+        const affordable = state.gold >= unlock.cost;
+        button.disabled = unlocked || !affordable;
+        button.classList.toggle("unlocked", unlocked);
+        if (unlocked) {
+          button.querySelector(".small").textContent = "已解锁";
+        }
       });
 
       Array.from(directionGrid.children).forEach((button, index) => {
@@ -545,13 +677,17 @@
     function clearMap(preserveEconomy) {
       for (let y = 0; y < GRID_SIZE; y += 1) {
         for (let x = 0; x < GRID_SIZE; x += 1) {
-          state.grid[y][x] = createEmptyCell();
+          if (!isFixedCell(x, y)) {
+            state.grid[y][x] = createEmptyCell();
+          }
         }
       }
       state.items = [];
+      state.sourceCooldown = 0;
       if (!preserveEconomy) {
         state.gold = 0;
-        state.unlockedProcessor = false;
+        state.deliveredCount = 0;
+        state.unlocked = { fastBelt: false, processor: false };
         state.selectedTool = "belt";
       }
       renderUi();
@@ -559,7 +695,7 @@
     }
 
     function placeAt(x, y, erase = false) {
-      if (!inBounds(x, y)) {
+      if (!inBounds(x, y) || isFixedCell(x, y)) {
         return;
       }
 
@@ -576,15 +712,13 @@
         return;
       }
 
-      if (state.selectedTool === "processor" && !state.unlockedProcessor) {
+      if (!isToolUnlocked(state.selectedTool)) {
         return;
       }
 
       const existing = getCell(x, y);
-      if (state.selectedTool === "belt" && existing.type === "belt") {
+      if (existing.type === state.selectedTool && existing.type !== "empty") {
         existing.direction = rotateDirection(existing.direction);
-      } else if (state.selectedTool === "shipper") {
-        setCell(x, y, makeCell("shipper"));
       } else {
         setCell(x, y, makeCell(state.selectedTool, state.selectedDirection));
       }
@@ -599,31 +733,37 @@
     }
 
     function canAcceptItem(x, y, kind) {
-      const cell = getCell(x, y);
-      if (!cell || cell.type === "empty") {
+      const cell = getNode(x, y);
+      if (!cell || cell.type === "empty" || cell.type === "source") {
         return false;
       }
-      if (itemAt(x, y)) {
+      if ((cell.type === "belt" || cell.type === "fastBelt") && itemAt(x, y)) {
         return false;
-      }
-      if (cell.type === "belt") {
-        return true;
-      }
-      if (cell.type === "shipper") {
-        return true;
       }
       if (cell.type === "processor") {
         return kind === "ore";
       }
-      return false;
+      return cell.type === "belt" || cell.type === "fastBelt" || cell.type === "exit";
     }
 
-    function tryOutputItem(fromCell, x, y, kind) {
-      const vector = DIRECTION_VECTORS[fromCell.direction];
+    function tryOutputItem(direction, x, y, kind) {
+      const vector = DIRECTION_VECTORS[direction];
       const nextX = x + vector.dx;
       const nextY = y + vector.dy;
       if (!inBounds(nextX, nextY) || !canAcceptItem(nextX, nextY, kind)) {
         return false;
+      }
+
+      if (isExit(nextX, nextY)) {
+        state.gold += ITEM_VALUES[kind];
+        state.deliveredCount += 1;
+        return true;
+      }
+
+      const target = getCell(nextX, nextY);
+      if (target.type === "processor" && kind === "ore") {
+        target.buffer += 1;
+        return true;
       }
 
       state.items.push({ kind, x: nextX, y: nextY, fromX: x, fromY: y });
@@ -631,21 +771,69 @@
     }
 
     function produceFromMachines() {
+      state.sourceCooldown += 1;
+      if (state.sourceCooldown >= 2 && tryOutputItem("right", SOURCE_POS.x, SOURCE_POS.y, "ore")) {
+        state.sourceCooldown = 0;
+      }
+
       for (let y = 0; y < GRID_SIZE; y += 1) {
         for (let x = 0; x < GRID_SIZE; x += 1) {
           const cell = getCell(x, y);
-          if (cell.type === "miner") {
+          if (cell.type !== "processor") {
+            continue;
+          }
+          if (cell.buffer >= 2) {
             cell.cooldown += 1;
-            if (cell.cooldown >= 2 && tryOutputItem(cell, x, y, "ore")) {
+            if (cell.cooldown >= 3 && tryOutputItem(cell.direction, x, y, "plate")) {
+              cell.buffer -= 2;
               cell.cooldown = 0;
             }
-          } else if (cell.type === "processor") {
-            if (cell.buffer >= 2 && tryOutputItem(cell, x, y, "plate")) {
-              cell.buffer -= 2;
-            }
+          } else {
+            cell.cooldown = 0;
           }
         }
       }
+    }
+
+    function advanceItem(item, occupiedNext) {
+      const cell = getCell(item.x, item.y);
+      if (!cell || (cell.type !== "belt" && cell.type !== "fastBelt")) {
+        return "stay";
+      }
+
+      const vector = DIRECTION_VECTORS[cell.direction];
+      const nextX = item.x + vector.dx;
+      const nextY = item.y + vector.dy;
+      if (!inBounds(nextX, nextY)) {
+        return "stay";
+      }
+
+      const targetKey = `${nextX},${nextY}`;
+      const occupiedNow = state.items.some((other) => other !== item && other.x === nextX && other.y === nextY);
+      const nextCell = getNode(nextX, nextY);
+      if (!nextCell) {
+        return "stay";
+      }
+
+      if (nextCell.type === "exit") {
+        state.gold += ITEM_VALUES[item.kind];
+        state.deliveredCount += 1;
+        return "consumed";
+      }
+
+      if (nextCell.type === "processor" && item.kind === "ore") {
+        getCell(nextX, nextY).buffer += 1;
+        return "consumed";
+      }
+
+      if ((nextCell.type === "belt" || nextCell.type === "fastBelt") && !occupiedNow && !occupiedNext.has(targetKey)) {
+        occupiedNext.add(targetKey);
+        item.x = nextX;
+        item.y = nextY;
+        return "moved";
+      }
+
+      return "stay";
     }
 
     function runTick() {
@@ -655,49 +843,55 @@
       const updatedItems = [];
 
       for (const item of state.items) {
-        const cell = getCell(item.x, item.y);
         item.fromX = item.x;
         item.fromY = item.y;
 
-        if (!cell || cell.type !== "belt") {
+        const cell = getCell(item.x, item.y);
+        const speed = cell?.type === "fastBelt" ? 2 : 1;
+        let consumed = false;
+
+        for (let step = 0; step < speed; step += 1) {
+          const result = advanceItem(item, occupiedNext);
+          if (result === "consumed") {
+            consumed = true;
+            break;
+          }
+          if (result !== "moved") {
+            break;
+          }
+        }
+
+        if (!consumed) {
           updatedItems.push(item);
-          continue;
         }
-
-        const vector = DIRECTION_VECTORS[cell.direction];
-        const nextX = item.x + vector.dx;
-        const nextY = item.y + vector.dy;
-        const nextCell = getCell(nextX, nextY);
-
-        if (!inBounds(nextX, nextY) || !nextCell) {
-          updatedItems.push(item);
-          continue;
-        }
-
-        const targetKey = `${nextX},${nextY}`;
-        const occupiedNow = state.items.some((other) => other !== item && other.x === nextX && other.y === nextY);
-
-        if (nextCell.type === "shipper") {
-          state.gold += ITEM_VALUES[item.kind];
-          maybeUnlockProcessor();
-          continue;
-        }
-
-        if (nextCell.type === "processor" && item.kind === "ore") {
-          nextCell.buffer += 1;
-          continue;
-        }
-
-        if (nextCell.type === "belt" && !occupiedNow && !occupiedNext.has(targetKey)) {
-          occupiedNext.add(targetKey);
-          item.x = nextX;
-          item.y = nextY;
-        }
-
-        updatedItems.push(item);
       }
 
       state.items = updatedItems;
+    }
+
+    function pathConnectsSourceToExit() {
+      let x = SOURCE_POS.x + 1;
+      let y = SOURCE_POS.y;
+      const visited = new Set();
+
+      while (inBounds(x, y)) {
+        if (isExit(x, y)) {
+          return true;
+        }
+        const key = `${x},${y}`;
+        if (visited.has(key)) {
+          return false;
+        }
+        visited.add(key);
+        const cell = getCell(x, y);
+        if (!cell || (cell.type !== "belt" && cell.type !== "fastBelt" && cell.type !== "processor")) {
+          return false;
+        }
+        const vector = DIRECTION_VECTORS[cell.direction];
+        x += vector.dx;
+        y += vector.dy;
+      }
+      return false;
     }
 
     function drawGrid() {
@@ -709,27 +903,33 @@
         for (let x = 0; x < GRID_SIZE; x += 1) {
           const px = x * CELL_SIZE;
           const py = y * CELL_SIZE;
-          const cell = getCell(x, y);
+          const cell = getNode(x, y);
 
           ctx.fillStyle = "#142028";
           ctx.fillRect(px, py, CELL_SIZE - 1, CELL_SIZE - 1);
 
-          if (cell.type === "belt") {
-            ctx.fillStyle = "rgba(54, 86, 108, 0.9)";
-            roundRect(px + 6, py + 6, CELL_SIZE - 12, CELL_SIZE - 12, 12);
-            ctx.fill();
-            drawArrow(px, py, cell.direction, "#d7efff");
-          } else if (cell.type === "miner") {
+          if (cell.type === "source") {
             ctx.fillStyle = "rgba(92, 161, 161, 0.95)";
             roundRect(px + 7, py + 7, CELL_SIZE - 14, CELL_SIZE - 14, 12);
             ctx.fill();
-            drawMachineGlyph(px, py, "M", "#0e1b20");
-            drawArrow(px, py, cell.direction, "#0e1b20", 12);
-          } else if (cell.type === "shipper") {
+            drawMachineGlyph(px, py, "源", "#0e1b20");
+            drawArrow(px, py, "right", "#0e1b20", 12);
+          } else if (cell.type === "exit") {
             ctx.fillStyle = "rgba(127, 191, 109, 0.95)";
             roundRect(px + 7, py + 7, CELL_SIZE - 14, CELL_SIZE - 14, 12);
             ctx.fill();
             drawMachineGlyph(px, py, "$", "#133019");
+          } else if (cell.type === "belt") {
+            ctx.fillStyle = "rgba(54, 86, 108, 0.9)";
+            roundRect(px + 6, py + 6, CELL_SIZE - 12, CELL_SIZE - 12, 12);
+            ctx.fill();
+            drawArrow(px, py, cell.direction, "#d7efff");
+          } else if (cell.type === "fastBelt") {
+            ctx.fillStyle = "rgba(242, 178, 76, 0.92)";
+            roundRect(px + 6, py + 6, CELL_SIZE - 12, CELL_SIZE - 12, 12);
+            ctx.fill();
+            drawArrow(px, py, cell.direction, "#1d1406");
+            drawMachineGlyph(px, py, "2", "#1d1406");
           } else if (cell.type === "processor") {
             ctx.fillStyle = "rgba(159, 116, 213, 0.95)";
             roundRect(px + 7, py + 7, CELL_SIZE - 14, CELL_SIZE - 14, 12);
@@ -755,18 +955,18 @@
     }
 
     function drawItems(progress) {
+      const rootStyles = getComputedStyle(document.documentElement);
       for (const item of state.items) {
-        const cell = getCell(item.x, item.y);
         const isMoving = item.fromX !== item.x || item.fromY !== item.y;
         const t = isMoving ? progress : 1;
         const drawX = ((item.fromX ?? item.x) + ((item.x - (item.fromX ?? item.x)) * t)) * CELL_SIZE + (CELL_SIZE / 2);
         const drawY = ((item.fromY ?? item.y) + ((item.y - (item.fromY ?? item.y)) * t)) * CELL_SIZE + (CELL_SIZE / 2);
         ctx.beginPath();
-        ctx.fillStyle = item.kind === "ore" ? getComputedStyle(document.documentElement).getPropertyValue("--ore").trim() : getComputedStyle(document.documentElement).getPropertyValue("--plate").trim();
+        ctx.fillStyle = item.kind === "ore" ? rootStyles.getPropertyValue("--ore").trim() : rootStyles.getPropertyValue("--plate").trim();
         ctx.arc(drawX, drawY, 9, 0, Math.PI * 2);
         ctx.fill();
         ctx.lineWidth = 2;
-        ctx.strokeStyle = cell?.type === "shipper" ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.25)";
+        ctx.strokeStyle = "rgba(0,0,0,0.25)";
         ctx.stroke();
       }
     }
@@ -843,13 +1043,13 @@
     });
 
     clearMapButton.addEventListener("click", () => {
-      if (window.confirm("清空地图上的所有建筑？金币和解锁会保留。")) {
+      if (window.confirm("清空地图上的所有建筑？金币和已购买解锁会保留。")) {
         clearMap(true);
       }
     });
 
     restartButton.addEventListener("click", () => {
-      if (window.confirm("重新开始会删除当前地图、金币和解锁进度。确定继续？")) {
+      if (window.confirm("重新开始会删除当前地图、金币和所有解锁。确定继续？")) {
         localStorage.removeItem(STORAGE_KEY);
         clearMap(false);
       }
@@ -857,6 +1057,7 @@
 
     loadState();
     buildToolButtons();
+    buildUnlockButtons();
     buildDirectionButtons();
     renderUi();
     saveState();
