@@ -28,6 +28,17 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `infinite-conveyor-factory/index.html` 即可游玩。
 
+## 像素工厂传送带
+
+新增 `pixel-conveyor-factory/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的轻量像素风自动化工厂原型，包含：
+
+- 可交互网格地图，支持鼠标点击放置四方向传送带、加工站和收集器
+- 地图边缘固定原料生成点，原料沿传送带移动，加工后变成成品并在收集器处转化为金币
+- 共享金币池下的双人同屏协作，玩家 1 使用 `WASD + Q / E / R / F`，玩家 2 使用方向键与 `, / . / / / Enter`
+- 两项全局升级：更快的传送带节拍与更高效、更值钱的加工站
+
+直接用浏览器打开 `pixel-conveyor-factory/index.html` 即可游玩。
+
 ## Conway's Game of Life
 
 新增 `game-of-life/index.html`，提供一个可直接在浏览器中打开的康威生命游戏模拟器，包含：
