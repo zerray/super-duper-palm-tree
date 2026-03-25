@@ -130,7 +130,8 @@
     }
 
     .status-row,
-    .score-row {
+    .score-row,
+    .mode-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -206,10 +207,21 @@
       cursor: pointer;
     }
 
+    button.secondary {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
     .status-line {
       min-height: 24px;
       margin-top: 12px;
       color: var(--good);
+    }
+
+    .footer-note {
+      margin-top: 12px;
+      text-align: center;
     }
 
     @media (max-width: 920px) {
@@ -241,7 +253,7 @@
         <div>
           <p class="eyebrow">Physics Toy</p>
           <h1>磁力弹珠对战台</h1>
-          <p class="lede">页面加载后立即开打。玩家 A 用 <strong class="accent-p1">WASD</strong> 移动磁铁、<strong class="accent-p1">Q / E</strong> 切换磁极；玩家 B 用 <strong class="accent-p2">方向键</strong> 移动、<strong class="accent-p2">, / .</strong> 切换磁极。磁力按距离平方反比衰减，中央会随机刷新挡板与加速带，把金属弹珠送进对方球门即可得分，先到 5 分获胜。</p>
+          <p class="lede">页面加载后立即开打。玩家 A 用 <strong class="accent-p1">WASD</strong> 移动磁铁、<strong class="accent-p1">Space</strong> 切换吸引 / 排斥；玩家 B 用 <strong class="accent-p2">方向键</strong> 移动、<strong class="accent-p2">Enter</strong> 切换磁极。磁力按距离平方反比衰减，中央会刷新可推动障碍物和加速带，把金属弹珠送进对方球门即可得分，先到 5 分获胜。</p>
           <div class="grid">
             <article class="hud-card">
               <p class="small">磁力模型</p>
@@ -266,7 +278,11 @@
             <p class="small">比赛状态</p>
             <div class="status-row">
               <span class="pill">比分 <strong id="scoreLine">0 : 0</strong></span>
+              <span class="pill">模式 <strong id="modeLabel">双人同屏</strong></span>
+            </div>
+            <div class="mode-row">
               <span class="pill">刷新 <strong id="refreshLabel">0.0s</strong></span>
+              <button class="secondary" id="modeToggle" type="button">切换到单人 AI</button>
             </div>
             <div class="status-line" id="statusLine">双人对战已开始。随机障碍和加速带会在每回合刷新。</div>
           </article>
@@ -298,13 +314,13 @@
           <div class="controls">
             <article class="hud-card">
               <p class="small">玩家 A 控制</p>
-              <h3 class="accent-p1">WASD 移动，Q 吸引，E 排斥</h3>
+              <h3 class="accent-p1">WASD 移动，Space 切换磁极</h3>
               <p class="small-copy">左侧磁铁可直接撞击弹珠，也能在近距离持续牵引或推开。</p>
             </article>
             <article class="hud-card">
               <p class="small">玩家 B 控制</p>
-              <h3 class="accent-p2">方向键移动，, 吸引，. 排斥</h3>
-              <p class="small-copy">右侧球门前防守区更窄，需要更频繁地切极和借障碍改线。</p>
+              <h3 class="accent-p2">方向键移动，Enter 切换磁极</h3>
+              <p class="small-copy">切到单人模式后由 AI 接管，自动追球、切极并尝试防守反击。</p>
             </article>
           </div>
         </div>
@@ -324,6 +340,9 @@
         </div>
       </div>
     </section>
+    <section class="panel footer-note">
+      <p class="small-copy">操作说明：P1 使用 WASD 移动与 Space 切换磁极；P2 使用方向键移动与 Enter 切换磁极。点击“切换到单人 AI”可改为练习模式，按 R 可随时重新开始。</p>
+    </section>
   </main>
 
   <script>
@@ -342,6 +361,8 @@
       const p1PolarityEl = document.getElementById("p1Polarity");
       const p2PolarityEl = document.getElementById("p2Polarity");
       const scoreLine = document.getElementById("scoreLine");
+      const modeLabel = document.getElementById("modeLabel");
+      const modeToggle = document.getElementById("modeToggle");
       const refreshLabel = document.getElementById("refreshLabel");
       const statusLine = document.getElementById("statusLine");
 
@@ -366,6 +387,7 @@
 
       const state = {
         scene: "playing",
+        mode: "versus",
         accumulator: 0,
         lastTime: 0,
         keys: new Set(),
@@ -406,6 +428,7 @@
         const leftSide = side === "left";
         return {
           side,
+          isAi: !leftSide,
           x: leftSide ? LANES.left.maxX - 24 : LANES.right.minX + 24,
           y: ARENA.y + ARENA.height / 2 + (leftSide ? 80 : -80),
           vx: 0,
@@ -415,8 +438,8 @@
           glow: leftSide ? "rgba(255, 125, 140, 0.22)" : "rgba(98, 220, 255, 0.22)",
           polarity: leftSide ? 1 : -1,
           controls: leftSide
-            ? { up: "KeyW", down: "KeyS", left: "KeyA", right: "KeyD", attract: "KeyQ", repel: "KeyE" }
-            : { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight", attract: "Comma", repel: "Period" }
+            ? { up: "KeyW", down: "KeyS", left: "KeyA", right: "KeyD", toggle: "Space" }
+            : { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight", toggle: "Enter" }
         };
       }
 
@@ -454,9 +477,12 @@
         state.score.left = 0;
         state.score.right = 0;
         state.players = [createPlayer("left"), createPlayer("right")];
+        state.players[1].isAi = state.mode === "ai";
         hideOverlay();
         resetRound();
-        statusLine.textContent = "双人对战已开始。随机障碍物和加速带会持续刷新。";
+        statusLine.textContent = state.mode === "ai"
+          ? "单人模式已开始。AI 会自动追踪弹珠并切换磁极。"
+          : "双人对战已开始。随机障碍物和加速带会持续刷新。";
       }
 
       function restartMatch() {
@@ -468,6 +494,8 @@
         p1ScoreEl.textContent = String(state.score.left);
         p2ScoreEl.textContent = String(state.score.right);
         scoreLine.textContent = `${state.score.left} : ${state.score.right}`;
+        modeLabel.textContent = state.mode === "ai" ? "单人 vs AI" : "双人同屏";
+        modeToggle.textContent = state.mode === "ai" ? "切换到双人对战" : "切换到单人 AI";
         refreshLabel.textContent = `${state.obstacleTimer.toFixed(1)}s`;
 
         if (p1) {
@@ -531,6 +559,10 @@
         player.polarity = polarity;
       }
 
+      function togglePolarity(player) {
+        setPolarity(player, player.polarity === 1 ? -1 : 1);
+      }
+
       function applyPlayerInput(player, dt) {
         let moveX = 0;
         let moveY = 0;
@@ -546,18 +578,31 @@
         if (state.keys.has(player.controls.down)) {
           moveY += 1;
         }
-        if (state.keys.has(player.controls.attract)) {
-          setPolarity(player, 1);
-        }
-        if (state.keys.has(player.controls.repel)) {
-          setPolarity(player, -1);
-        }
 
         const size = Math.hypot(moveX, moveY) || 1;
         player.vx = (moveX / size) * PLAYER_SPEED;
         player.vy = (moveY / size) * PLAYER_SPEED;
         player.x += player.vx * dt;
         player.y += player.vy * dt;
+      }
+
+      function updateAi(player, dt) {
+        const marble = state.marble;
+        const defending = marble.x > ARENA.x + ARENA.width * 0.58;
+        const targetX = defending ? LANES.right.minX + 12 : LANES.right.maxX - 16;
+        const targetY = clamp(marble.y + marble.vy * 0.2, ARENA.y + 32, ARENA.y + ARENA.height - 32);
+        const dx = targetX - player.x;
+        const dy = targetY - player.y;
+        const size = Math.hypot(dx, dy) || 1;
+
+        player.vx = (dx / size) * PLAYER_SPEED * 0.88;
+        player.vy = (dy / size) * PLAYER_SPEED * 0.88;
+        player.x += player.vx * dt;
+        player.y += player.vy * dt;
+
+        const threatToOwnGoal = marble.vx > 10 && marble.x > ARENA.x + ARENA.width * 0.65;
+        const closeThreat = marble.x > ARENA.x + ARENA.width * 0.72 && Math.abs(marble.y - player.y) < 120;
+        player.polarity = threatToOwnGoal || closeThreat ? 1 : -1;
       }
 
       function keepPlayerInLane(player) {
@@ -732,7 +777,8 @@
         state.goalFlash = { side, time: 0.45 };
         emitBurst(state.marble.x, state.marble.y, side === "left" ? "#ff7d8c" : "#62dcff", 28);
         triggerShake(1.2);
-        statusLine.textContent = `${side === "left" ? "玩家 A" : "玩家 B"} 进球，比分 ${state.score.left} : ${state.score.right}`;
+        const scorer = side === "left" ? "玩家 A" : state.mode === "ai" ? "AI" : "玩家 B";
+        statusLine.textContent = `${scorer} 进球，比分 ${state.score.left} : ${state.score.right}`;
 
         if (state.score[side] >= WIN_SCORE) {
           finishMatch(side);
@@ -744,7 +790,7 @@
 
       function finishMatch(side) {
         state.scene = "gameover";
-        const winner = side === "left" ? "玩家 A" : "玩家 B";
+        const winner = side === "left" ? "玩家 A" : state.mode === "ai" ? "AI" : "玩家 B";
         showOverlay(`${winner} 胜利`, `最终比分 ${state.score.left} : ${state.score.right}。点击按钮或按 R 重新开始。`);
         statusLine.textContent = `${winner} 率先达到 ${WIN_SCORE} 分，比赛结束。`;
       }
@@ -768,7 +814,11 @@
         }
 
         state.players.forEach((player) => {
-          applyPlayerInput(player, dt);
+          if (player.isAi) {
+            updateAi(player, dt);
+          } else {
+            applyPlayerInput(player, dt);
+          }
           keepPlayerInLane(player);
         });
 
@@ -1004,7 +1054,7 @@
       }
 
       function handleKeyDown(event) {
-        if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.code)) {
+        if (["Space", "Enter", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.code)) {
           event.preventDefault();
         }
 
@@ -1012,6 +1062,12 @@
           restartMatch();
           return;
         }
+
+        state.players.forEach((player) => {
+          if (!player.isAi && event.code === player.controls.toggle && !event.repeat) {
+            togglePolarity(player);
+          }
+        });
 
         state.keys.add(event.code);
       }
@@ -1021,6 +1077,10 @@
       }
 
       restartButton.addEventListener("click", restartMatch);
+      modeToggle.addEventListener("click", () => {
+        state.mode = state.mode === "ai" ? "versus" : "ai";
+        startMatch();
+      });
       window.addEventListener("keydown", handleKeyDown);
       window.addEventListener("keyup", handleKeyUp);
 
