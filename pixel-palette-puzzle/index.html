@@ -3,21 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>像素调色板：合作拼图画布</title>
+  <title>像素调色板：合作拼图</title>
   <style>
     :root {
-      --bg: #12121a;
-      --panel: rgba(18, 22, 35, 0.92);
-      --panel-soft: rgba(27, 34, 54, 0.82);
-      --line: rgba(255, 255, 255, 0.1);
-      --text: #f3f5ff;
-      --muted: #aeb7d6;
+      --bg: #11131a;
+      --panel: rgba(16, 21, 31, 0.94);
+      --panel-soft: rgba(31, 37, 50, 0.88);
+      --line: rgba(255, 255, 255, 0.12);
+      --text: #f4f6fb;
+      --muted: #aab4cb;
       --accent: #ffd166;
-      --accent-2: #77e4c8;
-      --danger: #ff7b72;
-      --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
-      --cell-size: 28px;
-      --gap: 4px;
+      --accent-2: #6ee7d2;
+      --danger: #ff7b7b;
+      --midline: #8ef4c1;
+      --shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
     }
 
     * {
@@ -30,9 +29,9 @@
       font-family: "Trebuchet MS", "Segoe UI", sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at top left, rgba(119, 228, 200, 0.16), transparent 26%),
-        radial-gradient(circle at top right, rgba(255, 209, 102, 0.12), transparent 24%),
-        linear-gradient(180deg, #1a2033, #0c0f18 48%, #12121a);
+        radial-gradient(circle at top left, rgba(110, 231, 210, 0.16), transparent 24%),
+        radial-gradient(circle at top right, rgba(255, 209, 102, 0.13), transparent 24%),
+        linear-gradient(180deg, #192132 0%, #11131a 50%, #0a0d13 100%);
     }
 
     button,
@@ -44,17 +43,17 @@
       border: 1px solid transparent;
       border-radius: 14px;
       padding: 10px 14px;
-      cursor: pointer;
       color: var(--text);
       background: rgba(255, 255, 255, 0.08);
-      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+      cursor: pointer;
+      transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
     }
 
     button:hover:not(:disabled),
-    button:focus-visible {
+    button:focus-visible,
+    select:focus-visible {
       transform: translateY(-1px);
-      border-color: rgba(255, 209, 102, 0.5);
-      background: rgba(255, 255, 255, 0.13);
+      border-color: rgba(255, 209, 102, 0.65);
       outline: none;
     }
 
@@ -63,10 +62,18 @@
       opacity: 0.55;
     }
 
+    select {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.07);
+    }
+
     .page {
-      width: min(1200px, calc(100vw - 24px));
+      width: min(1240px, calc(100vw - 24px));
       margin: 0 auto;
-      padding: 24px 0 36px;
+      padding: 20px 0 32px;
     }
 
     .panel {
@@ -76,18 +83,24 @@
       box-shadow: var(--shadow);
     }
 
-    .setup {
-      display: grid;
-      gap: 24px;
-      grid-template-columns: minmax(320px, 480px) 1fr;
-      padding: 26px;
+    .setup,
+    .topbar,
+    .sidebar,
+    .board-area,
+    .results {
+      padding: 20px;
     }
 
-    .setup h1,
-    .setup h2,
-    .board-shell h2,
-    .results h2 {
-      margin: 0;
+    .setup {
+      display: grid;
+      gap: 20px;
+      grid-template-columns: minmax(300px, 430px) minmax(320px, 1fr);
+      align-items: start;
+    }
+
+    .hero {
+      display: grid;
+      gap: 16px;
     }
 
     .eyebrow,
@@ -95,86 +108,70 @@
       color: var(--muted);
     }
 
-    .hero-copy {
-      display: grid;
-      gap: 16px;
-      align-content: start;
-    }
-
-    .hero-copy h1 {
-      font-size: clamp(2.3rem, 6vw, 4.6rem);
-      line-height: 0.95;
-    }
-
-    .hero-copy p {
+    h1,
+    h2,
+    h3,
+    p {
       margin: 0;
-      line-height: 1.65;
     }
 
-    .rules {
-      display: grid;
-      gap: 12px;
-      padding: 20px;
-      border: 1px solid var(--line);
-      border-radius: 20px;
-      background: var(--panel-soft);
+    h1 {
+      font-size: clamp(2.5rem, 7vw, 4.8rem);
+      line-height: 0.96;
     }
 
-    .rules ul {
-      margin: 0;
-      padding-left: 18px;
+    .hero p,
+    .setup-card p,
+    .hint-box p,
+    .results p {
       line-height: 1.6;
     }
 
-    .setup-card {
+    .rule-list,
+    .pattern-list {
+      margin: 0;
+      padding-left: 18px;
+      line-height: 1.7;
+    }
+
+    .setup-card,
+    .hint-box,
+    .result-box {
       display: grid;
-      gap: 18px;
-      padding: 22px;
-      border: 1px solid var(--line);
-      border-radius: 20px;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
-      align-content: start;
-    }
-
-    .difficulty-grid,
-    .stat-grid,
-    .private-grid,
-    .result-grid {
-      display: grid;
-      gap: 12px;
-    }
-
-    .difficulty-grid {
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    }
-
-    .difficulty-card {
-      text-align: left;
-      padding: 16px;
+      gap: 14px;
+      padding: 18px;
       border: 1px solid var(--line);
       border-radius: 18px;
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--panel-soft);
     }
 
-    .difficulty-card.active {
-      border-color: rgba(119, 228, 200, 0.7);
-      background: rgba(119, 228, 200, 0.14);
+    .form-grid,
+    .stats-row,
+    .board-layout,
+    .results-grid {
+      display: grid;
+      gap: 16px;
     }
 
-    .difficulty-card strong,
-    .stat strong {
-      display: block;
-      margin-bottom: 4px;
+    .form-grid {
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    }
+
+    label {
+      display: grid;
+      gap: 8px;
+      font-size: 0.95rem;
+      color: var(--muted);
     }
 
     .primary {
-      background: linear-gradient(135deg, #ffd166, #ff9b54);
-      color: #17120d;
+      background: linear-gradient(135deg, #ffd166, #ff9d57);
+      color: #19130f;
       font-weight: 700;
     }
 
     .secondary {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.06);
     }
 
     .hidden {
@@ -183,48 +180,44 @@
 
     .game {
       display: grid;
-      gap: 18px;
-      margin-top: 20px;
+      gap: 16px;
+      margin-top: 18px;
     }
 
     .topbar {
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
       justify-content: space-between;
+      gap: 12px;
       align-items: center;
-      padding: 18px 22px;
     }
 
-    .pill-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
+    .stats-row {
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      width: min(760px, 100%);
     }
 
     .stat {
-      padding: 10px 12px;
+      padding: 12px 14px;
       border: 1px solid var(--line);
       border-radius: 16px;
       background: rgba(255, 255, 255, 0.05);
-      min-width: 110px;
     }
 
-    .layout {
-      display: grid;
-      gap: 18px;
-      grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+    .stat strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 1.05rem;
     }
 
-    .sidebar,
-    .board-shell,
-    .results {
-      padding: 20px;
+    .board-layout {
+      grid-template-columns: minmax(310px, 360px) minmax(0, 1fr);
+      align-items: start;
     }
 
     .sidebar {
       display: grid;
-      gap: 16px;
+      gap: 14px;
       align-content: start;
     }
 
@@ -237,229 +230,216 @@
       background: var(--panel-soft);
     }
 
-    .mode-row,
-    .palette-row {
+    .section-head {
       display: flex;
-      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+    }
+
+    .player-strip {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 26px;
+      height: 26px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .badge.active {
+      background: rgba(255, 209, 102, 0.22);
+      color: var(--accent);
+    }
+
+    .palette-list {
+      display: grid;
       gap: 10px;
     }
 
-    .mode-row button.active,
-    .palette-chip.active {
-      border-color: rgba(255, 209, 102, 0.8);
-      background: rgba(255, 209, 102, 0.18);
+    .palette-item {
+      display: grid;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .palette-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
     }
 
     .palette-chip {
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      min-width: 96px;
-      text-align: left;
+      border-radius: 999px;
+      padding: 7px 10px;
+      border: 1px solid transparent;
+    }
+
+    .palette-chip.active {
+      border-color: rgba(255, 209, 102, 0.8);
+      background: rgba(255, 209, 102, 0.16);
     }
 
     .swatch {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       border-radius: 6px;
       border: 1px solid rgba(255, 255, 255, 0.16);
       flex: none;
     }
 
-    .inventory-list,
-    .signal-log {
+    .mini-note {
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+
+    .signal-log,
+    .controls-note {
       display: grid;
       gap: 8px;
     }
 
-    .inventory-item,
-    .signal-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
+    .signal-entry {
       padding: 8px 10px;
       border-radius: 12px;
       background: rgba(255, 255, 255, 0.05);
+      color: var(--muted);
+      font-size: 0.92rem;
     }
 
-    .mini-grid {
+    .board-area {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .canvas-grid {
       display: grid;
-      gap: 2px;
-      justify-content: start;
+      gap: 18px;
+      grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+      align-items: start;
     }
 
-    .mini-cell {
-      width: 12px;
-      height: 12px;
-      border-radius: 3px;
-      background: rgba(255, 255, 255, 0.06);
+    .canvas-box {
+      display: grid;
+      gap: 10px;
     }
 
-    .mini-cell.filled {
-      background: #aeb7d6;
+    canvas {
+      width: 100%;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      touch-action: none;
     }
 
-    .board-shell {
-      overflow: auto;
+    .board-wrap {
+      position: relative;
+      width: min(100%, 720px);
     }
 
-    .signal-banner {
+    .status-banner {
       min-height: 28px;
       color: var(--accent-2);
       font-weight: 700;
     }
 
-    .board-wrap {
-      display: grid;
-      gap: var(--gap);
-      align-items: start;
-      justify-content: start;
-      width: max-content;
-      margin-top: 12px;
-    }
-
-    .board-row,
-    .header-row {
-      display: grid;
-      gap: var(--gap);
-      grid-template-columns: 42px repeat(var(--grid-size), var(--cell-size));
-      align-items: center;
-    }
-
-    .corner {
-      width: 42px;
-      height: var(--cell-size);
-    }
-
-    .axis-button {
-      height: var(--cell-size);
-      border-radius: 10px;
-      padding: 0;
-      font-weight: 700;
-      background: rgba(255, 255, 255, 0.06);
-    }
-
-    .board-cell {
-      width: var(--cell-size);
-      height: var(--cell-size);
-      border-radius: 8px;
-      padding: 0;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(255, 255, 255, 0.04);
-    }
-
-    .board-cell.empty {
-      background: rgba(255, 255, 255, 0.04);
-    }
-
-    .board-cell.flash,
-    .axis-button.flash {
-      animation: flashSignal 1s ease-in-out infinite;
-    }
-
-    @keyframes flashSignal {
-      0%, 100% {
-        box-shadow: 0 0 0 rgba(255, 209, 102, 0);
-        filter: brightness(1);
-      }
-
-      50% {
-        box-shadow: 0 0 18px rgba(255, 209, 102, 0.65);
-        filter: brightness(1.2);
-      }
-    }
-
-    .transition {
-      position: fixed;
+    .transfer-layer {
+      position: absolute;
       inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      background: rgba(5, 8, 14, 0.86);
-      backdrop-filter: blur(10px);
-      z-index: 10;
+      pointer-events: none;
+      overflow: hidden;
     }
 
-    .transition-card {
-      max-width: 520px;
-      width: 100%;
-      padding: 28px;
-      text-align: center;
-      border: 1px solid var(--line);
-      border-radius: 24px;
-      background: linear-gradient(180deg, rgba(35, 44, 67, 0.98), rgba(18, 22, 35, 0.98));
-      box-shadow: var(--shadow);
+    .transfer-token {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border-radius: 8px;
+      border: 2px solid rgba(255, 255, 255, 0.8);
+      box-shadow: 0 0 24px rgba(255, 255, 255, 0.25);
+      transform: translate(-50%, -50%);
+      animation: transferSlide 620ms ease-in-out forwards;
     }
 
-    .transition-card h2 {
-      margin: 10px 0 8px;
-      font-size: clamp(2rem, 5vw, 3.4rem);
-    }
+    @keyframes transferSlide {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.7);
+      }
 
-    .transition-card p {
-      margin: 8px 0 0;
-      line-height: 1.65;
-      color: var(--muted);
+      18% {
+        opacity: 1;
+      }
+
+      80% {
+        opacity: 1;
+      }
+
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1.05);
+      }
     }
 
     .results {
-      margin-top: 20px;
+      margin-top: 18px;
       display: grid;
       gap: 16px;
     }
 
-    .score-banner {
-      padding: 16px 18px;
-      border-radius: 18px;
-      background: linear-gradient(135deg, rgba(255, 209, 102, 0.16), rgba(119, 228, 200, 0.12));
-      border: 1px solid rgba(255, 255, 255, 0.1);
+    .results-grid {
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     }
 
-    .compare-board {
-      display: grid;
-      gap: 2px;
-      justify-content: start;
-      background: rgba(255, 255, 255, 0.04);
-      padding: 10px;
-      border-radius: 16px;
-      width: max-content;
+    .result-number {
+      font-size: clamp(2.4rem, 6vw, 4.4rem);
+      color: var(--accent);
+      line-height: 1;
     }
 
-    .compare-cell {
-      width: 18px;
-      height: 18px;
-      border-radius: 4px;
-      background: rgba(255, 255, 255, 0.04);
-    }
-
-    .danger {
-      color: var(--danger);
+    .compare-canvas {
+      width: 100%;
+      max-width: 280px;
     }
 
     @media (max-width: 980px) {
       .setup,
-      .layout,
-      .result-grid {
+      .board-layout,
+      .canvas-grid {
         grid-template-columns: 1fr;
       }
     }
 
     @media (max-width: 720px) {
-      :root {
-        --cell-size: 22px;
-      }
-
       .page {
-        width: min(100vw - 12px, 1200px);
+        width: min(100vw - 12px, 1240px);
         padding-top: 12px;
       }
 
       .setup,
       .topbar,
       .sidebar,
-      .board-shell,
+      .board-area,
       .results {
         padding: 16px;
       }
@@ -469,606 +449,800 @@
 <body>
   <main class="page">
     <section class="setup panel" id="setup-screen">
-      <div class="hero-copy">
-        <p class="eyebrow">Hot-seat Puzzle</p>
-        <h1>像素调色板</h1>
-        <p>两位玩家共用一块画布，但永远看不见同一份答案。玩家 A 只知道颜色总量，玩家 B 只知道哪些位置应该点亮。你们必须在有限回合内，用上色和高亮行列信号拼出目标图案。</p>
-        <div class="rules">
-          <h2>规则速览</h2>
-          <ul>
-            <li>每回合只能做一件事：放置或修改一个像素，或者发送一个行/列信号。</li>
-            <li>信号会在下一位玩家回合中闪烁显示，帮助对方聚焦某一行或某一列。</li>
-            <li>每局结束后按整张网格逐像素比较，计算精确匹配率。</li>
+      <div class="hero">
+        <p class="eyebrow">Puzzle / Co-op / Solo</p>
+        <h1>像素调色板：合作拼图</h1>
+        <p>目标图案会显示在左侧参考画布，完成画布被中线切成两半。合作模式下，两名玩家起手各有 3 种颜色，只有把颜色传过中线，队友才能补上自己缺的那一格。</p>
+        <div class="hint-box">
+          <h2>玩法要求</h2>
+          <ul class="rule-list">
+            <li>热座模式：两人轮流操作，每回合固定 15 秒。</li>
+            <li>同屏模式：玩家 1 用鼠标画左半边，玩家 2 用方向键和数字键画右半边。</li>
+            <li>单人模式：直接使用全部 6 色，无需传色。</li>
+            <li>评分 = 正确像素数 / 总像素数。</li>
           </ul>
         </div>
       </div>
 
       <div class="setup-card">
-        <div>
-          <h2>选择难度</h2>
-          <p class="muted">难度会同时调整网格大小、颜色数量和总回合数。</p>
+        <h2>开始一局</h2>
+        <div class="form-grid">
+          <label>
+            模式
+            <select id="mode-select">
+              <option value="hotseat">热座双人</option>
+              <option value="same-screen">同屏双人</option>
+              <option value="solo">单人练习</option>
+            </select>
+          </label>
+          <label>
+            图案
+            <select id="pattern-select"></select>
+          </label>
         </div>
-        <div class="difficulty-grid" id="difficulty-grid"></div>
-        <button class="primary" id="start-button" type="button">开始新局</button>
+        <div class="hint-box">
+          <h3>预设图案</h3>
+          <ul class="pattern-list" id="pattern-preview-list"></ul>
+        </div>
+        <button class="primary" id="start-button" type="button">开始拼图</button>
       </div>
     </section>
 
     <section class="game hidden" id="game-screen">
       <div class="topbar panel">
-        <div class="pill-row">
-          <div class="stat"><strong id="turn-player">玩家 A</strong><span>当前操作</span></div>
-          <div class="stat"><strong id="turns-left">0</strong><span>剩余回合</span></div>
-          <div class="stat"><strong id="difficulty-label">Easy</strong><span>当前难度</span></div>
+        <div class="stats-row">
+          <div class="stat"><strong id="mode-label">热座双人</strong><span>当前模式</span></div>
+          <div class="stat"><strong id="active-player">玩家 1</strong><span>当前操作</span></div>
+          <div class="stat"><strong id="timer-label">15</strong><span>剩余时间</span></div>
+          <div class="stat"><strong id="turns-label">12</strong><span>热座剩余回合</span></div>
+          <div class="stat"><strong id="progress-label">0%</strong><span>当前还原度</span></div>
         </div>
-        <div class="pill-row">
-          <button class="secondary" id="restart-button" type="button">重新生成</button>
-          <button class="secondary" id="end-turn-button" type="button" disabled>本回合已待命</button>
+        <div>
+          <button class="secondary" id="finish-button" type="button">立即结算</button>
+          <button class="secondary" id="restart-button" type="button">重新开始</button>
         </div>
       </div>
 
-      <div class="layout">
+      <div class="board-layout">
         <aside class="sidebar panel">
           <div class="section-box">
-            <h2>私有线索</h2>
-            <p class="muted" id="private-info-title"></p>
-            <div id="private-info-body" class="private-grid"></div>
-          </div>
-
-          <div class="section-box">
-            <h2>行动模式</h2>
-            <div class="mode-row">
-              <button id="mode-paint" type="button">放置像素</button>
-              <button id="mode-signal" type="button">发送信号</button>
+            <div class="section-head">
+              <h2>玩家 1 色板</h2>
+              <div class="player-strip"><span class="badge" id="p1-pointer">P1</span><span>鼠标 / 左半边</span></div>
             </div>
-            <p class="muted">放置像素时点击画布格子。发送信号时点击任意行号或列号。</p>
+            <div class="palette-list" id="palette-p1"></div>
+          </div>
+
+          <div class="section-box" id="p2-section">
+            <div class="section-head">
+              <h2>玩家 2 色板</h2>
+              <div class="player-strip"><span class="badge" id="p2-pointer">P2</span><span>键盘 / 右半边</span></div>
+            </div>
+            <div class="palette-list" id="palette-p2"></div>
+            <div class="controls-note" id="keyboard-help">
+              <div class="signal-entry">方向键移动光标，数字键 1-9 选色，空格落子。</div>
+            </div>
           </div>
 
           <div class="section-box">
-            <h2>颜色选择</h2>
-            <div class="palette-row" id="palette-row"></div>
-          </div>
-
-          <div class="section-box">
-            <h2>最近信号</h2>
-            <div class="signal-log" id="signal-log"></div>
+            <h2>传色反馈</h2>
+            <div class="signal-log" id="transfer-log"></div>
           </div>
         </aside>
 
-        <section class="board-shell panel">
-          <h2>共享拼图画布</h2>
-          <p class="signal-banner" id="signal-banner"></p>
-          <p class="muted">空白格表示暂未放置。若要擦除像素，请选择「清空」再点击格子。</p>
-          <div class="board-wrap" id="board-wrap"></div>
+        <section class="board-area panel">
+          <div class="status-banner" id="status-banner"></div>
+          <div class="canvas-grid">
+            <div class="canvas-box">
+              <h2>目标图案</h2>
+              <canvas id="target-canvas" width="240" height="240"></canvas>
+            </div>
+            <div class="canvas-box">
+              <h2>合作画布</h2>
+              <div class="board-wrap" id="board-wrap">
+                <canvas id="board-canvas" width="720" height="720"></canvas>
+                <div class="transfer-layer" id="transfer-layer"></div>
+              </div>
+              <p class="muted">中线左侧属于玩家 1，中线右侧属于玩家 2。单人模式可操作整张画布。</p>
+            </div>
+          </div>
         </section>
       </div>
     </section>
 
     <section class="results panel hidden" id="results-screen">
-      <div class="score-banner">
-        <h2>结果对比</h2>
-        <p id="score-summary"></p>
+      <div class="result-box">
+        <h2>结算</h2>
+        <div class="result-number" id="final-score">0%</div>
+        <p id="result-copy"></p>
       </div>
-      <div class="result-grid">
-        <div class="section-box">
-          <h2>目标图案</h2>
-          <div id="target-compare"></div>
+      <div class="results-grid">
+        <div class="result-box">
+          <h3>目标图案</h3>
+          <canvas class="compare-canvas" id="result-target-canvas" width="280" height="280"></canvas>
         </div>
-        <div class="section-box">
-          <h2>合作作品</h2>
-          <div id="shared-compare"></div>
+        <div class="result-box">
+          <h3>完成画布</h3>
+          <canvas class="compare-canvas" id="result-board-canvas" width="280" height="280"></canvas>
         </div>
       </div>
-      <button class="primary" id="play-again-button" type="button">再玩一局</button>
+      <button class="primary" id="play-again-button" type="button">再来一局</button>
     </section>
   </main>
 
-  <div class="transition hidden" id="transition-screen" aria-live="polite">
-    <div class="transition-card">
-      <p class="eyebrow">Pass Device</p>
-      <h2 id="transition-player">玩家 A</h2>
-      <p id="transition-copy"></p>
-      <button class="primary" id="continue-button" type="button">开始这一回合</button>
-      <p>也可以直接按 <strong>Enter</strong>。</p>
-    </div>
-  </div>
-
   <script>
-    const DIFFICULTIES = {
-      easy: { label: "简单", size: 8, colors: 4, turns: 24, density: 0.42 },
-      medium: { label: "普通", size: 12, colors: 6, turns: 20, density: 0.38 },
-      hard: { label: "困难", size: 16, colors: 8, turns: 20, density: 0.34 }
-    };
-
-    const BASE_PALETTE = [
+    const COLORS = [
       { key: "rose", label: "珊瑚红", hex: "#ff6b6b" },
-      { key: "gold", label: "蜂蜜黄", hex: "#ffd166" },
-      { key: "mint", label: "薄荷绿", hex: "#77e4c8" },
-      { key: "sky", label: "天青蓝", hex: "#69b7ff" },
-      { key: "violet", label: "靛紫", hex: "#8d7dff" },
-      { key: "peach", label: "桃橙", hex: "#ff9f68" },
-      { key: "lime", label: "酸橙", hex: "#b8f36b" },
-      { key: "pink", label: "亮粉", hex: "#ff8cc6" }
+      { key: "amber", label: "蜂蜜黄", hex: "#ffd166" },
+      { key: "mint", label: "薄荷绿", hex: "#6ee7d2" },
+      { key: "sky", label: "湖水蓝", hex: "#67b7ff" },
+      { key: "violet", label: "靛紫", hex: "#907dff" },
+      { key: "peach", label: "桃橙", hex: "#ff9f68" }
     ];
+
+    const PATTERNS = [
+      {
+        id: "heart-8",
+        name: "双心 8x8",
+        size: 8,
+        grid: [
+          [0, 0, 1, 1, 2, 2, 0, 0],
+          [0, 1, 1, 1, 2, 2, 2, 0],
+          [1, 1, 3, 1, 2, 4, 2, 2],
+          [1, 3, 3, 3, 4, 4, 4, 2],
+          [0, 1, 3, 5, 5, 4, 2, 0],
+          [0, 0, 5, 5, 5, 5, 0, 0],
+          [0, 0, 0, 5, 5, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0]
+        ]
+      },
+      {
+        id: "flower-8",
+        name: "花环 8x8",
+        size: 8,
+        grid: [
+          [0, 0, 1, 0, 2, 0, 0, 0],
+          [0, 1, 1, 1, 2, 2, 2, 0],
+          [3, 1, 4, 1, 2, 5, 2, 3],
+          [0, 1, 1, 1, 2, 2, 2, 0],
+          [0, 0, 1, 4, 5, 2, 0, 0],
+          [0, 3, 4, 4, 5, 5, 3, 0],
+          [0, 0, 3, 4, 5, 3, 0, 0],
+          [0, 0, 0, 3, 3, 0, 0, 0]
+        ]
+      },
+      {
+        id: "kite-8",
+        name: "风筝 8x8",
+        size: 8,
+        grid: [
+          [0, 0, 0, 1, 2, 0, 0, 0],
+          [0, 0, 1, 1, 2, 2, 0, 0],
+          [0, 1, 1, 3, 4, 2, 2, 0],
+          [1, 1, 3, 3, 4, 4, 2, 2],
+          [0, 0, 5, 3, 4, 5, 0, 0],
+          [0, 0, 0, 5, 5, 0, 0, 0],
+          [0, 0, 0, 5, 0, 5, 0, 0],
+          [0, 0, 5, 0, 0, 0, 5, 0]
+        ]
+      },
+      {
+        id: "planet-12",
+        name: "行星 12x12",
+        size: 12,
+        grid: [
+          [0, 0, 0, 0, 1, 1, 2, 2, 0, 0, 0, 0],
+          [0, 0, 0, 1, 1, 1, 2, 2, 2, 0, 0, 0],
+          [0, 0, 1, 1, 3, 3, 4, 4, 2, 2, 0, 0],
+          [0, 1, 1, 3, 3, 3, 4, 4, 4, 2, 2, 0],
+          [1, 1, 3, 3, 5, 5, 5, 4, 4, 4, 2, 2],
+          [1, 1, 3, 5, 5, 5, 5, 5, 4, 4, 2, 2],
+          [1, 1, 3, 5, 5, 5, 5, 5, 4, 4, 2, 2],
+          [1, 1, 3, 3, 5, 5, 5, 4, 4, 4, 2, 2],
+          [0, 1, 1, 3, 3, 3, 4, 4, 4, 2, 2, 0],
+          [0, 0, 1, 1, 3, 3, 4, 4, 2, 2, 0, 0],
+          [0, 0, 0, 1, 1, 1, 2, 2, 2, 0, 0, 0],
+          [0, 0, 0, 0, 1, 1, 2, 2, 0, 0, 0, 0]
+        ]
+      },
+      {
+        id: "castle-12",
+        name: "城堡 12x12",
+        size: 12,
+        grid: [
+          [0, 0, 1, 1, 0, 0, 0, 0, 2, 2, 0, 0],
+          [0, 0, 1, 3, 1, 0, 0, 2, 4, 2, 0, 0],
+          [0, 0, 1, 1, 1, 0, 0, 2, 2, 2, 0, 0],
+          [0, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 0],
+          [0, 5, 1, 1, 5, 5, 5, 5, 2, 2, 5, 0],
+          [0, 5, 1, 3, 5, 0, 0, 5, 4, 2, 5, 0],
+          [0, 5, 1, 1, 5, 0, 0, 5, 2, 2, 5, 0],
+          [0, 5, 5, 5, 5, 0, 0, 5, 5, 5, 5, 0],
+          [0, 0, 5, 5, 5, 5, 5, 5, 5, 5, 0, 0],
+          [0, 0, 0, 5, 5, 0, 0, 5, 5, 0, 0, 0],
+          [0, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0],
+          [0, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0]
+        ]
+      }
+    ];
+
+    const HOTSEAT_TURN_SECONDS = 15;
+    const HOTSEAT_TOTAL_TURNS = 12;
+    const SOLO_TOTAL_SECONDS = 120;
+    const SAME_SCREEN_TOTAL_SECONDS = 120;
 
     const setupScreen = document.querySelector("#setup-screen");
     const gameScreen = document.querySelector("#game-screen");
     const resultsScreen = document.querySelector("#results-screen");
-    const difficultyGrid = document.querySelector("#difficulty-grid");
+    const modeSelect = document.querySelector("#mode-select");
+    const patternSelect = document.querySelector("#pattern-select");
+    const patternPreviewList = document.querySelector("#pattern-preview-list");
     const startButton = document.querySelector("#start-button");
+    const finishButton = document.querySelector("#finish-button");
     const restartButton = document.querySelector("#restart-button");
     const playAgainButton = document.querySelector("#play-again-button");
-    const continueButton = document.querySelector("#continue-button");
-    const transitionScreen = document.querySelector("#transition-screen");
-    const transitionPlayer = document.querySelector("#transition-player");
-    const transitionCopy = document.querySelector("#transition-copy");
-    const turnPlayer = document.querySelector("#turn-player");
-    const turnsLeft = document.querySelector("#turns-left");
-    const difficultyLabel = document.querySelector("#difficulty-label");
-    const endTurnButton = document.querySelector("#end-turn-button");
-    const privateInfoTitle = document.querySelector("#private-info-title");
-    const privateInfoBody = document.querySelector("#private-info-body");
-    const paletteRow = document.querySelector("#palette-row");
-    const signalLog = document.querySelector("#signal-log");
-    const signalBanner = document.querySelector("#signal-banner");
+    const modeLabel = document.querySelector("#mode-label");
+    const activePlayerLabel = document.querySelector("#active-player");
+    const timerLabel = document.querySelector("#timer-label");
+    const turnsLabel = document.querySelector("#turns-label");
+    const progressLabel = document.querySelector("#progress-label");
+    const paletteP1 = document.querySelector("#palette-p1");
+    const paletteP2 = document.querySelector("#palette-p2");
+    const p2Section = document.querySelector("#p2-section");
+    const keyboardHelp = document.querySelector("#keyboard-help");
+    const transferLog = document.querySelector("#transfer-log");
+    const statusBanner = document.querySelector("#status-banner");
+    const targetCanvas = document.querySelector("#target-canvas");
+    const boardCanvas = document.querySelector("#board-canvas");
     const boardWrap = document.querySelector("#board-wrap");
-    const scoreSummary = document.querySelector("#score-summary");
-    const targetCompare = document.querySelector("#target-compare");
-    const sharedCompare = document.querySelector("#shared-compare");
-    const modePaintButton = document.querySelector("#mode-paint");
-    const modeSignalButton = document.querySelector("#mode-signal");
+    const transferLayer = document.querySelector("#transfer-layer");
+    const resultTargetCanvas = document.querySelector("#result-target-canvas");
+    const resultBoardCanvas = document.querySelector("#result-board-canvas");
+    const finalScore = document.querySelector("#final-score");
+    const resultCopy = document.querySelector("#result-copy");
+    const p1Pointer = document.querySelector("#p1-pointer");
+    const p2Pointer = document.querySelector("#p2-pointer");
+
+    const targetCtx = targetCanvas.getContext("2d");
+    const boardCtx = boardCanvas.getContext("2d");
+    const resultTargetCtx = resultTargetCanvas.getContext("2d");
+    const resultBoardCtx = resultBoardCanvas.getContext("2d");
 
     const state = {
-      difficultyKey: "easy",
-      currentPlayer: "A",
-      turnsRemaining: 0,
-      mode: "paint",
-      selectedColorKey: "empty",
-      palette: [],
-      target: [],
-      shared: [],
-      visibleSignal: null,
-      signalHistory: [],
-      actionLocked: false
+      mode: "hotseat",
+      patternIndex: 0,
+      targetGrid: [],
+      boardGrid: [],
+      timerId: null,
+      timeRemaining: HOTSEAT_TURN_SECONDS,
+      turnsRemaining: HOTSEAT_TOTAL_TURNS,
+      activePlayer: 1,
+      selectedColor: { 1: COLORS[0].key, 2: COLORS[3].key },
+      availableColors: { 1: new Set(), 2: new Set() },
+      keyboardCursor: { row: 0, col: 0 },
+      transferMessages: [],
+      finished: false
     };
 
-    function createEmptyGrid(size, fill = null) {
-      return Array.from({ length: size }, () => Array.from({ length: size }, () => fill));
+    function cloneGrid(grid) {
+      return grid.map((row) => [...row]);
     }
 
-    function randomItem(items) {
-      return items[Math.floor(Math.random() * items.length)];
+    function buildEmptyGrid(size) {
+      return Array.from({ length: size }, () => Array.from({ length: size }, () => null));
     }
 
-    function buildMirrors(size, row, col) {
-      const points = [
-        [row, col],
-        [row, size - 1 - col],
-        [size - 1 - row, col],
-        [size - 1 - row, size - 1 - col]
-      ];
-
-      return Array.from(new Set(points.map((point) => point.join(",")))).map((value) => value.split(",").map(Number));
+    function getPattern() {
+      return PATTERNS[state.patternIndex];
     }
 
-    function generateTarget(config) {
-      const grid = createEmptyGrid(config.size);
-      const palette = BASE_PALETTE.slice(0, config.colors);
-      const halfRows = Math.ceil(config.size / 2);
-      const halfCols = Math.ceil(config.size / 2);
-
-      for (let row = 0; row < halfRows; row += 1) {
-        for (let col = 0; col < halfCols; col += 1) {
-          if (Math.random() > config.density) {
-            continue;
-          }
-
-          const color = randomItem(palette).key;
-          for (const [mirrorRow, mirrorCol] of buildMirrors(config.size, row, col)) {
-            grid[mirrorRow][mirrorCol] = color;
-          }
-        }
-      }
-
-      const crossColor = randomItem(palette).key;
-      const center = Math.floor(config.size / 2);
-      for (let offset = 0; offset < config.size; offset += 1) {
-        if (Math.random() < 0.3) {
-          grid[center][offset] = crossColor;
-          grid[offset][center] = crossColor;
-        }
-      }
-
-      const filledCount = grid.flat().filter(Boolean).length;
-      return filledCount >= config.size ? grid : generateTarget(config);
+    function getColorEntry(key) {
+      return COLORS.find((color) => color.key === key);
     }
 
-    function getCounts(grid) {
-      const counts = new Map();
-      for (const cell of grid.flat()) {
-        if (!cell) {
-          continue;
-        }
-        counts.set(cell, (counts.get(cell) || 0) + 1);
-      }
-      return counts;
+    function colorIndexToKey(value) {
+      return COLORS[value]?.key ?? null;
     }
 
-    function switchPlayer(player) {
-      return player === "A" ? "B" : "A";
-    }
+    function populatePatternOptions() {
+      patternSelect.replaceChildren(
+        ...PATTERNS.map((pattern, index) => {
+          const option = document.createElement("option");
+          option.value = String(index);
+          option.textContent = `${pattern.name}`;
+          return option;
+        })
+      );
 
-    function currentDifficulty() {
-      return DIFFICULTIES[state.difficultyKey];
-    }
-
-    function activePalette() {
-      return [{ key: "empty", label: "清空", hex: "transparent" }, ...state.palette];
-    }
-
-    function getPaletteEntry(key) {
-      return activePalette().find((entry) => entry.key === key) || activePalette()[0];
-    }
-
-    function describeSignal(signal) {
-      if (!signal) {
-        return "暂无信号";
-      }
-      const axisLabel = signal.type === "row" ? "行" : "列";
-      return `玩家 ${signal.from} 高亮了第 ${signal.index + 1} ${axisLabel}`;
-    }
-
-    function renderDifficultyOptions() {
-      difficultyGrid.replaceChildren(
-        ...Object.entries(DIFFICULTIES).map(([key, config]) => {
-          const button = document.createElement("button");
-          button.type = "button";
-          button.className = `difficulty-card${state.difficultyKey === key ? " active" : ""}`;
-          button.innerHTML = `<strong>${config.label}</strong><span>${config.size}x${config.size} / ${config.colors} 色 / ${config.turns} 回合</span>`;
-          button.addEventListener("click", () => {
-            state.difficultyKey = key;
-            renderDifficultyOptions();
-          });
-          return button;
+      patternPreviewList.replaceChildren(
+        ...PATTERNS.map((pattern) => {
+          const item = document.createElement("li");
+          item.textContent = `${pattern.name} (${pattern.size}x${pattern.size})`;
+          return item;
         })
       );
     }
 
-    function renderPalette() {
-      paletteRow.replaceChildren(
-        ...activePalette().map((entry) => {
-          const button = document.createElement("button");
-          button.type = "button";
-          button.className = `palette-chip${state.selectedColorKey === entry.key ? " active" : ""}`;
-          button.disabled = state.mode !== "paint" || state.actionLocked;
-          button.addEventListener("click", () => {
-            state.selectedColorKey = entry.key;
-            renderPalette();
+    function resetPlayers() {
+      state.availableColors = {
+        1: new Set(COLORS.slice(0, 3).map((color) => color.key)),
+        2: new Set(COLORS.slice(3).map((color) => color.key))
+      };
+      if (state.mode === "solo") {
+        state.availableColors[1] = new Set(COLORS.map((color) => color.key));
+        state.availableColors[2] = new Set();
+      }
+      state.selectedColor = {
+        1: [...state.availableColors[1]][0] || COLORS[0].key,
+        2: [...state.availableColors[2]][0] || COLORS[0].key
+      };
+    }
+
+    function resizeBoardCanvas() {
+      const pattern = getPattern();
+      const logical = pattern.size * 48;
+      boardCanvas.width = logical;
+      boardCanvas.height = logical;
+      targetCanvas.width = pattern.size * 24;
+      targetCanvas.height = pattern.size * 24;
+      resultTargetCanvas.width = pattern.size * 24;
+      resultTargetCanvas.height = pattern.size * 24;
+      resultBoardCanvas.width = pattern.size * 24;
+      resultBoardCanvas.height = pattern.size * 24;
+    }
+
+    function startGame() {
+      state.mode = modeSelect.value;
+      state.patternIndex = Number(patternSelect.value || 0);
+      state.targetGrid = getPattern().grid.map((row) => row.map(colorIndexToKey));
+      state.boardGrid = buildEmptyGrid(getPattern().size);
+      state.activePlayer = 1;
+      state.finished = false;
+      state.transferMessages = [];
+      state.keyboardCursor = { row: 0, col: getRightStartCol() };
+      state.turnsRemaining = HOTSEAT_TOTAL_TURNS;
+      resetPlayers();
+      resizeBoardCanvas();
+      clearTimer();
+      setModeTimer(true);
+      setupScreen.classList.add("hidden");
+      resultsScreen.classList.add("hidden");
+      gameScreen.classList.remove("hidden");
+      renderAll();
+    }
+
+    function setModeTimer(reset) {
+      if (state.mode === "hotseat") {
+        state.timeRemaining = HOTSEAT_TURN_SECONDS;
+      } else if (reset) {
+        state.timeRemaining = state.mode === "solo" ? SOLO_TOTAL_SECONDS : SAME_SCREEN_TOTAL_SECONDS;
+      }
+
+      state.timerId = window.setInterval(() => {
+        if (state.finished) {
+          return;
+        }
+
+        state.timeRemaining -= 1;
+        if (state.timeRemaining <= 0) {
+          if (state.mode === "hotseat") {
+            advanceHotseatTurn("时间到，换手");
+          } else {
+            finishGame("时间到");
+            return;
+          }
+        }
+        renderStatus();
+      }, 1000);
+    }
+
+    function clearTimer() {
+      if (state.timerId) {
+        window.clearInterval(state.timerId);
+        state.timerId = null;
+      }
+    }
+
+    function getBoardCellMetrics() {
+      const pattern = getPattern();
+      const cellSize = boardCanvas.width / pattern.size;
+      return { size: pattern.size, cellSize };
+    }
+
+    function getTargetCellMetrics() {
+      const pattern = getPattern();
+      return targetCanvas.width / pattern.size;
+    }
+
+    function getMidCol() {
+      return Math.floor(getPattern().size / 2);
+    }
+
+    function getRightStartCol() {
+      return getMidCol();
+    }
+
+    function getPlayerSide(player) {
+      if (state.mode === "solo") {
+        return { min: 0, max: getPattern().size - 1 };
+      }
+
+      if (player === 1) {
+        return { min: 0, max: getMidCol() - 1 };
+      }
+
+      return { min: getRightStartCol(), max: getPattern().size - 1 };
+    }
+
+    function isCellOwnedByPlayer(row, col, player) {
+      const side = getPlayerSide(player);
+      return col >= side.min && col <= side.max;
+    }
+
+    function activePainterForCell(col) {
+      if (state.mode === "solo") {
+        return 1;
+      }
+      return col < getMidCol() ? 1 : 2;
+    }
+
+    function canPlayerUseColor(player, colorKey) {
+      return state.availableColors[player].has(colorKey);
+    }
+
+    function paintCell(row, col, player, colorKeyOverride) {
+      if (state.finished) {
+        return;
+      }
+
+      if (!isCellOwnedByPlayer(row, col, player)) {
+        statusBanner.textContent = `玩家 ${player} 只能操作自己的半边。`;
+        return;
+      }
+
+      const colorKey = colorKeyOverride || state.selectedColor[player];
+      if (!canPlayerUseColor(player, colorKey)) {
+        statusBanner.textContent = `玩家 ${player} 还没有 ${getColorEntry(colorKey)?.label || "该颜色"}。`;
+        return;
+      }
+
+      state.boardGrid[row][col] = colorKey;
+      if (state.mode === "hotseat") {
+        advanceHotseatTurn(`玩家 ${player} 完成一笔`);
+      } else {
+        renderAll();
+      }
+    }
+
+    function computeAccuracy() {
+      const target = state.targetGrid;
+      const board = state.boardGrid;
+      const total = target.length * target.length;
+      let matches = 0;
+      for (let row = 0; row < target.length; row += 1) {
+        for (let col = 0; col < target.length; col += 1) {
+          if (target[row][col] === board[row][col]) {
+            matches += 1;
+          }
+        }
+      }
+      return Math.round((matches / total) * 100);
+    }
+
+    function drawGrid(ctx, grid, options = {}) {
+      const size = grid.length;
+      const cellSize = ctx.canvas.width / size;
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      ctx.fillStyle = "#171b24";
+      ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+      for (let row = 0; row < size; row += 1) {
+        for (let col = 0; col < size; col += 1) {
+          const value = grid[row][col];
+          const x = col * cellSize;
+          const y = row * cellSize;
+          ctx.fillStyle = value ? getColorEntry(value).hex : "rgba(255,255,255,0.05)";
+          ctx.fillRect(x, y, cellSize, cellSize);
+          ctx.strokeStyle = "rgba(255,255,255,0.08)";
+          ctx.strokeRect(x, y, cellSize, cellSize);
+        }
+      }
+
+      if (options.showMidline && state.mode !== "solo") {
+        const midlineX = getMidCol() * cellSize;
+        ctx.fillStyle = "rgba(142, 244, 193, 0.28)";
+        ctx.fillRect(midlineX - 2, 0, 4, ctx.canvas.height);
+        ctx.strokeStyle = "rgba(142, 244, 193, 0.92)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(midlineX, 0);
+        ctx.lineTo(midlineX, ctx.canvas.height);
+        ctx.stroke();
+        ctx.lineWidth = 1;
+      }
+
+      if (options.showCursor && state.mode === "same-screen") {
+        const { row, col } = state.keyboardCursor;
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(col * cellSize + 2, row * cellSize + 2, cellSize - 4, cellSize - 4);
+        ctx.lineWidth = 1;
+      }
+    }
+
+    function renderPalette(container, player) {
+      const colors = [...state.availableColors[player]].map(getColorEntry).filter(Boolean);
+      container.replaceChildren(
+        ...colors.map((color, index) => {
+          const item = document.createElement("div");
+          item.className = "palette-item";
+
+          const top = document.createElement("div");
+          top.className = "palette-top";
+
+          const chip = document.createElement("button");
+          chip.type = "button";
+          chip.className = `palette-chip${state.selectedColor[player] === color.key ? " active" : ""}`;
+          chip.addEventListener("click", () => {
+            state.selectedColor[player] = color.key;
+            renderPalette(panelForPlayer(player), player);
+            renderStatus();
           });
 
           const swatch = document.createElement("span");
           swatch.className = "swatch";
-          swatch.style.background = entry.hex === "transparent" ? "linear-gradient(135deg, transparent 45%, #ff7b72 45%, #ff7b72 55%, transparent 55%) rgba(255,255,255,0.08)" : entry.hex;
-          button.append(swatch, document.createTextNode(entry.label));
-          return button;
+          swatch.style.background = color.hex;
+          chip.append(swatch, document.createTextNode(color.label));
+
+          const slot = document.createElement("span");
+          slot.className = "mini-note";
+          slot.textContent = state.mode === "same-screen" && player === 2 ? `数字键 ${index + 1}` : `色槽 ${index + 1}`;
+
+          top.append(chip, slot);
+          item.append(top);
+
+          if (state.mode !== "solo") {
+            const sendButton = document.createElement("button");
+            sendButton.type = "button";
+            sendButton.className = "secondary";
+            sendButton.textContent = `传给玩家 ${player === 1 ? 2 : 1}`;
+            sendButton.disabled = state.mode === "hotseat" && state.activePlayer !== player;
+            sendButton.addEventListener("click", () => transferColor(player, color.key));
+            item.append(sendButton);
+          }
+
+          return item;
         })
       );
     }
 
-    function renderPrivateInfo() {
-      privateInfoBody.replaceChildren();
-      const size = currentDifficulty().size;
-
-      if (state.currentPlayer === "A") {
-        privateInfoTitle.textContent = "你只知道目标中有哪些颜色，以及它们各自出现了多少次。";
-        const counts = Array.from(getCounts(state.target).entries())
-          .sort((a, b) => a[0].localeCompare(b[0]));
-        const list = document.createElement("div");
-        list.className = "inventory-list";
-
-        counts.forEach(([key, count]) => {
-          const entry = getPaletteEntry(key);
-          const row = document.createElement("div");
-          row.className = "inventory-item";
-
-          const info = document.createElement("div");
-          info.style.display = "flex";
-          info.style.alignItems = "center";
-          info.style.gap = "10px";
-
-          const swatch = document.createElement("span");
-          swatch.className = "swatch";
-          swatch.style.background = entry.hex;
-          info.append(swatch, document.createTextNode(entry.label));
-          row.append(info, document.createTextNode(`${count} 格`));
-          list.append(row);
-        });
-
-        privateInfoBody.append(list);
-        return;
-      }
-
-      privateInfoTitle.textContent = "你只知道目标中哪些位置需要上色，但不知道对应颜色。";
-      const preview = document.createElement("div");
-      preview.className = "mini-grid";
-      preview.style.gridTemplateColumns = `repeat(${size}, 12px)`;
-
-      for (let row = 0; row < size; row += 1) {
-        for (let col = 0; col < size; col += 1) {
-          const cell = document.createElement("div");
-          cell.className = `mini-cell${state.target[row][col] ? " filled" : ""}`;
-          preview.append(cell);
-        }
-      }
-      privateInfoBody.append(preview);
+    function panelForPlayer(player) {
+      return player === 1 ? paletteP1 : paletteP2;
     }
 
-    function renderSignalLog() {
-      const items = state.signalHistory.slice(-4).reverse();
-      signalLog.replaceChildren(
-        ...(items.length ? items : [null]).map((signal) => {
-          const row = document.createElement("div");
-          row.className = "signal-item";
-          row.textContent = signal ? describeSignal(signal) : "还没有任何信号";
-          return row;
+    function renderTransferLog() {
+      const messages = state.transferMessages.length ? state.transferMessages.slice(-5).reverse() : ["还没有传色记录。"];
+      transferLog.replaceChildren(
+        ...messages.map((message) => {
+          const node = document.createElement("div");
+          node.className = "signal-entry";
+          node.textContent = message;
+          return node;
         })
       );
     }
 
-    function hasIncomingSignal() {
-      return Boolean(state.visibleSignal && state.visibleSignal.from !== state.currentPlayer);
-    }
-
-    function isHighlightedCell(row, col) {
-      if (!hasIncomingSignal()) {
-        return false;
-      }
-      return state.visibleSignal.type === "row" ? state.visibleSignal.index === row : state.visibleSignal.index === col;
-    }
-
-    function handlePaint(row, col) {
-      if (state.actionLocked || state.mode !== "paint") {
+    function transferColor(fromPlayer, colorKey) {
+      if (state.mode === "solo" || state.finished) {
         return;
       }
-      state.shared[row][col] = state.selectedColorKey === "empty" ? null : state.selectedColorKey;
-      finishTurn();
-    }
 
-    function handleSignal(type, index) {
-      if (state.actionLocked || state.mode !== "signal") {
+      const toPlayer = fromPlayer === 1 ? 2 : 1;
+      if (!state.availableColors[fromPlayer].has(colorKey)) {
         return;
       }
-      state.visibleSignal = { type, index, from: state.currentPlayer };
-      state.signalHistory.push(state.visibleSignal);
-      finishTurn();
-    }
 
-    function renderBoard() {
-      const size = currentDifficulty().size;
-      boardWrap.style.setProperty("--grid-size", size);
-      const rows = [];
+      state.availableColors[toPlayer].add(colorKey);
+      state.transferMessages.push(`玩家 ${fromPlayer} 把 ${getColorEntry(colorKey).label} 传给了玩家 ${toPlayer}`);
+      animateTransfer(fromPlayer, colorKey);
 
-      const headerRow = document.createElement("div");
-      headerRow.className = "header-row";
-      const corner = document.createElement("div");
-      corner.className = "corner";
-      headerRow.append(corner);
-
-      for (let col = 0; col < size; col += 1) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = `axis-button${hasIncomingSignal() && state.visibleSignal.type === "col" && state.visibleSignal.index === col ? " flash" : ""}`;
-        button.textContent = col + 1;
-        button.disabled = state.mode !== "signal" || state.actionLocked;
-        button.addEventListener("click", () => handleSignal("col", col));
-        headerRow.append(button);
-      }
-      rows.push(headerRow);
-
-      for (let row = 0; row < size; row += 1) {
-        const line = document.createElement("div");
-        line.className = "board-row";
-
-        const axis = document.createElement("button");
-        axis.type = "button";
-        axis.className = `axis-button${hasIncomingSignal() && state.visibleSignal.type === "row" && state.visibleSignal.index === row ? " flash" : ""}`;
-        axis.textContent = row + 1;
-        axis.disabled = state.mode !== "signal" || state.actionLocked;
-        axis.addEventListener("click", () => handleSignal("row", row));
-        line.append(axis);
-
-        for (let col = 0; col < size; col += 1) {
-          const button = document.createElement("button");
-          button.type = "button";
-          const key = state.shared[row][col];
-          const entry = getPaletteEntry(key || "empty");
-          button.className = `board-cell${key ? "" : " empty"}${isHighlightedCell(row, col) ? " flash" : ""}`;
-          button.style.background = key ? entry.hex : "rgba(255, 255, 255, 0.04)";
-          button.disabled = state.mode !== "paint" || state.actionLocked;
-          button.setAttribute("aria-label", `第 ${row + 1} 行，第 ${col + 1} 列`);
-          button.addEventListener("click", () => handlePaint(row, col));
-          line.append(button);
-        }
-
-        rows.push(line);
+      if (!state.selectedColor[toPlayer] || !state.availableColors[toPlayer].has(state.selectedColor[toPlayer])) {
+        state.selectedColor[toPlayer] = colorKey;
       }
 
-      boardWrap.replaceChildren(...rows);
-      signalBanner.textContent = hasIncomingSignal()
-        ? `收到信号：${describeSignal(state.visibleSignal)}`
-        : "";
+      if (state.mode === "hotseat") {
+        advanceHotseatTurn(`玩家 ${fromPlayer} 完成传色`);
+      } else {
+        renderAll();
+      }
     }
 
-    function renderTurnHeader() {
-      turnPlayer.textContent = `玩家 ${state.currentPlayer}`;
-      turnsLeft.textContent = String(state.turnsRemaining);
-      difficultyLabel.textContent = currentDifficulty().label;
-      endTurnButton.textContent = state.actionLocked ? "等待切换玩家" : "本回合待命";
-      endTurnButton.disabled = !state.actionLocked;
+    function animateTransfer(fromPlayer, colorKey) {
+      const wrapRect = boardWrap.getBoundingClientRect();
+      const token = document.createElement("div");
+      token.className = "transfer-token";
+      token.style.background = getColorEntry(colorKey).hex;
+
+      const startX = fromPlayer === 1 ? wrapRect.width * 0.18 : wrapRect.width * 0.82;
+      const endX = fromPlayer === 1 ? wrapRect.width * 0.82 : wrapRect.width * 0.18;
+      const y = 32;
+
+      token.style.left = `${startX}px`;
+      token.style.top = `${y}px`;
+      transferLayer.append(token);
+
+      requestAnimationFrame(() => {
+        token.style.transition = "left 620ms ease-in-out, opacity 620ms ease-in-out";
+        token.style.left = `${endX}px`;
+      });
+
+      window.setTimeout(() => token.remove(), 700);
     }
 
-    function setMode(mode) {
-      state.mode = mode;
-      modePaintButton.classList.toggle("active", mode === "paint");
-      modeSignalButton.classList.toggle("active", mode === "signal");
-      renderPalette();
-      renderBoard();
+    function renderStatus() {
+      const accuracy = computeAccuracy();
+      const modeText = state.mode === "hotseat" ? "热座双人" : state.mode === "same-screen" ? "同屏双人" : "单人练习";
+      modeLabel.textContent = modeText;
+      activePlayerLabel.textContent = state.mode === "same-screen" ? "双人同时操作" : `玩家 ${state.activePlayer}`;
+      timerLabel.textContent = `${state.timeRemaining}s`;
+      turnsLabel.textContent = state.mode === "hotseat" ? `${state.turnsRemaining}` : "--";
+      progressLabel.textContent = `${accuracy}%`;
+      statusBanner.textContent = state.mode === "hotseat"
+        ? `玩家 ${state.activePlayer} 的 15 秒回合正在进行。`
+        : state.mode === "same-screen"
+          ? `玩家 1 用鼠标，玩家 2 用键盘。`
+          : `单人模式拥有全部 6 色，可涂整张图。`;
+      p1Pointer.classList.toggle("active", state.mode !== "same-screen" ? state.activePlayer === 1 : true);
+      p2Pointer.classList.toggle("active", state.mode === "same-screen" ? true : state.activePlayer === 2);
+      keyboardHelp.classList.toggle("hidden", state.mode !== "same-screen");
+      p2Section.classList.toggle("hidden", state.mode === "solo");
     }
 
-    function showTransition() {
-      transitionPlayer.textContent = `玩家 ${state.currentPlayer}`;
-      transitionCopy.textContent = state.currentPlayer === "A"
-        ? "你将看到颜色库存，但看不到具体位置。确认前请让另一位玩家移开视线。"
-        : "你将看到需要填色的位置轮廓，但看不到真实颜色。确认前请让另一位玩家移开视线。";
-      transitionScreen.classList.remove("hidden");
+    function renderAll() {
+      renderStatus();
+      renderPalette(paletteP1, 1);
+      renderPalette(paletteP2, 2);
+      renderTransferLog();
+      drawGrid(targetCtx, state.targetGrid, { showMidline: false });
+      drawGrid(boardCtx, state.boardGrid, { showMidline: true, showCursor: true });
     }
 
-    function hideTransition() {
-      transitionScreen.classList.add("hidden");
-    }
-
-    function renderGame() {
-      renderTurnHeader();
-      renderPrivateInfo();
-      renderPalette();
-      renderSignalLog();
-      renderBoard();
-    }
-
-    function beginTurn() {
-      state.actionLocked = false;
-      renderGame();
-      hideTransition();
-    }
-
-    function finishTurn() {
-      state.actionLocked = true;
-      renderGame();
-      endTurnButton.disabled = false;
-    }
-
-    function advanceTurn() {
-      if (!state.actionLocked) {
+    function advanceHotseatTurn(message) {
+      if (state.mode !== "hotseat" || state.finished) {
+        renderAll();
         return;
       }
 
       state.turnsRemaining -= 1;
       if (state.turnsRemaining <= 0) {
-        showResults();
+        finishGame("热座总回合用尽");
         return;
       }
 
-      state.currentPlayer = switchPlayer(state.currentPlayer);
-      showTransition();
+      state.activePlayer = state.activePlayer === 1 ? 2 : 1;
+      state.timeRemaining = HOTSEAT_TURN_SECONDS;
+      statusBanner.textContent = message;
+      renderAll();
     }
 
-    function scoreBoards() {
-      let exactMatches = 0;
-      let targetFilled = 0;
-      let sharedFilled = 0;
-      const size = currentDifficulty().size;
-      const total = size * size;
+    function isBoardComplete() {
+      return state.boardGrid.every((row) => row.every(Boolean));
+    }
 
-      for (let row = 0; row < size; row += 1) {
-        for (let col = 0; col < size; col += 1) {
-          const targetCell = state.target[row][col];
-          const sharedCell = state.shared[row][col];
-          if (targetCell === sharedCell) {
-            exactMatches += 1;
-          }
-          if (targetCell) {
-            targetFilled += 1;
-          }
-          if (sharedCell) {
-            sharedFilled += 1;
-          }
-        }
+    function finishGame(reason) {
+      if (state.finished) {
+        return;
       }
 
-      return {
-        exactMatches,
-        targetFilled,
-        sharedFilled,
-        total,
-        percent: Math.round((exactMatches / total) * 100)
-      };
-    }
-
-    function createCompareBoard(grid) {
-      const size = currentDifficulty().size;
-      const board = document.createElement("div");
-      board.className = "compare-board";
-      board.style.gridTemplateColumns = `repeat(${size}, 18px)`;
-
-      for (let row = 0; row < size; row += 1) {
-        for (let col = 0; col < size; col += 1) {
-          const cell = document.createElement("div");
-          cell.className = "compare-cell";
-          const key = grid[row][col];
-          if (key) {
-            cell.style.background = getPaletteEntry(key).hex;
-          }
-          board.append(cell);
-        }
-      }
-
-      return board;
-    }
-
-    function showResults() {
+      state.finished = true;
+      clearTimer();
+      const accuracy = computeAccuracy();
+      finalScore.textContent = `${accuracy}%`;
+      resultCopy.textContent = `${reason}。最终还原度 ${accuracy}% 。`;
+      drawGrid(resultTargetCtx, state.targetGrid, { showMidline: false });
+      drawGrid(resultBoardCtx, state.boardGrid, { showMidline: state.mode !== "solo" });
       gameScreen.classList.add("hidden");
-      hideTransition();
-      resultsScreen.classList.remove("hidden");
-
-      const result = scoreBoards();
-      scoreSummary.textContent = `精确匹配 ${result.exactMatches} / ${result.total}，匹配率 ${result.percent}%。目标已上色 ${result.targetFilled} 格，你们当前作品上色 ${result.sharedFilled} 格。`;
-      targetCompare.replaceChildren(createCompareBoard(state.target));
-      sharedCompare.replaceChildren(createCompareBoard(state.shared));
-    }
-
-    function startGame() {
-      const config = currentDifficulty();
-      state.palette = BASE_PALETTE.slice(0, config.colors);
-      state.target = generateTarget(config);
-      state.shared = createEmptyGrid(config.size);
-      state.currentPlayer = "A";
-      state.turnsRemaining = config.turns;
-      state.visibleSignal = null;
-      state.signalHistory = [];
-      state.actionLocked = false;
-      state.selectedColorKey = state.palette[0].key;
-
       setupScreen.classList.add("hidden");
-      resultsScreen.classList.add("hidden");
-      gameScreen.classList.remove("hidden");
-      setMode("paint");
-      showTransition();
-      renderGame();
+      resultsScreen.classList.remove("hidden");
     }
 
-    difficultyGrid.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") {
-        const target = event.target.closest(".difficulty-card");
-        if (target) {
-          target.click();
-        }
+    function getCellFromPointer(event) {
+      const rect = boardCanvas.getBoundingClientRect();
+      const scaleX = boardCanvas.width / rect.width;
+      const scaleY = boardCanvas.height / rect.height;
+      const x = (event.clientX - rect.left) * scaleX;
+      const y = (event.clientY - rect.top) * scaleY;
+      const { size, cellSize } = getBoardCellMetrics();
+      const col = Math.max(0, Math.min(size - 1, Math.floor(x / cellSize)));
+      const row = Math.max(0, Math.min(size - 1, Math.floor(y / cellSize)));
+      return { row, col };
+    }
+
+    function handleBoardPointer(event) {
+      if (state.finished) {
+        return;
       }
+
+      const { row, col } = getCellFromPointer(event);
+      const player = state.mode === "same-screen" ? 1 : state.activePlayer;
+      if (state.mode === "same-screen" && col >= getMidCol()) {
+        statusBanner.textContent = "右半边请用玩家 2 的键盘操作。";
+        return;
+      }
+      paintCell(row, col, player);
+    }
+
+    function clampCursor() {
+      const size = getPattern().size;
+      const side = getPlayerSide(2);
+      state.keyboardCursor.row = Math.max(0, Math.min(size - 1, state.keyboardCursor.row));
+      state.keyboardCursor.col = Math.max(side.min, Math.min(side.max, state.keyboardCursor.col));
+    }
+
+    function handleSameScreenKeys(event) {
+      if (state.mode !== "same-screen" || state.finished) {
+        return;
+      }
+
+      const key = event.key;
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " ", "1", "2", "3", "4", "5", "6", "7", "8", "9"].includes(key)) {
+        event.preventDefault();
+      }
+
+      if (key === "ArrowUp") {
+        state.keyboardCursor.row -= 1;
+      } else if (key === "ArrowDown") {
+        state.keyboardCursor.row += 1;
+      } else if (key === "ArrowLeft") {
+        state.keyboardCursor.col -= 1;
+      } else if (key === "ArrowRight") {
+        state.keyboardCursor.col += 1;
+      } else if (/^[1-9]$/.test(key)) {
+        const colors = [...state.availableColors[2]];
+        const picked = colors[Number(key) - 1];
+        if (picked) {
+          state.selectedColor[2] = picked;
+        }
+      } else if (key === " ") {
+        paintCell(state.keyboardCursor.row, state.keyboardCursor.col, 2);
+      }
+
+      clampCursor();
+      renderAll();
+    }
+
+    boardCanvas.addEventListener("pointerdown", handleBoardPointer);
+
+    window.addEventListener("keydown", (event) => {
+      if (state.mode === "hotseat" && event.key === "Enter" && !state.finished && !gameScreen.classList.contains("hidden")) {
+        event.preventDefault();
+        advanceHotseatTurn("主动结束回合");
+        return;
+      }
+
+      handleSameScreenKeys(event);
     });
 
     startButton.addEventListener("click", startGame);
     restartButton.addEventListener("click", startGame);
-    playAgainButton.addEventListener("click", startGame);
-    continueButton.addEventListener("click", beginTurn);
-    endTurnButton.addEventListener("click", advanceTurn);
-    modePaintButton.addEventListener("click", () => setMode("paint"));
-    modeSignalButton.addEventListener("click", () => setMode("signal"));
-
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" && !transitionScreen.classList.contains("hidden")) {
-        beginTurn();
-      }
+    playAgainButton.addEventListener("click", () => {
+      resultsScreen.classList.add("hidden");
+      setupScreen.classList.remove("hidden");
+    });
+    finishButton.addEventListener("click", () => finishGame("手动结算"));
+    modeSelect.addEventListener("change", () => {
+      const isSolo = modeSelect.value === "solo";
+      statusBanner.textContent = "";
+      keyboardHelp.classList.toggle("hidden", modeSelect.value !== "same-screen");
+      p2Section.classList.toggle("hidden", isSolo);
+    });
+    patternSelect.addEventListener("change", () => {
+      state.patternIndex = Number(patternSelect.value || 0);
     });
 
-    renderDifficultyOptions();
+    populatePatternOptions();
+    patternSelect.value = "0";
+    keyboardHelp.classList.add("hidden");
   </script>
 </body>
 </html>
