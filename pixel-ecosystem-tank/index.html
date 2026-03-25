@@ -6,24 +6,19 @@
   <title>像素生态缸</title>
   <style>
     :root {
-      --bg-top: #d7f1ff;
-      --bg-bottom: #7ca9bf;
-      --glass: rgba(235, 250, 255, 0.38);
-      --panel: rgba(246, 255, 252, 0.82);
-      --panel-line: rgba(37, 72, 83, 0.18);
-      --text: #17323f;
-      --muted: #4c6a73;
-      --accent: #ffd46e;
-      --water: #4b84c8;
-      --sand: #d8bc74;
-      --seed: #805f3b;
-      --sun: #ffe789;
-      --fish: #ff916a;
-      --plant: #3f9552;
-      --leaf: #8ee07d;
-      --bubble: #c7f3ff;
-      --algae: #5db86f;
-      --erase: #e78484;
+      --bg: #f5f1e7;
+      --panel: rgba(255, 251, 243, 0.92);
+      --panel-border: rgba(69, 59, 42, 0.16);
+      --text: #1f2118;
+      --muted: #605a4a;
+      --accent: #d58a28;
+      --water: #4f88d9;
+      --soil: #8a6245;
+      --seed: #d6cf68;
+      --bug: #d64d41;
+      --sun: #f7d762;
+      --plant: #48a04f;
+      --empty: #dbe8f2;
     }
 
     * {
@@ -33,27 +28,27 @@
     body {
       margin: 0;
       min-height: 100vh;
-      padding: 20px;
-      color: var(--text);
       font-family: "Trebuchet MS", "Microsoft YaHei", sans-serif;
+      color: var(--text);
       background:
-        radial-gradient(circle at top, rgba(255, 255, 255, 0.7), transparent 32%),
-        linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.7), transparent 28%),
+        linear-gradient(180deg, #faf3db, #dbe9f0 42%, #bbd4de 100%);
     }
 
     main {
-      width: min(1180px, 100%);
+      width: min(1200px, calc(100vw - 24px));
       margin: 0 auto;
+      padding: 18px 0 30px;
       display: grid;
       grid-template-columns: minmax(0, 1fr) 320px;
       gap: 18px;
     }
 
     .panel {
-      border: 1px solid var(--panel-line);
-      border-radius: 24px;
       background: var(--panel);
-      box-shadow: 0 20px 48px rgba(15, 43, 55, 0.18);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      box-shadow: 0 18px 50px rgba(51, 45, 31, 0.12);
       backdrop-filter: blur(8px);
     }
 
@@ -68,74 +63,74 @@
     }
 
     h1 {
-      font-size: clamp(2.4rem, 4vw, 4.1rem);
-      line-height: 0.92;
+      font-size: clamp(2.5rem, 5vw, 4.6rem);
+      line-height: 0.94;
       letter-spacing: -0.05em;
-    }
-
-    h2 {
-      font-size: 1.12rem;
     }
 
     .lede,
     .hint,
-    .small,
-    .stat span {
+    .meta,
+    .budget-row span,
+    .stat span,
+    .rule {
       color: var(--muted);
     }
 
     .lede {
       margin-top: 12px;
-      max-width: 62ch;
-      line-height: 1.6;
+      max-width: 60ch;
+      line-height: 1.65;
     }
 
     .tank-shell {
       margin-top: 18px;
       padding: 16px;
       border-radius: 26px;
-      border: 1px solid rgba(255, 255, 255, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.6);
       background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(193, 227, 238, 0.22)),
-        linear-gradient(180deg, rgba(255, 242, 181, 0.45), rgba(255, 255, 255, 0));
+        linear-gradient(180deg, rgba(255, 251, 231, 0.8), rgba(218, 238, 246, 0.65)),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.2));
     }
 
     #tank {
       display: block;
-      width: min(100%, 820px);
+      width: 100%;
+      max-width: 800px;
       aspect-ratio: 4 / 3;
       margin: 0 auto;
       border-radius: 18px;
-      border: 1px solid rgba(23, 50, 63, 0.16);
-      background: linear-gradient(180deg, #b8e3ff 0%, #79abc9 48%, #3b6984 100%);
-      cursor: crosshair;
+      border: 1px solid rgba(39, 46, 35, 0.18);
+      background: #dbe8f2;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
+      cursor: crosshair;
       touch-action: none;
     }
 
-    .hud {
+    .stats {
       margin-top: 14px;
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 10px;
     }
 
     .stat,
     .card,
-    .tool-button {
-      border: 1px solid var(--panel-line);
-      background: rgba(255, 255, 255, 0.64);
+    .tool-button,
+    .toggle {
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid var(--panel-border);
     }
 
     .stat {
       padding: 12px;
-      border-radius: 16px;
+      border-radius: 14px;
     }
 
     .stat span {
       display: block;
-      font-size: 0.76rem;
+      font-size: 0.74rem;
       text-transform: uppercase;
       letter-spacing: 0.08em;
     }
@@ -143,14 +138,14 @@
     .stat strong {
       display: block;
       margin-top: 6px;
-      font-size: 1.14rem;
+      font-size: 1.08rem;
     }
 
     aside {
       padding: 18px;
       display: grid;
-      align-content: start;
       gap: 14px;
+      align-content: start;
     }
 
     .card {
@@ -170,7 +165,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      min-height: 46px;
+      min-height: 48px;
       padding: 10px 12px;
       border-radius: 14px;
       color: var(--text);
@@ -188,50 +183,60 @@
       width: 16px;
       height: 16px;
       border-radius: 4px;
-      box-shadow: 0 0 0 1px rgba(23, 50, 63, 0.12);
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
       flex: 0 0 auto;
     }
 
-    .slider-row {
-      display: grid;
-      gap: 8px;
-    }
-
-    input[type="range"] {
-      width: 100%;
-      accent-color: #ecb13d;
-    }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    button.action {
-      min-height: 40px;
-      border: 0;
-      border-radius: 999px;
-      padding: 0 16px;
-      font: inherit;
-      color: #18303a;
-      background: linear-gradient(180deg, #ffe291, #e4b451);
-      cursor: pointer;
-    }
-
-    .legend {
-      display: grid;
-      gap: 8px;
-    }
-
-    .legend-row {
+    .budget-row {
       display: flex;
       justify-content: space-between;
       gap: 12px;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.52);
+    }
+
+    .actions,
+    .mode-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    button.action,
+    .toggle {
+      min-height: 40px;
+      border-radius: 999px;
+      padding: 0 16px;
+      font: inherit;
+      color: var(--text);
+    }
+
+    button.action {
+      border: 0;
+      background: linear-gradient(180deg, #ffe08f, #dea646);
+      cursor: pointer;
+    }
+
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+
+    .toggle input {
+      accent-color: var(--accent);
+    }
+
+    .rule {
+      line-height: 1.55;
       padding: 10px 12px;
       border-radius: 12px;
       background: rgba(255, 255, 255, 0.54);
-      border: 1px solid rgba(23, 50, 63, 0.1);
     }
 
     @media (max-width: 980px) {
@@ -242,12 +247,12 @@
 
     @media (max-width: 720px) {
       body {
-        padding: 12px;
+        padding: 0 12px;
       }
 
-      .hud,
+      .stats,
       .tool-grid {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
   </style>
@@ -257,16 +262,17 @@
     <section class="panel stage">
       <h1>像素生态缸</h1>
       <p class="lede">
-        在透明像素缸里投放水、沙、种子、阳光灯和小鱼。水会下落扩散，沙会堆积，种子在有水且有光的地方慢慢长成水草并吐出氧气泡，小鱼会在水域里轻轻游动。
+        在 40×30 网格里用有限预算投放水、土壤、种子、小虫、阳光灯。点击开始后，生态缸会按简单规则自动演化：种子遇水扎根，植物吸引虫子，虫群过密会自然衰亡。目标是在最少初始投放下让系统自我维持 60 秒。
       </p>
       <div class="tank-shell">
-        <canvas id="tank" width="96" height="72" aria-label="像素生态缸画布"></canvas>
+        <canvas id="tank" width="640" height="480" aria-label="像素生态缸画布"></canvas>
       </div>
-      <div class="hud">
+      <div class="stats">
         <div class="stat"><span>当前工具</span><strong id="tool-label">水</strong></div>
-        <div class="stat"><span>缸内水量</span><strong id="water-count">0</strong></div>
-        <div class="stat"><span>植物像素</span><strong id="plant-count">0</strong></div>
-        <div class="stat"><span>小鱼数量</span><strong id="fish-count">0</strong></div>
+        <div class="stat"><span>植物数量</span><strong id="plant-count">0</strong></div>
+        <div class="stat"><span>虫子数量</span><strong id="bug-count">0</strong></div>
+        <div class="stat"><span>多样性指数</span><strong id="diversity-score">0.00</strong></div>
+        <div class="stat"><span>计时 / 最佳</span><strong id="challenge-status">0.0s / --</strong></div>
       </div>
     </section>
 
@@ -274,99 +280,118 @@
       <section class="card">
         <h2>工具栏</h2>
         <div class="tool-grid">
-          <button class="tool-button active" data-tool="water" type="button"><span class="swatch" style="background: var(--water)"></span>水</button>
-          <button class="tool-button" data-tool="sand" type="button"><span class="swatch" style="background: var(--sand)"></span>沙</button>
-          <button class="tool-button" data-tool="seed" type="button"><span class="swatch" style="background: var(--seed)"></span>种子</button>
-          <button class="tool-button" data-tool="sun" type="button"><span class="swatch" style="background: var(--sun)"></span>阳光</button>
-          <button class="tool-button" data-tool="fish" type="button"><span class="swatch" style="background: var(--fish)"></span>小鱼</button>
+          <button class="tool-button active" type="button" data-tool="water"><span class="swatch" style="background: var(--water)"></span>水</button>
+          <button class="tool-button" type="button" data-tool="soil"><span class="swatch" style="background: var(--soil)"></span>土壤</button>
+          <button class="tool-button" type="button" data-tool="seed"><span class="swatch" style="background: var(--seed)"></span>种子</button>
+          <button class="tool-button" type="button" data-tool="bug"><span class="swatch" style="background: var(--bug)"></span>小虫</button>
+          <button class="tool-button" type="button" data-tool="sun"><span class="swatch" style="background: var(--sun)"></span>阳光灯</button>
         </div>
-        <p class="hint">左键绘制，拖拽可连续放置；右键擦除。先铺水域，再撒一点沙和种子，放上阳光灯，最后投放小鱼。</p>
+        <p class="hint">左键点击或拖拽放置，右键擦除。开始后停止编辑，只观察自动演化。</p>
       </section>
 
       <section class="card">
-        <h2>笔刷</h2>
-        <label class="slider-row" for="brush-size">
-          <span>笔刷大小</span>
-          <input id="brush-size" type="range" min="1" max="3" value="2">
-        </label>
+        <h2>预算与模式</h2>
+        <div class="budget-row"><span>水</span><strong id="budget-water">180</strong></div>
+        <div class="budget-row"><span>土壤</span><strong id="budget-soil">140</strong></div>
+        <div class="budget-row"><span>种子</span><strong id="budget-seed">24</strong></div>
+        <div class="budget-row"><span>小虫</span><strong id="budget-bug">20</strong></div>
+        <div class="budget-row"><span>阳光灯</span><strong id="budget-sun">10</strong></div>
+        <div class="mode-row">
+          <label class="toggle"><input id="hotseat-toggle" type="checkbox">热座双人</label>
+          <div class="meta" id="player-label">当前布置：玩家 1</div>
+        </div>
         <div class="actions">
-          <button class="action" id="seed-scene" type="button">生成样例</button>
-          <button class="action" id="clear-scene" type="button">清空生态缸</button>
+          <button class="action" id="start-button" type="button">开始观察</button>
+          <button class="action" id="sample-button" type="button">生成样例</button>
+          <button class="action" id="reset-button" type="button">重置缸体</button>
         </div>
       </section>
 
       <section class="card">
-        <h2>规则</h2>
-        <div class="legend">
-          <div class="legend-row"><span>落沙逻辑</span><strong>水下流扩散，沙会堆积</strong></div>
-          <div class="legend-row"><span>植物生长</span><strong>种子 + 水 + 光 → 水草</strong></div>
-          <div class="legend-row"><span>放松观赏</span><strong>氧气泡上浮，小鱼随机游走</strong></div>
-        </div>
-        <p class="small">植物状态机会按 <strong>seed → sprout → stem → leaf</strong> 推进。成熟叶片偶尔生成浮藻，小鱼会优先游过去吃掉。</p>
+        <h2>演化规则</h2>
+        <div class="rule">种子若附近同时有水和土壤，会长成植物；阳光灯可加速生长与扩张。</div>
+        <div class="rule">植物会缓慢扩散并吸引附近小虫，小虫吃到植物后可以繁殖。</div>
+        <div class="rule">小虫过多、长期饥饿或周围虫口密度过高时会自然死亡。</div>
+        <div class="rule">挑战判定：连续 60 秒内植物与小虫都未灭绝，则记录本局所用元素总数。</div>
       </section>
     </aside>
   </main>
 
   <script>
-    const GRID_WIDTH = 96;
-    const GRID_HEIGHT = 72;
-    const CELL_EMPTY = "empty";
-    const CELL_WATER = "water";
-    const CELL_SAND = "sand";
-    const CELL_SEED = "seed";
-    const CELL_SUN = "sun";
-    const CELL_PLANT = "plant";
-    const CELL_BUBBLE = "bubble";
-    const CELL_ALGAE = "algae";
-    const plantStages = ["seed", "sprout", "stem", "leaf"];
-    const colors = {
-      water: "#4b84c8",
-      waterFoam: "#75b5ff",
-      sand: "#d8bc74",
-      seed: "#805f3b",
-      sun: "#ffe789",
-      plantRoot: "#2f7041",
-      plantStem: "#47a45b",
-      plantLeaf: "#8ee07d",
-      bubble: "#d1f5ff",
-      algae: "#5db86f",
-      fish: "#ff916a",
-      fishDark: "#b7573a",
-      glass: "rgba(255,255,255,0.18)",
-      light: "rgba(255, 241, 176, 0.28)"
+    const GRID_WIDTH = 40;
+    const GRID_HEIGHT = 30;
+    const CELL_SIZE = 16;
+    const STORAGE_KEY = "pixel-ecosystem-tank-best";
+
+    const ELEMENTS = {
+      empty: "empty",
+      water: "water",
+      soil: "soil",
+      seed: "seed",
+      plant: "plant",
+      bug: "bug",
+      sun: "sun"
     };
 
-    const toolLabels = {
+    const TOOL_LABELS = {
       water: "水",
-      sand: "沙",
+      soil: "土壤",
       seed: "种子",
-      sun: "阳光",
-      fish: "小鱼"
+      bug: "小虫",
+      sun: "阳光灯"
+    };
+
+    const START_BUDGETS = {
+      water: 180,
+      soil: 140,
+      seed: 24,
+      bug: 20,
+      sun: 10
+    };
+
+    const COLORS = {
+      water: "#4f88d9",
+      soil: "#8a6245",
+      seed: "#d6cf68",
+      plant: "#48a04f",
+      plantDark: "#2c7432",
+      bug: "#d64d41",
+      sun: "#f7d762",
+      empty: "#dbe8f2"
     };
 
     const tank = document.getElementById("tank");
     const ctx = tank.getContext("2d");
     const toolLabel = document.getElementById("tool-label");
-    const waterCount = document.getElementById("water-count");
-    const plantCount = document.getElementById("plant-count");
-    const fishCount = document.getElementById("fish-count");
-    const brushSizeInput = document.getElementById("brush-size");
-    const seedSceneButton = document.getElementById("seed-scene");
-    const clearSceneButton = document.getElementById("clear-scene");
+    const plantCountEl = document.getElementById("plant-count");
+    const bugCountEl = document.getElementById("bug-count");
+    const diversityEl = document.getElementById("diversity-score");
+    const challengeEl = document.getElementById("challenge-status");
+    const playerLabel = document.getElementById("player-label");
+    const hotseatToggle = document.getElementById("hotseat-toggle");
+    const startButton = document.getElementById("start-button");
+    const sampleButton = document.getElementById("sample-button");
+    const resetButton = document.getElementById("reset-button");
     const toolButtons = [...document.querySelectorAll(".tool-button")];
+    const budgetEls = {
+      water: document.getElementById("budget-water"),
+      soil: document.getElementById("budget-soil"),
+      seed: document.getElementById("budget-seed"),
+      bug: document.getElementById("budget-bug"),
+      sun: document.getElementById("budget-sun")
+    };
 
     ctx.imageSmoothingEnabled = false;
 
-    function createCell(type = CELL_EMPTY, extra = {}) {
+    function createCell(type = ELEMENTS.empty, extra = {}) {
       return {
         type,
-        updated: false,
-        age: 0,
+        water: 0,
         growth: 0,
-        stage: 0,
-        part: "",
-        rootX: -1,
-        rootY: -1,
+        hunger: 0,
+        energy: 0,
+        age: 0,
+        pulse: Math.random() * Math.PI * 2,
         ...extra
       };
     }
@@ -377,690 +402,671 @@
       );
     }
 
+    function cloneGrid(source) {
+      return source.map((row) => row.map((cell) => ({ ...cell })));
+    }
+
     const state = {
       grid: buildGrid(),
-      lightMap: Array.from({ length: GRID_HEIGHT }, () => Array(GRID_WIDTH).fill(0)),
+      nextGrid: buildGrid(),
       selectedTool: "water",
-      brushSize: Number(brushSizeInput.value),
       pointerDown: false,
       eraseMode: false,
-      fish: [],
-      tick: 0
+      running: false,
+      lastTimestamp: 0,
+      simAccumulator: 0,
+      renderTime: 0,
+      elapsed: 0,
+      survivalTime: 0,
+      stats: { plants: 0, bugs: 0, diversity: 0 },
+      budgets: { ...START_BUDGETS },
+      placementsUsed: 0,
+      hotseat: false,
+      hotseatScores: [null, null],
+      activePlayer: 0,
+      setupSnapshot: null,
+      statusOverride: "",
+      bestScore: loadBestScore()
     };
+
+    function loadBestScore() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) {
+        return null;
+      }
+      const parsed = Number(saved);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    function saveBestScore(score) {
+      localStorage.setItem(STORAGE_KEY, String(score));
+      state.bestScore = score;
+    }
 
     function inBounds(x, y) {
       return x >= 0 && x < GRID_WIDTH && y >= 0 && y < GRID_HEIGHT;
     }
 
-    function cellAt(x, y) {
+    function getCell(grid, x, y) {
       if (!inBounds(x, y)) {
         return createCell();
       }
-      return state.grid[y][x];
+      return grid[y][x];
     }
 
-    function setCell(x, y, cell) {
-      if (inBounds(x, y)) {
-        state.grid[y][x] = cell;
-      }
-    }
-
-    function isEmptyLike(cell) {
-      return cell.type === CELL_EMPTY || cell.type === CELL_BUBBLE || cell.type === CELL_ALGAE;
-    }
-
-    function isLiquid(cell) {
-      return cell.type === CELL_WATER;
-    }
-
-    function isSwimmable(cell) {
-      return cell.type === CELL_WATER || cell.type === CELL_ALGAE || cell.type === CELL_BUBBLE;
-    }
-
-    function swapCells(ax, ay, bx, by) {
-      const temp = state.grid[ay][ax];
-      state.grid[ay][ax] = state.grid[by][bx];
-      state.grid[by][bx] = temp;
-      state.grid[ay][ax].updated = true;
-      state.grid[by][bx].updated = true;
-    }
-
-    function randomItem(items) {
-      return items[Math.floor(Math.random() * items.length)];
-    }
-
-    function hasAdjacentWater(x, y) {
-      const offsets = [
-        [0, 1],
-        [1, 0],
-        [-1, 0],
-        [0, -1]
-      ];
-      return offsets.some(([dx, dy]) => isLiquid(cellAt(x + dx, y + dy)));
-    }
-
-    function isLit(x, y) {
-      return state.lightMap[y][x] > 0;
-    }
-
-    function refreshLightMap() {
-      for (let y = 0; y < GRID_HEIGHT; y += 1) {
-        state.lightMap[y].fill(0);
-      }
-
-      for (let y = 0; y < GRID_HEIGHT; y += 1) {
-        for (let x = 0; x < GRID_WIDTH; x += 1) {
-          if (cellAt(x, y).type !== CELL_SUN) {
+    function forEachNeighbor(x, y, callback) {
+      for (let dy = -1; dy <= 1; dy += 1) {
+        for (let dx = -1; dx <= 1; dx += 1) {
+          if (dx === 0 && dy === 0) {
             continue;
           }
-          for (let depth = y; depth < GRID_HEIGHT; depth += 1) {
-            for (let spread = -3; spread <= 3; spread += 1) {
-              const targetX = x + spread;
-              if (!inBounds(targetX, depth)) {
-                continue;
-              }
-              const strength = Math.max(0, 1 - Math.abs(spread) * 0.2 - (depth - y) * 0.013);
-              if (strength > 0.1) {
-                state.lightMap[depth][targetX] = Math.max(state.lightMap[depth][targetX], strength);
-              }
-            }
+          const nx = x + dx;
+          const ny = y + dy;
+          if (inBounds(nx, ny)) {
+            callback(nx, ny, state.grid[ny][nx]);
           }
         }
       }
     }
 
-    function findPlantRoot(x, y) {
-      const cell = cellAt(x, y);
-      if (cell.type !== CELL_PLANT) {
-        return null;
-      }
-      const root = cell.part === "root" ? cell : cellAt(cell.rootX, cell.rootY);
-      if (root.type !== CELL_PLANT || root.part !== "root") {
-        return null;
-      }
-      return root;
-    }
-
-    function plantPixel(x, y, part, rootX, rootY) {
-      setCell(x, y, createCell(CELL_PLANT, { part, rootX, rootY, stage: 3 }));
-    }
-
-    function growPlant(rootX, rootY) {
-      const root = cellAt(rootX, rootY);
-      if (root.type !== CELL_PLANT || root.part !== "root") {
-        return;
-      }
-
-      const baseGrowth = hasAdjacentWater(rootX, rootY) && isLit(rootX, rootY);
-      if (!baseGrowth) {
-        return;
-      }
-
-      root.growth += 1 + Math.random() * 0.6;
-
-      if (root.stage === 1 && root.growth > 20) {
-        const above = cellAt(rootX, rootY - 1);
-        if (isEmptyLike(above) || isLiquid(above)) {
-          root.stage = 2;
-          root.height = 1;
-          plantPixel(rootX, rootY - 1, "stem", rootX, rootY);
+    function countNeighbors(x, y, type) {
+      let count = 0;
+      forEachNeighbor(x, y, (_nx, _ny, cell) => {
+        if (cell.type === type) {
+          count += 1;
         }
-      } else if (root.stage === 2 && root.growth > 52) {
-        const topY = rootY - root.height - 1;
-        const above = cellAt(rootX, topY);
-        if (isEmptyLike(above) || isLiquid(above)) {
-          root.height += 1;
-          plantPixel(rootX, topY, "stem", rootX, rootY);
-          root.stage = 3;
-        }
-      } else if (root.stage === 3 && root.growth > 88) {
-        const crownY = rootY - root.height;
-        const leaves = [
-          [rootX - 1, crownY],
-          [rootX + 1, crownY],
-          [rootX, crownY - 1]
-        ];
-        let placed = 0;
-        for (const [leafX, leafY] of leaves) {
-          const target = cellAt(leafX, leafY);
-          if (inBounds(leafX, leafY) && (isEmptyLike(target) || isLiquid(target))) {
-            plantPixel(leafX, leafY, "leaf", rootX, rootY);
-            placed += 1;
-          }
-        }
-        if (placed > 0) {
-          root.stage = 4;
-        }
-      } else if (root.stage >= 4 && Math.random() < 0.02) {
-        spawnBubble(rootX, rootY - root.height - 1);
-        if (Math.random() < 0.04) {
-          spawnAlgae(rootX + (Math.random() < 0.5 ? -1 : 1), rootY - root.height);
-        }
-      }
-    }
-
-    function spawnBubble(x, y) {
-      if (!inBounds(x, y)) {
-        return;
-      }
-      const cell = cellAt(x, y);
-      if (isLiquid(cell) || cell.type === CELL_EMPTY) {
-        setCell(x, y, createCell(CELL_BUBBLE));
-      }
-    }
-
-    function spawnAlgae(x, y) {
-      if (!inBounds(x, y)) {
-        return;
-      }
-      const cell = cellAt(x, y);
-      if (isLiquid(cell)) {
-        setCell(x, y, createCell(CELL_ALGAE));
-      }
-    }
-
-    function updateSand(x, y) {
-      const below = cellAt(x, y + 1);
-      if (isEmptyLike(below) || isLiquid(below)) {
-        swapCells(x, y, x, y + 1);
-        return;
-      }
-
-      const dirs = Math.random() < 0.5 ? [-1, 1] : [1, -1];
-      for (const dx of dirs) {
-        const diag = cellAt(x + dx, y + 1);
-        if (isEmptyLike(diag) || isLiquid(diag)) {
-          swapCells(x, y, x + dx, y + 1);
-          return;
-        }
-      }
-
-      cellAt(x, y).updated = true;
-    }
-
-    function updateWater(x, y) {
-      const below = cellAt(x, y + 1);
-      if (isEmptyLike(below)) {
-        swapCells(x, y, x, y + 1);
-        return;
-      }
-
-      const sideways = Math.random() < 0.5 ? [-1, 1] : [1, -1];
-      for (const dx of sideways) {
-        const side = cellAt(x + dx, y);
-        const diag = cellAt(x + dx, y + 1);
-        if (isEmptyLike(diag)) {
-          swapCells(x, y, x + dx, y + 1);
-          return;
-        }
-        if (isEmptyLike(side)) {
-          swapCells(x, y, x + dx, y);
-          return;
-        }
-      }
-
-      cellAt(x, y).updated = true;
-    }
-
-    function updateSeed(x, y) {
-      const below = cellAt(x, y + 1);
-      if (isEmptyLike(below) || isLiquid(below)) {
-        swapCells(x, y, x, y + 1);
-        return;
-      }
-
-      const seed = cellAt(x, y);
-      seed.age += 1;
-
-      if (hasAdjacentWater(x, y) && isLit(x, y) && Math.random() < 0.05) {
-        setCell(x, y, createCell(CELL_PLANT, {
-          part: "root",
-          stage: 1,
-          growth: 0,
-          height: 0,
-          rootX: x,
-          rootY: y
-        }));
-        cellAt(x, y).updated = true;
-        return;
-      }
-
-      seed.updated = true;
-    }
-
-    function updateBubble(x, y) {
-      if (y <= 0) {
-        setCell(x, y, createCell());
-        return;
-      }
-
-      const above = cellAt(x, y - 1);
-      if (above.type === CELL_EMPTY || above.type === CELL_WATER || above.type === CELL_ALGAE) {
-        swapCells(x, y, x, y - 1);
-        return;
-      }
-
-      const dirs = Math.random() < 0.5 ? [-1, 1] : [1, -1];
-      for (const dx of dirs) {
-        const diag = cellAt(x + dx, y - 1);
-        if (diag.type === CELL_EMPTY || diag.type === CELL_WATER) {
-          swapCells(x, y, x + dx, y - 1);
-          return;
-        }
-      }
-
-      cellAt(x, y).updated = true;
-    }
-
-    function updateAlgae(x, y) {
-      const below = cellAt(x, y + 1);
-      if (below.type === CELL_WATER && Math.random() < 0.2) {
-        swapCells(x, y, x, y + 1);
-        return;
-      }
-
-      const drift = Math.random() < 0.5 ? -1 : 1;
-      const side = cellAt(x + drift, y);
-      if (side.type === CELL_WATER && Math.random() < 0.18) {
-        swapCells(x, y, x + drift, y);
-        return;
-      }
-
-      cellAt(x, y).updated = true;
-    }
-
-    function updatePlant(x, y) {
-      const cell = cellAt(x, y);
-      cell.updated = true;
-      if (cell.part === "root") {
-        growPlant(x, y);
-      }
-    }
-
-    function updateGrid() {
-      refreshLightMap();
-
-      for (let y = 0; y < GRID_HEIGHT; y += 1) {
-        for (let x = 0; x < GRID_WIDTH; x += 1) {
-          state.grid[y][x].updated = false;
-        }
-      }
-
-      for (let y = GRID_HEIGHT - 1; y >= 0; y -= 1) {
-        for (let x = 0; x < GRID_WIDTH; x += 1) {
-          const cell = cellAt(x, y);
-          if (cell.updated) {
-            continue;
-          }
-          if (cell.type === CELL_SAND) {
-            updateSand(x, y);
-          } else if (cell.type === CELL_WATER) {
-            updateWater(x, y);
-          } else if (cell.type === CELL_SEED) {
-            updateSeed(x, y);
-          } else if (cell.type === CELL_BUBBLE) {
-            updateBubble(x, y);
-          } else if (cell.type === CELL_ALGAE) {
-            updateAlgae(x, y);
-          } else if (cell.type === CELL_PLANT) {
-            updatePlant(x, y);
-          } else if (cell.type === CELL_SUN) {
-            cell.updated = true;
-          }
-        }
-      }
-    }
-
-    function nearestWaterSpot(originX, originY) {
-      for (let radius = 0; radius <= 8; radius += 1) {
-        for (let y = originY - radius; y <= originY + radius; y += 1) {
-          for (let x = originX - radius; x <= originX + radius; x += 1) {
-            if (inBounds(x, y) && isSwimmable(cellAt(x, y))) {
-              return { x, y };
-            }
-          }
-        }
-      }
-      return null;
-    }
-
-    function addFish(gridX, gridY) {
-      const spawn = nearestWaterSpot(gridX, gridY) ?? { x: gridX, y: gridY };
-      state.fish.push({
-        x: spawn.x + 0.5,
-        y: spawn.y + 0.5,
-        vx: Math.random() < 0.5 ? -0.12 : 0.12,
-        vy: (Math.random() - 0.5) * 0.08,
-        cooldown: 0,
-        facing: 1
       });
+      return count;
     }
 
-    function eatNearbyAlgae(fish) {
-      const cx = Math.round(fish.x);
-      const cy = Math.round(fish.y);
-      for (let y = cy - 1; y <= cy + 1; y += 1) {
-        for (let x = cx - 1; x <= cx + 1; x += 1) {
-          if (cellAt(x, y).type === CELL_ALGAE) {
-            setCell(x, y, createCell(CELL_WATER));
-            return true;
+    function hasNeighbor(x, y, type) {
+      return countNeighbors(x, y, type) > 0;
+    }
+
+    function nearestPlantDistance(x, y) {
+      let best = Infinity;
+      for (let yy = Math.max(0, y - 6); yy <= Math.min(GRID_HEIGHT - 1, y + 6); yy += 1) {
+        for (let xx = Math.max(0, x - 6); xx <= Math.min(GRID_WIDTH - 1, x + 6); xx += 1) {
+          if (state.grid[yy][xx].type !== ELEMENTS.plant) {
+            continue;
+          }
+          const distance = Math.abs(xx - x) + Math.abs(yy - y);
+          if (distance < best) {
+            best = distance;
           }
         }
       }
-      return false;
+      return best;
     }
 
-    function updateFish() {
-      for (const fish of state.fish) {
-        fish.cooldown -= 1;
+    function localSunBoost(x, y) {
+      let boost = 0;
+      forEachNeighbor(x, y, (_nx, _ny, cell) => {
+        if (cell.type === ELEMENTS.sun) {
+          boost += 1;
+        }
+      });
+      return boost;
+    }
 
-        const current = cellAt(Math.round(fish.x), Math.round(fish.y));
-        if (!isSwimmable(current)) {
-          const spot = nearestWaterSpot(Math.round(fish.x), Math.round(fish.y));
-          if (spot) {
-            fish.x += (spot.x + 0.5 - fish.x) * 0.24;
-            fish.y += (spot.y + 0.5 - fish.y) * 0.24;
-          }
+    function updateWater(cell, x, y) {
+      const below = getCell(state.grid, x, y + 1);
+      const target = state.nextGrid[y][x];
+
+      if (below.type === ELEMENTS.empty) {
+        state.nextGrid[y + 1][x] = { ...cell, age: cell.age + 1 };
+        state.nextGrid[y][x] = createCell();
+        return;
+      }
+
+      const dirs = Math.random() < 0.5 ? [-1, 1] : [1, -1];
+      for (const dx of dirs) {
+        const nx = x + dx;
+        if (!inBounds(nx, y)) {
           continue;
         }
-
-        if (fish.cooldown <= 0) {
-          fish.vx += (Math.random() - 0.5) * 0.18;
-          fish.vy += (Math.random() - 0.5) * 0.12;
-          fish.cooldown = 10 + Math.floor(Math.random() * 28);
+        const side = getCell(state.grid, nx, y);
+        if (side.type === ELEMENTS.empty) {
+          state.nextGrid[y][nx] = { ...cell, age: cell.age + 1 };
+          state.nextGrid[y][x] = createCell();
+          return;
         }
+      }
 
-        let target = null;
-        for (let y = Math.round(fish.y) - 5; y <= Math.round(fish.y) + 5; y += 1) {
-          for (let x = Math.round(fish.x) - 5; x <= Math.round(fish.x) + 5; x += 1) {
-            if (cellAt(x, y).type === CELL_ALGAE) {
-              target = { x, y };
-              break;
-            }
+      target.age = cell.age + 1;
+    }
+
+    function updateSeed(cell, x, y) {
+      const target = state.nextGrid[y][x];
+      const wet = hasNeighbor(x, y, ELEMENTS.water);
+      const rooted = hasNeighbor(x, y, ELEMENTS.soil) || getCell(state.grid, x, y + 1).type === ELEMENTS.soil;
+      const boost = localSunBoost(x, y);
+      const growth = cell.growth + (wet && rooted ? 1 + boost * 0.7 : 0.15);
+
+      if (wet && rooted && growth >= 4) {
+        state.nextGrid[y][x] = createCell(ELEMENTS.plant, { growth: 2, age: 0 });
+        return;
+      }
+
+      target.growth = growth;
+      target.age = cell.age + 1;
+    }
+
+    function updatePlant(cell, x, y) {
+      const target = state.nextGrid[y][x];
+      const wet = hasNeighbor(x, y, ELEMENTS.water);
+      const bugPressure = countNeighbors(x, y, ELEMENTS.bug);
+      const boost = localSunBoost(x, y);
+      let vitality = cell.growth + (wet ? 0.55 : -0.35) + boost * 0.28 - bugPressure * 0.08;
+
+      if (!wet && cell.age > 18) {
+        vitality -= 0.2;
+      }
+
+      if (vitality <= 0) {
+        state.nextGrid[y][x] = createCell();
+        return;
+      }
+
+      target.growth = Math.min(8, vitality);
+      target.age = cell.age + 1;
+
+      if (wet && target.age > 12 && Math.random() < 0.018 + boost * 0.01) {
+        const spreadTargets = [
+          [x, y - 1],
+          [x - 1, y],
+          [x + 1, y]
+        ];
+        for (const [nx, ny] of spreadTargets) {
+          if (!inBounds(nx, ny)) {
+            continue;
           }
-          if (target) {
+          const source = getCell(state.grid, nx, ny);
+          const next = state.nextGrid[ny][nx];
+          if (source.type === ELEMENTS.empty && next.type === ELEMENTS.empty) {
+            state.nextGrid[ny][nx] = createCell(ELEMENTS.plant, { growth: 1.4, age: 0 });
             break;
           }
         }
-
-        if (target) {
-          fish.vx += Math.sign(target.x + 0.5 - fish.x) * 0.04;
-          fish.vy += Math.sign(target.y + 0.5 - fish.y) * 0.02;
-        }
-
-        fish.vx = Math.max(-0.26, Math.min(0.26, fish.vx * 0.96));
-        fish.vy = Math.max(-0.18, Math.min(0.18, fish.vy * 0.94));
-
-        const nextX = fish.x + fish.vx;
-        const nextY = fish.y + fish.vy;
-        const targetCell = cellAt(Math.round(nextX), Math.round(nextY));
-        if (isSwimmable(targetCell)) {
-          fish.x = nextX;
-          fish.y = nextY;
-        } else {
-          fish.vx *= -0.6;
-          fish.vy *= -0.4;
-          fish.y += Math.sin(state.tick * 0.03 + fish.x) * 0.05;
-        }
-
-        fish.facing = fish.vx >= 0 ? 1 : -1;
-        fish.x = Math.max(1, Math.min(GRID_WIDTH - 2, fish.x));
-        fish.y = Math.max(1, Math.min(GRID_HEIGHT - 2, fish.y));
-        eatNearbyAlgae(fish);
       }
     }
 
-    function countCells(type) {
-      let total = 0;
-      for (let y = 0; y < GRID_HEIGHT; y += 1) {
-        for (let x = 0; x < GRID_WIDTH; x += 1) {
-          if (cellAt(x, y).type === type) {
-            total += 1;
-          }
+    function updateBug(cell, x, y) {
+      const density = countNeighbors(x, y, ELEMENTS.bug);
+      let hunger = cell.hunger + 1;
+      let energy = cell.energy;
+      let bestMove = [x, y];
+      let bestDistance = nearestPlantDistance(x, y);
+
+      const candidates = [
+        [x, y],
+        [x + 1, y],
+        [x - 1, y],
+        [x, y + 1],
+        [x, y - 1]
+      ];
+
+      for (const [nx, ny] of candidates) {
+        if (!inBounds(nx, ny)) {
+          continue;
+        }
+        const source = getCell(state.grid, nx, ny);
+        const target = state.nextGrid[ny][nx];
+        const traversable = source.type === ELEMENTS.empty || source.type === ELEMENTS.plant || (nx === x && ny === y);
+        if (!traversable || (target.type !== ELEMENTS.empty && target.type !== ELEMENTS.plant && !(nx === x && ny === y))) {
+          continue;
+        }
+        const distance = nearestPlantDistance(nx, ny);
+        if (distance < bestDistance || (distance === bestDistance && Math.random() < 0.35)) {
+          bestDistance = distance;
+          bestMove = [nx, ny];
         }
       }
-      return total;
-    }
 
-    function updateStats() {
-      toolLabel.textContent = toolLabels[state.selectedTool];
-      waterCount.textContent = countCells(CELL_WATER);
-      plantCount.textContent = countCells(CELL_PLANT);
-      fishCount.textContent = state.fish.length;
-    }
+      const [tx, ty] = bestMove;
+      const destinationType = getCell(state.grid, tx, ty).type;
+      if (destinationType === ELEMENTS.plant) {
+        hunger = 0;
+        energy += 3;
+      } else {
+        energy = Math.max(0, energy - 0.15);
+      }
 
-    function drawCell(x, y, cell) {
-      if (cell.type === CELL_EMPTY) {
+      if (density >= 4 || hunger > 24 || (density >= 3 && Math.random() < 0.14)) {
+        state.nextGrid[y][x] = createCell();
         return;
       }
 
-      if (cell.type === CELL_WATER) {
-        ctx.fillStyle = colors.water;
-        ctx.fillRect(x, y, 1, 1);
-        if ((x + y + state.tick) % 7 === 0) {
-          ctx.fillStyle = colors.waterFoam;
-          ctx.fillRect(x, y, 1, 1);
-        }
-      } else if (cell.type === CELL_SAND) {
-        ctx.fillStyle = colors.sand;
-        ctx.fillRect(x, y, 1, 1);
-      } else if (cell.type === CELL_SEED) {
-        ctx.fillStyle = colors.seed;
-        ctx.fillRect(x, y, 1, 1);
-      } else if (cell.type === CELL_SUN) {
-        ctx.fillStyle = colors.sun;
-        ctx.fillRect(x, y, 1, 1);
-      } else if (cell.type === CELL_BUBBLE) {
-        ctx.fillStyle = colors.bubble;
-        ctx.fillRect(x, y, 1, 1);
-      } else if (cell.type === CELL_ALGAE) {
-        ctx.fillStyle = colors.algae;
-        ctx.fillRect(x, y, 1, 1);
-      } else if (cell.type === CELL_PLANT) {
-        const sway = (state.tick + x * 3 + y * 5) % 24 < 12;
-        if (cell.part === "root") {
-          ctx.fillStyle = colors.plantRoot;
-        } else if (cell.part === "stem") {
-          ctx.fillStyle = sway ? colors.plantStem : "#3a8f4d";
-        } else {
-          ctx.fillStyle = sway ? colors.plantLeaf : "#79cf6a";
-        }
-        ctx.fillRect(x, y, 1, 1);
-      }
-    }
+      state.nextGrid[y][x] = createCell();
+      state.nextGrid[ty][tx] = createCell(ELEMENTS.bug, {
+        hunger,
+        energy,
+        age: cell.age + 1,
+        pulse: cell.pulse + 0.4
+      });
 
-    function drawLightOverlay() {
-      for (let y = 0; y < GRID_HEIGHT; y += 1) {
-        for (let x = 0; x < GRID_WIDTH; x += 1) {
-          if (state.lightMap[y][x] > 0.18) {
-            ctx.fillStyle = `rgba(255, 244, 173, ${state.lightMap[y][x] * 0.16})`;
-            ctx.fillRect(x, y, 1, 1);
+      if (energy >= 5 && Math.random() < 0.08) {
+        const spawnOffsets = [
+          [1, 0],
+          [-1, 0],
+          [0, 1],
+          [0, -1]
+        ];
+        for (const [dx, dy] of spawnOffsets) {
+          const nx = tx + dx;
+          const ny = ty + dy;
+          if (!inBounds(nx, ny)) {
+            continue;
+          }
+          const source = getCell(state.grid, nx, ny);
+          const target = state.nextGrid[ny][nx];
+          if (source.type === ELEMENTS.empty && target.type === ELEMENTS.empty) {
+            state.nextGrid[ny][nx] = createCell(ELEMENTS.bug, { hunger: 6, energy: 1, age: 0 });
+            state.nextGrid[ty][tx].energy = 2;
+            break;
           }
         }
       }
     }
 
-    function drawFish() {
-      for (const fish of state.fish) {
-        const x = Math.round(fish.x);
-        const y = Math.round(fish.y);
-        ctx.fillStyle = colors.fish;
-        ctx.fillRect(x, y, 1, 1);
-        ctx.fillRect(x - fish.facing, y, 1, 1);
-        ctx.fillStyle = colors.fishDark;
-        ctx.fillRect(x + fish.facing, y, 1, 1);
+    function updateSun(cell, x, y) {
+      const target = state.nextGrid[y][x];
+      target.age = cell.age + 1;
+    }
+
+    function updateSoil(cell, x, y) {
+      const target = state.nextGrid[y][x];
+      const wetNeighbors = countNeighbors(x, y, ELEMENTS.water);
+      target.water = Math.min(4, Math.max(0, wetNeighbors ? cell.water + 0.6 : cell.water - 0.05));
+      target.age = cell.age + 1;
+    }
+
+    function updateSimulation() {
+      state.nextGrid = cloneGrid(state.grid);
+
+      for (let y = 0; y < GRID_HEIGHT; y += 1) {
+        for (let x = 0; x < GRID_WIDTH; x += 1) {
+          const cell = state.grid[y][x];
+          if (cell.type === ELEMENTS.empty) {
+            continue;
+          }
+          if (cell.type === ELEMENTS.water) {
+            updateWater(cell, x, y);
+          } else if (cell.type === ELEMENTS.seed) {
+            updateSeed(cell, x, y);
+          } else if (cell.type === ELEMENTS.plant) {
+            updatePlant(cell, x, y);
+          } else if (cell.type === ELEMENTS.bug) {
+            updateBug(cell, x, y);
+          } else if (cell.type === ELEMENTS.sun) {
+            updateSun(cell, x, y);
+          } else if (cell.type === ELEMENTS.soil) {
+            updateSoil(cell, x, y);
+          }
+        }
       }
+
+      state.grid = state.nextGrid;
+      state.elapsed += 0.25;
+      recomputeStats();
+
+      if (state.stats.plants > 0 && state.stats.bugs > 0) {
+        state.survivalTime += 0.25;
+        if (state.survivalTime >= 60) {
+          finalizeRound(true);
+        }
+      } else if (state.elapsed >= 5) {
+        finalizeRound(false);
+      }
+    }
+
+    function recomputeStats() {
+      let plants = 0;
+      let bugs = 0;
+      let water = 0;
+      let liveCells = 0;
+
+      for (let y = 0; y < GRID_HEIGHT; y += 1) {
+        for (let x = 0; x < GRID_WIDTH; x += 1) {
+          const type = state.grid[y][x].type;
+          if (type === ELEMENTS.plant) {
+            plants += 1;
+            liveCells += 1;
+          } else if (type === ELEMENTS.bug) {
+            bugs += 1;
+            liveCells += 1;
+          } else if (type === ELEMENTS.water) {
+            water += 1;
+          }
+        }
+      }
+
+      const richness = [plants > 0, bugs > 0, water > 0].filter(Boolean).length;
+      const evenness = liveCells > 0 ? 1 - Math.abs(plants - bugs) / Math.max(1, plants + bugs) : 0;
+      const diversity = richness * (0.4 + Math.max(0, evenness) * 0.6);
+
+      state.stats = { plants, bugs, diversity };
+      plantCountEl.textContent = String(plants);
+      bugCountEl.textContent = String(bugs);
+      diversityEl.textContent = diversity.toFixed(2);
+      challengeEl.textContent = state.statusOverride || `${state.survivalTime.toFixed(1)}s / ${state.bestScore === null ? "--" : state.bestScore}`;
     }
 
     function render() {
       ctx.clearRect(0, 0, tank.width, tank.height);
-
-      const waterline = 8;
-      ctx.fillStyle = "#caecff";
-      ctx.fillRect(0, 0, GRID_WIDTH, waterline);
-      ctx.fillStyle = "#7fb2cf";
-      ctx.fillRect(0, waterline, GRID_WIDTH, GRID_HEIGHT - waterline);
-
-      drawLightOverlay();
+      const shimmer = Math.sin(state.renderTime * 0.004);
 
       for (let y = 0; y < GRID_HEIGHT; y += 1) {
         for (let x = 0; x < GRID_WIDTH; x += 1) {
-          drawCell(x, y, cellAt(x, y));
-        }
-      }
+          const cell = state.grid[y][x];
+          const px = x * CELL_SIZE;
+          const py = y * CELL_SIZE;
 
-      drawFish();
+          ctx.fillStyle = COLORS.empty;
+          ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
 
-      ctx.strokeStyle = colors.glass;
-      ctx.lineWidth = 1;
-      ctx.strokeRect(0.5, 0.5, GRID_WIDTH - 1, GRID_HEIGHT - 1);
-    }
-
-    function eraseAt(gridX, gridY) {
-      for (let dy = -state.brushSize + 1; dy < state.brushSize; dy += 1) {
-        for (let dx = -state.brushSize + 1; dx < state.brushSize; dx += 1) {
-          const x = gridX + dx;
-          const y = gridY + dy;
-          if (!inBounds(x, y)) {
+          if (cell.type === ELEMENTS.empty) {
+            if ((x + y) % 2 === 0) {
+              ctx.fillStyle = "rgba(255,255,255,0.05)";
+              ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
+            }
             continue;
           }
-          setCell(x, y, createCell());
+
+          if (cell.type === ELEMENTS.water) {
+            ctx.fillStyle = shimmer > 0 ? COLORS.water : "#5b96e8";
+            ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
+            ctx.fillStyle = "rgba(255,255,255,0.2)";
+            ctx.fillRect(px, py + 2, CELL_SIZE, 3);
+            continue;
+          }
+
+          if (cell.type === ELEMENTS.soil) {
+            ctx.fillStyle = cell.water > 1 ? "#75523a" : COLORS.soil;
+            ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
+            ctx.fillStyle = "rgba(255,255,255,0.06)";
+            ctx.fillRect(px + 2, py + 2, 3, 3);
+            continue;
+          }
+
+          if (cell.type === ELEMENTS.seed) {
+            ctx.fillStyle = COLORS.seed;
+            const pulse = 4 + Math.sin(state.renderTime * 0.01 + cell.pulse) * 1.2;
+            ctx.fillRect(px + 6, py + pulse, 4, 4);
+            continue;
+          }
+
+          if (cell.type === ELEMENTS.sun) {
+            ctx.fillStyle = "#fff1ab";
+            ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
+            ctx.fillStyle = COLORS.sun;
+            ctx.fillRect(px + 3, py + 3, 10, 10);
+            continue;
+          }
+
+          if (cell.type === ELEMENTS.plant) {
+            const sway = Math.sin(state.renderTime * 0.01 + x * 0.7 + y * 0.4);
+            ctx.fillStyle = sway > 0 ? COLORS.plant : COLORS.plantDark;
+            ctx.fillRect(px + 4, py + 2, 8, 12);
+            ctx.fillRect(px + 2, py + 6, 12, 6);
+            continue;
+          }
+
+          if (cell.type === ELEMENTS.bug) {
+            const wiggle = Math.sin(state.renderTime * 0.02 + cell.pulse) > 0 ? 1 : 0;
+            ctx.fillStyle = COLORS.bug;
+            ctx.fillRect(px + 4, py + 5, 8, 6);
+            ctx.fillRect(px + 3 + wiggle, py + 3, 2, 2);
+            ctx.fillRect(px + 11 - wiggle, py + 3, 2, 2);
+          }
         }
       }
 
-      state.fish = state.fish.filter((fish) => Math.hypot(fish.x - gridX, fish.y - gridY) > state.brushSize + 0.5);
+      ctx.strokeStyle = "rgba(31,33,24,0.08)";
+      for (let x = 0; x <= GRID_WIDTH; x += 1) {
+        ctx.beginPath();
+        ctx.moveTo(x * CELL_SIZE + 0.5, 0);
+        ctx.lineTo(x * CELL_SIZE + 0.5, tank.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y <= GRID_HEIGHT; y += 1) {
+        ctx.beginPath();
+        ctx.moveTo(0, y * CELL_SIZE + 0.5);
+        ctx.lineTo(tank.width, y * CELL_SIZE + 0.5);
+        ctx.stroke();
+      }
     }
 
-    function paintAt(gridX, gridY) {
-      if (state.eraseMode) {
-        eraseAt(gridX, gridY);
+    function updateBudgetDisplay() {
+      Object.entries(budgetEls).forEach(([key, element]) => {
+        element.textContent = String(state.budgets[key]);
+      });
+      toolLabel.textContent = TOOL_LABELS[state.selectedTool];
+      playerLabel.textContent = `当前布置：玩家 ${state.activePlayer + 1}`;
+      challengeEl.textContent = state.statusOverride || `${state.survivalTime.toFixed(1)}s / ${state.bestScore === null ? "--" : state.bestScore}`;
+    }
+
+    function clearGrid() {
+      state.grid = buildGrid();
+      state.nextGrid = buildGrid();
+      state.elapsed = 0;
+      state.survivalTime = 0;
+      state.running = false;
+      state.lastTimestamp = 0;
+      state.simAccumulator = 0;
+      state.placementsUsed = 0;
+      state.budgets = { ...START_BUDGETS };
+      state.setupSnapshot = null;
+      state.statusOverride = "";
+      recomputeStats();
+      updateBudgetDisplay();
+    }
+
+    function selectTool(tool) {
+      state.selectedTool = tool;
+      toolButtons.forEach((button) => button.classList.toggle("active", button.dataset.tool === tool));
+      updateBudgetDisplay();
+    }
+
+    function paintAtClientPosition(clientX, clientY) {
+      if (state.running) {
+        return;
+      }
+      const rect = tank.getBoundingClientRect();
+      const x = Math.floor(((clientX - rect.left) / rect.width) * GRID_WIDTH);
+      const y = Math.floor(((clientY - rect.top) / rect.height) * GRID_HEIGHT);
+      if (!inBounds(x, y)) {
         return;
       }
 
-      for (let dy = -state.brushSize + 1; dy < state.brushSize; dy += 1) {
-        for (let dx = -state.brushSize + 1; dx < state.brushSize; dx += 1) {
-          const x = gridX + dx;
-          const y = gridY + dy;
-          if (!inBounds(x, y)) {
-            continue;
-          }
-
-          if (state.selectedTool === "water") {
-            const target = cellAt(x, y);
-            if (target.type === CELL_EMPTY || target.type === CELL_BUBBLE || target.type === CELL_ALGAE) {
-              setCell(x, y, createCell(CELL_WATER));
-            }
-          } else if (state.selectedTool === "sand") {
-            const target = cellAt(x, y);
-            if (target.type === CELL_EMPTY || target.type === CELL_WATER || target.type === CELL_BUBBLE) {
-              setCell(x, y, createCell(CELL_SAND));
-            }
-          } else if (state.selectedTool === "seed") {
-            if (cellAt(x, y).type === CELL_EMPTY || cellAt(x, y).type === CELL_WATER) {
-              setCell(x, y, createCell(CELL_SEED));
-            }
-          } else if (state.selectedTool === "sun") {
-            setCell(x, Math.min(y, 12), createCell(CELL_SUN));
-          } else if (state.selectedTool === "fish") {
-            addFish(x, y);
-          }
+      if (state.eraseMode) {
+        const existing = state.grid[y][x];
+        if (existing.type !== ELEMENTS.empty && existing.type !== ELEMENTS.plant) {
+          state.budgets[existing.type] += 1;
+          state.placementsUsed = Math.max(0, state.placementsUsed - 1);
         }
+        state.grid[y][x] = createCell();
+      } else {
+        const tool = state.selectedTool;
+        if (state.budgets[tool] <= 0 || state.grid[y][x].type !== ELEMENTS.empty) {
+          return;
+        }
+        state.grid[y][x] = createCell(ELEMENTS[tool]);
+        state.budgets[tool] -= 1;
+        state.placementsUsed += 1;
       }
+
+      recomputeStats();
+      updateBudgetDisplay();
     }
 
-    function pointerToGrid(event) {
-      const rect = tank.getBoundingClientRect();
-      const scaleX = GRID_WIDTH / rect.width;
-      const scaleY = GRID_HEIGHT / rect.height;
+    function seedSampleScene() {
+      clearGrid();
+
+      for (let x = 6; x < 34; x += 1) {
+        state.grid[22][x] = createCell(ELEMENTS.soil, { water: 1 });
+        state.budgets.soil -= 1;
+        state.placementsUsed += 1;
+      }
+      for (let x = 4; x < 36; x += 1) {
+        for (let y = 23; y < 28; y += 1) {
+          state.grid[y][x] = createCell(ELEMENTS.water);
+          state.budgets.water -= 1;
+          state.placementsUsed += 1;
+        }
+      }
+      [[10, 21], [16, 21], [22, 21], [28, 21]].forEach(([x, y]) => {
+        state.grid[y][x] = createCell(ELEMENTS.seed, { growth: 1 });
+        state.budgets.seed -= 1;
+        state.placementsUsed += 1;
+      });
+      [[11, 18], [24, 17]].forEach(([x, y]) => {
+        state.grid[y][x] = createCell(ELEMENTS.sun);
+        state.budgets.sun -= 1;
+        state.placementsUsed += 1;
+      });
+      [[14, 20], [27, 20]].forEach(([x, y]) => {
+        state.grid[y][x] = createCell(ELEMENTS.bug, { hunger: 6, energy: 1 });
+        state.budgets.bug -= 1;
+        state.placementsUsed += 1;
+      });
+
+      recomputeStats();
+      updateBudgetDisplay();
+    }
+
+    function snapshotSetup() {
       return {
-        x: Math.floor((event.clientX - rect.left) * scaleX),
-        y: Math.floor((event.clientY - rect.top) * scaleY)
+        grid: cloneGrid(state.grid),
+        budgets: { ...state.budgets },
+        placementsUsed: state.placementsUsed
       };
     }
 
-    function handlePaint(event) {
-      const { x, y } = pointerToGrid(event);
-      paintAt(x, y);
-      updateStats();
+    function restoreSnapshot(snapshot) {
+      state.grid = cloneGrid(snapshot.grid);
+      state.nextGrid = cloneGrid(snapshot.grid);
+      state.budgets = { ...snapshot.budgets };
+      state.placementsUsed = snapshot.placementsUsed;
+      state.elapsed = 0;
+      state.survivalTime = 0;
+      state.running = false;
+      state.lastTimestamp = 0;
+      state.simAccumulator = 0;
+      state.statusOverride = "";
+      recomputeStats();
+      updateBudgetDisplay();
     }
 
-    function setTool(tool) {
-      state.selectedTool = tool;
-      toolButtons.forEach((button) => {
-        button.classList.toggle("active", button.dataset.tool === tool);
-      });
-      toolLabel.textContent = toolLabels[tool];
+    function startSimulation() {
+      if (state.running) {
+        return;
+      }
+      state.hotseat = hotseatToggle.checked;
+      state.setupSnapshot = snapshotSetup();
+      state.running = true;
+      state.elapsed = 0;
+      state.survivalTime = 0;
+      state.simAccumulator = 0;
+      state.lastTimestamp = 0;
+      state.statusOverride = "";
+      recomputeStats();
+      updateBudgetDisplay();
     }
 
-    function resetWorld() {
-      state.grid = buildGrid();
-      state.fish = [];
-      state.tick = 0;
-      refreshLightMap();
-      updateStats();
+    function finalizeRound(success) {
+      state.running = false;
+      const score = success ? state.placementsUsed : null;
+
+      if (success && (state.bestScore === null || score < state.bestScore)) {
+        saveBestScore(score);
+      }
+
+      if (!state.hotseat) {
+        updateBudgetDisplay();
+        return;
+      }
+
+      state.hotseatScores[state.activePlayer] = {
+        success,
+        survival: state.survivalTime,
+        score
+      };
+
+      if (state.activePlayer === 0) {
+        state.activePlayer = 1;
+        if (state.setupSnapshot) {
+          restoreSnapshot(state.setupSnapshot);
+        }
+      } else {
+        const a = state.hotseatScores[0];
+        const b = state.hotseatScores[1];
+        const winner = a.survival === b.survival ? "平局" : (a.survival > b.survival ? "玩家 1 胜" : "玩家 2 胜");
+        state.statusOverride = `${winner} | ${a.survival.toFixed(1)}s : ${b.survival.toFixed(1)}s`;
+        state.activePlayer = 0;
+        state.hotseatScores = [null, null];
+      }
+
+      updateBudgetDisplay();
     }
 
-    function seedScene() {
-      resetWorld();
+    function frame(timestamp) {
+      if (!state.lastTimestamp) {
+        state.lastTimestamp = timestamp;
+      }
+      const delta = timestamp - state.lastTimestamp;
+      state.lastTimestamp = timestamp;
+      state.renderTime = timestamp;
 
-      for (let x = 12; x < 84; x += 1) {
-        for (let y = 28; y < 60; y += 1) {
-          setCell(x, y, createCell(CELL_WATER));
+      if (state.running) {
+        state.simAccumulator += delta;
+        while (state.simAccumulator >= 250 && state.running) {
+          updateSimulation();
+          state.simAccumulator -= 250;
         }
       }
 
-      for (let x = 10; x < 86; x += 1) {
-        setCell(x, 60, createCell(CELL_SAND));
-        if (x % 2 === 0) {
-          setCell(x, 61, createCell(CELL_SAND));
-        }
-      }
-
-      [24, 39, 57, 74].forEach((x) => setCell(x, 8, createCell(CELL_SUN)));
-      [28, 48, 67].forEach((x) => setCell(x, 56, createCell(CELL_SEED)));
-      addFish(30, 38);
-      addFish(66, 44);
-
-      updateStats();
+      render();
+      requestAnimationFrame(frame);
     }
 
     toolButtons.forEach((button) => {
-      button.addEventListener("click", () => setTool(button.dataset.tool));
+      button.addEventListener("click", () => selectTool(button.dataset.tool));
     });
 
-    brushSizeInput.addEventListener("input", () => {
-      state.brushSize = Number(brushSizeInput.value);
-    });
-
-    seedSceneButton.addEventListener("click", seedScene);
-    clearSceneButton.addEventListener("click", resetWorld);
-
-    tank.addEventListener("contextmenu", (event) => event.preventDefault());
     tank.addEventListener("pointerdown", (event) => {
       state.pointerDown = true;
       state.eraseMode = event.button === 2;
-      handlePaint(event);
+      paintAtClientPosition(event.clientX, event.clientY);
     });
-    window.addEventListener("pointermove", (event) => {
-      if (state.pointerDown) {
-        handlePaint(event);
+
+    tank.addEventListener("pointermove", (event) => {
+      if (!state.pointerDown) {
+        return;
       }
+      paintAtClientPosition(event.clientX, event.clientY);
     });
+
     window.addEventListener("pointerup", () => {
       state.pointerDown = false;
       state.eraseMode = false;
     });
 
-    function frame() {
-      state.tick += 1;
-      updateGrid();
-      updateFish();
-      render();
-      updateStats();
-      requestAnimationFrame(frame);
-    }
+    tank.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+    });
 
-    seedScene();
+    startButton.addEventListener("click", startSimulation);
+    sampleButton.addEventListener("click", seedSampleScene);
+    resetButton.addEventListener("click", clearGrid);
+    hotseatToggle.addEventListener("change", () => {
+      state.activePlayer = 0;
+      state.hotseatScores = [null, null];
+      state.statusOverride = "";
+      updateBudgetDisplay();
+    });
+
+    clearGrid();
     requestAnimationFrame(frame);
   </script>
 </body>
