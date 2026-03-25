@@ -519,3 +519,15 @@ This repository contains a simple agent-factory workflow for planning and comple
 - 使用 Web Audio API `OscillatorNode` 实时生成节拍音与命中反馈，回合结束显示总分与最高连击
 
 直接用浏览器打开 `rhythm-dj-coop/index.html` 即可游玩。
+
+## 节奏色块接力
+
+新增 `rhythm-block-relay/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的双人同屏合作节奏反应小游戏，包含：
+
+- 玩家 1 使用 `A / S / D / F`，玩家 2 使用 `J / K / L / ;`，分别接住滑向自己一侧的四色方块
+- 色块从中央生成后匀速滑向左右判定线，按到对应颜色时按时间差判定 `Perfect / Good / Miss`
+- 双方共享一条生命值，`Miss` 扣血，`Perfect` 微量回血，并带有即时反馈动画与短促音效
+- 每 30 秒难度提升一级，最多 5 级，同时提高色块速度与生成密度
+- 结算时展示双人合计得分、最高连击数与存活时长
+
+直接用浏览器打开 `rhythm-block-relay/index.html` 即可游玩。
