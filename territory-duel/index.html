@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>画地为牢：双人领地争夺战</title>
+  <style>
+    :root {
+      --bg: #f1ebdf;
+      --panel: rgba(255, 250, 242, 0.94);
+      --line: rgba(71, 53, 31, 0.14);
+      --text: #241c15;
+      --muted: #66584a;
+      --neutral: #d8cfbf;
+      --neutral-alt: #cfc4b1;
+      --p1: #1f78ff;
+      --p1-soft: #8db9ff;
+      --p2: #ff5b5b;
+      --p2-soft: #ffb0b0;
+      --accent: #3d8f4f;
+      --accent-dark: #2e6b3c;
+      --shadow: 0 18px 42px rgba(61, 43, 24, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.82), transparent 24%),
+        radial-gradient(circle at bottom right, rgba(31, 120, 255, 0.12), transparent 25%),
+        linear-gradient(180deg, #f7f2e8 0%, var(--bg) 100%);
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    .app {
+      width: min(1200px, calc(100vw - 28px));
+      margin: 0 auto;
+      padding: 24px 0 36px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) minmax(300px, 360px);
+      gap: 18px;
+    }
+
+    .panel,
+    .sidebar {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .panel {
+      padding: 22px;
+    }
+
+    .sidebar {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    h1 {
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      line-height: 0.94;
+      letter-spacing: -0.05em;
+    }
+
+    .lede {
+      margin-top: 10px;
+      color: var(--muted);
+      line-height: 1.62;
+      max-width: 62ch;
+    }
+
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .stat {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--muted);
+    }
+
+    .board-shell {
+      position: relative;
+      margin-top: 18px;
+      border-radius: 22px;
+      overflow: hidden;
+      border: 1px solid rgba(71, 53, 31, 0.1);
+      background:
+        linear-gradient(180deg, rgba(247, 240, 230, 0.98), rgba(236, 226, 210, 0.98));
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.04));
+      image-rendering: pixelated;
+    }
+
+    .hud-banner {
+      position: absolute;
+      inset: 14px 14px auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .banner-pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 252, 248, 0.92);
+      border: 1px solid rgba(71, 53, 31, 0.12);
+      color: var(--muted);
+      box-shadow: 0 12px 28px rgba(61, 43, 24, 0.08);
+    }
+
+    .card {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(71, 53, 31, 0.1);
+      background: rgba(255, 255, 255, 0.74);
+    }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .score-box {
+      padding: 12px;
+      border-radius: 16px;
+      color: #fffdf8;
+    }
+
+    .score-box.p1 {
+      background: linear-gradient(180deg, #4a96ff, var(--p1));
+    }
+
+    .score-box.p2 {
+      background: linear-gradient(180deg, #ff7d7d, var(--p2));
+    }
+
+    .score-box strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 1.65rem;
+    }
+
+    .controls {
+      display: grid;
+      gap: 10px;
+    }
+
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+    }
+
+    button {
+      min-height: 46px;
+      border: 0;
+      border-radius: 14px;
+      font-weight: 700;
+      color: #fff8f1;
+      cursor: pointer;
+      background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+      box-shadow: 0 10px 18px rgba(61, 143, 79, 0.2);
+    }
+
+    button.secondary {
+      background: linear-gradient(180deg, #8c7966, #6c5c4d);
+      box-shadow: 0 10px 18px rgba(74, 56, 43, 0.16);
+    }
+
+    .legend,
+    .status {
+      color: var(--muted);
+      line-height: 1.58;
+    }
+
+    .legend strong,
+    .status strong {
+      color: var(--text);
+    }
+
+    .status {
+      min-height: 5.2em;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 20px;
+      background: rgba(28, 22, 18, 0.56);
+      backdrop-filter: blur(6px);
+    }
+
+    .overlay.visible {
+      display: grid;
+    }
+
+    .overlay-card {
+      width: min(480px, calc(100vw - 28px));
+      padding: 24px;
+      border-radius: 24px;
+      background: rgba(255, 250, 243, 0.96);
+      border: 1px solid rgba(71, 53, 31, 0.12);
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.18);
+      display: grid;
+      gap: 14px;
+      text-align: center;
+    }
+
+    .overlay-title {
+      font-size: clamp(2rem, 6vw, 3rem);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+    }
+
+    .overlay-copy {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    @media (max-width: 920px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel">
+      <h1>画地为牢：双人领地争夺战</h1>
+      <p class="lede">
+        双方同时在同一张网格地图上奔跑圈地。玩家 1 用 WASD，玩家 2 用方向键；也可切到单人 vs AI。离开己方领地后会拉出未闭合路径，成功回家就会 flood-fill 围住区域，踩到对手未闭合路径则可直接击杀。
+      </p>
+      <div class="stats">
+        <div class="stat">20x20 以上地图</div>
+        <div class="stat">60 秒快节奏对战</div>
+        <div class="stat">Canvas + flood-fill</div>
+      </div>
+      <div class="board-shell">
+        <canvas id="game-canvas" width="840" height="700" aria-label="Territory duel board"></canvas>
+        <div class="hud-banner">
+          <div class="banner-pill" id="timer-pill">剩余 60.0 秒</div>
+          <div class="banner-pill" id="mode-pill">模式：双人对战</div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="sidebar">
+      <section class="card">
+        <h2>占领面积</h2>
+        <div class="score-grid">
+          <div class="score-box p1">
+            玩家 1
+            <strong id="p1-score">0%</strong>
+          </div>
+          <div class="score-box p2">
+            玩家 2
+            <strong id="p2-score">0%</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="card controls">
+        <h2>开始设置</h2>
+        <label class="toggle">
+          <input id="ai-toggle" type="checkbox">
+          启用单人 vs 简单 AI（玩家 2）
+        </label>
+        <button id="restart-button" type="button">重新开始</button>
+        <button id="pause-button" class="secondary" type="button">暂停 / 继续</button>
+      </section>
+
+      <section class="card">
+        <h2>对局状态</h2>
+        <p class="status" id="status-text">双方从各自角落出发。离开己方颜色时会拉出路径，回到己方区域即可闭合并占领内部。</p>
+      </section>
+
+      <section class="card">
+        <h2>规则速览</h2>
+        <div class="legend">
+          <div><strong>玩家 1：</strong>WASD 移动，蓝色领地 / 浅蓝轨迹。</div>
+          <div><strong>玩家 2：</strong>方向键移动，红色领地 / 浅红轨迹。</div>
+          <div><strong>击杀：</strong>踩到对手未闭合路径，立刻清掉对方路径并把对方送回起点。</div>
+          <div><strong>圈地：</strong>路径闭合后，围起来的中立区或敌方区域都会变成你的颜色。</div>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <div class="overlay" id="result-overlay" aria-hidden="true">
+    <div class="overlay-card">
+      <div class="overlay-title" id="result-title">时间到</div>
+      <p class="overlay-copy" id="result-copy"></p>
+      <button id="play-again-button" type="button">再来一局</button>
+    </div>
+  </div>
+
+  <script>
+    const ROWS = 22;
+    const COLS = 30;
+    const CELL_SIZE = 28;
+    const GAME_DURATION = 60;
+    const MOVE_INTERVAL = 145;
+    const AI_THINK_INTERVAL = 180;
+
+    const DIRECTIONS = {
+      up: { x: 0, y: -1 },
+      down: { x: 0, y: 1 },
+      left: { x: -1, y: 0 },
+      right: { x: 1, y: 0 }
+    };
+
+    const OPPOSITE_DIRECTION = {
+      up: "down",
+      down: "up",
+      left: "right",
+      right: "left"
+    };
+
+    const KEY_BINDINGS = {
+      w: { player: 1, direction: "up" },
+      a: { player: 1, direction: "left" },
+      s: { player: 1, direction: "down" },
+      d: { player: 1, direction: "right" },
+      ArrowUp: { player: 2, direction: "up" },
+      ArrowLeft: { player: 2, direction: "left" },
+      ArrowDown: { player: 2, direction: "down" },
+      ArrowRight: { player: 2, direction: "right" }
+    };
+
+    const PLAYER_STYLE = {
+      1: { territory: "#1f78ff", trail: "#8db9ff", cursor: "#ffffff" },
+      2: { territory: "#ff5b5b", trail: "#ffb0b0", cursor: "#ffffff" }
+    };
+
+    const START_TERRITORY_RADIUS = 1;
+
+    const canvas = document.getElementById("game-canvas");
+    const ctx = canvas.getContext("2d");
+    const timerPill = document.getElementById("timer-pill");
+    const modePill = document.getElementById("mode-pill");
+    const p1Score = document.getElementById("p1-score");
+    const p2Score = document.getElementById("p2-score");
+    const statusText = document.getElementById("status-text");
+    const aiToggle = document.getElementById("ai-toggle");
+    const restartButton = document.getElementById("restart-button");
+    const pauseButton = document.getElementById("pause-button");
+    const overlay = document.getElementById("result-overlay");
+    const resultTitle = document.getElementById("result-title");
+    const resultCopy = document.getElementById("result-copy");
+    const playAgainButton = document.getElementById("play-again-button");
+
+    let board = [];
+    let players = {};
+    let gameEnded = false;
+    let paused = false;
+    let previousTimestamp = 0;
+    let moveAccumulator = 0;
+    let timerAccumulator = 0;
+    let aiAccumulator = 0;
+    let remainingTime = GAME_DURATION;
+    let animationHandle = 0;
+
+    function createCell() {
+      return { owner: 0, trail: 0 };
+    }
+
+    function createBoard() {
+      return Array.from({ length: ROWS }, () => Array.from({ length: COLS }, createCell));
+    }
+
+    function createPlayer(id, x, y, direction) {
+      return {
+        id,
+        x,
+        y,
+        spawnX: x,
+        spawnY: y,
+        direction,
+        pendingDirection: direction,
+        alive: true,
+        trailCells: [],
+        trailSet: new Set(),
+        outside: false,
+        aiState: {
+          wanderTurns: 0,
+          targetTurns: 0
+        }
+      };
+    }
+
+    function resetGame() {
+      board = createBoard();
+      players = {
+        1: createPlayer(1, 2, 2, "right"),
+        2: createPlayer(2, COLS - 3, ROWS - 3, "left")
+      };
+      seedHomeTerritory(players[1]);
+      seedHomeTerritory(players[2]);
+      gameEnded = false;
+      paused = false;
+      previousTimestamp = 0;
+      moveAccumulator = 0;
+      timerAccumulator = 0;
+      aiAccumulator = 0;
+      remainingTime = GAME_DURATION;
+      overlay.classList.remove("visible");
+      overlay.setAttribute("aria-hidden", "true");
+      statusText.textContent = "新对局开始。拉出轨迹、闭合区域、切断对手。";
+      updateHud();
+    }
+
+    function seedHomeTerritory(player) {
+      for (let dy = -START_TERRITORY_RADIUS; dy <= START_TERRITORY_RADIUS; dy += 1) {
+        for (let dx = -START_TERRITORY_RADIUS; dx <= START_TERRITORY_RADIUS; dx += 1) {
+          const x = player.spawnX + dx;
+          const y = player.spawnY + dy;
+          if (isInsideBoard(x, y)) {
+            board[y][x].owner = player.id;
+            board[y][x].trail = 0;
+          }
+        }
+      }
+    }
+
+    function isInsideBoard(x, y) {
+      return x >= 0 && x < COLS && y >= 0 && y < ROWS;
+    }
+
+    function setDirection(playerId, direction) {
+      if (gameEnded) {
+        return;
+      }
+      const player = players[playerId];
+      if (!player || (playerId === 2 && aiToggle.checked)) {
+        return;
+      }
+      if (OPPOSITE_DIRECTION[player.direction] === direction && !player.outside) {
+        player.pendingDirection = direction;
+        return;
+      }
+      if (OPPOSITE_DIRECTION[player.direction] === direction && player.outside) {
+        return;
+      }
+      player.pendingDirection = direction;
+    }
+
+    function canMoveTo(player, x, y) {
+      if (!isInsideBoard(x, y)) {
+        return false;
+      }
+      const cell = board[y][x];
+      return cell.trail !== player.id;
+    }
+
+    function applyPendingDirection(player) {
+      if (player.pendingDirection === player.direction) {
+        return;
+      }
+      const nextDirection = player.pendingDirection;
+      if (OPPOSITE_DIRECTION[player.direction] === nextDirection && player.outside) {
+        return;
+      }
+      const vector = DIRECTIONS[nextDirection];
+      const nextX = player.x + vector.x;
+      const nextY = player.y + vector.y;
+      if (canMoveTo(player, nextX, nextY)) {
+        player.direction = nextDirection;
+      }
+    }
+
+    function addTrailCell(player, x, y) {
+      const key = `${x},${y}`;
+      if (!player.trailSet.has(key)) {
+        player.trailSet.add(key);
+        player.trailCells.push({ x, y });
+      }
+      board[y][x].trail = player.id;
+      board[y][x].owner = 0;
+      player.outside = true;
+    }
+
+    function clearTrail(player) {
+      for (const cell of player.trailCells) {
+        if (board[cell.y][cell.x].trail === player.id) {
+          board[cell.y][cell.x].trail = 0;
+        }
+      }
+      player.trailCells = [];
+      player.trailSet.clear();
+      player.outside = false;
+    }
+
+    function respawnPlayer(player) {
+      clearTrail(player);
+      seedHomeTerritory(player);
+      player.x = player.spawnX;
+      player.y = player.spawnY;
+      player.direction = player.id === 1 ? "right" : "left";
+      player.pendingDirection = player.direction;
+      player.outside = false;
+    }
+
+    function killPlayer(victim, attacker) {
+      respawnPlayer(victim);
+      statusText.textContent = `玩家 ${attacker.id} 切断了玩家 ${victim.id} 的未闭合路径，玩家 ${victim.id} 被送回起点。`;
+    }
+
+    function closeTrail(player) {
+      for (const cell of player.trailCells) {
+        board[cell.y][cell.x].trail = 0;
+        board[cell.y][cell.x].owner = player.id;
+      }
+      player.trailCells = [];
+      player.trailSet.clear();
+      player.outside = false;
+      fillCapturedArea(player.id);
+      statusText.textContent = `玩家 ${player.id} 成功闭合路径，围住的区域已被染成自己的颜色。`;
+    }
+
+    function floodFromEdges(blocked) {
+      const visited = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+      const queue = [];
+
+      for (let x = 0; x < COLS; x += 1) {
+        queueEdge(queue, visited, blocked, x, 0);
+        queueEdge(queue, visited, blocked, x, ROWS - 1);
+      }
+      for (let y = 0; y < ROWS; y += 1) {
+        queueEdge(queue, visited, blocked, 0, y);
+        queueEdge(queue, visited, blocked, COLS - 1, y);
+      }
+
+      while (queue.length > 0) {
+        const current = queue.shift();
+        for (const direction of Object.values(DIRECTIONS)) {
+          const nextX = current.x + direction.x;
+          const nextY = current.y + direction.y;
+          if (!isInsideBoard(nextX, nextY) || visited[nextY][nextX] || blocked[nextY][nextX]) {
+            continue;
+          }
+          visited[nextY][nextX] = true;
+          queue.push({ x: nextX, y: nextY });
+        }
+      }
+
+      return visited;
+    }
+
+    function queueEdge(queue, visited, blocked, x, y) {
+      if (!isInsideBoard(x, y) || visited[y][x] || blocked[y][x]) {
+        return;
+      }
+      visited[y][x] = true;
+      queue.push({ x, y });
+    }
+
+    function fillCapturedArea(playerId) {
+      const blocked = Array.from({ length: ROWS }, (_, y) => Array.from({ length: COLS }, (_, x) => {
+        const cell = board[y][x];
+        return cell.owner === playerId || cell.trail === playerId;
+      }));
+
+      const outside = floodFromEdges(blocked);
+
+      for (let y = 0; y < ROWS; y += 1) {
+        for (let x = 0; x < COLS; x += 1) {
+          if (!blocked[y][x] && !outside[y][x]) {
+            board[y][x].owner = playerId;
+            board[y][x].trail = 0;
+          }
+        }
+      }
+    }
+
+    function attemptMove(player) {
+      applyPendingDirection(player);
+      const vector = DIRECTIONS[player.direction];
+      const targetX = player.x + vector.x;
+      const targetY = player.y + vector.y;
+
+      if (!canMoveTo(player, targetX, targetY)) {
+        return;
+      }
+      if (!isInsideBoard(targetX, targetY)) {
+        return;
+      }
+
+      const targetCell = board[targetY][targetX];
+      const opponent = players[player.id === 1 ? 2 : 1];
+
+      if (targetCell.trail === opponent.id) {
+        killPlayer(opponent, player);
+      }
+
+      player.x = targetX;
+      player.y = targetY;
+
+      const landedCell = board[targetY][targetX];
+      const onOwnTerritory = landedCell.owner === player.id;
+
+      if (onOwnTerritory) {
+        if (player.outside) {
+          closeTrail(player);
+        }
+        return;
+      }
+
+      addTrailCell(player, targetX, targetY);
+    }
+
+    function chooseRandomDirection(options) {
+      return options[Math.floor(Math.random() * options.length)];
+    }
+
+    function getValidDirections(player) {
+      const valid = [];
+      for (const [name, vector] of Object.entries(DIRECTIONS)) {
+        if (OPPOSITE_DIRECTION[player.direction] === name && player.outside) {
+          continue;
+        }
+        const x = player.x + vector.x;
+        const y = player.y + vector.y;
+        if (canMoveTo(player, x, y)) {
+          valid.push(name);
+        }
+      }
+      return valid;
+    }
+
+    function chooseClosingDirection(player, validDirections) {
+      let bestDirection = null;
+      let bestDistance = Number.POSITIVE_INFINITY;
+      for (const name of validDirections) {
+        const vector = DIRECTIONS[name];
+        const nextX = player.x + vector.x;
+        const nextY = player.y + vector.y;
+        const distance = findNearestOwnTerritoryDistance(player.id, nextX, nextY);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestDirection = name;
+        }
+      }
+      return bestDirection;
+    }
+
+    function findNearestOwnTerritoryDistance(playerId, startX, startY) {
+      const queue = [{ x: startX, y: startY, distance: 0 }];
+      const visited = new Set([`${startX},${startY}`]);
+      while (queue.length > 0) {
+        const current = queue.shift();
+        if (!isInsideBoard(current.x, current.y)) {
+          continue;
+        }
+        const cell = board[current.y][current.x];
+        if (cell.owner === playerId) {
+          return current.distance;
+        }
+        for (const vector of Object.values(DIRECTIONS)) {
+          const nextX = current.x + vector.x;
+          const nextY = current.y + vector.y;
+          const key = `${nextX},${nextY}`;
+          if (!isInsideBoard(nextX, nextY) || visited.has(key) || board[nextY][nextX].trail === playerId) {
+            continue;
+          }
+          visited.add(key);
+          queue.push({ x: nextX, y: nextY, distance: current.distance + 1 });
+        }
+      }
+      return Number.POSITIVE_INFINITY;
+    }
+
+    function updateAi(player) {
+      const validDirections = getValidDirections(player);
+      if (validDirections.length === 0) {
+        return;
+      }
+
+      if (player.outside) {
+        const closingDirection = chooseClosingDirection(player, validDirections);
+        if (closingDirection) {
+          player.pendingDirection = closingDirection;
+          return;
+        }
+      }
+
+      const onOwnTerritory = board[player.y][player.x].owner === player.id;
+      if (onOwnTerritory) {
+        if (player.aiState.wanderTurns <= 0) {
+          const outwardMoves = validDirections.filter((name) => {
+            const vector = DIRECTIONS[name];
+            const x = player.x + vector.x;
+            const y = player.y + vector.y;
+            return board[y][x].owner !== player.id;
+          });
+          player.pendingDirection = chooseRandomDirection(outwardMoves.length > 0 ? outwardMoves : validDirections);
+          player.aiState.wanderTurns = 3 + Math.floor(Math.random() * 5);
+          return;
+        }
+        player.aiState.wanderTurns -= 1;
+      } else if (Math.random() < 0.35) {
+        const closingDirection = chooseClosingDirection(player, validDirections);
+        if (closingDirection) {
+          player.pendingDirection = closingDirection;
+          return;
+        }
+      }
+
+      if (!validDirections.includes(player.pendingDirection) || Math.random() < 0.18) {
+        player.pendingDirection = chooseRandomDirection(validDirections);
+      }
+    }
+
+    function getTerritoryStats() {
+      let p1Owned = 0;
+      let p2Owned = 0;
+      for (let y = 0; y < ROWS; y += 1) {
+        for (let x = 0; x < COLS; x += 1) {
+          if (board[y][x].owner === 1) {
+            p1Owned += 1;
+          } else if (board[y][x].owner === 2) {
+            p2Owned += 1;
+          }
+        }
+      }
+      return {
+        p1Owned,
+        p2Owned,
+        total: ROWS * COLS,
+        p1Percent: (p1Owned / (ROWS * COLS)) * 100,
+        p2Percent: (p2Owned / (ROWS * COLS)) * 100
+      };
+    }
+
+    function updateHud() {
+      const stats = getTerritoryStats();
+      p1Score.textContent = `${stats.p1Percent.toFixed(1)}%`;
+      p2Score.textContent = `${stats.p2Percent.toFixed(1)}%`;
+      timerPill.textContent = `剩余 ${remainingTime.toFixed(1)} 秒`;
+      modePill.textContent = aiToggle.checked ? "模式：单人 vs AI" : "模式：双人对战";
+    }
+
+    function finishGame() {
+      gameEnded = true;
+      const stats = getTerritoryStats();
+      let title = "平局";
+      if (stats.p1Owned > stats.p2Owned) {
+        title = "玩家 1 获胜";
+      } else if (stats.p2Owned > stats.p1Owned) {
+        title = aiToggle.checked ? "AI 获胜" : "玩家 2 获胜";
+      }
+      resultTitle.textContent = title;
+      resultCopy.textContent = `玩家 1 占领 ${stats.p1Percent.toFixed(1)}%，玩家 2 占领 ${stats.p2Percent.toFixed(1)}%。60 秒结束，已按占领面积结算胜负。`;
+      overlay.classList.add("visible");
+      overlay.setAttribute("aria-hidden", "false");
+      statusText.textContent = "时间到，结算已生成。点击“再来一局”可立即重开。";
+      updateHud();
+    }
+
+    function update(deltaMs) {
+      if (gameEnded || paused) {
+        return;
+      }
+
+      timerAccumulator += deltaMs;
+      moveAccumulator += deltaMs;
+      aiAccumulator += deltaMs;
+
+      if (aiToggle.checked && aiAccumulator >= AI_THINK_INTERVAL) {
+        aiAccumulator %= AI_THINK_INTERVAL;
+        updateAi(players[2]);
+      }
+
+      while (timerAccumulator >= 100) {
+        remainingTime = Math.max(0, remainingTime - 0.1);
+        timerAccumulator -= 100;
+        if (remainingTime <= 0) {
+          remainingTime = 0;
+          finishGame();
+          return;
+        }
+      }
+
+      while (moveAccumulator >= MOVE_INTERVAL) {
+        moveAccumulator -= MOVE_INTERVAL;
+        attemptMove(players[1]);
+        if (!gameEnded) {
+          if (aiToggle.checked) {
+            updateAi(players[2]);
+          }
+          attemptMove(players[2]);
+        }
+      }
+
+      updateHud();
+    }
+
+    function drawBoard() {
+      const width = COLS * CELL_SIZE;
+      const height = ROWS * CELL_SIZE;
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let y = 0; y < ROWS; y += 1) {
+        for (let x = 0; x < COLS; x += 1) {
+          const cell = board[y][x];
+          let fill = (x + y) % 2 === 0 ? "#d8cfbf" : "#cfc4b1";
+          if (cell.owner === 1) {
+            fill = PLAYER_STYLE[1].territory;
+          } else if (cell.owner === 2) {
+            fill = PLAYER_STYLE[2].territory;
+          } else if (cell.trail === 1) {
+            fill = PLAYER_STYLE[1].trail;
+          } else if (cell.trail === 2) {
+            fill = PLAYER_STYLE[2].trail;
+          }
+          ctx.fillStyle = fill;
+          ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+          ctx.strokeStyle = "rgba(36, 28, 21, 0.12)";
+          ctx.strokeRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        }
+      }
+
+      drawPlayer(players[1], "#072859");
+      drawPlayer(players[2], "#6a1111");
+    }
+
+    function drawPlayer(player, accent) {
+      const centerX = player.x * CELL_SIZE + CELL_SIZE / 2;
+      const centerY = player.y * CELL_SIZE + CELL_SIZE / 2;
+      ctx.fillStyle = accent;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, CELL_SIZE * 0.28, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, CELL_SIZE * 0.18, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    function frame(timestamp) {
+      if (!previousTimestamp) {
+        previousTimestamp = timestamp;
+      }
+      const deltaMs = Math.min(32, timestamp - previousTimestamp);
+      previousTimestamp = timestamp;
+      update(deltaMs);
+      drawBoard();
+      animationHandle = requestAnimationFrame(frame);
+    }
+
+    function handleKeydown(event) {
+      const binding = KEY_BINDINGS[event.key];
+      if (!binding) {
+        return;
+      }
+      event.preventDefault();
+      setDirection(binding.player, binding.direction);
+    }
+
+    document.addEventListener("keydown", handleKeydown);
+    restartButton.addEventListener("click", resetGame);
+    playAgainButton.addEventListener("click", resetGame);
+    pauseButton.addEventListener("click", () => {
+      if (gameEnded) {
+        return;
+      }
+      paused = !paused;
+      statusText.textContent = paused ? "对局已暂停。" : "对局继续。";
+    });
+    aiToggle.addEventListener("change", () => {
+      resetGame();
+    });
+
+    resetGame();
+    cancelAnimationFrame(animationHandle);
+    animationHandle = requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
