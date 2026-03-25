@@ -328,14 +328,14 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `magnetic-marble-arena/index.html` 即可游玩。
 
-## 双人磁力弹球竞技场
+## 磁力弹珠台：双人同屏对战
 
-更新 `magnetic-pinball-arena/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的双人同屏磁力弹球竞技场，包含：
+更新 `magnetic-pinball-arena/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的双人同屏磁力弹珠对战原型，包含：
 
-- 玩家 1 使用 `W / S / D`、玩家 2 使用 `↑ / ↓ / ←` 控制两侧发射器调角度、蓄力并发射
-- 支持多颗弹球同时存在，球与球之间会发生弹性碰撞，并在场地边界正确反弹
-- 场地会随机刷新吸引 / 排斥磁力块，对经过的弹球产生可见的轨迹偏折效果
-- 命中对方底线即可得分，并触发闪屏、粒子和 Web Audio 音效反馈；先到 5 分显示胜利结算，可一键重开
+- 玩家 1 使用 `W / S + Space`、玩家 2 使用 `↑ / ↓ + Enter` 控制上下两端的磁力发射器
+- 同色弹珠互相排斥、异色弹珠互相吸引，并用场上连线直观显示磁力关系
+- 台面会按模板随机刷新 `挡板`、`弹射器`、`加速带` 三种障碍物，持续改写弹道
+- 每局固定 `60` 秒，结束后显示双方得分与胜负结果，并支持切换单人模式对战简单 AI
 
 直接用浏览器打开 `magnetic-pinball-arena/index.html` 即可游玩。
 
