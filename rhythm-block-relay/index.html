@@ -6,18 +6,17 @@
   <title>节奏色块接力</title>
   <style>
     :root {
-      --bg: #050816;
-      --panel: rgba(10, 14, 32, 0.84);
-      --panel-strong: rgba(16, 24, 48, 0.96);
-      --line: rgba(125, 232, 255, 0.14);
-      --text: #f2f7ff;
-      --muted: #9cadc9;
-      --accent: #78ebff;
-      --good: #92ffb8;
-      --bad: #ff6f9d;
-      --warn: #ffd76b;
-      --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
-      --radius: 26px;
+      --bg-a: #09101f;
+      --bg-b: #1b0f1c;
+      --panel: rgba(10, 16, 31, 0.82);
+      --line: rgba(255, 255, 255, 0.1);
+      --text: #eff5ff;
+      --muted: #9bb0d5;
+      --accent: #7ce6ff;
+      --perfect: #90f7b6;
+      --good: #ffd66e;
+      --miss: #ff7f9f;
+      --hp: linear-gradient(90deg, #ff6587, #ffcd61 48%, #7ce6ff 100%);
     }
 
     * {
@@ -27,13 +26,12 @@
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: "Segoe UI", "PingFang SC", sans-serif;
       color: var(--text);
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
       background:
-        radial-gradient(circle at 18% 16%, rgba(120, 235, 255, 0.18), transparent 22%),
-        radial-gradient(circle at 84% 6%, rgba(255, 111, 157, 0.16), transparent 20%),
-        radial-gradient(circle at 50% 100%, rgba(125, 90, 255, 0.12), transparent 35%),
-        linear-gradient(180deg, #060912 0%, #091022 46%, #04070f 100%);
+        radial-gradient(circle at 18% 14%, rgba(124, 230, 255, 0.18), transparent 22%),
+        radial-gradient(circle at 82% 10%, rgba(255, 127, 159, 0.14), transparent 20%),
+        linear-gradient(180deg, var(--bg-a), var(--bg-b));
     }
 
     button {
@@ -42,9 +40,9 @@
     }
 
     .app {
-      width: min(1120px, calc(100vw - 24px));
+      width: min(1180px, calc(100vw - 24px));
       margin: 0 auto;
-      padding: 20px 0 32px;
+      padding: 20px 0 28px;
       display: grid;
       gap: 16px;
     }
@@ -52,15 +50,15 @@
     .panel {
       background: var(--panel);
       border: 1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(16px);
+      border-radius: 24px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.26);
+      backdrop-filter: blur(14px);
     }
 
     .hero {
       padding: 24px;
       display: grid;
-      grid-template-columns: minmax(0, 1.12fr) minmax(300px, 0.88fr);
+      grid-template-columns: minmax(0, 1.2fr) minmax(290px, 0.8fr);
       gap: 18px;
     }
 
@@ -69,384 +67,137 @@
     }
 
     h1 {
-      font-size: clamp(2.8rem, 5vw, 5rem);
+      font-size: clamp(2.8rem, 5vw, 4.8rem);
       line-height: 0.92;
       letter-spacing: -0.06em;
     }
 
     .eyebrow,
-    .tiny {
-      color: var(--accent);
-      text-transform: uppercase;
-      letter-spacing: 0.18em;
-      font-size: 0.78rem;
-    }
-
-    .lede,
     .hint,
-    .subtle,
-    .status-copy,
-    .player-note {
+    .subtle {
       color: var(--muted);
       line-height: 1.6;
     }
 
-    .hero-copy {
+    .eyebrow {
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 0.8rem;
+    }
+
+    .hero-copy,
+    .control-panel {
       display: grid;
       gap: 14px;
     }
 
-    .scoreboard {
+    .stats {
       display: grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 10px;
     }
 
-    .stat {
+    .stat,
+    .control-card {
       padding: 13px 14px;
       border-radius: 18px;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .stat-label {
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--muted);
-    }
-
-    .stat-value {
-      margin-top: 6px;
-      font-size: 1.5rem;
-      font-weight: 700;
-    }
-
-    .setup {
-      padding: 20px;
-      border-radius: 22px;
-      background: rgba(0, 0, 0, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      display: grid;
-      gap: 14px;
-    }
-
-    .player-counts,
-    .actions {
-      display: grid;
-      gap: 10px;
-    }
-
-    .player-counts {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .actions {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .count-button,
-    .action-button {
-      min-height: 48px;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      background: rgba(255, 255, 255, 0.06);
-      cursor: pointer;
-      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
-    }
-
-    .count-button:hover,
-    .count-button.active,
-    .action-button:hover {
-      transform: translateY(-1px);
-      border-color: rgba(120, 235, 255, 0.48);
-      background: rgba(120, 235, 255, 0.16);
-      box-shadow: 0 0 18px rgba(120, 235, 255, 0.16);
-    }
-
-    .action-button.primary {
-      border: 0;
-      font-weight: 700;
-      color: #05111a;
-      background: linear-gradient(180deg, #7cecff, #50b9ff);
-    }
-
-    .action-button.secondary {
-      color: var(--accent);
-    }
-
-    .game-shell {
-      padding: 18px;
-      display: grid;
-      gap: 14px;
-    }
-
-    .status-row {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: center;
-    }
-
-    .pill,
-    .key-hint {
-      padding: 10px 14px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      font-size: 0.94rem;
-    }
-
-    .key-hints {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .player-strip {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
-    }
-
-    .player-chip {
-      padding: 14px;
-      border-radius: 18px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(255, 255, 255, 0.04);
-      transition: border-color 140ms ease, background 140ms ease, opacity 140ms ease, transform 140ms ease;
-    }
-
-    .player-chip.active {
-      border-color: rgba(120, 235, 255, 0.5);
-      background: rgba(120, 235, 255, 0.12);
-      transform: translateY(-2px);
-    }
-
-    .player-chip.eliminated {
-      opacity: 0.4;
-      border-color: rgba(255, 111, 157, 0.26);
-    }
-
-    .board-wrap {
-      position: relative;
-      min-height: 480px;
-      display: grid;
-      place-items: center;
-      padding: 16px;
-      overflow: hidden;
-      border-radius: 24px;
-      background:
-        radial-gradient(circle at center, rgba(120, 235, 255, 0.1), transparent 28%),
-        linear-gradient(180deg, rgba(4, 7, 17, 0.86), rgba(12, 18, 34, 0.98));
-    }
-
-    .board-wrap.elimination-flash::after,
-    .board-wrap.success-flash::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      opacity: 0;
-    }
-
-    .board-wrap.elimination-flash::after {
-      background: rgba(255, 111, 157, 0.18);
-      animation: flash 360ms ease;
-    }
-
-    .board-wrap.success-flash::after {
-      background: rgba(146, 255, 184, 0.16);
-      animation: flash 320ms ease;
-    }
-
-    .board {
-      width: min(86vw, 560px);
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
-    }
-
-    .tile {
-      position: relative;
-      aspect-ratio: 1 / 1;
-      border: 0;
-      border-radius: 24px;
-      cursor: pointer;
-      overflow: hidden;
-      background: linear-gradient(145deg, var(--tile-start), var(--tile-end));
-      box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.18),
-        0 16px 28px rgba(0, 0, 0, 0.22),
-        0 0 0 rgba(255, 255, 255, 0);
-      transform: translateY(0) scale(1);
-      transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease;
-    }
-
-    .tile:disabled {
-      cursor: default;
-      filter: saturate(0.82);
-    }
-
-    .tile::before {
-      content: attr(data-key);
-      position: absolute;
-      top: 14px;
-      right: 14px;
-      font-size: 0.82rem;
-      letter-spacing: 0.12em;
-      color: rgba(255, 255, 255, 0.74);
-    }
-
-    .tile::after {
-      content: "";
-      position: absolute;
-      inset: 12%;
-      border-radius: 22px;
-      background: radial-gradient(circle, rgba(255, 255, 255, 0.35), transparent 64%);
-      opacity: 0;
-      transition: opacity 120ms ease;
-    }
-
-    .tile:hover:not(:disabled) {
-      transform: translateY(-3px);
-    }
-
-    .tile.active {
-      animation: pulse 420ms ease;
-      box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.28),
-        0 0 34px color-mix(in srgb, var(--tile-glow) 72%, white 28%),
-        0 0 68px color-mix(in srgb, var(--tile-glow) 58%, transparent 42%);
-      filter: brightness(1.2) saturate(1.1);
-    }
-
-    .tile.active::after {
-      opacity: 1;
-    }
-
-    .message-card {
-      position: absolute;
-      inset: auto 20px 20px 20px;
-      padding: 18px 20px;
-      border-radius: 20px;
-      background: rgba(5, 9, 20, 0.84);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(10px);
-    }
-
-    .message-card strong {
-      display: block;
-      font-size: 1.1rem;
-      margin-bottom: 6px;
-    }
-
-    .overlay {
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      padding: 24px;
-      background: rgba(2, 6, 14, 0.76);
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-      transition: opacity 180ms ease;
-    }
-
-    .overlay.visible {
-      opacity: 1;
-      visibility: visible;
-      pointer-events: auto;
-    }
-
-    .overlay-card {
-      max-width: 560px;
-      padding: 28px;
-      border-radius: 24px;
-      text-align: center;
-      background: var(--panel-strong);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: var(--shadow);
-      display: grid;
-      gap: 14px;
-    }
-
-    .overlay-stats {
-      display: grid;
-      gap: 8px;
-      text-align: left;
-    }
-
-    .overlay-stats:empty {
-      display: none;
-    }
-
-    .summary-row {
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 10px 12px;
-      border-radius: 14px;
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
+    .stat-label {
+      color: var(--muted);
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .stat-value {
+      margin-top: 6px;
+      font-size: 1.45rem;
+      font-weight: 700;
+    }
+
+    .control-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .control-card strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .playfield {
+      position: relative;
+      padding: 16px;
+      overflow: hidden;
+    }
+
+    canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background:
+        radial-gradient(circle at 50% 50%, rgba(124, 230, 255, 0.11), transparent 22%),
+        linear-gradient(180deg, rgba(7, 11, 23, 0.98), rgba(12, 18, 35, 0.98));
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 16px;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      text-align: center;
+      border-radius: 22px;
+      background: rgba(5, 8, 14, 0.72);
+      transition: opacity 160ms ease, visibility 160ms ease;
+    }
+
+    .overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .overlay-card {
+      max-width: 760px;
+      display: grid;
+      gap: 14px;
+    }
+
     .overlay-card h2 {
       font-size: clamp(2rem, 4vw, 3.4rem);
-      line-height: 0.94;
-      letter-spacing: -0.04em;
+      letter-spacing: -0.05em;
     }
 
-    .celebration {
-      position: absolute;
-      inset: 0;
-      overflow: hidden;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 220ms ease;
+    .results {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
     }
 
-    .celebration.visible {
-      opacity: 1;
+    .result {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
-    .confetti {
-      position: absolute;
-      top: -12%;
-      width: 10px;
-      height: 24px;
-      border-radius: 999px;
-      opacity: 0;
-      transform: translate3d(0, 0, 0) rotate(0deg);
-      animation: confetti-fall 1.8s linear forwards;
+    .result strong {
+      display: block;
+      margin-top: 8px;
+      font-size: 1.35rem;
     }
 
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      35% { transform: scale(1.06); }
-      100% { transform: scale(1); }
-    }
-
-    @keyframes flash {
-      0% { opacity: 0; }
-      25% { opacity: 1; }
-      100% { opacity: 0; }
-    }
-
-    @keyframes confetti-fall {
-      0% {
-        opacity: 0;
-        transform: translate3d(0, 0, 0) rotate(0deg) scale(0.8);
-      }
-      10% {
-        opacity: 1;
-      }
-      100% {
-        opacity: 1;
-        transform: translate3d(var(--drift, 0px), 118vh, 0) rotate(var(--spin, 540deg)) scale(1.1);
-      }
+    .footer-note {
+      color: var(--muted);
+      text-align: center;
     }
 
     @media (max-width: 920px) {
@@ -454,32 +205,15 @@
         grid-template-columns: 1fr;
       }
 
-      .scoreboard {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .player-strip {
+      .stats {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
 
-    @media (max-width: 640px) {
-      .app {
-        width: min(100vw - 16px, 1120px);
-      }
-
-      .player-counts,
-      .actions,
-      .player-strip {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .board {
-        gap: 10px;
-      }
-
-      .tile {
-        border-radius: 20px;
+    @media (max-width: 720px) {
+      .control-grid,
+      .results {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -488,747 +222,552 @@
   <main class="app">
     <section class="panel hero">
       <div class="hero-copy">
-        <p class="eyebrow">Party Toy Relay</p>
+        <p class="eyebrow">Party Toy Rhythm Co-op</p>
         <h1>节奏色块接力</h1>
-        <p class="lede">2-4 人热座轮流挑战，先观察色块按统一节拍闪现，再用 <strong>D / F / J / K</strong> 在节拍窗口内复现同一轮序列。每轮全员挑战完毕后序列 +1，答错或超时立即淘汰，最后存活者获胜。</p>
-        <div class="scoreboard">
-          <div class="stat"><div class="stat-label">Active Players</div><div class="stat-value" id="active-count">0</div></div>
-          <div class="stat"><div class="stat-label">Current Round</div><div class="stat-value" id="round-display">0</div></div>
-          <div class="stat"><div class="stat-label">Sequence Length</div><div class="stat-value" id="sequence-display">0</div></div>
-          <div class="stat"><div class="stat-label">Format</div><div class="stat-value" id="mode-display">Hot-seat</div></div>
-          <div class="stat"><div class="stat-label">Time Left</div><div class="stat-value" id="timer-display">0.0s</div></div>
-          <div class="stat"><div class="stat-label">Best Streak</div><div class="stat-value" id="best-display">0</div></div>
-          <div class="stat"><div class="stat-label">Muted</div><div class="stat-value" id="mute-display">Off</div></div>
+        <p class="hint">鲜明四色方块从中央不断滑向左右判定线。玩家 1 负责左侧，玩家 2 负责右侧，在色块抵达判定线时敲下对应颜色键，靠共享血条和共享连击一起撑过越来越快的节奏。</p>
+        <div class="stats">
+          <div class="stat"><div class="stat-label">Score</div><div class="stat-value" id="score-display">0</div></div>
+          <div class="stat"><div class="stat-label">Combo</div><div class="stat-value" id="combo-display">0</div></div>
+          <div class="stat"><div class="stat-label">Max Combo</div><div class="stat-value" id="max-combo-display">0</div></div>
+          <div class="stat"><div class="stat-label">HP</div><div class="stat-value" id="hp-display">100</div></div>
+          <div class="stat"><div class="stat-label">Level</div><div class="stat-value" id="level-display">1</div></div>
         </div>
       </div>
-      <div class="setup">
-        <div>
-          <p class="tiny">Players</p>
-          <p class="hint">所有存活玩家都会挑战同一轮序列。上一位玩家结束后会出现“Player X 准备”过渡屏，按任意键即可开始下一位。</p>
+      <div class="control-panel">
+        <div class="control-card">
+          <strong>玩家 1 左侧判定</strong>
+          <p class="subtle">A / S / D / F 对应四种颜色，盯住左侧判定线。</p>
         </div>
-        <div class="player-counts">
-          <button class="count-button active" type="button" data-player-count="2">2 Players</button>
-          <button class="count-button" type="button" data-player-count="3">3 Players</button>
-          <button class="count-button" type="button" data-player-count="4">4 Players</button>
+        <div class="control-card">
+          <strong>玩家 2 右侧判定</strong>
+          <p class="subtle">J / K / L / ; 对应四种颜色，盯住右侧判定线。</p>
         </div>
-        <div class="actions">
-          <button class="action-button primary" type="button" id="start-button">开始游戏</button>
-          <button class="action-button secondary" type="button" id="mute-button">静音：关</button>
-          <button class="action-button secondary" type="button" id="restart-button">重新开始</button>
+        <div class="control-grid">
+          <div class="control-card">
+            <strong>判定窗口</strong>
+            <p class="subtle">±50ms Perfect，±120ms Good，其余 Miss。</p>
+          </div>
+          <div class="control-card">
+            <strong>难度提升</strong>
+            <p class="subtle">每 30 秒升 1 级，最高 5 级，速度和密度同步增加。</p>
+          </div>
         </div>
-        <p class="subtle">键盘映射：<strong>D / F / J / K</strong>。每次按键都需要在 2 拍窗口内完成，节拍音效使用 Web Audio API 生成，不依赖外部音频文件。</p>
+        <p class="subtle">按 `Space` 开始或重开。Perfect 会微量回血，Miss 会扣共享血量。</p>
       </div>
     </section>
 
-    <section class="panel game-shell">
-      <div class="status-row">
-        <div class="pill" id="turn-pill">等待开始</div>
-        <div class="pill" id="phase-pill">阶段：准备中</div>
-        <div class="pill" id="input-pill">输入：0 / 0</div>
-      </div>
-      <div class="key-hints">
-        <div class="key-hint">点击色块或使用键盘</div>
-        <div class="key-hint">展示序列期间会锁定输入</div>
-        <div class="key-hint">错一格或超时都会立即淘汰</div>
-      </div>
-      <div class="player-strip" id="player-strip"></div>
-      <div class="board-wrap" id="board-wrap">
-        <div class="board" id="board" aria-label="节奏色块棋盘"></div>
-        <div class="message-card">
-          <strong id="status-title">准备开始</strong>
-          <p class="status-copy" id="status-text">选择玩家人数后开始游戏。每轮会先播放一次序列，然后由当前玩家复现。</p>
-        </div>
-        <div class="celebration" id="celebration" aria-hidden="true"></div>
-        <div class="overlay visible" id="overlay">
-          <div class="overlay-card">
-            <p class="tiny">Hot-Seat Memory Relay</p>
-            <h2 id="overlay-title">选择人数并开局</h2>
-            <p class="player-note" id="overlay-text">初始序列长度为 2。每轮所有存活玩家都会挑战同一段节奏色块序列，按任意键或点击按钮开始。</p>
-            <div class="overlay-stats" id="overlay-stats"></div>
-            <button class="action-button primary" type="button" id="overlay-button">开始首局</button>
+    <section class="panel playfield">
+      <canvas id="game" width="1200" height="680" aria-label="节奏色块接力游戏画布"></canvas>
+      <div class="overlay" id="overlay">
+        <div class="overlay-card">
+          <p class="eyebrow" id="overlay-kicker">Shared Rhythm Relay</p>
+          <h2 id="overlay-title">准备接力</h2>
+          <p class="hint" id="overlay-copy">双方共享一条生命值。色块从中央滑向两侧判定线时，按下与你负责一侧颜色相同的按键即可得分。按 `Space` 开始。</p>
+          <div class="results">
+            <div class="result"><span>总分</span><strong id="overlay-score">0</strong></div>
+            <div class="result"><span>最高连击</span><strong id="overlay-combo">0</strong></div>
+            <div class="result"><span>存活时长</span><strong id="overlay-time">0.0s</strong></div>
           </div>
         </div>
       </div>
     </section>
+
+    <p class="footer-note">同屏合作 · 中央生成 · 双侧判定线 · Canvas 单文件实现</p>
   </main>
 
   <script>
-    const storageKey = "rhythm-block-relay-best-round";
-    const initialSequenceLength = 2;
-    const sequenceStep = 1;
-    const tileKeys = ["D", "F", "J", "K"];
-    const beatStepMs = 520;
-    const inputWindowMs = beatStepMs * 2;
-    const tileData = [
-      { id: 0, name: "Red", key: "D", frequency: 261.63, start: "#ff6b7a", end: "#ff8f48", glow: "#ff9bac" },
-      { id: 1, name: "Blue", key: "F", frequency: 329.63, start: "#53c5ff", end: "#3268ff", glow: "#88dbff" },
-      { id: 2, name: "Green", key: "J", frequency: 523.25, start: "#a8ff5d", end: "#2bc982", glow: "#d7ff87" },
-      { id: 3, name: "Yellow", key: "K", frequency: 392.0, start: "#ffe05a", end: "#ff9b34", glow: "#ffe17b" }
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const overlay = document.getElementById("overlay");
+    const overlayKicker = document.getElementById("overlay-kicker");
+    const overlayTitle = document.getElementById("overlay-title");
+    const overlayCopy = document.getElementById("overlay-copy");
+    const overlayScore = document.getElementById("overlay-score");
+    const overlayCombo = document.getElementById("overlay-combo");
+    const overlayTime = document.getElementById("overlay-time");
+
+    const scoreDisplay = document.getElementById("score-display");
+    const comboDisplay = document.getElementById("combo-display");
+    const maxComboDisplay = document.getElementById("max-combo-display");
+    const hpDisplay = document.getElementById("hp-display");
+    const levelDisplay = document.getElementById("level-display");
+
+    const COLORS = [
+      { name: "Aqua", fill: "#53d8ff", glow: "rgba(83, 216, 255, 0.45)" },
+      { name: "Gold", fill: "#ffd25a", glow: "rgba(255, 210, 90, 0.42)" },
+      { name: "Coral", fill: "#ff7a66", glow: "rgba(255, 122, 102, 0.42)" },
+      { name: "Violet", fill: "#b67cff", glow: "rgba(182, 124, 255, 0.42)" }
     ];
 
-    const board = document.querySelector("#board");
-    const boardWrap = document.querySelector("#board-wrap");
-    const playerStrip = document.querySelector("#player-strip");
-    const activeCountDisplay = document.querySelector("#active-count");
-    const roundDisplay = document.querySelector("#round-display");
-    const sequenceDisplay = document.querySelector("#sequence-display");
-    const modeDisplay = document.querySelector("#mode-display");
-    const timerDisplay = document.querySelector("#timer-display");
-    const bestDisplay = document.querySelector("#best-display");
-    const muteDisplay = document.querySelector("#mute-display");
-    const turnPill = document.querySelector("#turn-pill");
-    const phasePill = document.querySelector("#phase-pill");
-    const inputPill = document.querySelector("#input-pill");
-    const statusTitle = document.querySelector("#status-title");
-    const statusText = document.querySelector("#status-text");
-    const overlay = document.querySelector("#overlay");
-    const celebration = document.querySelector("#celebration");
-    const overlayTitle = document.querySelector("#overlay-title");
-    const overlayText = document.querySelector("#overlay-text");
-    const overlayStats = document.querySelector("#overlay-stats");
-    const overlayButton = document.querySelector("#overlay-button");
-    const startButton = document.querySelector("#start-button");
-    const restartButton = document.querySelector("#restart-button");
-    const muteButton = document.querySelector("#mute-button");
-    const countButtons = Array.from(document.querySelectorAll("[data-player-count]"));
+    const SIDE_KEYS = {
+      left: { KeyA: 0, KeyS: 1, KeyD: 2, KeyF: 3 },
+      right: { KeyJ: 0, KeyK: 1, KeyL: 2, Semicolon: 3 }
+    };
+
+    const PERFECT_MS = 50;
+    const GOOD_MS = 120;
+    const MAX_LEVEL = 5;
+    const LEVEL_INTERVAL_MS = 30000;
+    const HEALTH_MAX = 100;
+    const STORAGE_KEY = "rhythm-block-relay-best-run";
+
+    const state = {
+      running: false,
+      startTime: 0,
+      lastFrame: 0,
+      nextSpawnAt: 0,
+      score: 0,
+      combo: 0,
+      maxCombo: 0,
+      hp: HEALTH_MAX,
+      blocks: [],
+      effects: [],
+      pulses: [],
+      lastFeedback: "",
+      totalHits: 0,
+      bestSurvivalMs: Number(localStorage.getItem(STORAGE_KEY) || 0)
+    };
 
     let audioContext = null;
-    let selectedPlayerCount = 2;
-    let bestRound = Number(localStorage.getItem(storageKey) || 0);
-    let players = [];
-    let state = createInitialState();
-    let isMuted = false;
-    let roundToken = 0;
-    let inputTimerId = 0;
-    let timerIntervalId = 0;
-    let inputDeadline = 0;
-    let overlayAction = "setup";
-    let pendingRoundToken = 0;
 
-    function createInitialState() {
-      return {
-        phase: "idle",
-        round: 0,
-        currentPlayerIndex: 0,
-        sequence: [],
-        expectedIndex: 0,
-        acceptingInput: false,
-        showingSequence: false,
-        timeLeftMs: 0,
-        playersRemainingThisRound: 0
-      };
+    function getLevel(elapsedMs) {
+      return Math.min(MAX_LEVEL, Math.floor(elapsedMs / LEVEL_INTERVAL_MS) + 1);
     }
 
-    function createPlayers(count) {
-      return Array.from({ length: count }, (_, index) => ({
-        id: index,
-        name: `玩家 ${index + 1}`,
-        eliminated: false,
-        turnsSurvived: 0
-      }));
+    function getTravelMs(level) {
+      return Math.max(720, 1800 - (level - 1) * 200);
     }
 
-    function buildBoard() {
-      const fragment = document.createDocumentFragment();
-
-      tileData.forEach((tile) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "tile";
-        button.dataset.tileId = String(tile.id);
-        button.dataset.key = tile.key;
-        button.setAttribute("aria-label", `${tile.name} ${tile.key}`);
-        button.style.setProperty("--tile-start", tile.start);
-        button.style.setProperty("--tile-end", tile.end);
-        button.style.setProperty("--tile-glow", tile.glow);
-        button.addEventListener("pointerdown", () => handleTileInput(tile.id));
-        fragment.appendChild(button);
-      });
-
-      board.replaceChildren(fragment);
+    function getSpawnIntervalMs(level) {
+      return Math.max(420, 1080 - (level - 1) * 140);
     }
 
-    function renderPlayers() {
-      const fragment = document.createDocumentFragment();
-
-      players.forEach((player, index) => {
-        const card = document.createElement("div");
-        card.className = "player-chip";
-        if (index === state.currentPlayerIndex && !player.eliminated) {
-          card.classList.add("active");
-        }
-        if (player.eliminated) {
-          card.classList.add("eliminated");
-        }
-        card.innerHTML = `
-          <div class="stat-label">${player.name}</div>
-          <div class="stat-value">${player.eliminated ? "OUT" : "IN"}</div>
-          <p class="player-note">存活回合 ${player.turnsSurvived}</p>
-        `;
-        fragment.appendChild(card);
-      });
-
-      playerStrip.replaceChildren(fragment);
+    function formatSeconds(ms) {
+      return `${(ms / 1000).toFixed(1)}s`;
     }
 
-    function updateScoreboard() {
-      const activePlayers = players.filter((player) => !player.eliminated).length;
-      activeCountDisplay.textContent = String(activePlayers);
-      roundDisplay.textContent = String(state.round);
-      sequenceDisplay.textContent = String(state.sequence.length);
-      modeDisplay.textContent = "Hot-seat";
-      timerDisplay.textContent = `${Math.max(0, state.timeLeftMs / 1000).toFixed(1)}s`;
-      bestDisplay.textContent = String(bestRound);
-      muteDisplay.textContent = isMuted ? "On" : "Off";
-      inputPill.textContent = `输入：${state.expectedIndex} / ${state.sequence.length}`;
-      phasePill.textContent = `阶段：${getPhaseLabel(state.phase)}`;
-
-      const currentPlayer = players[state.currentPlayerIndex];
-      turnPill.textContent = currentPlayer && !currentPlayer.eliminated
-        ? `当前玩家：${currentPlayer.name}`
-        : "当前玩家：等待中";
-
-      setTileAvailability(Boolean(state.acceptingInput));
-      renderPlayers();
+    function updateHud(elapsedMs) {
+      scoreDisplay.textContent = Math.floor(state.score);
+      comboDisplay.textContent = state.combo;
+      maxComboDisplay.textContent = state.maxCombo;
+      hpDisplay.textContent = Math.max(0, Math.round(state.hp));
+      levelDisplay.textContent = getLevel(elapsedMs);
     }
 
-    function getPhaseLabel(phase) {
-      if (phase === "ready") return "热座切换";
-      if (phase === "showing") return "展示序列";
-      if (phase === "input") return "等待输入";
-      if (phase === "failed") return "淘汰判定";
-      if (phase === "won") return "胜利";
-      return "准备中";
+    function resetState() {
+      state.running = true;
+      state.startTime = performance.now();
+      state.lastFrame = state.startTime;
+      state.nextSpawnAt = state.startTime + 500;
+      state.score = 0;
+      state.combo = 0;
+      state.maxCombo = 0;
+      state.hp = HEALTH_MAX;
+      state.blocks = [];
+      state.effects = [];
+      state.pulses = [];
+      state.lastFeedback = "";
+      state.totalHits = 0;
+      updateHud(0);
+      hideOverlay();
     }
 
-    function setTileAvailability(enabled) {
-      board.querySelectorAll(".tile").forEach((tile) => {
-        tile.disabled = !enabled;
-      });
-    }
-
-    function setStatus(title, text) {
-      statusTitle.textContent = title;
-      statusText.textContent = text;
-    }
-
-    function showOverlay(title, text, buttonText) {
+    function showOverlay(title, copy, kicker) {
+      const survivalMs = state.startTime ? performance.now() - state.startTime : state.bestSurvivalMs;
+      overlayKicker.textContent = kicker;
       overlayTitle.textContent = title;
-      overlayText.textContent = text;
-      overlayButton.textContent = buttonText;
-      overlayStats.replaceChildren();
-      overlay.classList.add("visible");
+      overlayCopy.textContent = copy;
+      overlayScore.textContent = Math.floor(state.score);
+      overlayCombo.textContent = state.maxCombo;
+      overlayTime.textContent = formatSeconds(Math.max(0, survivalMs));
+      overlay.classList.remove("hidden");
     }
 
     function hideOverlay() {
-      overlayAction = "hidden";
-      pendingRoundToken = 0;
-      overlayStats.replaceChildren();
-      overlay.classList.remove("visible");
+      overlay.classList.add("hidden");
     }
 
-    function renderOverlayStats() {
-      const fragment = document.createDocumentFragment();
-
-      players.forEach((player) => {
-        const row = document.createElement("div");
-        row.className = "summary-row";
-        row.innerHTML = `<span>${player.name}</span><strong>存活轮数 ${player.turnsSurvived}</strong>`;
-        fragment.appendChild(row);
-      });
-
-      overlayStats.replaceChildren(fragment);
-    }
-
-    function clearCelebration() {
-      celebration.classList.remove("visible");
-      celebration.replaceChildren();
-    }
-
-    function randomTileId() {
-      return Math.floor(Math.random() * tileData.length);
-    }
-
-    function createStartingSequence() {
-      return Array.from({ length: initialSequenceLength }, () => randomTileId());
-    }
-
-    function advanceSequence() {
-      for (let index = 0; index < sequenceStep; index += 1) {
-        state.sequence.push(randomTileId());
-      }
-    }
-
-    function clearInputTimer() {
-      if (inputTimerId) {
-        window.clearTimeout(inputTimerId);
-        inputTimerId = 0;
-      }
-      if (timerIntervalId) {
-        window.clearInterval(timerIntervalId);
-        timerIntervalId = 0;
-      }
-      inputDeadline = 0;
-      state.timeLeftMs = 0;
-      updateScoreboard();
-    }
-
-    function startInputTimer(token) {
-      clearInputTimer();
-      inputDeadline = performance.now() + inputWindowMs;
-      state.timeLeftMs = inputWindowMs;
-      updateScoreboard();
-      timerIntervalId = window.setInterval(() => {
-        if (token !== roundToken || !state.acceptingInput) {
-          clearInputTimer();
-          return;
-        }
-        state.timeLeftMs = Math.max(0, inputDeadline - performance.now());
-        updateScoreboard();
-      }, 100);
-      inputTimerId = window.setTimeout(() => {
-        if (token !== roundToken || !state.acceptingInput) {
-          return;
-        }
-        handleTimeout();
-      }, inputWindowMs);
-    }
-
-    async function ensureAudioContext() {
+    function ensureAudio() {
       if (audioContext) {
-        if (audioContext.state === "suspended") {
-          await audioContext.resume();
-        }
         return audioContext;
       }
-
       const AudioCtor = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtor) {
         return null;
       }
-
       audioContext = new AudioCtor();
       return audioContext;
     }
 
-    async function playTone(tileId, duration = 0.22, accent = false) {
-      if (isMuted) {
+    function playPerfectSound() {
+      const ac = ensureAudio();
+      if (!ac) {
         return;
       }
-
-      const context = await ensureAudioContext();
-      if (!context) {
-        return;
+      if (ac.state === "suspended") {
+        ac.resume();
       }
-
-      const tile = tileData[tileId];
-      const oscillator = context.createOscillator();
-      const gain = context.createGain();
-      const now = context.currentTime;
-      oscillator.type = "sine";
-      oscillator.frequency.setValueAtTime(tile.frequency, now);
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(accent ? 0.12 : 0.08, now + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-      oscillator.connect(gain);
-      gain.connect(context.destination);
-      oscillator.start(now);
-      oscillator.stop(now + duration + 0.02);
+      const now = ac.currentTime;
+      const osc = ac.createOscillator();
+      const gain = ac.createGain();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(660, now);
+      osc.frequency.exponentialRampToValueAtTime(990, now + 0.08);
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.exponentialRampToValueAtTime(0.12, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+      osc.connect(gain);
+      gain.connect(ac.destination);
+      osc.start(now);
+      osc.stop(now + 0.14);
     }
 
-    async function playFailureTone() {
-      if (isMuted) {
-        return;
-      }
+    function spawnBlock(now) {
+      const elapsedMs = now - state.startTime;
+      const level = getLevel(elapsedMs);
+      const side = Math.random() < 0.5 ? "left" : "right";
+      const colorIndex = Math.floor(Math.random() * COLORS.length);
+      const travelMs = getTravelMs(level);
+      state.blocks.push({
+        id: `${now}-${Math.random().toString(36).slice(2, 7)}`,
+        side,
+        colorIndex,
+        spawnTime: now,
+        hitTime: now + travelMs,
+        resolved: false
+      });
+      state.nextSpawnAt = now + getSpawnIntervalMs(level);
+    }
 
-      const context = await ensureAudioContext();
-      if (!context) {
-        return;
-      }
+    function addEffect(label, x, y, color) {
+      state.effects.push({
+        label,
+        x,
+        y,
+        color,
+        startTime: performance.now(),
+        life: 640
+      });
+      state.lastFeedback = label;
+    }
 
-      [220, 180].forEach((frequency, index) => {
-        const oscillator = context.createOscillator();
-        const gain = context.createGain();
-        const start = context.currentTime + index * 0.12;
-        oscillator.type = "sine";
-        oscillator.frequency.setValueAtTime(frequency, start);
-        gain.gain.setValueAtTime(0.0001, start);
-        gain.gain.exponentialRampToValueAtTime(0.09, start + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.18);
-        oscillator.connect(gain);
-        gain.connect(context.destination);
-        oscillator.start(start);
-        oscillator.stop(start + 0.2);
+    function addPulse(x, y, color) {
+      state.pulses.push({
+        x,
+        y,
+        color,
+        startTime: performance.now(),
+        life: 260
       });
     }
 
-    function sleep(ms) {
-      return new Promise((resolve) => window.setTimeout(resolve, ms));
+    function notePosition(block) {
+      const centerX = canvas.width / 2;
+      const leftLine = canvas.width * 0.18;
+      const rightLine = canvas.width * 0.82;
+      const laneTop = 170;
+      const laneGap = 92;
+      const y = laneTop + block.colorIndex * laneGap;
+      const progress = Math.min(1.4, (performance.now() - block.spawnTime) / (block.hitTime - block.spawnTime));
+      const lineX = block.side === "left" ? leftLine : rightLine;
+      const x = centerX + (lineX - centerX) * progress;
+      return { x, y, lineX };
     }
 
-    async function flashTile(tileId, accent = false) {
-      const tile = board.querySelector(`[data-tile-id="${tileId}"]`);
-      if (!tile) {
+    function applyHit(block, deltaMs, now) {
+      block.resolved = true;
+      const pos = notePosition(block);
+      const isPerfect = Math.abs(deltaMs) <= PERFECT_MS;
+      const label = isPerfect ? "Perfect" : "Good";
+      const points = isPerfect ? 300 : 100;
+      state.score += points;
+      state.combo += 1;
+      state.maxCombo = Math.max(state.maxCombo, state.combo);
+      if (isPerfect) {
+        state.hp = Math.min(HEALTH_MAX, state.hp + 2);
+        playPerfectSound();
+      }
+      state.totalHits += 1;
+      addEffect(label, pos.lineX, pos.y, isPerfect ? "var(--perfect)" : "var(--good)");
+      addPulse(pos.lineX, pos.y, COLORS[block.colorIndex].fill);
+      updateHud(now - state.startTime);
+    }
+
+    function applyMiss(block, reason, now) {
+      if (block) {
+        block.resolved = true;
+      }
+      state.combo = 0;
+      state.hp -= 12;
+      const fallbackY = canvas.height / 2;
+      const pos = block ? notePosition(block) : { lineX: canvas.width / 2, y: fallbackY };
+      addEffect(reason || "Miss", pos.lineX, pos.y, "var(--miss)");
+      updateHud(now - state.startTime);
+      if (state.hp <= 0) {
+        endGame(now);
+      }
+    }
+
+    function findCandidate(side, colorIndex, now) {
+      let best = null;
+      for (const block of state.blocks) {
+        if (block.resolved || block.side !== side || block.colorIndex !== colorIndex) {
+          continue;
+        }
+        const delta = now - block.hitTime;
+        const absDelta = Math.abs(delta);
+        if (absDelta > GOOD_MS) {
+          continue;
+        }
+        if (!best || absDelta < best.absDelta) {
+          best = { block, delta, absDelta };
+        }
+      }
+      return best;
+    }
+
+    function handleInput(code) {
+      if (code === "Space") {
+        if (!state.running) {
+          resetState();
+        }
         return;
       }
-      tile.classList.add("active");
-      playTone(tileId, accent ? 0.28 : 0.2, accent);
-      await sleep(Math.floor(beatStepMs * 0.55));
-      tile.classList.remove("active");
-    }
-
-    async function playbackSequence(token) {
-      state.phase = "showing";
-      state.showingSequence = true;
-      state.acceptingInput = false;
-      state.expectedIndex = 0;
-      updateScoreboard();
-      setStatus("观察序列", "色块会按节拍依次闪烁，记住顺序后轮到当前玩家输入。");
-
-      for (let index = 0; index < state.sequence.length; index += 1) {
-        if (token !== roundToken) {
-          return;
-        }
-        await flashTile(state.sequence[index], index === state.sequence.length - 1);
-        await sleep(Math.floor(beatStepMs * 0.45));
-      }
-
-      if (token !== roundToken) {
+      if (!state.running) {
         return;
       }
-
-      state.phase = "input";
-      state.showingSequence = false;
-      state.acceptingInput = true;
-      updateScoreboard();
-      setStatus("开始复现", `${players[state.currentPlayerIndex].name}，现在按顺序输入 ${state.sequence.length} 个色块。`);
-      startInputTimer(token);
-    }
-
-    function getCurrentPlayer() {
-      return players[state.currentPlayerIndex];
-    }
-
-    function getNextActivePlayerIndex(startIndex) {
-      for (let offset = 1; offset <= players.length; offset += 1) {
-        const candidate = (startIndex + offset) % players.length;
-        if (!players[candidate].eliminated) {
-          return candidate;
+      const now = performance.now();
+      if (Object.prototype.hasOwnProperty.call(SIDE_KEYS.left, code)) {
+        const match = findCandidate("left", SIDE_KEYS.left[code], now);
+        if (match) {
+          applyHit(match.block, match.delta, now);
+        } else {
+          applyMiss(null, "Miss", now);
+        }
+      } else if (Object.prototype.hasOwnProperty.call(SIDE_KEYS.right, code)) {
+        const match = findCandidate("right", SIDE_KEYS.right[code], now);
+        if (match) {
+          applyHit(match.block, match.delta, now);
+        } else {
+          applyMiss(null, "Miss", now);
         }
       }
-      return startIndex;
     }
 
-    function persistBestRound(roundValue) {
-      if (roundValue > bestRound) {
-        bestRound = roundValue;
-        localStorage.setItem(storageKey, String(bestRound));
+    function endGame(now) {
+      if (!state.running) {
+        return;
       }
-    }
-
-    function showReadyOverlay() {
-      const player = getCurrentPlayer();
-      overlayAction = "ready";
-      pendingRoundToken = roundToken;
-      state.phase = "ready";
-      state.expectedIndex = 0;
-      state.acceptingInput = false;
-      state.showingSequence = false;
-      updateScoreboard();
-      setStatus("热座切换", `把键盘交给 ${player.name}。准备好后按任意键开始本回合。`);
+      state.running = false;
+      const survivalMs = now - state.startTime;
+      state.bestSurvivalMs = Math.max(state.bestSurvivalMs, survivalMs);
+      localStorage.setItem(STORAGE_KEY, String(Math.round(state.bestSurvivalMs)));
       showOverlay(
-        `${player.name} 准备`,
-        `Round ${state.round} 的序列长度为 ${state.sequence.length}。观察完节拍后，用 D / F / J / K 复现完整序列。`,
-        "开始回合"
+        "接力结束",
+        `双人合计得分 ${Math.floor(state.score)}，最高连击 ${state.maxCombo}，共撑过 ${formatSeconds(survivalMs)}。按 Space 立即再来一局。`,
+        "Game Over"
       );
     }
 
-    function startRound() {
-      roundToken += 1;
-      clearInputTimer();
-      clearCelebration();
-      showReadyOverlay();
-    }
-
-    function getFirstActivePlayerIndex() {
-      return players.findIndex((player) => !player.eliminated);
-    }
-
-    async function beginPendingRound() {
-      if (overlayAction !== "ready" || !pendingRoundToken) {
-        return;
-      }
-      const token = pendingRoundToken;
-      hideOverlay();
-      await playbackSequence(token);
-    }
-
-    function markFlash(className) {
-      boardWrap.classList.remove("elimination-flash", "success-flash");
-      void boardWrap.offsetWidth;
-      boardWrap.classList.add(className);
-    }
-
-    async function handleSuccessfulTurn() {
-      const player = getCurrentPlayer();
-      clearInputTimer();
-      player.turnsSurvived = Math.max(player.turnsSurvived, state.round);
-      state.playersRemainingThisRound -= 1;
-      markFlash("success-flash");
-      setStatus("接力成功", `${player.name} 完整复现了序列。`);
-
-      await sleep(460);
-
-      if (state.playersRemainingThisRound > 0) {
-        state.currentPlayerIndex = getNextActivePlayerIndex(state.currentPlayerIndex);
-        updateScoreboard();
-        startRound();
-        return;
-      }
-
-      persistBestRound(state.round);
-      state.round += 1;
-      advanceSequence();
-      state.currentPlayerIndex = getFirstActivePlayerIndex();
-      state.playersRemainingThisRound = getSurvivors().length;
-      updateScoreboard();
-      setStatus("下一轮开始", `所有存活玩家都完成了第 ${state.round - 1} 轮，序列长度提升到 ${state.sequence.length}。`);
-      startRound();
-    }
-
-    function getSurvivors() {
-      return players.filter((player) => !player.eliminated);
-    }
-
-    async function handleElimination(player, reasonText = `${player.name} 被淘汰。剩余玩家将继续接力当前长度的序列。`) {
-      state.phase = "failed";
-      state.acceptingInput = false;
-      clearInputTimer();
-      player.eliminated = true;
-      state.playersRemainingThisRound -= 1;
-      markFlash("elimination-flash");
-      updateScoreboard();
-      playFailureTone();
-      setStatus("淘汰判定", reasonText);
-
-      if (navigator.vibrate) {
-        navigator.vibrate([80, 60, 120]);
-      }
-
-      await sleep(760);
-
-      const survivors = getSurvivors();
-      if (survivors.length <= 1) {
-        finishGame(survivors[0] || null);
-        return;
-      }
-
-      if (state.playersRemainingThisRound > 0) {
-        state.currentPlayerIndex = getNextActivePlayerIndex(state.currentPlayerIndex);
-        updateScoreboard();
-        startRound();
-        return;
-      }
-
-      persistBestRound(state.round);
-      state.round += 1;
-      advanceSequence();
-      state.currentPlayerIndex = getFirstActivePlayerIndex();
-      state.playersRemainingThisRound = survivors.length;
-      updateScoreboard();
-      setStatus("继续接力", `本轮仍有玩家存活，下一轮序列长度提升到 ${state.sequence.length}。`);
-      startRound();
-    }
-
-    async function handleTimeout() {
-      if (!state.acceptingInput) {
-        return;
-      }
-      const player = getCurrentPlayer();
-      await handleElimination(player, `${player.name} 未在节拍窗口内完成输入，已被淘汰。`);
-    }
-
-    function launchCelebration() {
-      clearCelebration();
-      const colors = ["#62f7ff", "#ff88d5", "#d7ff87", "#ffe17b"];
-      const fragment = document.createDocumentFragment();
-
-      for (let index = 0; index < 28; index += 1) {
-        const piece = document.createElement("span");
-        piece.className = "confetti";
-        piece.style.left = `${4 + Math.random() * 92}%`;
-        piece.style.background = colors[index % colors.length];
-        piece.style.setProperty("--drift", `${-140 + Math.random() * 280}px`);
-        piece.style.setProperty("--spin", `${360 + Math.random() * 720}deg`);
-        piece.style.animationDelay = `${Math.random() * 0.25}s`;
-        fragment.appendChild(piece);
-      }
-
-      celebration.replaceChildren(fragment);
-      celebration.classList.add("visible");
-    }
-
-    async function playVictoryTone() {
-      if (isMuted) {
-        return;
-      }
-
-      const context = await ensureAudioContext();
-      if (!context) {
-        return;
-      }
-
-      [523.25, 659.25, 783.99].forEach((frequency, index) => {
-        const oscillator = context.createOscillator();
-        const gain = context.createGain();
-        const start = context.currentTime + index * 0.12;
-        oscillator.type = "triangle";
-        oscillator.frequency.setValueAtTime(frequency, start);
-        gain.gain.setValueAtTime(0.0001, start);
-        gain.gain.exponentialRampToValueAtTime(0.08, start + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.26);
-        oscillator.connect(gain);
-        gain.connect(context.destination);
-        oscillator.start(start);
-        oscillator.stop(start + 0.28);
-      });
-    }
-
-    function finishGame(winner) {
-      state.phase = "won";
-      state.acceptingInput = false;
-      clearInputTimer();
-      updateScoreboard();
-      renderOverlayStats();
-
-      if (winner) {
-        launchCelebration();
-        playVictoryTone();
-        setStatus("游戏结束", `${winner.name} 是最后存活者，赢得本局记忆接力。`);
-        overlayAction = "restart";
-        showOverlay(`${winner.name} 获胜`, `最高完整轮数记录为 ${bestRound}。下方统计展示每位玩家的存活轮数。`, "再来一局");
-        renderOverlayStats();
+    function update(now) {
+      if (state.running) {
+        const elapsedMs = now - state.startTime;
+        while (now >= state.nextSpawnAt) {
+          spawnBlock(state.nextSpawnAt);
+        }
+        for (const block of state.blocks) {
+          if (!block.resolved && now - block.hitTime > GOOD_MS) {
+            applyMiss(block, "Miss", now);
+          }
+        }
+        state.blocks = state.blocks.filter((block) => !block.resolved || now - block.hitTime < 260);
+        state.effects = state.effects.filter((effect) => now - effect.startTime < effect.life);
+        state.pulses = state.pulses.filter((pulse) => now - pulse.startTime < pulse.life);
+        updateHud(elapsedMs);
       } else {
-        setStatus("游戏结束", "没有存活玩家。点击重新开始发起新一局。");
-        overlayAction = "restart";
-        showOverlay("全员淘汰", "本局没有胜者，点击下方重新发起热座挑战。", "重新开始");
-        renderOverlayStats();
+        state.effects = state.effects.filter((effect) => now - effect.startTime < effect.life);
+        state.pulses = state.pulses.filter((pulse) => now - pulse.startTime < pulse.life);
+      }
+      draw(now);
+      requestAnimationFrame(update);
+    }
+
+    function drawBackdrop(now) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, "#08101e");
+      gradient.addColorStop(1, "#140f21");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < 26; i += 1) {
+        const x = (i * 83 + now * 0.02) % (canvas.width + 80) - 40;
+        const y = 60 + (i * 47) % (canvas.height - 120);
+        ctx.fillStyle = "rgba(255,255,255,0.04)";
+        ctx.fillRect(x, y, 2, 2);
       }
     }
 
-    async function handleTileInput(tileId) {
-      if (!state.acceptingInput || state.showingSequence || overlay.classList.contains("visible")) {
-        return;
-      }
+    function drawHud(now) {
+      const elapsedMs = state.running ? now - state.startTime : 0;
+      const level = getLevel(elapsedMs);
+      const leftLine = canvas.width * 0.18;
+      const rightLine = canvas.width * 0.82;
+      const centerX = canvas.width / 2;
+      const hpRatio = Math.max(0, state.hp) / HEALTH_MAX;
 
-      await ensureAudioContext();
-      state.acceptingInput = false;
-      clearInputTimer();
-      await flashTile(tileId, true);
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      ctx.fillRect(120, 42, canvas.width - 240, 16);
+      const hpGradient = ctx.createLinearGradient(120, 0, canvas.width - 120, 0);
+      hpGradient.addColorStop(0, "#ff6587");
+      hpGradient.addColorStop(0.45, "#ffd66e");
+      hpGradient.addColorStop(1, "#62d8ff");
+      ctx.fillStyle = hpGradient;
+      ctx.fillRect(120, 42, (canvas.width - 240) * hpRatio, 16);
 
-      const expectedTileId = state.sequence[state.expectedIndex];
-      if (tileId !== expectedTileId) {
-        await handleElimination(getCurrentPlayer());
-        return;
-      }
+      ctx.strokeStyle = "rgba(255,255,255,0.15)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(leftLine, 120);
+      ctx.lineTo(leftLine, canvas.height - 110);
+      ctx.moveTo(rightLine, 120);
+      ctx.lineTo(rightLine, canvas.height - 110);
+      ctx.stroke();
 
-      state.expectedIndex += 1;
-      updateScoreboard();
+      ctx.strokeStyle = "rgba(124, 230, 255, 0.18)";
+      ctx.setLineDash([10, 12]);
+      ctx.beginPath();
+      ctx.moveTo(centerX, 120);
+      ctx.lineTo(centerX, canvas.height - 110);
+      ctx.stroke();
+      ctx.setLineDash([]);
 
-      if (state.expectedIndex >= state.sequence.length) {
-        await handleSuccessfulTurn();
-        return;
-      }
+      ctx.fillStyle = "#eff5ff";
+      ctx.font = "700 24px Trebuchet MS";
+      ctx.fillText("P1 左侧判定", 98, 100);
+      ctx.fillText("P2 右侧判定", canvas.width - 258, 100);
+      ctx.fillText(`LV.${level}`, centerX - 34, 100);
 
-      state.acceptingInput = true;
-      startInputTimer(roundToken);
-      setStatus("继续输入", `${getCurrentPlayer().name} 还需要输入 ${state.sequence.length - state.expectedIndex} 格。`);
+      ctx.font = "600 20px Trebuchet MS";
+      ctx.fillStyle = "rgba(239,245,255,0.86)";
+      ctx.fillText("A", leftLine - 62, 178);
+      ctx.fillText("S", leftLine - 62, 270);
+      ctx.fillText("D", leftLine - 62, 362);
+      ctx.fillText("F", leftLine - 62, 454);
+      ctx.fillText("J", rightLine + 32, 178);
+      ctx.fillText("K", rightLine + 32, 270);
+      ctx.fillText("L", rightLine + 32, 362);
+      ctx.fillText(";", rightLine + 32, 454);
     }
 
-    function initializeGameState() {
-      players = createPlayers(selectedPlayerCount);
-      state = createInitialState();
-      state.round = 1;
-      state.sequence = createStartingSequence();
-      state.currentPlayerIndex = getFirstActivePlayerIndex();
-      state.playersRemainingThisRound = players.length;
-      updateScoreboard();
-      setStatus("准备开局", "首轮序列长度为 2，所有玩家会依次挑战同一段节奏色块。");
+    function drawLanes() {
+      const laneTop = 170;
+      const laneGap = 92;
+      const leftLine = canvas.width * 0.18;
+      const rightLine = canvas.width * 0.82;
+      for (let i = 0; i < COLORS.length; i += 1) {
+        const y = laneTop + i * laneGap;
+        const color = COLORS[i];
+        ctx.strokeStyle = "rgba(255,255,255,0.06)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(110, y);
+        ctx.lineTo(canvas.width - 110, y);
+        ctx.stroke();
+
+        ctx.fillStyle = color.fill;
+        ctx.globalAlpha = 0.9;
+        ctx.fillRect(leftLine - 14, y - 14, 28, 28);
+        ctx.fillRect(rightLine - 14, y - 14, 28, 28);
+        ctx.globalAlpha = 1;
+      }
     }
 
-    async function startGame() {
-      initializeGameState();
-      await ensureAudioContext();
-      startRound();
+    function drawBlocks(now) {
+      for (const block of state.blocks) {
+        const pos = notePosition(block);
+        const color = COLORS[block.colorIndex];
+        const size = 44;
+        ctx.save();
+        ctx.shadowColor = color.glow;
+        ctx.shadowBlur = 18;
+        ctx.translate(pos.x, pos.y);
+        ctx.rotate((now - block.spawnTime) * 0.0025);
+        ctx.fillStyle = color.fill;
+        ctx.fillRect(-size / 2, -size / 2, size, size);
+        ctx.restore();
+      }
     }
 
-    function resetGame(copyOnly = false) {
-      roundToken += 1;
-      clearInputTimer();
-      clearCelebration();
-      state = createInitialState();
-      if (!copyOnly) {
-        players = createPlayers(selectedPlayerCount);
+    function drawEffects(now) {
+      for (const pulse of state.pulses) {
+        const t = (now - pulse.startTime) / pulse.life;
+        const radius = 20 + t * 48;
+        ctx.beginPath();
+        ctx.strokeStyle = pulse.color;
+        ctx.globalAlpha = 1 - t;
+        ctx.lineWidth = 4;
+        ctx.arc(pulse.x, pulse.y, radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
       }
-      updateScoreboard();
-      setStatus("准备开始", "选择玩家人数后开始游戏。每轮会先播放一次序列，然后由当前玩家复现。");
-      overlayAction = "setup";
-      showOverlay("选择人数并开局", "初始序列长度为 2。每轮所有存活玩家都会挑战同一段序列，玩家之间通过准备屏热座切换。", "开始首局");
+
+      for (const effect of state.effects) {
+        const t = (now - effect.startTime) / effect.life;
+        ctx.globalAlpha = 1 - t;
+        ctx.fillStyle = effect.color;
+        ctx.font = "700 28px Trebuchet MS";
+        ctx.fillText(effect.label, effect.x - 42, effect.y - 22 - t * 28);
+        ctx.globalAlpha = 1;
+      }
     }
 
-    countButtons.forEach((button) => {
-      button.addEventListener("click", () => {
-        selectedPlayerCount = Number(button.dataset.playerCount);
-        countButtons.forEach((item) => item.classList.toggle("active", item === button));
-        resetGame(false);
-      });
-    });
+    function drawFooter(now) {
+      const elapsedMs = state.running ? now - state.startTime : 0;
+      const level = getLevel(elapsedMs);
+      const spawnIntervalMs = getSpawnIntervalMs(level);
+      const travelMs = getTravelMs(level);
+      const survival = state.running ? formatSeconds(elapsedMs) : overlayTime.textContent;
 
-    muteButton.addEventListener("click", async () => {
-      isMuted = !isMuted;
-      muteButton.textContent = `静音：${isMuted ? "开" : "关"}`;
-      updateScoreboard();
-      if (!isMuted) {
-        await ensureAudioContext();
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.font = "600 20px Trebuchet MS";
+      ctx.fillText(`Survival ${survival}`, 88, canvas.height - 46);
+      ctx.fillText(`Spawn ${spawnIntervalMs}ms`, canvas.width / 2 - 80, canvas.height - 46);
+      ctx.fillText(`Travel ${travelMs}ms`, canvas.width - 220, canvas.height - 46);
+
+      if (state.lastFeedback) {
+        ctx.fillStyle = "rgba(255,255,255,0.72)";
+        ctx.font = "700 24px Trebuchet MS";
+        ctx.fillText(state.lastFeedback, canvas.width / 2 - 50, 146);
       }
-    });
+    }
 
-    startButton.addEventListener("click", () => {
-      startGame();
-    });
-
-    restartButton.addEventListener("click", () => {
-      resetGame(false);
-    });
-
-    overlayButton.addEventListener("click", () => {
-      if (overlayAction === "ready") {
-        beginPendingRound();
-        return;
-      }
-      startGame();
-    });
+    function draw(now) {
+      drawBackdrop(now);
+      drawHud(now);
+      drawLanes();
+      drawBlocks(now);
+      drawEffects(now);
+      drawFooter(now);
+    }
 
     window.addEventListener("keydown", (event) => {
       if (event.repeat) {
         return;
       }
-      if (overlayAction === "ready") {
+      if (["Space", "KeyA", "KeyS", "KeyD", "KeyF", "KeyJ", "KeyK", "KeyL", "Semicolon"].includes(event.code)) {
         event.preventDefault();
-        beginPendingRound();
-        return;
       }
-      const key = event.key.toUpperCase();
-      const tile = tileData.find((item) => item.key === key);
-      if (!tile) {
-        return;
-      }
-      event.preventDefault();
-      handleTileInput(tile.id);
+      handleInput(event.code);
     });
 
-    buildBoard();
-    resetGame(false);
+    showOverlay(
+      "准备接力",
+      "色块从中央生成后会匀速滑向随机一侧。玩家 1 用 A/S/D/F，玩家 2 用 J/K/L/;。±50ms Perfect，±120ms Good，其余 Miss。按 Space 开始。",
+      "Shared Rhythm Relay"
+    );
+    updateHud(0);
+    requestAnimationFrame(update);
   </script>
 </body>
 </html>
