@@ -1,0 +1,1542 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>星尘工厂：放置增长模拟</title>
+  <style>
+    :root {
+      --bg-1: #040814;
+      --bg-2: #091326;
+      --panel: rgba(9, 18, 38, 0.82);
+      --panel-strong: rgba(11, 24, 49, 0.95);
+      --line: rgba(130, 176, 255, 0.18);
+      --text: #edf5ff;
+      --muted: #91a8cf;
+      --cyan: #75e9ff;
+      --gold: #ffd36f;
+      --mint: #8cf5ba;
+      --rose: #ff8ca8;
+      --violet: #b59dff;
+      --danger: #ff7189;
+      --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+      --radius: 24px;
+      --display: "Avenir Next Condensed", "Trebuchet MS", sans-serif;
+      --body: "Avenir Next", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: var(--body);
+      background:
+        radial-gradient(circle at 15% 18%, rgba(117, 233, 255, 0.18), transparent 20%),
+        radial-gradient(circle at 80% 12%, rgba(181, 157, 255, 0.16), transparent 20%),
+        radial-gradient(circle at 50% 100%, rgba(255, 211, 111, 0.14), transparent 28%),
+        linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1320px, calc(100vw - 24px));
+      margin: 16px auto 28px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      padding: 18px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    .hero {
+      padding: 20px 22px;
+      border-radius: 20px;
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(117, 233, 255, 0.03));
+      display: grid;
+      gap: 10px;
+    }
+
+    .eyebrow,
+    .label {
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--cyan);
+    }
+
+    h1 {
+      font-family: var(--display);
+      font-size: clamp(2.4rem, 5vw, 4.8rem);
+      line-height: 0.92;
+      letter-spacing: -0.05em;
+    }
+
+    .hero-copy,
+    .subtle {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .hero-copy {
+      max-width: 70ch;
+    }
+
+    .stat-card {
+      padding: 16px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.04);
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .stat-value {
+      font-size: clamp(1.3rem, 2.7vw, 2.2rem);
+      font-weight: 700;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(280px, 330px) minmax(0, 1fr) minmax(280px, 360px);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    .section {
+      padding: 18px;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .section h2 {
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .resource-grid {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .resource-card,
+    .shop-card,
+    .tree-node,
+    .event-card {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .resource-card {
+      padding: 14px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .resource-card.bump {
+      animation: gem-bounce 320ms ease;
+    }
+
+    @keyframes gem-bounce {
+      0% { transform: scale(1); }
+      30% { transform: scale(1.08) translateY(-2px); }
+      100% { transform: scale(1); }
+    }
+
+    .resource-name {
+      font-size: 0.86rem;
+      color: var(--muted);
+    }
+
+    .resource-value {
+      font-size: 1.35rem;
+      font-weight: 700;
+    }
+
+    .resource-rate {
+      font-size: 0.86rem;
+      color: var(--cyan);
+    }
+
+    .stage {
+      padding: 16px;
+    }
+
+    .sim-wrap {
+      position: relative;
+      border-radius: 24px;
+      overflow: hidden;
+      min-height: 720px;
+      background:
+        radial-gradient(circle at 50% 38%, rgba(117, 233, 255, 0.08), transparent 20%),
+        radial-gradient(circle at 50% 88%, rgba(255, 211, 111, 0.1), transparent 18%),
+        #040a16;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .sim-wrap::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.6) 0 1px, transparent 2px),
+        radial-gradient(circle at 27% 72%, rgba(255, 255, 255, 0.35) 0 1px, transparent 2px),
+        radial-gradient(circle at 86% 16%, rgba(255, 255, 255, 0.45) 0 1px, transparent 2px),
+        radial-gradient(circle at 68% 80%, rgba(255, 255, 255, 0.4) 0 1px, transparent 2px),
+        radial-gradient(circle at 54% 10%, rgba(255, 255, 255, 0.3) 0 1px, transparent 2px);
+      opacity: 0.8;
+      pointer-events: none;
+    }
+
+    #factory-canvas {
+      width: 100%;
+      height: 720px;
+      display: block;
+    }
+
+    .sim-overlay {
+      position: absolute;
+      inset: 18px 18px auto 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 12px;
+      pointer-events: none;
+    }
+
+    .overlay-card {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(4, 10, 22, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      max-width: 280px;
+    }
+
+    .shop-list,
+    .event-list {
+      margin-top: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .shop-card,
+    .event-card {
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .title {
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .pill {
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(117, 233, 255, 0.12);
+      color: var(--cyan);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .action,
+    .ghost {
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 10px 12px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+      cursor: pointer;
+      transition: transform 140ms ease, border-color 140ms ease, opacity 140ms ease;
+    }
+
+    .action:hover:not(:disabled),
+    .ghost:hover:not(:disabled) {
+      transform: translateY(-1px);
+      border-color: rgba(117, 233, 255, 0.4);
+    }
+
+    .action:disabled,
+    .ghost:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .action {
+      background: linear-gradient(135deg, rgba(117, 233, 255, 0.2), rgba(117, 233, 255, 0.08));
+    }
+
+    .ghost {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .tree-wrap {
+      margin-top: 14px;
+      position: relative;
+      padding: 20px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.03);
+      overflow: hidden;
+      min-height: 470px;
+    }
+
+    #tech-tree-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .tree-grid {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px 20px;
+      z-index: 1;
+    }
+
+    .tree-col {
+      display: grid;
+      gap: 16px;
+    }
+
+    .tree-node {
+      position: relative;
+      padding: 14px;
+      display: grid;
+      gap: 8px;
+      min-height: 126px;
+    }
+
+    .tree-node.locked {
+      opacity: 0.58;
+    }
+
+    .tree-node.ready {
+      border-color: rgba(117, 233, 255, 0.38);
+      box-shadow: inset 0 0 0 1px rgba(117, 233, 255, 0.12);
+    }
+
+    .tree-node.owned {
+      border-color: rgba(140, 245, 186, 0.4);
+      background: rgba(140, 245, 186, 0.08);
+    }
+
+    .footer-bar {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 20px;
+      background: rgba(2, 6, 14, 0.72);
+      z-index: 20;
+    }
+
+    .modal.show {
+      display: grid;
+    }
+
+    .modal-card {
+      width: min(520px, 100%);
+      padding: 22px;
+      border-radius: 26px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: var(--panel-strong);
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 12px;
+    }
+
+    .modal-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .highlight {
+      color: var(--gold);
+    }
+
+    .danger {
+      color: var(--danger);
+    }
+
+    @media (max-width: 1120px) {
+      .topbar,
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .app {
+        width: min(100vw - 16px, 1320px);
+      }
+
+      .resource-grid,
+      .tree-grid {
+        grid-template-columns: 1fr;
+      }
+
+      #factory-canvas {
+        height: 560px;
+      }
+
+      .sim-wrap {
+        min-height: 560px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel topbar">
+      <div class="hero">
+        <div class="eyebrow">Idle Factory</div>
+        <h1>星尘工厂</h1>
+        <p class="hero-copy">布置采集器捕捉漂流星尘，再让三条熔炉线把原料压缩成黄玉、玫晶和虚空棱镜。页面关闭后会按离线时长结算收益，并自动保存到本地。</p>
+      </div>
+      <div class="stat-card">
+        <div class="label">星尘库存</div>
+        <div class="stat-value" id="stat-stardust">0</div>
+        <div class="subtle" id="stat-stardust-rate">+0 / 秒</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">宝石总量</div>
+        <div class="stat-value" id="stat-gems-total">0</div>
+        <div class="subtle" id="stat-gems-rate">+0 / 秒</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">离线收益上限</div>
+        <div class="stat-value">8 小时</div>
+        <div class="subtle">自动保存，每 30 秒刷新一次存档</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">进度</div>
+        <div class="stat-value" id="stat-stage">起步</div>
+        <div class="subtle" id="stat-unlocks">已解锁 2 / 6 生产节点</div>
+      </div>
+    </section>
+
+    <section class="layout">
+      <div class="stack">
+        <section class="panel section">
+          <div class="section-head">
+            <h2>资源</h2>
+            <span class="subtle">自动生产</span>
+          </div>
+          <div class="resource-grid">
+            <div class="resource-card" id="resource-card-stardust">
+              <div class="resource-name">星尘</div>
+              <div class="resource-value" id="resource-stardust">0</div>
+              <div class="resource-rate" id="resource-stardust-detail">采集器总产能 0 / 秒</div>
+            </div>
+            <div class="resource-card" id="resource-card-amber">
+              <div class="resource-name">黄玉</div>
+              <div class="resource-value" id="resource-amber">0</div>
+              <div class="resource-rate" id="resource-amber-detail">熔炉产能 0 / 秒</div>
+            </div>
+            <div class="resource-card" id="resource-card-rose">
+              <div class="resource-name">玫晶</div>
+              <div class="resource-value" id="resource-rose">0</div>
+              <div class="resource-rate" id="resource-rose-detail">熔炉产能 0 / 秒</div>
+            </div>
+            <div class="resource-card" id="resource-card-void">
+              <div class="resource-name">虚空棱镜</div>
+              <div class="resource-value" id="resource-void">0</div>
+              <div class="resource-rate" id="resource-void-detail">熔炉产能 0 / 秒</div>
+            </div>
+          </div>
+          <div class="footer-bar">
+            <span class="subtle" id="status-line">星尘正在漂浮，采集器待命。</span>
+            <button class="ghost" id="reset-button" type="button">重置存档</button>
+          </div>
+        </section>
+
+        <section class="panel section">
+          <div class="section-head">
+            <h2>采集器</h2>
+            <span class="subtle">3 阶解锁与升级</span>
+          </div>
+          <div class="shop-list" id="collector-list"></div>
+        </section>
+      </div>
+
+      <section class="panel stage">
+        <div class="sim-wrap">
+          <canvas id="factory-canvas" width="920" height="720"></canvas>
+          <div class="sim-overlay">
+            <div class="overlay-card">
+              <div class="label">轨道工厂</div>
+              <p class="subtle">右侧熔炉会把已采集的星尘压缩成宝石。可见粒子会被采集器牵引，产出宝石时会闪烁并弹跳。</p>
+            </div>
+            <div class="overlay-card">
+              <div class="label">离线结算公式</div>
+              <p class="subtle">离线收益 = <span class="highlight">min(离线秒数, 上限)</span> × 当前每秒产出率</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="stack">
+        <section class="panel section">
+          <div class="section-head">
+            <h2>熔炉</h2>
+            <span class="subtle">自动消耗星尘</span>
+          </div>
+          <div class="shop-list" id="furnace-list"></div>
+        </section>
+
+        <section class="panel section">
+          <div class="section-head">
+            <h2>科技树</h2>
+            <span class="subtle">简单前置 DAG</span>
+          </div>
+          <div class="tree-wrap" id="tech-tree">
+            <svg id="tech-tree-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+            <div class="tree-grid">
+              <div class="tree-col" id="collector-tree"></div>
+              <div class="tree-col" id="furnace-tree"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel section">
+          <div class="section-head">
+            <h2>事件日志</h2>
+            <span class="subtle">最近产出与解锁</span>
+          </div>
+          <div class="event-list" id="event-list"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal" id="offline-modal" role="dialog" aria-modal="true" aria-labelledby="offline-title">
+    <div class="modal-card">
+      <div class="eyebrow">Offline Income</div>
+      <h2 id="offline-title">欢迎回来</h2>
+      <p class="subtle" id="offline-copy">本次离线结算已经发放。</p>
+      <div class="modal-list" id="offline-list"></div>
+      <button class="action" id="offline-close" type="button">继续生产</button>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "stardust-factory-save-v1";
+    const AUTO_SAVE_MS = 30000;
+    const OFFLINE_CAP_SECONDS = 28800;
+    const TICK_MS = 250;
+    const MAX_VISIBLE_PARTICLES = 120;
+    const collectorDefs = [
+      {
+        id: "collector-1",
+        name: "微尘网",
+        shortName: "微尘网",
+        description: "最基础的捕捉网，拦截慢速星尘。",
+        baseCost: { stardust: 12 },
+        upgradeBaseCost: { stardust: 22 },
+        rate: 0.8,
+        unlock: {},
+        orbitY: 170,
+        color: "#75e9ff"
+      },
+      {
+        id: "collector-2",
+        name: "光谱钩阵",
+        shortName: "光谱钩阵",
+        description: "更强的牵引波，能把远处粒子吸进轨道。",
+        baseCost: { stardust: 90, amber: 8 },
+        upgradeBaseCost: { stardust: 130, amber: 10 },
+        rate: 3.2,
+        unlock: { collectors: { "collector-1": 3 }, gemsTotal: 18 },
+        orbitY: 320,
+        color: "#ffd36f"
+      },
+      {
+        id: "collector-3",
+        name: "引力花冠",
+        shortName: "引力花冠",
+        description: "环形引力场同时锁定多股星尘流。",
+        baseCost: { stardust: 320, amber: 18, rose: 12 },
+        upgradeBaseCost: { stardust: 420, amber: 22, rose: 18 },
+        rate: 9.5,
+        unlock: { collectors: { "collector-2": 2 }, gemsTotal: 75 },
+        orbitY: 490,
+        color: "#b59dff"
+      }
+    ];
+    const furnaceDefs = [
+      {
+        id: "furnace-1",
+        name: "琥珀熔炉",
+        shortName: "琥珀熔炉",
+        description: "将星尘压缩成黄玉。",
+        gem: "amber",
+        baseCost: { stardust: 18 },
+        upgradeBaseCost: { stardust: 30, amber: 3 },
+        consume: 1.5,
+        produce: 0.45,
+        unlock: {},
+        orbitY: 170,
+        color: "#ffd36f"
+      },
+      {
+        id: "furnace-2",
+        name: "玫晶熔炉",
+        shortName: "玫晶熔炉",
+        description: "高温偏振腔，生成玫晶。",
+        gem: "rose",
+        baseCost: { stardust: 120, amber: 10 },
+        upgradeBaseCost: { stardust: 160, amber: 12, rose: 4 },
+        consume: 4.5,
+        produce: 0.95,
+        unlock: { furnaces: { "furnace-1": 3 }, gemsTotal: 24 },
+        orbitY: 320,
+        color: "#ff8ca8"
+      },
+      {
+        id: "furnace-3",
+        name: "虚空棱镜炉",
+        shortName: "虚空棱镜炉",
+        description: "用相位冷凝把星尘塑形成虚空棱镜。",
+        gem: "void",
+        baseCost: { stardust: 360, amber: 20, rose: 18 },
+        upgradeBaseCost: { stardust: 500, amber: 28, rose: 20, void: 6 },
+        consume: 10,
+        produce: 1.6,
+        unlock: { furnaces: { "furnace-2": 2 }, gemsTotal: 95 },
+        orbitY: 490,
+        color: "#b59dff"
+      }
+    ];
+
+    const state = loadState();
+    const collectorMap = Object.fromEntries(collectorDefs.map((def) => [def.id, def]));
+    const furnaceMap = Object.fromEntries(furnaceDefs.map((def) => [def.id, def]));
+    const dom = {
+      collectorList: document.querySelector("#collector-list"),
+      furnaceList: document.querySelector("#furnace-list"),
+      collectorTree: document.querySelector("#collector-tree"),
+      furnaceTree: document.querySelector("#furnace-tree"),
+      techTreeSvg: document.querySelector("#tech-tree-svg"),
+      eventList: document.querySelector("#event-list"),
+      statusLine: document.querySelector("#status-line"),
+      offlineModal: document.querySelector("#offline-modal"),
+      offlineCopy: document.querySelector("#offline-copy"),
+      offlineList: document.querySelector("#offline-list"),
+      statStardust: document.querySelector("#stat-stardust"),
+      statStardustRate: document.querySelector("#stat-stardust-rate"),
+      statGemsTotal: document.querySelector("#stat-gems-total"),
+      statGemsRate: document.querySelector("#stat-gems-rate"),
+      statStage: document.querySelector("#stat-stage"),
+      statUnlocks: document.querySelector("#stat-unlocks"),
+      resourceStardust: document.querySelector("#resource-stardust"),
+      resourceAmber: document.querySelector("#resource-amber"),
+      resourceRose: document.querySelector("#resource-rose"),
+      resourceVoid: document.querySelector("#resource-void"),
+      detailStardust: document.querySelector("#resource-stardust-detail"),
+      detailAmber: document.querySelector("#resource-amber-detail"),
+      detailRose: document.querySelector("#resource-rose-detail"),
+      detailVoid: document.querySelector("#resource-void-detail")
+    };
+
+    const gemCards = {
+      amber: document.querySelector("#resource-card-amber"),
+      rose: document.querySelector("#resource-card-rose"),
+      void: document.querySelector("#resource-card-void")
+    };
+
+    const canvas = document.querySelector("#factory-canvas");
+    const ctx = canvas.getContext("2d");
+
+    const collectorsVisual = collectorDefs.map((def, index) => ({
+      id: def.id,
+      x: 210,
+      y: def.orbitY,
+      radius: 26 + index * 6
+    }));
+    const furnacesVisual = furnaceDefs.map((def, index) => ({
+      id: def.id,
+      x: 710,
+      y: def.orbitY,
+      radius: 28 + index * 5
+    }));
+
+    const particles = [];
+    const dustBursts = [];
+    const gemBursts = [];
+    const logQueue = [];
+    let lastFrame = performance.now();
+    let lastTreeDraw = 0;
+
+    applyOfflineProgress();
+    renderAll();
+    resizeCanvas();
+    seedParticles();
+    requestAnimationFrame(frame);
+    const tickHandle = setInterval(runTick, TICK_MS);
+    const autoSaveHandle = setInterval(saveGame, AUTO_SAVE_MS);
+
+    window.addEventListener("resize", resizeCanvas);
+    window.addEventListener("beforeunload", () => {
+      state.lastSeen = Date.now();
+      saveGame();
+    });
+    document.querySelector("#offline-close").addEventListener("click", closeOfflineModal);
+    document.querySelector("#reset-button").addEventListener("click", resetGame);
+
+    function createInitialState() {
+      return {
+        version: 1,
+        resources: { stardust: 24, amber: 0, rose: 0, void: 0 },
+        collectors: {
+          "collector-1": { count: 1, level: 1 },
+          "collector-2": { count: 0, level: 1 },
+          "collector-3": { count: 0, level: 1 }
+        },
+        furnaces: {
+          "furnace-1": { count: 1, level: 1 },
+          "furnace-2": { count: 0, level: 1 },
+          "furnace-3": { count: 0, level: 1 }
+        },
+        productionBuffer: { amber: 0, rose: 0, void: 0 },
+        lastSeen: Date.now(),
+        logs: [
+          { text: "工厂上线：微尘网与琥珀熔炉已启动。", type: "info" }
+        ]
+      };
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          return createInitialState();
+        }
+        const parsed = JSON.parse(raw);
+        const fresh = createInitialState();
+        return {
+          ...fresh,
+          ...parsed,
+          resources: { ...fresh.resources, ...(parsed.resources || {}) },
+          collectors: mergeUnits(fresh.collectors, parsed.collectors),
+          furnaces: mergeUnits(fresh.furnaces, parsed.furnaces),
+          productionBuffer: { ...fresh.productionBuffer, ...(parsed.productionBuffer || {}) },
+          logs: Array.isArray(parsed.logs) && parsed.logs.length ? parsed.logs.slice(0, 6) : fresh.logs
+        };
+      } catch (error) {
+        return createInitialState();
+      }
+    }
+
+    function mergeUnits(base, incoming) {
+      const next = { ...base };
+      Object.keys(next).forEach((key) => {
+        const source = incoming && incoming[key] ? incoming[key] : {};
+        next[key] = {
+          count: Number.isFinite(source.count) ? source.count : base[key].count,
+          level: Number.isFinite(source.level) ? source.level : base[key].level
+        };
+      });
+      return next;
+    }
+
+    function saveGame() {
+      state.lastSeen = Date.now();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function resetGame() {
+      if (!window.confirm("确定要清空星尘工厂存档吗？")) {
+        return;
+      }
+      const fresh = createInitialState();
+      Object.assign(state, fresh);
+      particles.length = 0;
+      dustBursts.length = 0;
+      gemBursts.length = 0;
+      seedParticles();
+      saveGame();
+      renderAll();
+    }
+
+    function closeOfflineModal() {
+      dom.offlineModal.classList.remove("show");
+    }
+
+    function getCollectorOutput(def) {
+      const owned = state.collectors[def.id];
+      return owned.count * def.rate * (1 + (owned.level - 1) * 0.35);
+    }
+
+    function getFurnaceOutput(def) {
+      const owned = state.furnaces[def.id];
+      return owned.count * def.produce * (1 + (owned.level - 1) * 0.3);
+    }
+
+    function getFurnaceConsume(def) {
+      const owned = state.furnaces[def.id];
+      return owned.count * def.consume * (1 + (owned.level - 1) * 0.26);
+    }
+
+    function getRatesSnapshot() {
+      const collectorRate = collectorDefs.reduce((sum, def) => sum + getCollectorOutput(def), 0);
+      const furnaceDemand = furnaceDefs.reduce((sum, def) => sum + getFurnaceConsume(def), 0);
+      const actualScale = furnaceDemand <= 0 ? 1 : Math.min(1, (state.resources.stardust + collectorRate) / furnaceDemand);
+      const gems = {
+        amber: getFurnaceOutput(furnaceMap["furnace-1"]) * actualScale,
+        rose: getFurnaceOutput(furnaceMap["furnace-2"]) * actualScale,
+        void: getFurnaceOutput(furnaceMap["furnace-3"]) * actualScale
+      };
+      return {
+        stardust: collectorRate - furnaceDemand * actualScale,
+        collectorRate,
+        furnaceDemand: furnaceDemand * actualScale,
+        gems
+      };
+    }
+
+    function simulateSeconds(seconds, withEffects = false) {
+      if (seconds <= 0) {
+        return { stardust: 0, amber: 0, rose: 0, void: 0 };
+      }
+
+      const collectorGain = collectorDefs.reduce((sum, def) => sum + getCollectorOutput(def), 0) * seconds;
+      state.resources.stardust += collectorGain;
+
+      let stardustSpent = 0;
+      const gemGain = { amber: 0, rose: 0, void: 0 };
+
+      furnaceDefs.forEach((def) => {
+        const consume = getFurnaceConsume(def) * seconds;
+        const available = Math.max(0, state.resources.stardust - stardustSpent);
+        const scale = consume <= 0 ? 0 : Math.min(1, available / consume);
+        const spent = consume * scale;
+        stardustSpent += spent;
+        const produced = getFurnaceOutput(def) * seconds * scale;
+        state.resources[def.gem] += produced;
+        gemGain[def.gem] += produced;
+        if (withEffects && produced > 0.02) {
+          spawnGemBurst(def.gem, produced, false);
+        }
+      });
+
+      state.resources.stardust = Math.max(0, state.resources.stardust - stardustSpent);
+      if (withEffects && collectorGain > 0) {
+        spawnDustBurst(Math.min(collectorGain, 12));
+      }
+
+      return {
+        stardust: collectorGain - stardustSpent,
+        amber: gemGain.amber,
+        rose: gemGain.rose,
+        void: gemGain.void
+      };
+    }
+
+    function applyOfflineProgress() {
+      const now = Date.now();
+      const elapsed = Math.max(0, Math.floor((now - (state.lastSeen || now)) / 1000));
+      const offlineSeconds = Math.min(elapsed, OFFLINE_CAP_SECONDS);
+      state.lastSeen = now;
+      if (offlineSeconds <= 0) {
+        return;
+      }
+
+      const gain = simulateSeconds(offlineSeconds, false);
+      const list = [
+        ["离线时长", `${formatNumber(offlineSeconds)} 秒`],
+        ["星尘净收益", formatNumber(gain.stardust)],
+        ["黄玉", formatNumber(gain.amber)],
+        ["玫晶", formatNumber(gain.rose)],
+        ["虚空棱镜", formatNumber(gain.void)]
+      ];
+
+      dom.offlineCopy.textContent = `本次按最多 ${formatNumber(OFFLINE_CAP_SECONDS)} 秒结算，共发放 ${formatNumber(offlineSeconds)} 秒离线收益。`;
+      dom.offlineList.replaceChildren(...list.map(([label, value]) => {
+        const row = document.createElement("div");
+        row.className = "event-card";
+        row.innerHTML = `<div class="row"><strong>${label}</strong><span>${value}</span></div>`;
+        return row;
+      }));
+      dom.offlineModal.classList.add("show");
+      pushLog(`离线收益已结算 ${formatNumber(offlineSeconds)} 秒。`, "info");
+    }
+
+    function canAfford(cost) {
+      return Object.entries(cost).every(([key, value]) => state.resources[key] >= value);
+    }
+
+    function spend(cost) {
+      Object.entries(cost).forEach(([key, value]) => {
+        state.resources[key] -= value;
+      });
+    }
+
+    function getBuyCost(def, type) {
+      const owned = type === "collector" ? state.collectors[def.id] : state.furnaces[def.id];
+      const multiplier = Math.pow(1.35, owned.count);
+      return scaleCost(def.baseCost, multiplier);
+    }
+
+    function getUpgradeCost(def, type) {
+      const owned = type === "collector" ? state.collectors[def.id] : state.furnaces[def.id];
+      const multiplier = Math.pow(1.55, owned.level - 1);
+      return scaleCost(def.upgradeBaseCost, multiplier);
+    }
+
+    function scaleCost(cost, multiplier) {
+      const next = {};
+      Object.entries(cost).forEach(([key, value]) => {
+        next[key] = Math.ceil(value * multiplier);
+      });
+      return next;
+    }
+
+    function meetsUnlock(unlock) {
+      if (!unlock || !Object.keys(unlock).length) {
+        return true;
+      }
+      if (unlock.gemsTotal && getTotalGems() < unlock.gemsTotal) {
+        return false;
+      }
+      if (unlock.collectors) {
+        for (const [id, count] of Object.entries(unlock.collectors)) {
+          if (state.collectors[id].count < count) {
+            return false;
+          }
+        }
+      }
+      if (unlock.furnaces) {
+        for (const [id, count] of Object.entries(unlock.furnaces)) {
+          if (state.furnaces[id].count < count) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    function getTotalGems() {
+      return state.resources.amber + state.resources.rose + state.resources.void;
+    }
+
+    function buyUnit(def, type) {
+      const cost = getBuyCost(def, type);
+      if (!canAfford(cost)) {
+        dom.statusLine.textContent = `${def.shortName} 购买失败：资源不足。`;
+        return;
+      }
+      spend(cost);
+      const owned = type === "collector" ? state.collectors[def.id] : state.furnaces[def.id];
+      owned.count += 1;
+      pushLog(`${def.shortName} +1`, "success");
+      dom.statusLine.textContent = `${def.shortName} 已部署。`;
+      if (type === "collector") {
+        spawnDustBurst(8);
+      } else {
+        spawnGemBurst(def.gem, 1.2, true);
+      }
+      renderAll();
+    }
+
+    function upgradeUnit(def, type) {
+      const cost = getUpgradeCost(def, type);
+      if (!canAfford(cost)) {
+        dom.statusLine.textContent = `${def.shortName} 升级失败：资源不足。`;
+        return;
+      }
+      spend(cost);
+      const owned = type === "collector" ? state.collectors[def.id] : state.furnaces[def.id];
+      owned.level += 1;
+      pushLog(`${def.shortName} 升到 Lv.${owned.level}`, "success");
+      dom.statusLine.textContent = `${def.shortName} 升级完成。`;
+      renderAll();
+    }
+
+    function runTick() {
+      const delta = TICK_MS / 1000;
+      const gain = simulateSeconds(delta, true);
+      if (gain.amber > 0.01) {
+        pulseGem("amber");
+      }
+      if (gain.rose > 0.01) {
+        pulseGem("rose");
+      }
+      if (gain.void > 0.01) {
+        pulseGem("void");
+      }
+      renderAll();
+    }
+
+    function pulseGem(key) {
+      const card = gemCards[key];
+      if (!card) {
+        return;
+      }
+      card.classList.remove("bump");
+      void card.offsetWidth;
+      card.classList.add("bump");
+    }
+
+    function renderAll() {
+      renderStats();
+      renderCollectors();
+      renderFurnaces();
+      renderTechTree();
+      renderLogs();
+    }
+
+    function renderStats() {
+      const rates = getRatesSnapshot();
+      const unlocked = collectorDefs.filter((def) => meetsUnlock(def.unlock)).length
+        + furnaceDefs.filter((def) => meetsUnlock(def.unlock)).length;
+
+      dom.statStardust.textContent = formatNumber(state.resources.stardust);
+      dom.statStardustRate.textContent = `${formatSigned(rates.stardust)} / 秒`;
+      dom.statGemsTotal.textContent = formatNumber(getTotalGems());
+      dom.statGemsRate.textContent = `+${formatNumber(rates.gems.amber + rates.gems.rose + rates.gems.void)} / 秒`;
+      dom.statStage.textContent = unlocked >= 6 ? "满载生产" : unlocked >= 4 ? "中段扩张" : "起步";
+      dom.statUnlocks.textContent = `已解锁 ${unlocked} / 6 生产节点`;
+
+      dom.resourceStardust.textContent = formatNumber(state.resources.stardust);
+      dom.resourceAmber.textContent = formatNumber(state.resources.amber);
+      dom.resourceRose.textContent = formatNumber(state.resources.rose);
+      dom.resourceVoid.textContent = formatNumber(state.resources.void);
+
+      dom.detailStardust.textContent = `采集器总产能 ${formatNumber(rates.collectorRate)} / 秒，熔炉消耗 ${formatNumber(rates.furnaceDemand)} / 秒`;
+      dom.detailAmber.textContent = `琥珀熔炉产能 ${formatNumber(rates.gems.amber)} / 秒`;
+      dom.detailRose.textContent = `玫晶熔炉产能 ${formatNumber(rates.gems.rose)} / 秒`;
+      dom.detailVoid.textContent = `虚空棱镜炉产能 ${formatNumber(rates.gems.void)} / 秒`;
+    }
+
+    function renderCollectors() {
+      dom.collectorList.replaceChildren(...collectorDefs.map((def) => renderUnitCard(def, "collector")));
+    }
+
+    function renderFurnaces() {
+      dom.furnaceList.replaceChildren(...furnaceDefs.map((def) => renderUnitCard(def, "furnace")));
+    }
+
+    function renderUnitCard(def, type) {
+      const unlocked = meetsUnlock(def.unlock);
+      const owned = type === "collector" ? state.collectors[def.id] : state.furnaces[def.id];
+      const buyCost = getBuyCost(def, type);
+      const upgradeCost = getUpgradeCost(def, type);
+      const card = document.createElement("article");
+      card.className = "shop-card";
+
+      const detail = type === "collector"
+        ? `产能 ${formatNumber(getCollectorOutput(def))} / 秒`
+        : `消耗 ${formatNumber(getFurnaceConsume(def))} 星尘 / 秒，产出 ${formatNumber(getFurnaceOutput(def))} ${getGemName(def.gem)} / 秒`;
+
+      card.innerHTML = `
+        <div class="row">
+          <div class="title">${def.name}</div>
+          <span class="pill">${unlocked ? "已解锁" : "锁定"}</span>
+        </div>
+        <div class="subtle">${def.description}</div>
+        <div class="row"><span>数量 ${owned.count}</span><span>等级 Lv.${owned.level}</span></div>
+        <div class="subtle">${detail}</div>
+        <div class="subtle">${unlocked ? formatCostLine("购买", buyCost) : formatUnlockLine(def.unlock)}</div>
+        <div class="subtle">${formatCostLine("升级", upgradeCost)}</div>
+      `;
+
+      const controls = document.createElement("div");
+      controls.className = "controls";
+
+      const buy = document.createElement("button");
+      buy.type = "button";
+      buy.className = "action";
+      buy.textContent = "购买";
+      buy.disabled = !unlocked || !canAfford(buyCost);
+      buy.addEventListener("click", () => buyUnit(def, type));
+
+      const upgrade = document.createElement("button");
+      upgrade.type = "button";
+      upgrade.className = "ghost";
+      upgrade.textContent = "升级";
+      upgrade.disabled = owned.count === 0 || !unlocked || !canAfford(upgradeCost);
+      upgrade.addEventListener("click", () => upgradeUnit(def, type));
+
+      controls.append(buy, upgrade);
+      card.append(controls);
+      return card;
+    }
+
+    function renderTechTree() {
+      dom.collectorTree.replaceChildren(...collectorDefs.map((def) => renderTreeNode(def, "collector")));
+      dom.furnaceTree.replaceChildren(...furnaceDefs.map((def) => renderTreeNode(def, "furnace")));
+      if (performance.now() - lastTreeDraw > 150) {
+        requestAnimationFrame(drawTechTreeLinks);
+        lastTreeDraw = performance.now();
+      }
+    }
+
+    function renderTreeNode(def, type) {
+      const owned = type === "collector" ? state.collectors[def.id] : state.furnaces[def.id];
+      const unlocked = meetsUnlock(def.unlock);
+      const node = document.createElement("article");
+      node.className = "tree-node";
+      node.classList.toggle("locked", !unlocked);
+      node.classList.toggle("ready", unlocked && owned.count === 0);
+      node.classList.toggle("owned", owned.count > 0);
+      node.dataset.nodeId = def.id;
+      node.innerHTML = `
+        <div class="row">
+          <strong>${def.shortName}</strong>
+          <span class="pill">${type === "collector" ? "采集器" : "熔炉"}</span>
+        </div>
+        <div class="subtle">${def.description}</div>
+        <div class="subtle">数量 ${owned.count}，等级 Lv.${owned.level}</div>
+        <div class="subtle">${unlocked ? "前置满足" : formatUnlockLine(def.unlock)}</div>
+      `;
+      return node;
+    }
+
+    function drawTechTreeLinks() {
+      const rect = document.querySelector("#tech-tree").getBoundingClientRect();
+      if (!rect.width || !rect.height) {
+        return;
+      }
+      const lines = [];
+      [
+        ["collector-1", "collector-2"],
+        ["collector-2", "collector-3"],
+        ["furnace-1", "furnace-2"],
+        ["furnace-2", "furnace-3"],
+        ["collector-2", "furnace-2"],
+        ["collector-3", "furnace-3"]
+      ].forEach(([fromId, toId]) => {
+        const from = document.querySelector(`[data-node-id="${fromId}"]`);
+        const to = document.querySelector(`[data-node-id="${toId}"]`);
+        if (!from || !to) {
+          return;
+        }
+        const a = from.getBoundingClientRect();
+        const b = to.getBoundingClientRect();
+        const x1 = ((a.left + a.right) / 2 - rect.left) / rect.width * 100;
+        const y1 = ((a.top + a.bottom) / 2 - rect.top) / rect.height * 100;
+        const x2 = ((b.left + b.right) / 2 - rect.left) / rect.width * 100;
+        const y2 = ((b.top + b.bottom) / 2 - rect.top) / rect.height * 100;
+        lines.push(`<path d="M ${x1} ${y1} C ${(x1 + x2) / 2} ${y1}, ${(x1 + x2) / 2} ${y2}, ${x2} ${y2}" fill="none" stroke="rgba(117,233,255,0.28)" stroke-width="0.8" stroke-linecap="round" />`);
+      });
+      dom.techTreeSvg.innerHTML = lines.join("");
+    }
+
+    function renderLogs() {
+      const logs = state.logs.slice(0, 5);
+      dom.eventList.replaceChildren(...logs.map((entry) => {
+        const card = document.createElement("div");
+        card.className = "event-card";
+        card.innerHTML = `<div class="row"><strong>${entry.text}</strong><span class="${entry.type === "warning" ? "danger" : "subtle"}">${entry.type}</span></div>`;
+        return card;
+      }));
+    }
+
+    function pushLog(text, type) {
+      state.logs.unshift({ text, type });
+      state.logs = state.logs.slice(0, 6);
+    }
+
+    function formatUnlockLine(unlock) {
+      const parts = [];
+      if (unlock.collectors) {
+        Object.entries(unlock.collectors).forEach(([id, count]) => {
+          parts.push(`${collectorMap[id].shortName} ${count}`);
+        });
+      }
+      if (unlock.furnaces) {
+        Object.entries(unlock.furnaces).forEach(([id, count]) => {
+          parts.push(`${furnaceMap[id].shortName} ${count}`);
+        });
+      }
+      if (unlock.gemsTotal) {
+        parts.push(`宝石总量 ${unlock.gemsTotal}`);
+      }
+      return `解锁条件：${parts.join("，")}`;
+    }
+
+    function formatCostLine(prefix, cost) {
+      return `${prefix}成本：${Object.entries(cost).map(([key, value]) => `${getGemName(key)} ${formatNumber(value)}`).join("，")}`;
+    }
+
+    function getGemName(key) {
+      return {
+        stardust: "星尘",
+        amber: "黄玉",
+        rose: "玫晶",
+        void: "虚空棱镜"
+      }[key];
+    }
+
+    function formatNumber(value) {
+      const abs = Math.abs(value);
+      if (abs >= 1000000) {
+        return `${(value / 1000000).toFixed(2)}M`;
+      }
+      if (abs >= 1000) {
+        return `${(value / 1000).toFixed(2)}K`;
+      }
+      if (abs >= 100) {
+        return value.toFixed(1);
+      }
+      if (abs >= 10) {
+        return value.toFixed(2);
+      }
+      return value.toFixed(3).replace(/\.?0+$/, "");
+    }
+
+    function formatSigned(value) {
+      return `${value >= 0 ? "+" : ""}${formatNumber(value)}`;
+    }
+
+    function resizeCanvas() {
+      const ratio = window.devicePixelRatio || 1;
+      const cssWidth = canvas.clientWidth;
+      const cssHeight = canvas.clientHeight;
+      canvas.width = Math.round(cssWidth * ratio);
+      canvas.height = Math.round(cssHeight * ratio);
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    }
+
+    function seedParticles() {
+      while (particles.length < MAX_VISIBLE_PARTICLES) {
+        particles.push(createParticle(Math.random() * canvas.clientWidth, Math.random() * canvas.clientHeight));
+      }
+    }
+
+    function createParticle(x = -40, y = Math.random() * canvas.clientHeight) {
+      return {
+        x,
+        y,
+        vx: 30 + Math.random() * 32,
+        vy: -8 + Math.random() * 16,
+        size: 1.5 + Math.random() * 2.6,
+        alpha: 0.3 + Math.random() * 0.6,
+        target: null
+      };
+    }
+
+    function spawnDustBurst(amount) {
+      for (let index = 0; index < Math.ceil(amount); index += 1) {
+        dustBursts.push({
+          x: 210 + Math.random() * 40 - 20,
+          y: 150 + Math.random() * 380,
+          life: 1,
+          vx: 20 + Math.random() * 40,
+          vy: -20 + Math.random() * 40
+        });
+      }
+    }
+
+    function spawnGemBurst(gem, amount, big) {
+      const furnace = furnacesVisual.find((item) => furnaceMap[item.id].gem === gem);
+      if (!furnace) {
+        return;
+      }
+      const count = Math.max(2, Math.ceil(big ? amount * 3 : amount * 2));
+      for (let index = 0; index < count; index += 1) {
+        gemBursts.push({
+          gem,
+          x: furnace.x,
+          y: furnace.y,
+          life: 1,
+          vx: -30 + Math.random() * 60,
+          vy: -60 - Math.random() * 50,
+          size: 4 + Math.random() * 5
+        });
+      }
+    }
+
+    function frame(now) {
+      const delta = Math.min(0.033, (now - lastFrame) / 1000 || 0.016);
+      lastFrame = now;
+      updateParticles(delta);
+      renderScene(delta);
+      requestAnimationFrame(frame);
+    }
+
+    function updateParticles(delta) {
+      seedParticles();
+      const availableCollectors = collectorsVisual.filter((visual) => state.collectors[visual.id].count > 0);
+      particles.forEach((particle) => {
+        particle.target = null;
+        if (availableCollectors.length) {
+          let best = null;
+          let bestDistance = 1e9;
+          availableCollectors.forEach((visual) => {
+            const dx = visual.x - particle.x;
+            const dy = visual.y - particle.y;
+            const distance = Math.hypot(dx, dy);
+            if (distance < bestDistance && distance < 180) {
+              best = visual;
+              bestDistance = distance;
+            }
+          });
+          if (best) {
+            const force = (180 - bestDistance) / 180;
+            particle.vx += ((best.x - particle.x) * 1.8 * force) * delta;
+            particle.vy += ((best.y - particle.y) * 1.8 * force) * delta;
+            particle.target = best.id;
+          }
+        }
+
+        particle.x += particle.vx * delta;
+        particle.y += particle.vy * delta;
+
+        if (particle.target) {
+          const visual = collectorsVisual.find((item) => item.id === particle.target);
+          if (visual && Math.hypot(visual.x - particle.x, visual.y - particle.y) < visual.radius) {
+            particle.x = -50 - Math.random() * 60;
+            particle.y = Math.random() * canvas.clientHeight;
+            particle.vx = 30 + Math.random() * 32;
+            particle.vy = -8 + Math.random() * 16;
+          }
+        }
+
+        if (particle.x > canvas.clientWidth + 50 || particle.y < -40 || particle.y > canvas.clientHeight + 40) {
+          Object.assign(particle, createParticle(-30 - Math.random() * 80));
+        }
+      });
+
+      updateBurstSet(dustBursts, delta);
+      updateBurstSet(gemBursts, delta);
+    }
+
+    function updateBurstSet(set, delta) {
+      for (let index = set.length - 1; index >= 0; index -= 1) {
+        const item = set[index];
+        item.life -= delta * 1.4;
+        item.x += item.vx * delta;
+        item.y += item.vy * delta;
+        item.vy += 26 * delta;
+        if (item.life <= 0) {
+          set.splice(index, 1);
+        }
+      }
+    }
+
+    function renderScene(delta) {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      ctx.clearRect(0, 0, width, height);
+      drawFlowLanes(width, height);
+      drawCollectors(delta);
+      drawFurnaces(delta);
+      drawParticles();
+      drawDustBursts();
+      drawGemBursts();
+      drawTransportBeams();
+    }
+
+    function drawFlowLanes(width, height) {
+      const gradient = ctx.createLinearGradient(0, 0, width, 0);
+      gradient.addColorStop(0, "rgba(117, 233, 255, 0.03)");
+      gradient.addColorStop(0.5, "rgba(117, 233, 255, 0.09)");
+      gradient.addColorStop(1, "rgba(255, 211, 111, 0.05)");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(80, 80, width - 160, height - 160);
+
+      ctx.strokeStyle = "rgba(117, 233, 255, 0.08)";
+      ctx.lineWidth = 2;
+      collectorDefs.forEach((def) => {
+        ctx.beginPath();
+        ctx.moveTo(240, def.orbitY);
+        ctx.bezierCurveTo(360, def.orbitY - 26, 560, def.orbitY + 26, 670, def.orbitY);
+        ctx.stroke();
+      });
+    }
+
+    function drawCollectors(delta) {
+      collectorsVisual.forEach((visual, index) => {
+        const def = collectorMap[visual.id];
+        const owned = state.collectors[visual.id];
+        const active = owned.count > 0;
+        const pulse = 1 + Math.sin(performance.now() / 500 + index) * 0.06;
+        ctx.save();
+        ctx.translate(visual.x, visual.y);
+
+        ctx.fillStyle = active ? `${def.color}22` : "rgba(255,255,255,0.05)";
+        ctx.beginPath();
+        ctx.arc(0, 0, visual.radius * 2.3 * pulse, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = active ? `${def.color}aa` : "rgba(255,255,255,0.12)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, visual.radius * pulse, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = active ? def.color : "rgba(255,255,255,0.24)";
+        ctx.beginPath();
+        ctx.arc(0, 0, visual.radius * 0.64, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        ctx.font = "12px Avenir Next, sans-serif";
+        ctx.fillText(`${def.shortName} x${owned.count}`, -28, visual.radius + 26);
+        ctx.restore();
+      });
+    }
+
+    function drawFurnaces(delta) {
+      furnacesVisual.forEach((visual, index) => {
+        const def = furnaceMap[visual.id];
+        const owned = state.furnaces[visual.id];
+        const active = owned.count > 0;
+        const pulse = 1 + Math.sin(performance.now() / 340 + index * 1.7) * 0.08;
+        ctx.save();
+        ctx.translate(visual.x, visual.y);
+
+        ctx.fillStyle = active ? `${def.color}22` : "rgba(255,255,255,0.05)";
+        ctx.beginPath();
+        ctx.arc(0, 0, visual.radius * 1.9 * pulse, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = active ? def.color : "rgba(255,255,255,0.2)";
+        ctx.beginPath();
+        roundRect(ctx, -visual.radius, -visual.radius, visual.radius * 2, visual.radius * 2, 10);
+        ctx.fill();
+
+        ctx.fillStyle = "rgba(4,10,22,0.85)";
+        roundRect(ctx, -visual.radius * 0.55, -visual.radius * 0.55, visual.radius * 1.1, visual.radius * 1.1, 8);
+        ctx.fill();
+
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        ctx.font = "12px Avenir Next, sans-serif";
+        ctx.fillText(`${def.shortName} x${owned.count}`, -34, visual.radius + 24);
+        ctx.restore();
+      });
+    }
+
+    function roundRect(context, x, y, width, height, radius) {
+      context.beginPath();
+      context.moveTo(x + radius, y);
+      context.arcTo(x + width, y, x + width, y + height, radius);
+      context.arcTo(x + width, y + height, x, y + height, radius);
+      context.arcTo(x, y + height, x, y, radius);
+      context.arcTo(x, y, x + width, y, radius);
+      context.closePath();
+    }
+
+    function drawParticles() {
+      particles.forEach((particle) => {
+        ctx.fillStyle = `rgba(117, 233, 255, ${particle.alpha})`;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function drawDustBursts() {
+      dustBursts.forEach((item) => {
+        ctx.fillStyle = `rgba(117, 233, 255, ${item.life})`;
+        ctx.beginPath();
+        ctx.arc(item.x, item.y, 2.4 * item.life, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function drawGemBursts() {
+      gemBursts.forEach((item) => {
+        const color = {
+          amber: "255, 211, 111",
+          rose: "255, 140, 168",
+          void: "181, 157, 255"
+        }[item.gem];
+        ctx.fillStyle = `rgba(${color}, ${item.life})`;
+        ctx.save();
+        ctx.translate(item.x, item.y);
+        ctx.rotate((1 - item.life) * 3.8);
+        ctx.beginPath();
+        ctx.moveTo(0, -item.size);
+        ctx.lineTo(item.size * 0.7, 0);
+        ctx.lineTo(0, item.size);
+        ctx.lineTo(-item.size * 0.7, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+
+    function drawTransportBeams() {
+      furnaceDefs.forEach((def) => {
+        if (state.furnaces[def.id].count <= 0) {
+          return;
+        }
+        const furnace = furnacesVisual.find((item) => item.id === def.id);
+        ctx.strokeStyle = `${def.color}66`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(278, def.orbitY);
+        ctx.bezierCurveTo(410, def.orbitY - 12, 548, def.orbitY + 12, furnace.x - 38, furnace.y);
+        ctx.stroke();
+      });
+    }
+  </script>
+</body>
+</html>
