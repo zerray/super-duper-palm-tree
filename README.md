@@ -22,9 +22,10 @@ This repository contains a simple agent-factory workflow for planning and comple
 新增 `infinite-conveyor-factory/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的传送带自动化小游戏，包含：
 
 - 16x16 可滚动网格地图与左侧建造面板
-- 传送带、采矿机、出货口三种初始组件，以及金币达标后自动解锁的加工站
+- 左侧固定原料源点、右侧固定交付出口，以及可点击放置/旋转/删除的传送带与加工站
+- 通过金币手动解锁两种新建筑：高速传送带与加工站
 - 基于 tick 的物流移动与 `requestAnimationFrame` 平滑插值动画
-- 使用 `localStorage` 持久化地图、金币、解锁状态，并提供清空地图与重新开始按钮
+- 使用 `localStorage` 持久化地图、金币、解锁状态，并提供首条产线教程提示、清空地图与重新开始按钮
 
 直接用浏览器打开 `infinite-conveyor-factory/index.html` 即可游玩。
 
