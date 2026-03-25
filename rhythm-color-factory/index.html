@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>节奏色块工厂：音乐驱动的 Idle 色块生产线</title>
+  <style>
+    :root {
+      --bg: #10131b;
+      --panel: rgba(18, 23, 34, 0.92);
+      --panel-strong: rgba(27, 35, 51, 0.98);
+      --line: rgba(255, 255, 255, 0.1);
+      --text: #f4f7ff;
+      --muted: #9aa9c4;
+      --accent: #78f0bf;
+      --accent-strong: #ffd166;
+      --danger: #ff7f95;
+      --shadow: 0 20px 48px rgba(0, 0, 0, 0.34);
+      --radius: 24px;
+      --display: "Trebuchet MS", "Avenir Next Condensed", sans-serif;
+      --body: "Avenir Next", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--body);
+      color: var(--text);
+      background:
+        radial-gradient(circle at 10% 20%, rgba(120, 240, 191, 0.16), transparent 24%),
+        radial-gradient(circle at 85% 15%, rgba(255, 209, 102, 0.14), transparent 26%),
+        radial-gradient(circle at 50% 100%, rgba(81, 152, 255, 0.12), transparent 32%),
+        linear-gradient(180deg, #111521 0%, #0b0f17 55%, #070a11 100%);
+    }
+
+    button {
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(1240px, calc(100vw - 24px));
+      margin: 18px auto 28px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .hero {
+      padding: 22px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) repeat(3, minmax(0, 0.8fr));
+      gap: 14px;
+    }
+
+    .hero-card,
+    .stat-card {
+      border-radius: 20px;
+      padding: 18px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(120, 240, 191, 0.04)),
+        rgba(255, 255, 255, 0.025);
+    }
+
+    .eyebrow,
+    .label {
+      margin: 0;
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      margin-top: 10px;
+      font-family: var(--display);
+      font-size: clamp(2.5rem, 5vw, 4.5rem);
+      line-height: 0.92;
+      letter-spacing: -0.05em;
+    }
+
+    .subtitle {
+      margin-top: 12px;
+      color: var(--muted);
+      line-height: 1.65;
+      max-width: 60ch;
+    }
+
+    .hero-actions {
+      margin-top: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .primary-btn,
+    .ghost-btn,
+    .upgrade-btn {
+      border: 1px solid transparent;
+      border-radius: 14px;
+      padding: 12px 16px;
+      transition: transform 140ms ease, background 140ms ease, border-color 140ms ease, opacity 140ms ease;
+    }
+
+    .primary-btn {
+      background: linear-gradient(135deg, #78f0bf, #4fc9ff);
+      color: #071017;
+      font-weight: 700;
+    }
+
+    .ghost-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--line);
+    }
+
+    .upgrade-btn {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.08);
+      text-align: left;
+    }
+
+    .primary-btn:hover,
+    .ghost-btn:hover,
+    .upgrade-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    .upgrade-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .stat-value {
+      margin-top: 8px;
+      font-size: clamp(1.5rem, 3vw, 2.2rem);
+      font-weight: 700;
+    }
+
+    .stat-note {
+      margin-top: 8px;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 0.92rem;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(300px, 360px);
+      gap: 18px;
+    }
+
+    .section {
+      padding: 18px;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .section-copy {
+      margin-top: 8px;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 0.95rem;
+    }
+
+    .factory-stage {
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: 20px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
+        rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 16px;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(120, 240, 191, 0.08), transparent 28%),
+        linear-gradient(180deg, #111829, #0a0f19);
+    }
+
+    .timeline {
+      margin-top: 12px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .chip.live {
+      color: #071017;
+      background: linear-gradient(135deg, #ffd166, #78f0bf);
+    }
+
+    .status-strip,
+    .upgrade-stack,
+    .meta-stack,
+    .swatches,
+    .transport-stats {
+      display: grid;
+      gap: 12px;
+    }
+
+    .status-strip {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 16px;
+    }
+
+    .mini-card,
+    .upgrade-card,
+    .meta-card {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .mini-value {
+      margin-top: 6px;
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    .progress-bar {
+      height: 10px;
+      margin-top: 10px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #4fc9ff, #78f0bf, #ffd166);
+    }
+
+    .upgrade-top,
+    .meta-top,
+    .transport-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .upgrade-note,
+    .meta-note,
+    .help {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.55;
+    }
+
+    .swatches {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      margin-top: 12px;
+    }
+
+    .swatch {
+      height: 34px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      opacity: 0.28;
+      transform: scale(0.94);
+      transition: opacity 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+    }
+
+    .swatch.unlocked {
+      opacity: 1;
+      transform: scale(1);
+      box-shadow: 0 0 18px rgba(255, 255, 255, 0.12);
+    }
+
+    .footer-note {
+      color: var(--muted);
+      text-align: center;
+      font-size: 0.92rem;
+    }
+
+    @media (max-width: 980px) {
+      .hero,
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .app {
+        width: min(100vw - 16px, 1240px);
+        margin-top: 8px;
+      }
+
+      .hero,
+      .section {
+        padding: 16px;
+      }
+
+      .status-strip {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel hero">
+      <div class="hero-card">
+        <p class="eyebrow">Idle Rhythm Factory</p>
+        <h1>节奏色块工厂</h1>
+        <p class="subtitle">
+          传送带会按拍点自动产出色块。升级产线速度、解锁更多颜色，工厂等级越高，背景音乐会叠加更多音轨层，整条生产线都踩着同一个节拍脉动。
+        </p>
+        <div class="hero-actions">
+          <button class="primary-btn" id="audio-toggle">启动音乐</button>
+          <button class="ghost-btn" id="reset-save">重置进度</button>
+        </div>
+      </div>
+      <div class="stat-card">
+        <p class="label">累计产出</p>
+        <p class="stat-value" id="total-output">0</p>
+        <p class="stat-note">色块到达右端会结算，并触发弹跳与粒子喷射。</p>
+      </div>
+      <div class="stat-card">
+        <p class="label">可用能量</p>
+        <p class="stat-value" id="credits">0</p>
+        <p class="stat-note">用于升级速度与解锁新颜色。成本按指数增长。</p>
+      </div>
+      <div class="stat-card">
+        <p class="label">音乐层级</p>
+        <p class="stat-value" id="layer-count">1 / 3</p>
+        <p class="stat-note" id="layer-note">基础鼓组在线，继续升级可解锁低音与和声层。</p>
+      </div>
+    </section>
+
+    <section class="main-grid">
+      <div class="panel section">
+        <div class="section-head">
+          <div>
+            <h2>生产线视图</h2>
+            <p class="section-copy">页面加载后立即自动运行。音乐可单独由用户点击启动，但视觉与生产节拍始终保持运行。</p>
+          </div>
+          <div class="chip" id="beat-indicator">Beat 1</div>
+        </div>
+
+        <div class="factory-stage">
+          <canvas id="factory-canvas" width="960" height="420" aria-label="Rhythm color factory conveyor"></canvas>
+          <div class="timeline">
+            <div class="chip live" id="track-drums">鼓组</div>
+            <div class="chip" id="track-bass">低音</div>
+            <div class="chip" id="track-lead">和声</div>
+          </div>
+          <div class="status-strip">
+            <div class="mini-card">
+              <p class="label">传送带速度</p>
+              <p class="mini-value" id="belt-speed-label">1.00x</p>
+            </div>
+            <div class="mini-card">
+              <p class="label">每拍产出</p>
+              <p class="mini-value" id="blocks-per-beat">1</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="panel section">
+        <div class="section-head">
+          <div>
+            <h2>升级面板</h2>
+            <p class="section-copy">两条核心升级路径：更快产线，或更丰富颜色池。</p>
+          </div>
+        </div>
+
+        <div class="upgrade-stack">
+          <div class="upgrade-card">
+            <button class="upgrade-btn" id="upgrade-speed">
+              <div class="upgrade-top">
+                <strong>升级产线速度</strong>
+                <span id="speed-cost">0</span>
+              </div>
+              <p class="upgrade-note" id="speed-note">提高色块移动速度并增加每拍产出数量。</p>
+              <div class="progress-bar"><div class="progress-fill" id="speed-progress"></div></div>
+            </button>
+          </div>
+
+          <div class="upgrade-card">
+            <button class="upgrade-btn" id="upgrade-colors">
+              <div class="upgrade-top">
+                <strong>解锁新颜色</strong>
+                <span id="color-cost">0</span>
+              </div>
+              <p class="upgrade-note" id="color-note">当前可用颜色池会用于新生成的色块，至少可解锁 6 色。</p>
+              <div class="progress-bar"><div class="progress-fill" id="color-progress"></div></div>
+            </button>
+            <div class="swatches" id="color-swatches"></div>
+          </div>
+
+          <div class="meta-card">
+            <div class="meta-top">
+              <strong>工厂进度</strong>
+              <span id="factory-level">Lv.1</span>
+            </div>
+            <p class="meta-note" id="progress-note">下一层音乐将在 2 次升级后解锁。</p>
+          </div>
+
+          <div class="meta-card transport-stats">
+            <div class="transport-row">
+              <span>到站反馈</span>
+              <strong id="delivery-streak">0 连续到站</strong>
+            </div>
+            <div class="transport-row">
+              <span>本地保存</span>
+              <strong id="save-state">已加载</strong>
+            </div>
+            <p class="help">进度会自动保存在 `localStorage`。刷新页面后会恢复累计产出、升级等级和已解锁颜色。</p>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <p class="footer-note">建议先点击“启动音乐”，再观察传送带脉动、色块弹跳与音轨层逐步叠加。</p>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "rhythm-color-factory-save-v1";
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    const BPM = 116;
+    const BEAT_MS = 60000 / BPM;
+    const SAVE_INTERVAL_MS = 3000;
+    const COLORS = ["#ff5d73", "#ff975d", "#ffd15d", "#6ef3a1", "#5dd9ff", "#8a7dff"];
+
+    const defaultState = {
+      credits: 14,
+      totalOutput: 0,
+      speedLevel: 0,
+      colorLevel: 0,
+      deliveryStreak: 0,
+      audioEnabled: false
+    };
+
+    const state = loadState();
+    state.audioEnabled = false;
+    const ui = {
+      audioToggle: document.querySelector("#audio-toggle"),
+      resetSave: document.querySelector("#reset-save"),
+      totalOutput: document.querySelector("#total-output"),
+      credits: document.querySelector("#credits"),
+      layerCount: document.querySelector("#layer-count"),
+      layerNote: document.querySelector("#layer-note"),
+      beatIndicator: document.querySelector("#beat-indicator"),
+      beltSpeedLabel: document.querySelector("#belt-speed-label"),
+      blocksPerBeat: document.querySelector("#blocks-per-beat"),
+      speedCost: document.querySelector("#speed-cost"),
+      colorCost: document.querySelector("#color-cost"),
+      speedNote: document.querySelector("#speed-note"),
+      colorNote: document.querySelector("#color-note"),
+      speedProgress: document.querySelector("#speed-progress"),
+      colorProgress: document.querySelector("#color-progress"),
+      speedButton: document.querySelector("#upgrade-speed"),
+      colorButton: document.querySelector("#upgrade-colors"),
+      colorSwatches: document.querySelector("#color-swatches"),
+      factoryLevel: document.querySelector("#factory-level"),
+      progressNote: document.querySelector("#progress-note"),
+      deliveryStreak: document.querySelector("#delivery-streak"),
+      saveState: document.querySelector("#save-state"),
+      trackDrums: document.querySelector("#track-drums"),
+      trackBass: document.querySelector("#track-bass"),
+      trackLead: document.querySelector("#track-lead")
+    };
+
+    const canvas = document.querySelector("#factory-canvas");
+    const ctx = canvas.getContext("2d");
+
+    let audioContext = null;
+    let lastBeatIndex = -1;
+    let lastBeatAt = performance.now();
+    let lastSaveAt = 0;
+    const blocks = [];
+    const particles = [];
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function getUnlockedColorCount() {
+      return clamp(1 + state.colorLevel, 1, COLORS.length);
+    }
+
+    function getFactoryLevel() {
+      return 1 + state.speedLevel + state.colorLevel;
+    }
+
+    function getMusicLayers() {
+      const totalUpgrades = state.speedLevel + state.colorLevel;
+      if (totalUpgrades >= 5) {
+        return 3;
+      }
+      if (totalUpgrades >= 2) {
+        return 2;
+      }
+      return 1;
+    }
+
+    function getSpeedCost() {
+      return Math.round(12 * Math.pow(1.8, state.speedLevel));
+    }
+
+    function getColorCost() {
+      return Math.round(18 * Math.pow(2.05, state.colorLevel));
+    }
+
+    function getBlocksPerBeat() {
+      return 1 + Math.floor(state.speedLevel / 2);
+    }
+
+    function getBeltSpeed() {
+      return 140 + state.speedLevel * 26;
+    }
+
+    function saveState(reason = "自动保存") {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      ui.saveState.textContent = reason;
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          return { ...defaultState };
+        }
+        return { ...defaultState, ...JSON.parse(raw) };
+      } catch (error) {
+        return { ...defaultState };
+      }
+    }
+
+    function buildSwatches() {
+      ui.colorSwatches.innerHTML = "";
+      const unlockedCount = getUnlockedColorCount();
+      COLORS.forEach((color, index) => {
+        const swatch = document.createElement("div");
+        swatch.className = "swatch" + (index < unlockedCount ? " unlocked" : "");
+        swatch.style.background = color;
+        ui.colorSwatches.appendChild(swatch);
+      });
+    }
+
+    function renderUi() {
+      const speedCost = getSpeedCost();
+      const colorCost = getColorCost();
+      const layers = getMusicLayers();
+      const unlockedCount = getUnlockedColorCount();
+      const speedAffordable = state.credits >= speedCost;
+      const colorAffordable = state.credits >= colorCost;
+      const colorCapReached = unlockedCount >= COLORS.length;
+
+      ui.totalOutput.textContent = state.totalOutput.toLocaleString("zh-CN");
+      ui.credits.textContent = state.credits.toLocaleString("zh-CN");
+      ui.layerCount.textContent = `${layers} / 3`;
+      ui.layerNote.textContent = layers === 1
+        ? "基础鼓组在线，继续升级可解锁低音与和声层。"
+        : layers === 2
+          ? "低音层已叠加，再完成 3 次升级可解锁和声层。"
+          : "三层音轨已全部激活，工厂进入满编节奏状态。";
+      ui.beltSpeedLabel.textContent = `${(getBeltSpeed() / 140).toFixed(2)}x`;
+      ui.blocksPerBeat.textContent = String(getBlocksPerBeat());
+      ui.speedCost.textContent = `${speedCost} 能量`;
+      ui.colorCost.textContent = colorCapReached ? "已满" : `${colorCost} 能量`;
+      ui.speedNote.textContent = `Lv.${state.speedLevel}，提升传送带速度并在高等级时增加每拍产出。`;
+      ui.colorNote.textContent = `已解锁 ${unlockedCount} / ${COLORS.length} 种颜色，新色块会从当前颜色池随机出现。`;
+      ui.speedProgress.style.width = `${Math.min(100, state.credits / speedCost * 100)}%`;
+      ui.colorProgress.style.width = colorCapReached ? "100%" : `${Math.min(100, state.credits / colorCost * 100)}%`;
+      ui.speedButton.disabled = !speedAffordable;
+      ui.colorButton.disabled = !colorAffordable || colorCapReached;
+      ui.factoryLevel.textContent = `Lv.${getFactoryLevel()}`;
+      ui.progressNote.textContent = layers < 3
+        ? `当前总升级 ${state.speedLevel + state.colorLevel} 次，下一层音乐将在 ${layers === 1 ? 2 : 5} 次总升级时解锁。`
+        : "已达到最高音乐层，继续升级只会让产线更快、更鲜艳。";
+      ui.deliveryStreak.textContent = `${state.deliveryStreak} 连续到站`;
+      ui.audioToggle.textContent = state.audioEnabled ? "音乐运行中" : "启动音乐";
+      ui.trackDrums.classList.toggle("live", layers >= 1);
+      ui.trackBass.classList.toggle("live", layers >= 2);
+      ui.trackLead.classList.toggle("live", layers >= 3);
+
+      buildSwatches();
+    }
+
+    function getRandomColor() {
+      const unlockedCount = getUnlockedColorCount();
+      return COLORS[Math.floor(Math.random() * unlockedCount)];
+    }
+
+    function spawnBlock(slotIndex, totalSlots) {
+      const laneGap = 46;
+      const laneBase = canvas.height * 0.54;
+      const offset = totalSlots === 1 ? 0 : (slotIndex - (totalSlots - 1) / 2) * laneGap;
+      blocks.push({
+        x: 120,
+        y: laneBase + offset,
+        size: 28,
+        color: getRandomColor(),
+        rotation: Math.random() * Math.PI,
+        pulse: 1,
+        delivered: false
+      });
+    }
+
+    function emitParticles(x, y, color) {
+      for (let index = 0; index < 12; index += 1) {
+        const angle = (Math.PI * 2 * index) / 12 + Math.random() * 0.4;
+        const speed = 90 + Math.random() * 80;
+        particles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 30,
+          size: 4 + Math.random() * 6,
+          life: 0.85,
+          color
+        });
+      }
+    }
+
+    function onDelivery(block) {
+      state.totalOutput += 1;
+      state.credits += 1;
+      state.deliveryStreak += 1;
+      emitParticles(block.x, block.y, block.color);
+      renderUi();
+    }
+
+    function triggerBeat(beatIndex) {
+      lastBeatAt = performance.now();
+      ui.beatIndicator.textContent = `Beat ${(beatIndex % 4) + 1}`;
+
+      const amount = getBlocksPerBeat();
+      for (let index = 0; index < amount; index += 1) {
+        spawnBlock(index, amount);
+      }
+
+      blocks.forEach((block) => {
+        block.pulse = 1.5;
+      });
+
+      playBeatSound(beatIndex);
+    }
+
+    function ensureAudio() {
+      if (!AudioContextClass) {
+        return null;
+      }
+      if (!audioContext) {
+        audioContext = new AudioContextClass();
+      }
+      return audioContext;
+    }
+
+    function playTone(time, frequency, duration, type, gainValue) {
+      if (!audioContext) {
+        return;
+      }
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, time);
+      gain.gain.setValueAtTime(0.0001, time);
+      gain.gain.exponentialRampToValueAtTime(gainValue, time + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+      oscillator.connect(gain);
+      gain.connect(audioContext.destination);
+      oscillator.start(time);
+      oscillator.stop(time + duration + 0.02);
+    }
+
+    function playBeatSound(beatIndex) {
+      if (!state.audioEnabled || !audioContext) {
+        return;
+      }
+      const now = audioContext.currentTime;
+      const layers = getMusicLayers();
+      const beatInBar = beatIndex % 4;
+
+      playTone(now, beatInBar === 0 ? 68 : 92, 0.18, "triangle", beatInBar === 0 ? 0.08 : 0.035);
+      playTone(now + 0.02, 1100 + beatInBar * 60, 0.05, "square", 0.018);
+
+      if (layers >= 2) {
+        const bassPattern = [110, 147, 165, 147];
+        playTone(now, bassPattern[beatInBar], 0.28, "sine", 0.05);
+      }
+
+      if (layers >= 3) {
+        const leadPattern = [440, 554, 659, 554];
+        playTone(now + 0.04, leadPattern[beatInBar], 0.24, "sawtooth", 0.02);
+      }
+    }
+
+    function drawFactory(now) {
+      const beatPhase = clamp((now - lastBeatAt) / BEAT_MS, 0, 1);
+      const pulse = 1 - beatPhase;
+      const beltY = canvas.height * 0.54;
+      const endX = canvas.width - 120;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "rgba(255,255,255,0.04)";
+      ctx.fillRect(90, beltY - 58, canvas.width - 180, 116);
+
+      ctx.fillStyle = `rgba(120, 240, 191, ${0.10 + pulse * 0.22})`;
+      ctx.fillRect(100, beltY - 42, canvas.width - 200, 84);
+
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      for (let x = 116; x < canvas.width - 110; x += 48) {
+        ctx.fillRect(x + Math.sin((now / 130) + x / 50) * 3, beltY - 48, 28, 96);
+      }
+
+      ctx.fillStyle = "rgba(79, 201, 255, 0.26)";
+      ctx.fillRect(82, beltY - 72, 34, 144);
+      ctx.fillStyle = "rgba(255, 209, 102, 0.28)";
+      ctx.fillRect(endX, beltY - 82, 36, 164);
+
+      ctx.save();
+      ctx.translate(endX + 18, beltY - 96 + Math.sin(now / 120) * 3);
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.font = "bold 14px Avenir Next, sans-serif";
+      ctx.fillText("收集端", -22, 0);
+      ctx.restore();
+
+      blocks.forEach((block) => {
+        const pulseSize = 1 + block.pulse * 0.1;
+        ctx.save();
+        ctx.translate(block.x, block.y - Math.sin(beatPhase * Math.PI) * 6);
+        ctx.rotate(block.rotation);
+        ctx.scale(pulseSize, pulseSize);
+        ctx.fillStyle = block.color;
+        ctx.shadowColor = block.color;
+        ctx.shadowBlur = 18;
+        ctx.fillRect(-block.size / 2, -block.size / 2, block.size, block.size);
+        ctx.restore();
+      });
+
+      particles.forEach((particle) => {
+        ctx.globalAlpha = clamp(particle.life, 0, 1);
+        ctx.fillStyle = particle.color;
+        ctx.fillRect(particle.x, particle.y, particle.size, particle.size);
+        ctx.globalAlpha = 1;
+      });
+    }
+
+    function updateSimulation(deltaMs) {
+      const deltaSeconds = deltaMs / 1000;
+      const speed = getBeltSpeed();
+      const endX = canvas.width - 122;
+
+      for (let index = blocks.length - 1; index >= 0; index -= 1) {
+        const block = blocks[index];
+        block.x += speed * deltaSeconds;
+        block.rotation += 0.9 * deltaSeconds;
+        block.pulse = Math.max(0, block.pulse - deltaSeconds * 2.4);
+        if (!block.delivered && block.x >= endX) {
+          block.delivered = true;
+          onDelivery(block);
+          blocks.splice(index, 1);
+        }
+      }
+
+      for (let index = particles.length - 1; index >= 0; index -= 1) {
+        const particle = particles[index];
+        particle.x += particle.vx * deltaSeconds;
+        particle.y += particle.vy * deltaSeconds;
+        particle.vy += 210 * deltaSeconds;
+        particle.life -= deltaSeconds * 1.2;
+        if (particle.life <= 0) {
+          particles.splice(index, 1);
+        }
+      }
+    }
+
+    function updateBeatClock(now) {
+      const beatIndex = Math.floor(now / BEAT_MS);
+      if (beatIndex !== lastBeatIndex) {
+        lastBeatIndex = beatIndex;
+        triggerBeat(beatIndex);
+      }
+    }
+
+    function purchaseSpeedUpgrade() {
+      const cost = getSpeedCost();
+      if (state.credits < cost) {
+        return;
+      }
+      state.credits -= cost;
+      state.speedLevel += 1;
+      state.deliveryStreak = 0;
+      renderUi();
+      saveState("速度升级已保存");
+    }
+
+    function purchaseColorUpgrade() {
+      const cost = getColorCost();
+      if (state.credits < cost || getUnlockedColorCount() >= COLORS.length) {
+        return;
+      }
+      state.credits -= cost;
+      state.colorLevel += 1;
+      state.deliveryStreak = 0;
+      renderUi();
+      saveState("颜色升级已保存");
+    }
+
+    async function toggleAudio() {
+      const context = ensureAudio();
+      if (!context) {
+        ui.audioToggle.textContent = "当前浏览器不支持";
+        return;
+      }
+
+      if (context.state === "suspended") {
+        await context.resume();
+      }
+
+      state.audioEnabled = !state.audioEnabled;
+      renderUi();
+      saveState("音频状态已保存");
+    }
+
+    function resetProgress() {
+      Object.assign(state, { ...defaultState });
+      blocks.length = 0;
+      particles.length = 0;
+      saveState("进度已重置");
+      renderUi();
+    }
+
+    let previousFrame = performance.now();
+    function frame(now) {
+      const deltaMs = Math.min(40, now - previousFrame);
+      previousFrame = now;
+
+      updateBeatClock(now);
+      updateSimulation(deltaMs);
+      drawFactory(now);
+
+      if (now - lastSaveAt > SAVE_INTERVAL_MS) {
+        saveState("自动保存");
+        lastSaveAt = now;
+      }
+
+      window.requestAnimationFrame(frame);
+    }
+
+    ui.speedButton.addEventListener("click", purchaseSpeedUpgrade);
+    ui.colorButton.addEventListener("click", purchaseColorUpgrade);
+    ui.audioToggle.addEventListener("click", toggleAudio);
+    ui.resetSave.addEventListener("click", resetProgress);
+
+    renderUi();
+    window.requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
