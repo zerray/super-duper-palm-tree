@@ -6,14 +6,14 @@
   <title>节奏色块记忆挑战</title>
   <style>
     :root {
-      --bg: #07101f;
-      --panel: rgba(10, 16, 31, 0.88);
+      --bg: #08111f;
+      --panel: rgba(10, 17, 33, 0.9);
       --line: rgba(255, 255, 255, 0.1);
-      --text: #eff7ff;
-      --muted: #9db0d0;
-      --accent: #7cf6ff;
-      --good: #77ffbe;
-      --bad: #ff6a9b;
+      --text: #eef6ff;
+      --muted: #9eb2d1;
+      --accent: #7df5ff;
+      --good: #7fffbb;
+      --bad: #ff6d9e;
       --shadow: 0 24px 60px rgba(0, 0, 0, 0.34);
     }
 
@@ -27,9 +27,9 @@
       font-family: "Trebuchet MS", "PingFang SC", sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at top left, rgba(124, 246, 255, 0.18), transparent 24%),
-        radial-gradient(circle at 85% 12%, rgba(255, 106, 155, 0.16), transparent 22%),
-        linear-gradient(180deg, #040812 0%, #081226 45%, #060913 100%);
+        radial-gradient(circle at top left, rgba(125, 245, 255, 0.16), transparent 24%),
+        radial-gradient(circle at 90% 10%, rgba(255, 109, 158, 0.14), transparent 20%),
+        linear-gradient(180deg, #050914, #091426 44%, #050914);
     }
 
     button {
@@ -38,10 +38,16 @@
       cursor: pointer;
     }
 
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
     .app {
-      width: min(1120px, calc(100vw - 24px));
+      width: min(1180px, calc(100vw - 24px));
       margin: 0 auto;
-      padding: 20px 0 32px;
+      padding: 18px 0 28px;
       display: grid;
       gap: 16px;
     }
@@ -55,32 +61,34 @@
     }
 
     .hero {
-      padding: 24px;
+      padding: 22px;
       display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
       gap: 16px;
+    }
+
+    .hero-copy,
+    .menu,
+    .main,
+    .board-wrap,
+    .sidebar,
+    .card {
+      display: grid;
+      gap: 14px;
     }
 
     .eyebrow,
     .label {
-      margin: 0;
       color: var(--accent);
-      font-size: 0.8rem;
-      letter-spacing: 0.16em;
+      font-size: 0.78rem;
       text-transform: uppercase;
-    }
-
-    h1,
-    h2,
-    p,
-    ol {
-      margin: 0;
+      letter-spacing: 0.16em;
     }
 
     h1 {
       margin-top: 8px;
       font-size: clamp(2.8rem, 7vw, 5rem);
-      line-height: 0.9;
+      line-height: 0.92;
       letter-spacing: -0.06em;
     }
 
@@ -91,25 +99,27 @@
       line-height: 1.65;
     }
 
-    .hero-copy,
-    .menu,
-    .board-wrap,
-    .sidebar {
-      display: grid;
-      gap: 14px;
-    }
-
     .stats,
-    .duel-scores {
+    .score-grid,
+    .mode-row,
+    .button-row {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 10px;
     }
 
+    .stats,
+    .score-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .mode-row,
+    .button-row {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .stat,
-    .menu,
-    .leaderboard,
-    .duel-card {
+    .card,
+    .menu {
       padding: 16px;
       border-radius: 22px;
       border: 1px solid rgba(255, 255, 255, 0.08);
@@ -118,24 +128,22 @@
 
     .value {
       margin-top: 6px;
-      font-size: 1.42rem;
+      font-size: 1.4rem;
       font-weight: 700;
     }
 
-    .mode-row,
-    .button-row {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
+    .mode-button,
+    .action-button,
+    .pad {
+      transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, filter 140ms ease;
     }
 
     .mode-button,
     .action-button {
       min-height: 48px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
       background: rgba(255, 255, 255, 0.06);
-      transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
     }
 
     .mode-button.active,
@@ -145,20 +153,19 @@
     .action-button:focus-visible {
       outline: none;
       transform: translateY(-1px);
-      border-color: rgba(124, 246, 255, 0.56);
-      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.24);
+      border-color: rgba(125, 245, 255, 0.5);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
     }
 
     .action-button.primary {
       border: 0;
-      color: #07111c;
+      color: #07111b;
       font-weight: 700;
-      background: linear-gradient(180deg, #92fff3, #63b4ff);
+      background: linear-gradient(180deg, #91fff0, #66b7ff);
     }
 
-    .content {
-      display: grid;
-      grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+    .main {
+      grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
       gap: 16px;
     }
 
@@ -169,8 +176,8 @@
     .status-row {
       display: flex;
       flex-wrap: wrap;
-      justify-content: space-between;
       gap: 10px;
+      justify-content: space-between;
       align-items: center;
     }
 
@@ -182,139 +189,281 @@
     }
 
     .board {
+      position: relative;
       padding: 20px;
       border-radius: 26px;
       border: 1px solid rgba(255, 255, 255, 0.08);
       background:
-        radial-gradient(circle at center, rgba(124, 246, 255, 0.08), transparent 34%),
-        linear-gradient(180deg, rgba(6, 10, 22, 0.96), rgba(8, 18, 36, 0.96));
-      transition: box-shadow 160ms ease, transform 160ms ease;
-    }
-
-    .board.preview {
-      box-shadow: 0 0 34px rgba(124, 246, 255, 0.14);
+        radial-gradient(circle at center, rgba(125, 245, 255, 0.08), transparent 36%),
+        linear-gradient(180deg, rgba(5, 10, 20, 0.98), rgba(8, 18, 34, 0.98));
+      display: grid;
+      gap: 14px;
     }
 
     .board.fail {
-      box-shadow: 0 0 44px rgba(255, 106, 155, 0.22);
-      transform: translateX(-2px);
+      box-shadow: 0 0 40px rgba(255, 109, 158, 0.2);
+    }
+
+    .beat-indicator {
+      display: grid;
+      grid-template-columns: 96px minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .beat-indicator.active {
+      box-shadow: 0 0 32px rgba(125, 245, 255, 0.16);
+      border-color: rgba(125, 245, 255, 0.4);
+    }
+
+    .beat-tag {
+      font-size: 0.82rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .beat-track {
+      position: relative;
+      height: 12px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .beat-track::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(125, 245, 255, 0.2), rgba(125, 245, 255, 0.7), rgba(255, 109, 158, 0.28));
+      transform: scaleX(var(--beat-scale, 0.12));
+      transform-origin: left center;
+      transition: transform 120ms ease;
+    }
+
+    .feedback {
+      min-height: 28px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    .feedback.good {
+      color: var(--good);
+    }
+
+    .feedback.bad {
+      color: var(--bad);
+    }
+
+    .progress {
+      height: 12px;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #66ffc8, #7df5ff, #ff6d9e);
+      transition: width 160ms ease;
     }
 
     .grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 14px;
+      gap: 12px;
     }
 
     .pad {
       position: relative;
       min-height: 116px;
-      border: 1px solid rgba(255, 255, 255, 0.14);
       border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
       background: linear-gradient(150deg, var(--pad-a), var(--pad-b));
       box-shadow:
         inset 0 0 0 1px rgba(255, 255, 255, 0.08),
         0 18px 26px rgba(0, 0, 0, 0.22);
       overflow: hidden;
       touch-action: manipulation;
-      transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
     }
 
     .pad::before {
       content: "";
       position: absolute;
       inset: 0;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent 38%);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.26), transparent 40%);
       opacity: 0.5;
       pointer-events: none;
     }
 
-    .pad span {
+    .pad::after {
+      content: "";
       position: absolute;
-      left: 14px;
-      bottom: 12px;
-      font-size: 0.92rem;
-      font-weight: 700;
-      text-shadow: 0 1px 10px rgba(0, 0, 0, 0.22);
+      inset: 8%;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .pad:hover,
+    .pad:focus-visible {
+      transform: translateY(-2px);
+      outline: none;
     }
 
     .pad.active,
-    .pad:focus-visible,
-    .pad:hover {
-      outline: none;
-      transform: translateY(-2px) scale(1.01);
+    .pad.reveal {
+      transform: translateY(-2px) scale(1.02);
+      filter: brightness(1.22) saturate(1.16);
       box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.16),
-        0 24px 34px rgba(0, 0, 0, 0.26),
-        0 0 28px rgba(255, 255, 255, 0.18);
-      filter: saturate(1.18) brightness(1.22);
+        inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+        0 0 28px rgba(255, 255, 255, 0.18),
+        0 22px 32px rgba(0, 0, 0, 0.24);
     }
 
     .pad.success {
       box-shadow:
-        inset 0 0 0 2px rgba(119, 255, 190, 0.56),
-        0 0 26px rgba(119, 255, 190, 0.4);
+        inset 0 0 0 2px rgba(127, 255, 187, 0.6),
+        0 0 30px rgba(127, 255, 187, 0.4);
     }
 
     .pad.error {
       box-shadow:
-        inset 0 0 0 2px rgba(255, 106, 155, 0.68),
-        0 0 30px rgba(255, 106, 155, 0.44);
-      filter: saturate(1.1) brightness(1.1);
+        inset 0 0 0 2px rgba(255, 109, 158, 0.72),
+        0 0 30px rgba(255, 109, 158, 0.42);
+    }
+
+    .pad span,
+    .pad strong {
+      position: absolute;
+      left: 14px;
+      text-shadow: 0 1px 10px rgba(0, 0, 0, 0.26);
+    }
+
+    .pad span {
+      top: 12px;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .pad strong {
+      bottom: 12px;
+      font-size: 1rem;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 20px;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      border-radius: 24px;
+      background: rgba(3, 7, 14, 0.78);
+      text-align: center;
+      transition: opacity 160ms ease, visibility 160ms ease;
+    }
+
+    .overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .overlay-card {
+      display: grid;
+      gap: 12px;
+      width: min(100%, 540px);
+    }
+
+    .overlay-title {
+      font-size: clamp(2.2rem, 6vw, 4.4rem);
+      line-height: 0.94;
+      letter-spacing: -0.05em;
+      color: var(--accent);
+    }
+
+    .sequence-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .sequence-token {
+      min-width: 40px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .sequence-token.correct {
+      border-color: rgba(127, 255, 187, 0.45);
+      color: var(--good);
+    }
+
+    .sequence-token.wrong {
+      border-color: rgba(255, 109, 158, 0.5);
+      color: var(--bad);
+    }
+
+    .sequence-token.missing {
+      opacity: 0.6;
+    }
+
+    .score-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .score-card.active {
+      border-color: rgba(125, 245, 255, 0.45);
+      box-shadow: inset 0 0 0 1px rgba(125, 245, 255, 0.16);
     }
 
     .rules {
       padding-left: 18px;
+      margin: 0;
     }
 
     .rules li + li {
       margin-top: 8px;
     }
 
-    .duel-scores {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .duel-card.active {
-      border-color: rgba(124, 246, 255, 0.46);
-      box-shadow: inset 0 0 0 1px rgba(124, 246, 255, 0.18);
-    }
-
-    .duel-card strong {
-      display: block;
-      margin-top: 8px;
-      font-size: 1.6rem;
-    }
-
-    .leaderboard ol {
-      padding-left: 22px;
-    }
-
-    .leaderboard li + li {
-      margin-top: 8px;
-    }
-
-    @media (max-width: 900px) {
+    @media (max-width: 920px) {
       .hero,
-      .content {
+      .main {
         grid-template-columns: 1fr;
       }
     }
 
     @media (max-width: 640px) {
       .app {
-        width: min(100vw - 16px, 1120px);
+        width: min(100vw - 16px, 1180px);
       }
 
-      .hero {
-        padding: 18px;
+      .hero,
+      .board-wrap {
+        padding: 16px;
       }
 
       .stats,
+      .score-grid,
       .mode-row,
-      .button-row,
-      .duel-scores {
+      .button-row {
         grid-template-columns: 1fr 1fr;
+      }
+
+      .beat-indicator {
+        grid-template-columns: 1fr;
       }
 
       .grid {
@@ -322,7 +471,7 @@
       }
 
       .pad {
-        min-height: 86px;
+        min-height: 90px;
         border-radius: 18px;
       }
     }
@@ -332,80 +481,91 @@
   <main class="app">
     <section class="panel hero">
       <div class="hero-copy">
-        <p class="eyebrow">Arcade Memory</p>
+        <p class="eyebrow">Rhythm Memory</p>
         <h1>节奏色块记忆挑战</h1>
-        <p class="lede">4×4 彩色网格会按固定节拍依次亮起。记住顺序，在自己的输入阶段按正确节奏复现整段序列。每轮从 3 个色块开始并持续加长，点错立即结束。</p>
+        <p class="lede">系统会按节拍点亮 4x4 色块序列。单人模式下失误即止步；热座双人模式下两位玩家轮流挑战同一条序列，记忆更准的一方拿到更多分数。</p>
         <div class="stats">
-          <div class="stat">
-            <p class="label">当前轮数</p>
-            <div class="value" id="round-value">1</div>
-          </div>
-          <div class="stat">
-            <p class="label">当前玩家</p>
-            <div class="value" id="player-value">玩家 1</div>
-          </div>
-          <div class="stat">
-            <p class="label">序列长度</p>
-            <div class="value" id="length-value">3</div>
-          </div>
-          <div class="stat">
-            <p class="label">最高记录</p>
-            <div class="value" id="best-value">0</div>
-          </div>
+          <div class="stat"><div class="label">模式</div><div class="value" id="mode-value">单人模式</div></div>
+          <div class="stat"><div class="label">当前轮数</div><div class="value" id="round-value">1</div></div>
+          <div class="stat"><div class="label">序列长度</div><div class="value" id="length-value">3</div></div>
+          <div class="stat"><div class="label">最佳成绩</div><div class="value" id="best-value">0</div></div>
         </div>
       </div>
+
       <aside class="menu">
         <div>
-          <p class="label">模式</p>
+          <p class="label">模式选择</p>
           <div class="mode-row">
-            <button class="mode-button active" id="solo-button" data-mode="solo" type="button">单人模式</button>
-            <button class="mode-button" id="duo-button" data-mode="duo" type="button">热座双人</button>
+            <button class="mode-button active" data-mode="solo" type="button">单人模式</button>
+            <button class="mode-button" data-mode="duo" type="button">热座双人</button>
           </div>
         </div>
-        <p class="muted" id="mode-copy">单人模式：失误即结束，冲击更长序列并刷新个人排行榜。</p>
+        <p class="muted" id="mode-copy">单人模式：每过一关序列加一，最快节拍会逐步逼近，最长挑战到 12 个色块。</p>
         <div class="button-row">
           <button class="action-button primary" id="start-button" type="button">开始挑战</button>
           <button class="action-button" id="restart-button" type="button">重新开始</button>
         </div>
         <ul class="rules">
-          <li>色块亮起时会播放对应音高，点击正确有明亮确认音，错误会触发明显失败音。</li>
-          <li>热座双人使用同一种子生成同一套随机序列，玩家 1 结束后玩家 2 再挑战。</li>
-          <li>支持鼠标、触屏和键盘 `1-4 / Q-R / A-F / Z-V` 直接点选 16 个色块。</li>
+          <li>初始序列长度 3，每过一关加 1，最长到 12。</li>
+          <li>热座双人：两位玩家轮流挑战同一条序列，成功会按当前序列长度得分。</li>
+          <li>错误时会立即显示你的输入与正确序列对比，并回放正确答案。</li>
         </ul>
       </aside>
     </section>
 
-    <section class="content">
+    <section class="main">
       <section class="panel board-wrap">
         <div class="status-row">
           <div class="pill" id="phase-pill">待机</div>
-          <div class="pill" id="status-text">点击“开始挑战”后播放序列。首次交互会初始化 Web Audio。</div>
+          <div class="pill" id="player-pill">当前玩家：玩家 1</div>
+        </div>
+        <div class="feedback" id="feedback-text">点击“开始挑战”后播放节奏序列。首次交互会初始化 Web Audio。</div>
+        <div class="progress" aria-hidden="true">
+          <div class="progress-fill" id="progress-fill"></div>
         </div>
         <div class="board" id="board">
+          <div class="beat-indicator" id="beat-indicator">
+            <div class="beat-tag">Beat Cue</div>
+            <div class="beat-track" id="beat-track"></div>
+            <div class="muted" id="tempo-text">560 ms / 拍</div>
+          </div>
           <div class="grid" id="grid" aria-label="rhythm color memory grid"></div>
+          <div class="overlay" id="overlay">
+            <div class="overlay-card">
+              <p class="label">Ready</p>
+              <div class="overlay-title" id="overlay-title">准备开始</div>
+              <p class="muted" id="overlay-copy">选择模式并点击开始。热座双人会让两位玩家按回合交替挑战同一序列。</p>
+            </div>
+          </div>
         </div>
       </section>
 
       <aside class="sidebar">
-        <section class="panel leaderboard">
-          <h2>最高记录排行</h2>
-          <p class="muted">本地保存前 5 条成绩，单人和热座共用排行榜。</p>
-          <ol id="leaderboard-list"></ol>
+        <section class="panel card">
+          <h2>比分</h2>
+          <div class="score-grid">
+            <div class="card score-card active" id="score-card-0">
+              <div class="label">玩家 1</div>
+              <div class="value" id="score-0">0</div>
+            </div>
+            <div class="card score-card" id="score-card-1">
+              <div class="label">玩家 2</div>
+              <div class="value" id="score-1">0</div>
+            </div>
+          </div>
+          <p class="muted" id="score-note">单人模式显示本地最佳轮数；双人模式每次成功按序列长度计分。</p>
         </section>
 
-        <section class="panel leaderboard">
-          <h2>热座比分</h2>
-          <div class="duel-scores">
-            <div class="duel-card active" id="score-card-0">
-              <p class="label">玩家 1</p>
-              <strong id="score-0">0</strong>
-              <p class="muted">已完成轮数</p>
-            </div>
-            <div class="duel-card" id="score-card-1">
-              <p class="label">玩家 2</p>
-              <strong id="score-1">0</strong>
-              <p class="muted">已完成轮数</p>
-            </div>
+        <section class="panel card">
+          <h2>错误对比</h2>
+          <p class="muted" id="compare-summary">尚未出现错误。答错后这里会显示输入与正确序列。</p>
+          <div>
+            <p class="label">你的输入</p>
+            <div class="sequence-list" id="input-sequence"></div>
+          </div>
+          <div>
+            <p class="label">正确序列</p>
+            <div class="sequence-list" id="correct-sequence"></div>
           </div>
         </section>
       </aside>
@@ -415,57 +575,77 @@
   <script>
     const GRID_SIZE = 16;
     const START_LENGTH = 3;
-    const BEAT_MS = 520;
-    const STORAGE_KEY = "rhythm-color-memory-leaderboard";
+    const MAX_SEQUENCE_LENGTH = 12;
+    const BASE_BEAT_MS = 560;
+    const MIN_BEAT_MS = 280;
+    const STORAGE_KEY = "rhythm-color-memory-best-round";
     const KEY_LAYOUT = ["1", "2", "3", "4", "q", "w", "e", "r", "a", "s", "d", "f", "z", "x", "c", "v"];
     const PAD_FREQUENCIES = Array.from({ length: GRID_SIZE }, (_, index) => 220 * Math.pow(2, index / 12));
 
     const elements = {
-      board: document.querySelector("#board"),
       grid: document.querySelector("#grid"),
-      round: document.querySelector("#round-value"),
-      player: document.querySelector("#player-value"),
-      length: document.querySelector("#length-value"),
-      best: document.querySelector("#best-value"),
+      board: document.querySelector("#board"),
+      beatIndicator: document.querySelector("#beat-indicator"),
+      beatTrack: document.querySelector("#beat-track"),
+      tempo: document.querySelector("#tempo-text"),
       phase: document.querySelector("#phase-pill"),
-      status: document.querySelector("#status-text"),
+      player: document.querySelector("#player-pill"),
+      feedback: document.querySelector("#feedback-text"),
+      progress: document.querySelector("#progress-fill"),
+      overlay: document.querySelector("#overlay"),
+      overlayTitle: document.querySelector("#overlay-title"),
+      overlayCopy: document.querySelector("#overlay-copy"),
+      modeValue: document.querySelector("#mode-value"),
+      roundValue: document.querySelector("#round-value"),
+      lengthValue: document.querySelector("#length-value"),
+      bestValue: document.querySelector("#best-value"),
       modeCopy: document.querySelector("#mode-copy"),
-      leaderboard: document.querySelector("#leaderboard-list"),
+      scoreValues: [document.querySelector("#score-0"), document.querySelector("#score-1")],
+      scoreCards: [document.querySelector("#score-card-0"), document.querySelector("#score-card-1")],
+      scoreNote: document.querySelector("#score-note"),
+      compareSummary: document.querySelector("#compare-summary"),
+      inputSequence: document.querySelector("#input-sequence"),
+      correctSequence: document.querySelector("#correct-sequence"),
       start: document.querySelector("#start-button"),
       restart: document.querySelector("#restart-button"),
-      modeButtons: Array.from(document.querySelectorAll("[data-mode]")),
-      scoreCards: [document.querySelector("#score-card-0"), document.querySelector("#score-card-1")],
-      scoreValues: [document.querySelector("#score-0"), document.querySelector("#score-1")]
+      modeButtons: Array.from(document.querySelectorAll("[data-mode]"))
     };
 
     const state = {
       mode: "solo",
       phase: "idle",
       round: 1,
-      seed: 0,
       playerIndex: 0,
-      scores: [0, 0],
       sequence: [],
       inputIndex: 0,
+      currentInput: [],
+      scores: [0, 0],
+      roundResults: [false, false],
+      seed: 0,
       playbackToken: 0,
       audioContext: null,
-      leaderboard: loadLeaderboard()
+      bestRound: Number.parseInt(window.localStorage.getItem(STORAGE_KEY) || "0", 10) || 0,
+      lastComparison: null
     };
 
     buildGrid();
     render();
 
     elements.modeButtons.forEach((button) => {
-      button.addEventListener("click", () => setMode(button.dataset.mode));
+      button.addEventListener("click", () => {
+        setMode(button.dataset.mode);
+      });
     });
 
     elements.start.addEventListener("click", async () => {
       await ensureAudio();
-      if (state.phase === "between-turns") {
-        beginTurn();
+      if (state.phase === "switch") {
+        beginPreview();
         return;
       }
-      startMatch();
+      if (state.phase === "gameover" || state.phase === "idle") {
+        startMatch();
+      }
     });
 
     elements.restart.addEventListener("click", async () => {
@@ -490,9 +670,9 @@
         button.type = "button";
         button.className = "pad";
         button.dataset.index = String(index);
-        button.style.setProperty("--pad-a", `hsl(${hue} 85% 62%)`);
-        button.style.setProperty("--pad-b", `hsl(${(hue + 24) % 360} 90% 44%)`);
-        button.innerHTML = `<span>${KEY_LAYOUT[index].toUpperCase()}</span>`;
+        button.style.setProperty("--pad-a", `hsl(${hue} 86% 62%)`);
+        button.style.setProperty("--pad-b", `hsl(${(hue + 26) % 360} 88% 44%)`);
+        button.innerHTML = `<span>${KEY_LAYOUT[index].toUpperCase()}</span><strong>色块 ${index + 1}</strong>`;
         button.addEventListener("click", () => handlePadInput(index));
         elements.grid.appendChild(button);
       }
@@ -503,57 +683,87 @@
       state.phase = "idle";
       state.round = 1;
       state.playerIndex = 0;
-      state.scores = [0, 0];
       state.sequence = [];
       state.inputIndex = 0;
+      state.currentInput = [];
+      state.scores = [0, 0];
+      state.roundResults = [false, false];
       state.playbackToken += 1;
+      state.lastComparison = null;
       render();
     }
 
     function startMatch() {
       state.playbackToken += 1;
       state.seed = Math.floor(Math.random() * 0xffffffff);
+      state.phase = state.mode === "duo" ? "switch" : "preview";
+      state.round = 1;
       state.playerIndex = 0;
+      state.sequence = buildSequence(state.seed, START_LENGTH);
+      state.inputIndex = 0;
+      state.currentInput = [];
       state.scores = [0, 0];
-      beginTurn();
+      state.roundResults = [false, false];
+      state.lastComparison = null;
+      render();
+      if (state.mode === "solo") {
+        beginPreview();
+      }
     }
 
-    function beginTurn() {
-      state.round = 1;
-      state.inputIndex = 0;
-      state.sequence = buildSequence(state.seed, START_LENGTH);
-      state.phase = "preview";
-      render();
-      playbackSequence();
+    function currentLength() {
+      return state.sequence.length;
+    }
+
+    function currentBeatMs() {
+      return Math.max(MIN_BEAT_MS, BASE_BEAT_MS - (currentLength() - START_LENGTH) * 26);
     }
 
     function buildSequence(seed, length) {
-      const random = mulberry32(seed);
+      const random = mulberry32(seed + length * 97);
       const sequence = [];
+      let previous = -1;
       for (let index = 0; index < length; index += 1) {
-        sequence.push(Math.floor(random() * GRID_SIZE));
+        let next = Math.floor(random() * GRID_SIZE);
+        if (GRID_SIZE > 1) {
+          while (next === previous) {
+            next = Math.floor(random() * GRID_SIZE);
+          }
+        }
+        sequence.push(next);
+        previous = next;
       }
       return sequence;
     }
 
+    async function beginPreview() {
+      state.phase = "preview";
+      state.inputIndex = 0;
+      state.currentInput = [];
+      render();
+      await playbackSequence();
+    }
+
     async function playbackSequence() {
       const token = ++state.playbackToken;
-      state.phase = "preview";
-      render();
-      await sleep(360);
+      const beatMs = currentBeatMs();
+      const flashDuration = Math.max(180, Math.round(beatMs * 0.58));
+
+      await sleep(320);
       for (const padIndex of state.sequence) {
         if (token !== state.playbackToken) {
           return;
         }
-        flashPad(padIndex, "active", Math.round(BEAT_MS * 0.62));
-        playPadTone(padIndex, "preview");
-        await sleep(BEAT_MS);
+        pulseBeat();
+        flashPad(padIndex, "active", flashDuration, true);
+        await sleep(beatMs);
       }
       if (token !== state.playbackToken) {
         return;
       }
       state.phase = "input";
       state.inputIndex = 0;
+      state.currentInput = [];
       render();
     }
 
@@ -562,15 +772,23 @@
         return;
       }
       await ensureAudio();
+
       const expected = state.sequence[state.inputIndex];
-      flashPad(padIndex, expected === padIndex ? "success" : "error", 240);
-      playPadTone(padIndex, expected === padIndex ? "tap" : "error");
+      state.currentInput.push(padIndex);
+      pulseBeat();
 
       if (padIndex !== expected) {
-        failRun();
+        flashPad(padIndex, "error", 260, false);
+        playPadTone(padIndex, "error");
+        state.lastComparison = buildComparison(state.currentInput, state.sequence, state.currentInput.length - 1);
+        render();
+        await revealCorrectSequence();
+        await finishTurn(false);
         return;
       }
 
+      flashPad(padIndex, "success", 220, false);
+      playPadTone(padIndex, "tap");
       state.inputIndex += 1;
       render();
 
@@ -578,135 +796,249 @@
         return;
       }
 
+      state.lastComparison = buildComparison(state.currentInput, state.sequence, -1);
       playConfirmTone();
-      state.round += 1;
-      state.sequence = buildSequence(state.seed, START_LENGTH + state.round - 1);
-      state.inputIndex = 0;
-      state.phase = "preview";
-      const nextToken = ++state.playbackToken;
-      render();
-      await sleep(520);
-      if (state.phase === "preview" && nextToken === state.playbackToken) {
-        playbackSequence();
-      }
+      await sleep(240);
+      await finishTurn(true);
     }
 
-    function failRun() {
-      state.playbackToken += 1;
+    function buildComparison(input, correct, wrongIndex) {
+      return {
+        input: [...input],
+        correct: [...correct],
+        wrongIndex
+      };
+    }
+
+    async function revealCorrectSequence() {
+      state.phase = "reveal";
       elements.board.classList.add("fail");
-      setTimeout(() => elements.board.classList.remove("fail"), 260);
-      playFailureTone();
+      render();
+      await sleep(220);
+      for (const padIndex of state.sequence) {
+        pulseBeat();
+        flashPad(padIndex, "reveal", 220, true);
+        await sleep(Math.max(220, currentBeatMs() - 40));
+      }
+      elements.board.classList.remove("fail");
+    }
 
-      const clearedRounds = state.round - 1;
-      state.scores[state.playerIndex] = clearedRounds;
+    async function finishTurn(success) {
+      if (state.mode === "solo") {
+        if (success) {
+          state.bestRound = Math.max(state.bestRound, state.round);
+          window.localStorage.setItem(STORAGE_KEY, String(state.bestRound));
+          if (currentLength() >= MAX_SEQUENCE_LENGTH) {
+            state.phase = "gameover";
+            render();
+            return;
+          }
+          state.round += 1;
+          state.sequence = buildSequence(state.seed, Math.min(MAX_SEQUENCE_LENGTH, START_LENGTH + state.round - 1));
+          await beginPreview();
+          return;
+        }
 
-      if (state.mode === "duo" && state.playerIndex === 0) {
-        state.playerIndex = 1;
-        state.phase = "between-turns";
+        state.bestRound = Math.max(state.bestRound, state.round - 1);
+        window.localStorage.setItem(STORAGE_KEY, String(state.bestRound));
+        state.phase = "gameover";
         render();
         return;
       }
 
-      finishMatch();
-    }
+      state.roundResults[state.playerIndex] = success;
+      if (success) {
+        state.scores[state.playerIndex] += currentLength();
+      }
 
-    function finishMatch() {
-      state.phase = "gameover";
-      const bestRun = Math.max(...state.scores);
-      recordScore(state.mode === "solo" ? "单人" : "热座", bestRun);
+      if (state.playerIndex === 0) {
+        state.playerIndex = 1;
+        state.phase = "switch";
+        render();
+        return;
+      }
+
+      const roundCleared = state.roundResults[0] || state.roundResults[1];
+      if (!roundCleared || currentLength() >= MAX_SEQUENCE_LENGTH) {
+        state.phase = "gameover";
+        render();
+        return;
+      }
+
+      state.round += 1;
+      state.playerIndex = 0;
+      state.roundResults = [false, false];
+      state.sequence = buildSequence(state.seed, Math.min(MAX_SEQUENCE_LENGTH, START_LENGTH + state.round - 1));
+      state.phase = "switch";
       render();
     }
 
     function render() {
-      elements.round.textContent = String(state.round);
-      elements.length.textContent = String(START_LENGTH + state.round - 1);
-      elements.player.textContent = state.mode === "solo" ? "玩家 1" : `玩家 ${state.playerIndex + 1}`;
-      elements.best.textContent = String(state.leaderboard[0]?.score ?? 0);
-
-      const phaseText = {
-        idle: "待机",
-        preview: "演示序列",
-        input: "玩家输入",
-        "between-turns": "切换玩家",
-        gameover: "本局结束"
-      };
-      elements.phase.textContent = phaseText[state.phase];
-
-      if (state.phase === "idle") {
-        elements.status.textContent = state.mode === "solo"
-          ? "点击“开始挑战”后播放序列。首次交互会初始化 Web Audio。"
-          : "热座双人会让两位玩家依次挑战同一种子生成的相同序列。";
-      } else if (state.phase === "preview") {
-        elements.status.textContent = `第 ${state.round} 轮演示中，记住 ${state.sequence.length} 个色块。`;
-      } else if (state.phase === "input") {
-        elements.status.textContent = `轮到 ${state.mode === "solo" ? "你" : `玩家 ${state.playerIndex + 1}`} 输入，第 ${state.inputIndex + 1} 步 / 共 ${state.sequence.length} 步。`;
-      } else if (state.phase === "between-turns") {
-        elements.status.textContent = `玩家 1 停在第 ${state.round} 轮。点击“开始挑战”让玩家 2 用同一序列重新挑战。`;
-      } else {
-        elements.status.textContent = state.mode === "solo"
-          ? `失误结束，本次完成 ${state.scores[0]} 轮。点击“重新开始”再来一局。`
-          : buildDuoSummary();
-      }
+      elements.modeValue.textContent = state.mode === "solo" ? "单人模式" : "热座双人";
+      elements.roundValue.textContent = String(state.round);
+      elements.lengthValue.textContent = String(currentLength() || START_LENGTH);
+      elements.bestValue.textContent = String(state.bestRound);
+      elements.tempo.textContent = `${currentBeatMs()} ms / 拍`;
+      elements.progress.style.width = `${(Math.max(START_LENGTH, currentLength()) / MAX_SEQUENCE_LENGTH) * 100}%`;
 
       elements.modeCopy.textContent = state.mode === "solo"
-        ? "单人模式：失误即结束，冲击更长序列并刷新个人排行榜。"
-        : "热座双人：两位玩家按同一随机种子分别完整挑战一遍，比谁记住得更长。";
+        ? "单人模式：每过一关序列加一，最快节拍会逐步逼近，最长挑战到 12 个色块。"
+        : "热座双人：两位玩家轮流挑战同一条序列，成功按当前序列长度得分，双方都失败时结束。";
+      elements.scoreNote.textContent = state.mode === "solo"
+        ? "单人模式使用本地存储记录最佳轮数。"
+        : "双人模式每次成功按当前序列长度计分，分高者获胜。";
 
       elements.modeButtons.forEach((button) => {
         button.classList.toggle("active", button.dataset.mode === state.mode);
       });
 
-      elements.scoreValues.forEach((node, index) => {
-        node.textContent = String(state.scores[index]);
-      });
+      elements.scoreValues[0].textContent = String(state.mode === "solo" ? state.bestRound : state.scores[0]);
+      elements.scoreValues[1].textContent = String(state.mode === "solo" ? 0 : state.scores[1]);
       elements.scoreCards.forEach((card, index) => {
         card.classList.toggle("active", state.mode === "duo" && state.playerIndex === index);
       });
 
-      elements.board.classList.toggle("preview", state.phase === "preview");
-      renderLeaderboard();
+      const phaseCopy = {
+        idle: "待机",
+        switch: "切换玩家",
+        preview: "系统演示",
+        input: "输入阶段",
+        reveal: "答案回放",
+        gameover: "本局结束"
+      };
+      elements.phase.textContent = phaseCopy[state.phase];
+      elements.player.textContent = `当前玩家：玩家 ${state.playerIndex + 1}`;
+
+      renderFeedback();
+      renderOverlay();
+      renderComparison();
     }
 
-    function buildDuoSummary() {
-      if (state.scores[0] === state.scores[1]) {
-        return `双方都完成了 ${state.scores[0]} 轮，平局。点击“重新开始”开始新一局。`;
-      }
-      const winner = state.scores[0] > state.scores[1] ? 1 : 2;
-      const high = Math.max(state.scores[0], state.scores[1]);
-      return `玩家 ${winner} 获胜，最佳成绩 ${high} 轮。点击“重新开始”开始新一局。`;
-    }
-
-    function renderLeaderboard() {
-      if (state.leaderboard.length === 0) {
-        elements.leaderboard.innerHTML = "<li>暂无记录</li>";
+    function renderFeedback() {
+      elements.feedback.className = "feedback";
+      if (state.phase === "idle") {
+        elements.feedback.textContent = "点击“开始挑战”后播放节奏序列。首次交互会初始化 Web Audio。";
         return;
       }
-      elements.leaderboard.innerHTML = state.leaderboard
-        .map((entry) => `<li>${entry.mode} · ${entry.score} 轮 · ${entry.date}</li>`)
-        .join("");
-    }
-
-    function recordScore(mode, score) {
-      state.leaderboard = [
-        ...state.leaderboard,
-        {
-          mode,
-          score,
-          date: new Date().toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" })
-        }
-      ]
-        .sort((left, right) => right.score - left.score)
-        .slice(0, 5);
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state.leaderboard));
-    }
-
-    function loadLeaderboard() {
-      try {
-        const saved = window.localStorage.getItem(STORAGE_KEY);
-        return saved ? JSON.parse(saved) : [];
-      } catch (error) {
-        return [];
+      if (state.phase === "switch") {
+        elements.feedback.textContent = state.mode === "duo"
+          ? `轮到玩家 ${state.playerIndex + 1} 挑战同一序列，确认换手后点击“开始挑战”。`
+          : "准备进入下一轮。";
+        return;
       }
+      if (state.phase === "preview") {
+        elements.feedback.textContent = `记住第 ${state.round} 轮的 ${currentLength()} 个色块。`;
+        return;
+      }
+      if (state.phase === "input") {
+        elements.feedback.classList.add("good");
+        elements.feedback.textContent = `按顺序输入：${state.inputIndex} / ${currentLength()}`;
+        return;
+      }
+      if (state.phase === "reveal") {
+        elements.feedback.classList.add("bad");
+        elements.feedback.textContent = "输入错误，正在回放正确序列。";
+        return;
+      }
+
+      elements.feedback.classList.add("bad");
+      if (state.mode === "solo") {
+        const cleared = Math.max(0, state.round - (state.lastComparison && state.lastComparison.wrongIndex >= 0 ? 1 : 0));
+        const winText = currentLength() >= MAX_SEQUENCE_LENGTH && state.lastComparison && state.lastComparison.wrongIndex === -1;
+        elements.feedback.textContent = winText
+          ? `恭喜通关，已完成最长 12 步序列。`
+          : `单人挑战结束，本次完成 ${cleared} 轮，最佳 ${state.bestRound} 轮。`;
+        return;
+      }
+
+      if (state.scores[0] === state.scores[1]) {
+        elements.feedback.textContent = `热座结束，双方同分 ${state.scores[0]}。`;
+      } else {
+        const winner = state.scores[0] > state.scores[1] ? 1 : 2;
+        elements.feedback.textContent = `热座结束，玩家 ${winner} 以 ${Math.max(...state.scores)} 分获胜。`;
+      }
+    }
+
+    function renderOverlay() {
+      const visible = state.phase === "idle" || state.phase === "switch" || state.phase === "gameover";
+      elements.overlay.classList.toggle("hidden", !visible);
+      if (!visible) {
+        return;
+      }
+
+      if (state.phase === "idle") {
+        elements.overlayTitle.textContent = "准备开始";
+        elements.overlayCopy.textContent = "单人模式失误即止步；热座双人按回合同序列交替挑战。";
+        return;
+      }
+
+      if (state.phase === "switch") {
+        elements.overlayTitle.textContent = `玩家 ${state.playerIndex + 1}`;
+        elements.overlayCopy.textContent = `第 ${state.round} 轮，共 ${currentLength()} 步。确认换手后点击“开始挑战”播放同一序列。`;
+        return;
+      }
+
+      if (state.mode === "solo") {
+        const success = currentLength() >= MAX_SEQUENCE_LENGTH && state.lastComparison && state.lastComparison.wrongIndex === -1;
+        elements.overlayTitle.textContent = success ? "全部通关" : "挑战结束";
+        elements.overlayCopy.textContent = success
+          ? "你已经完成最长 12 步序列。点击“重新开始”再来一局。"
+          : `本地最佳 ${state.bestRound} 轮。点击“重新开始”再次挑战。`;
+        return;
+      }
+
+      if (state.scores[0] === state.scores[1]) {
+        elements.overlayTitle.textContent = "平局";
+        elements.overlayCopy.textContent = `双方都是 ${state.scores[0]} 分。点击“重新开始”再来一局。`;
+        return;
+      }
+
+      const winner = state.scores[0] > state.scores[1] ? 1 : 2;
+      elements.overlayTitle.textContent = `玩家 ${winner} 获胜`;
+      elements.overlayCopy.textContent = `最终比分 ${state.scores[0]} : ${state.scores[1]}。点击“重新开始”开始新一局。`;
+    }
+
+    function renderComparison() {
+      const comparison = state.lastComparison;
+      elements.inputSequence.replaceChildren();
+      elements.correctSequence.replaceChildren();
+
+      if (!comparison) {
+        return;
+      }
+
+      const mismatchText = comparison.wrongIndex >= 0
+        ? `第 ${comparison.wrongIndex + 1} 步出错，红色为错误点击。`
+        : "本轮输入完全正确，可继续挑战更长序列。";
+      elements.compareSummary.textContent = mismatchText;
+
+      comparison.input.forEach((value, index) => {
+        elements.inputSequence.appendChild(createSequenceToken(value, index, comparison));
+      });
+      comparison.correct.forEach((value, index) => {
+        const token = document.createElement("div");
+        token.className = "sequence-token";
+        if (index < comparison.input.length && comparison.input[index] === value) {
+          token.classList.add("correct");
+        }
+        if (comparison.wrongIndex === index) {
+          token.classList.add("wrong");
+        }
+        token.textContent = String(value + 1);
+        elements.correctSequence.appendChild(token);
+      });
+    }
+
+    function createSequenceToken(value, index, comparison) {
+      const token = document.createElement("div");
+      token.className = "sequence-token";
+      token.textContent = String(value + 1);
+      if (comparison.wrongIndex === index) {
+        token.classList.add("wrong");
+      } else if (comparison.correct[index] === value) {
+        token.classList.add("correct");
+      }
+      return token;
     }
 
     async function ensureAudio() {
@@ -723,23 +1055,29 @@
       return state.audioContext;
     }
 
+    function pulseBeat() {
+      elements.beatIndicator.classList.add("active");
+      elements.beatTrack.style.setProperty("--beat-scale", "1");
+      window.setTimeout(() => {
+        elements.beatIndicator.classList.remove("active");
+        elements.beatTrack.style.setProperty("--beat-scale", "0.12");
+      }, 140);
+    }
+
     function playPadTone(padIndex, kind) {
       if (!state.audioContext) {
         return;
       }
-      const context = state.audioContext;
-      const oscillator = context.createOscillator();
-      const gain = context.createGain();
-      const now = context.currentTime;
-
+      const oscillator = state.audioContext.createOscillator();
+      const gain = state.audioContext.createGain();
+      const now = state.audioContext.currentTime;
       oscillator.type = kind === "error" ? "sawtooth" : kind === "tap" ? "triangle" : "sine";
       oscillator.frequency.setValueAtTime(PAD_FREQUENCIES[padIndex], now);
       gain.gain.setValueAtTime(0.0001, now);
       gain.gain.exponentialRampToValueAtTime(kind === "error" ? 0.06 : 0.04, now + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + (kind === "error" ? 0.28 : 0.22));
-
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + (kind === "error" ? 0.26 : 0.18));
       oscillator.connect(gain);
-      gain.connect(context.destination);
+      gain.connect(state.audioContext.destination);
       oscillator.start(now);
       oscillator.stop(now + 0.3);
     }
@@ -748,15 +1086,15 @@
       if (!state.audioContext) {
         return;
       }
-      [660, 880].forEach((frequency, offset) => {
+      [660, 880].forEach((frequency, index) => {
         const oscillator = state.audioContext.createOscillator();
         const gain = state.audioContext.createGain();
-        const now = state.audioContext.currentTime + offset * 0.08;
+        const now = state.audioContext.currentTime + index * 0.08;
         oscillator.type = "triangle";
         oscillator.frequency.setValueAtTime(frequency, now);
         gain.gain.setValueAtTime(0.0001, now);
         gain.gain.exponentialRampToValueAtTime(0.05, now + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
         oscillator.connect(gain);
         gain.connect(state.audioContext.destination);
         oscillator.start(now);
@@ -764,31 +1102,15 @@
       });
     }
 
-    function playFailureTone() {
-      if (!state.audioContext) {
-        return;
-      }
-      const oscillator = state.audioContext.createOscillator();
-      const gain = state.audioContext.createGain();
-      const now = state.audioContext.currentTime;
-      oscillator.type = "square";
-      oscillator.frequency.setValueAtTime(210, now);
-      oscillator.frequency.exponentialRampToValueAtTime(70, now + 0.36);
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.09, now + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.38);
-      oscillator.connect(gain);
-      gain.connect(state.audioContext.destination);
-      oscillator.start(now);
-      oscillator.stop(now + 0.4);
-    }
-
-    function flashPad(padIndex, className, duration) {
+    function flashPad(padIndex, className, duration, playTone) {
       const node = elements.grid.querySelector(`[data-index="${padIndex}"]`);
       if (!node) {
         return;
       }
       node.classList.add(className);
+      if (playTone) {
+        playPadTone(padIndex, className === "error" ? "error" : "preview");
+      }
       window.setTimeout(() => node.classList.remove(className), duration);
     }
 
