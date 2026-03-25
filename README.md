@@ -184,6 +184,18 @@ This repository contains a simple agent-factory workflow for planning and comple
 
 直接用浏览器打开 `rhythm-factory/index.html` 即可游玩。
 
+## 节奏色块工厂：音乐驱动的 Idle 色块生产线
+
+新增 `rhythm-color-factory/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的节奏放置工厂原型，包含：
+
+- 页面加载后自动运行的传送带，色块会按固定 BPM 生成并沿生产线向右移动
+- 两项升级：提升产线速度，以及逐步解锁至少 6 种可生产颜色
+- 使用 Web Audio API 合成鼓组、低音、和声音轨，随着总升级次数提升逐层叠加
+- 色块到达终点时触发弹跳感的粒子喷射反馈，并即时累计总产出与可用能量
+- 使用 `localStorage` 自动保存累计产出、升级等级和已解锁颜色，刷新页面后可恢复进度
+
+直接用浏览器打开 `rhythm-color-factory/index.html` 即可游玩。
+
 ## Sokoban Warehouse
 
 新增 `sokoban-game/index.html`，提供一个无需构建步骤、可直接在浏览器中打开的 Sokoban 推箱子游戏，包含：
