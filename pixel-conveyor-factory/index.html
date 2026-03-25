@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>像素工厂传送带</title>
+  <style>
+    :root {
+      --bg: #11161e;
+      --panel: rgba(20, 27, 35, 0.96);
+      --panel-soft: rgba(33, 43, 55, 0.96);
+      --line: rgba(196, 224, 255, 0.14);
+      --text: #edf7ff;
+      --muted: #93a8bb;
+      --gold: #f7c85b;
+      --good: #6fdb93;
+      --danger: #ef7d57;
+      --blue: #6ec6ff;
+      --red: #ff7a7a;
+      --belt: #43657a;
+      --processor: #8355c7;
+      --collector: #4ba36a;
+      --spawn: #b96b3d;
+      --raw: #9fe3ff;
+      --product: #ffd36b;
+      --shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+      --pixel-font: "Trebuchet MS", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--pixel-font);
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(110, 198, 255, 0.12), transparent 24%),
+        radial-gradient(circle at top right, rgba(247, 200, 91, 0.16), transparent 24%),
+        linear-gradient(180deg, #19212b 0%, var(--bg) 42%, #0c1016 100%);
+    }
+
+    button {
+      font: inherit;
+      color: inherit;
+    }
+
+    .app {
+      width: min(1380px, calc(100vw - 24px));
+      margin: 12px auto;
+      display: grid;
+      grid-template-columns: 340px minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel,
+    .board-shell {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .panel {
+      padding: 18px;
+      display: grid;
+      gap: 16px;
+      position: sticky;
+      top: 12px;
+    }
+
+    .hero,
+    .section {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 18px;
+      background: var(--panel-soft);
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+    }
+
+    .eyebrow,
+    .hint,
+    .small,
+    .meta {
+      color: var(--muted);
+    }
+
+    .eyebrow,
+    .section-title {
+      font-size: 0.8rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .lede,
+    .hint,
+    .small {
+      line-height: 1.55;
+    }
+
+    .stats,
+    .upgrade-grid,
+    .tool-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .tool-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .upgrade-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .stat,
+    .tool-button,
+    .upgrade-button {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .stat {
+      padding: 12px;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 1.5rem;
+    }
+
+    .tool-button,
+    .upgrade-button {
+      padding: 12px;
+      text-align: left;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+
+    .tool-button:hover,
+    .upgrade-button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(247, 200, 91, 0.45);
+    }
+
+    .tool-button.active {
+      background: rgba(247, 200, 91, 0.15);
+      border-color: rgba(247, 200, 91, 0.72);
+    }
+
+    .upgrade-button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .tool-name,
+    .upgrade-name {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .player-card {
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .player-card.blue {
+      box-shadow: inset 0 0 0 1px rgba(110, 198, 255, 0.3);
+    }
+
+    .player-card.red {
+      box-shadow: inset 0 0 0 1px rgba(255, 122, 122, 0.3);
+    }
+
+    .board-shell {
+      padding: 18px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .board-top {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .chip strong {
+      color: var(--gold);
+    }
+
+    .canvas-wrap {
+      overflow: auto;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent),
+        #0b1117;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      max-width: 960px;
+      margin: 0 auto;
+      image-rendering: pixelated;
+      cursor: crosshair;
+    }
+
+    .status {
+      min-height: 24px;
+      color: var(--muted);
+    }
+
+    .status.error {
+      color: var(--danger);
+    }
+
+    .status.good {
+      color: var(--good);
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        position: static;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <aside class="panel">
+      <section class="hero">
+        <p class="eyebrow">Idle Co-op Factory</p>
+        <h1>像素工厂传送带</h1>
+        <p class="lede">
+          两名玩家共用一张地图和金币池，把边缘刷新的原材料送进加工站，再运到收集器里变现。支持鼠标点击建造，也支持双人同屏双光标热座协作。
+        </p>
+      </section>
+
+      <section class="section">
+        <p class="section-title">工厂状态</p>
+        <div class="stats">
+          <div class="stat">
+            金币
+            <strong id="coin-count">0</strong>
+          </div>
+          <div class="stat">
+            物流
+            <strong id="item-count">0</strong>
+          </div>
+          <div class="stat">
+            传送带
+            <strong id="belt-level">Lv1</strong>
+          </div>
+          <div class="stat">
+            加工站
+            <strong id="processor-level">Lv1</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <p class="section-title">鼠标建造</p>
+        <div class="tool-grid" id="tool-grid"></div>
+        <p class="small">点击画布格子放置。加工站会沿当前图标方向输出，收集器接收成品换金币。</p>
+      </section>
+
+      <section class="section">
+        <p class="section-title">全局升级</p>
+        <div class="upgrade-grid">
+          <button class="upgrade-button" id="upgrade-belts" type="button"></button>
+          <button class="upgrade-button" id="upgrade-processors" type="button"></button>
+        </div>
+      </section>
+
+      <section class="section">
+        <p class="section-title">双人同屏</p>
+        <div class="player-card blue">
+          <h3>玩家 1</h3>
+          <p class="hint">`WASD` 移动光标，`Q / E` 切工具，`R` 旋转方向，`F` 放置。</p>
+          <p class="small" id="player-one-tool"></p>
+        </div>
+        <div class="player-card red">
+          <h3>玩家 2</h3>
+          <p class="hint">方向键移动光标，`,` / `.` 切工具，`/` 旋转方向，`Enter` 放置。</p>
+          <p class="small" id="player-two-tool"></p>
+        </div>
+      </section>
+
+      <section class="section">
+        <p class="section-title">玩法提示</p>
+        <p class="hint">边缘棕色格会自动产出原料。先把蓝色原料送进紫色加工站，再把金色成品送到绿色收集器。升级传送带会加快 tick，升级加工站会缩短处理时间并提高卖价。</p>
+      </section>
+    </aside>
+
+    <section class="board-shell">
+      <div class="board-top">
+        <div class="chip-row">
+          <div class="chip">共享金币 <strong id="coin-chip">0</strong></div>
+          <div class="chip">当前 tick <span id="tick-chip">420ms</span></div>
+          <div class="chip">成品价值 <span id="value-chip">4</span></div>
+        </div>
+        <p class="meta">边缘原料点固定，其他设施都能由玩家建造或覆盖。</p>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="factory-canvas" width="672" height="480" aria-label="像素工厂网格地图"></canvas>
+      </div>
+      <p class="status" id="status-text">点击一个工具后，在网格上铺一条能从刷怪点通向加工站和收集器的运输线。</p>
+    </section>
+  </main>
+
+  <script>
+    const GRID_WIDTH = 14;
+    const GRID_HEIGHT = 10;
+    const CELL_SIZE = 48;
+    const BASE_TICK_MS = 420;
+    const MIN_TICK_MS = 180;
+    const MAX_ITEMS = 48;
+    const SPAWN_RATE = 2;
+    const START_COINS = 24;
+    const BASE_PRODUCT_VALUE = 4;
+    const spawnCells = [
+      { x: 0, y: 2, dir: "right" },
+      { x: 0, y: 7, dir: "right" },
+      { x: 13, y: 4, dir: "left" }
+    ];
+
+    const toolDefs = [
+      { id: "belt-up", type: "belt", dir: "up", label: "传送带 ↑", cost: 1 },
+      { id: "belt-right", type: "belt", dir: "right", label: "传送带 →", cost: 1 },
+      { id: "belt-down", type: "belt", dir: "down", label: "传送带 ↓", cost: 1 },
+      { id: "belt-left", type: "belt", dir: "left", label: "传送带 ←", cost: 1 },
+      { id: "processor", type: "processor", label: "加工站", cost: 8 },
+      { id: "collector", type: "collector", label: "收集器", cost: 6 },
+      { id: "erase", type: "erase", label: "清除", cost: 0 }
+    ];
+
+    const keyboardToolOrder = ["belt", "processor", "collector", "erase"];
+    const directionOrder = ["up", "right", "down", "left"];
+    const directionVectors = {
+      up: { x: 0, y: -1 },
+      right: { x: 1, y: 0 },
+      down: { x: 0, y: 1 },
+      left: { x: -1, y: 0 }
+    };
+
+    const canvas = document.querySelector("#factory-canvas");
+    const ctx = canvas.getContext("2d");
+    const toolGrid = document.querySelector("#tool-grid");
+    const statusText = document.querySelector("#status-text");
+    const coinCount = document.querySelector("#coin-count");
+    const itemCount = document.querySelector("#item-count");
+    const beltLevelText = document.querySelector("#belt-level");
+    const processorLevelText = document.querySelector("#processor-level");
+    const coinChip = document.querySelector("#coin-chip");
+    const tickChip = document.querySelector("#tick-chip");
+    const valueChip = document.querySelector("#value-chip");
+    const playerOneTool = document.querySelector("#player-one-tool");
+    const playerTwoTool = document.querySelector("#player-two-tool");
+    const upgradeBeltsButton = document.querySelector("#upgrade-belts");
+    const upgradeProcessorsButton = document.querySelector("#upgrade-processors");
+
+    let grid = [];
+    let items = [];
+    let coins = START_COINS;
+    let beltLevel = 1;
+    let processorLevel = 1;
+    let tickCounter = 0;
+    let mouseToolId = "belt-right";
+    let lastTickTime = performance.now();
+    let tickHandle = 0;
+    let statusMode = "";
+
+    const players = [
+      { name: "P1", x: 4, y: 4, color: "#6ec6ff", toolIndex: 0, dir: "right" },
+      { name: "P2", x: 9, y: 5, color: "#ff7a7a", toolIndex: 1, dir: "left" }
+    ];
+
+    function createCell(type = "empty", dir = "right") {
+      return { type, dir };
+    }
+
+    function resetGrid() {
+      grid = Array.from({ length: GRID_HEIGHT }, () =>
+        Array.from({ length: GRID_WIDTH }, () => createCell())
+      );
+
+      for (const spawn of spawnCells) {
+        grid[spawn.y][spawn.x] = createCell("spawn", spawn.dir);
+      }
+    }
+
+    function getTickMs() {
+      return Math.max(MIN_TICK_MS, BASE_TICK_MS - (beltLevel - 1) * 60);
+    }
+
+    function getProcessorTicks() {
+      return Math.max(1, 4 - (processorLevel - 1));
+    }
+
+    function getProductValue() {
+      return BASE_PRODUCT_VALUE + (processorLevel - 1) * 2;
+    }
+
+    function getBeltUpgradeCost() {
+      return 14 + beltLevel * 8;
+    }
+
+    function getProcessorUpgradeCost() {
+      return 18 + processorLevel * 10;
+    }
+
+    function setStatus(message, mode = "") {
+      statusText.textContent = message;
+      statusMode = mode;
+      statusText.className = mode ? `status ${mode}` : "status";
+    }
+
+    function getToolById(id) {
+      return toolDefs.find((tool) => tool.id === id);
+    }
+
+    function isInside(x, y) {
+      return x >= 0 && y >= 0 && x < GRID_WIDTH && y < GRID_HEIGHT;
+    }
+
+    function getCell(x, y) {
+      return isInside(x, y) ? grid[y][x] : null;
+    }
+
+    function isSpawn(x, y) {
+      return getCell(x, y)?.type === "spawn";
+    }
+
+    function findItemAt(x, y) {
+      return items.find((item) => item.x === x && item.y === y);
+    }
+
+    function renderToolButtons() {
+      const buttons = toolDefs.map((tool) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = tool.id === mouseToolId ? "tool-button active" : "tool-button";
+        button.innerHTML = `<span class="tool-name">${tool.label}</span><span class="small">花费 ${tool.cost} 金币</span>`;
+        button.addEventListener("click", () => {
+          mouseToolId = tool.id;
+          renderToolButtons();
+          setStatus(`鼠标工具已切换为 ${tool.label}。`);
+        });
+        return button;
+      });
+
+      toolGrid.replaceChildren(...buttons);
+    }
+
+    function describePlayerTool(player) {
+      const tool = keyboardToolOrder[player.toolIndex];
+      const dirLabel = player.dir === "up" ? "上" : player.dir === "right" ? "右" : player.dir === "down" ? "下" : "左";
+      if (tool === "belt") {
+        return `${player.name} 当前: 传送带，方向 ${dirLabel}`;
+      }
+      if (tool === "processor") {
+        return `${player.name} 当前: 加工站，出口 ${dirLabel}`;
+      }
+      if (tool === "collector") {
+        return `${player.name} 当前: 收集器`;
+      }
+      return `${player.name} 当前: 清除`;
+    }
+
+    function updateHud() {
+      coinCount.textContent = String(coins);
+      coinChip.textContent = String(coins);
+      itemCount.textContent = String(items.length);
+      beltLevelText.textContent = `Lv${beltLevel}`;
+      processorLevelText.textContent = `Lv${processorLevel}`;
+      tickChip.textContent = `${getTickMs()}ms`;
+      valueChip.textContent = String(getProductValue());
+      playerOneTool.textContent = describePlayerTool(players[0]);
+      playerTwoTool.textContent = describePlayerTool(players[1]);
+      upgradeBeltsButton.innerHTML = `<span class="upgrade-name">升级传送带</span><span class="small">花费 ${getBeltUpgradeCost()} 金币，整体加速</span>`;
+      upgradeProcessorsButton.innerHTML = `<span class="upgrade-name">升级加工站</span><span class="small">花费 ${getProcessorUpgradeCost()} 金币，提速并增值</span>`;
+      upgradeBeltsButton.disabled = coins < getBeltUpgradeCost();
+      upgradeProcessorsButton.disabled = coins < getProcessorUpgradeCost();
+    }
+
+    function buildCellFromTool(tool, dir) {
+      if (tool.type === "belt") {
+        return createCell("belt", tool.dir);
+      }
+      if (tool.type === "processor") {
+        return createCell("processor", dir);
+      }
+      if (tool.type === "collector") {
+        return createCell("collector", "right");
+      }
+      return createCell();
+    }
+
+    function placeTool(x, y, tool, dir = "right", actor = "玩家") {
+      if (!isInside(x, y)) {
+        return;
+      }
+
+      if (isSpawn(x, y)) {
+        setStatus("原料出生点不能覆盖。", "error");
+        return;
+      }
+
+      if (findItemAt(x, y)) {
+        setStatus("该格上有物流经过，先等它离开。", "error");
+        return;
+      }
+
+      const current = getCell(x, y);
+      const nextCell = buildCellFromTool(tool, dir);
+      const samePlacement = current.type === nextCell.type && current.dir === nextCell.dir;
+      if (samePlacement) {
+        return;
+      }
+
+      if (coins < tool.cost) {
+        setStatus(`${actor} 金币不足，无法放置 ${tool.label}。`, "error");
+        return;
+      }
+
+      coins -= tool.cost;
+      grid[y][x] = nextCell;
+      updateHud();
+      setStatus(`${actor} 放置了 ${tool.label}。`, "good");
+    }
+
+    function rotateDirection(dir) {
+      const index = directionOrder.indexOf(dir);
+      return directionOrder[(index + 1) % directionOrder.length];
+    }
+
+    function getNextPoint(x, y, dir) {
+      const vector = directionVectors[dir];
+      return { x: x + vector.x, y: y + vector.y };
+    }
+
+    function maybeSpawnItems() {
+      if (tickCounter % SPAWN_RATE !== 0 || items.length >= MAX_ITEMS) {
+        return;
+      }
+
+      for (const spawn of spawnCells) {
+        if (items.length >= MAX_ITEMS) {
+          break;
+        }
+        if (!findItemAt(spawn.x, spawn.y)) {
+          items.push({
+            x: spawn.x,
+            y: spawn.y,
+            prevX: spawn.x,
+            prevY: spawn.y,
+            moved: false,
+            type: "raw",
+            processProgress: 0
+          });
+        }
+      }
+    }
+
+    function advanceSimulation() {
+      tickCounter += 1;
+      maybeSpawnItems();
+
+      const occupiedAtStart = new Set(items.map((item) => `${item.x},${item.y}`));
+      const reserved = new Set();
+      const survivors = [];
+
+      for (const item of items) {
+        item.prevX = item.x;
+        item.prevY = item.y;
+        item.moved = false;
+
+        const cell = getCell(item.x, item.y);
+        if (!cell) {
+          continue;
+        }
+
+        if (cell.type === "collector") {
+          if (item.type === "product") {
+            coins += getProductValue();
+            setStatus("成品已入库，金币增加。", "good");
+            continue;
+          }
+          survivors.push(item);
+          reserved.add(`${item.x},${item.y}`);
+          continue;
+        }
+
+        if (cell.type === "processor" && item.type === "raw" && item.processProgress < getProcessorTicks()) {
+          item.processProgress += 1;
+          if (item.processProgress >= getProcessorTicks()) {
+            item.type = "product";
+            item.processProgress = 0;
+          }
+          survivors.push(item);
+          reserved.add(`${item.x},${item.y}`);
+          continue;
+        }
+
+        const dir = cell.dir;
+        const next = getNextPoint(item.x, item.y, dir);
+        const nextCell = getCell(next.x, next.y);
+        const nextKey = `${next.x},${next.y}`;
+
+        if (!nextCell || nextCell.type === "empty" || reserved.has(nextKey) || occupiedAtStart.has(nextKey)) {
+          item.processProgress = 0;
+          survivors.push(item);
+          reserved.add(`${item.x},${item.y}`);
+          continue;
+        }
+
+        item.x = next.x;
+        item.y = next.y;
+        item.moved = true;
+        item.processProgress = 0;
+        survivors.push(item);
+        reserved.add(nextKey);
+      }
+
+      items = survivors;
+      updateHud();
+    }
+
+    function drawArrow(cx, cy, dir, color) {
+      ctx.fillStyle = color;
+      if (dir === "up") {
+        ctx.fillRect(cx - 2, cy - 10, 4, 14);
+        ctx.fillRect(cx - 8, cy - 10, 16, 4);
+      } else if (dir === "right") {
+        ctx.fillRect(cx - 8, cy - 2, 14, 4);
+        ctx.fillRect(cx + 2, cy - 8, 4, 16);
+      } else if (dir === "down") {
+        ctx.fillRect(cx - 2, cy - 4, 4, 14);
+        ctx.fillRect(cx - 8, cy + 2, 16, 4);
+      } else {
+        ctx.fillRect(cx - 6, cy - 2, 14, 4);
+        ctx.fillRect(cx - 6, cy - 8, 4, 16);
+      }
+    }
+
+    function drawCell(x, y, cell) {
+      const px = x * CELL_SIZE;
+      const py = y * CELL_SIZE;
+      const inset = 4;
+      ctx.fillStyle = "#15202a";
+      ctx.fillRect(px, py, CELL_SIZE - 1, CELL_SIZE - 1);
+
+      if (cell.type === "spawn") {
+        ctx.fillStyle = "rgba(185, 107, 61, 0.95)";
+        ctx.fillRect(px + inset, py + inset, CELL_SIZE - inset * 2 - 1, CELL_SIZE - inset * 2 - 1);
+        drawArrow(px + CELL_SIZE / 2, py + CELL_SIZE / 2, cell.dir, "#2a1207");
+      } else if (cell.type === "belt") {
+        ctx.fillStyle = "rgba(67, 101, 122, 0.92)";
+        ctx.fillRect(px + inset, py + inset, CELL_SIZE - inset * 2 - 1, CELL_SIZE - inset * 2 - 1);
+        drawArrow(px + CELL_SIZE / 2, py + CELL_SIZE / 2, cell.dir, "#d7f0ff");
+      } else if (cell.type === "processor") {
+        ctx.fillStyle = "rgba(131, 85, 199, 0.94)";
+        ctx.fillRect(px + inset, py + inset, CELL_SIZE - inset * 2 - 1, CELL_SIZE - inset * 2 - 1);
+        ctx.fillStyle = "#f4d7ff";
+        ctx.fillRect(px + 14, py + 14, 20, 20);
+        ctx.clearRect(px + 20, py + 20, 8, 8);
+        drawArrow(px + CELL_SIZE - 10, py + 10, cell.dir, "#f7c85b");
+      } else if (cell.type === "collector") {
+        ctx.fillStyle = "rgba(75, 163, 106, 0.94)";
+        ctx.fillRect(px + inset, py + inset, CELL_SIZE - inset * 2 - 1, CELL_SIZE - inset * 2 - 1);
+        ctx.fillStyle = "#dfffe2";
+        ctx.fillRect(px + 12, py + 16, 24, 14);
+        ctx.fillStyle = "#0d2013";
+        ctx.fillRect(px + 16, py + 12, 16, 6);
+      }
+    }
+
+    function drawItems(now) {
+      const progress = Math.min(1, (now - lastTickTime) / getTickMs());
+
+      for (const item of items) {
+        const drawX = (item.moved ? item.prevX + (item.x - item.prevX) * progress : item.x) * CELL_SIZE + CELL_SIZE / 2;
+        const drawY = (item.moved ? item.prevY + (item.y - item.prevY) * progress : item.y) * CELL_SIZE + CELL_SIZE / 2;
+        ctx.fillStyle = item.type === "raw" ? "#9fe3ff" : "#ffd36b";
+        ctx.fillRect(drawX - 7, drawY - 7, 14, 14);
+        ctx.fillStyle = item.type === "raw" ? "#dff7ff" : "#fff1c1";
+        ctx.fillRect(drawX - 4, drawY - 4, 8, 8);
+      }
+    }
+
+    function drawCursors() {
+      for (const player of players) {
+        const px = player.x * CELL_SIZE;
+        const py = player.y * CELL_SIZE;
+        ctx.strokeStyle = player.color;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(px + 2, py + 2, CELL_SIZE - 5, CELL_SIZE - 5);
+        ctx.fillStyle = player.color;
+        ctx.fillRect(px + 4, py + 4, 14, 10);
+        ctx.fillStyle = "#071018";
+        ctx.font = "bold 10px sans-serif";
+        ctx.fillText(player.name, px + 6, py + 12);
+      }
+    }
+
+    function render(now) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#0b1117";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (let y = 0; y < GRID_HEIGHT; y += 1) {
+        for (let x = 0; x < GRID_WIDTH; x += 1) {
+          drawCell(x, y, grid[y][x]);
+        }
+      }
+
+      drawItems(now);
+      drawCursors();
+      requestAnimationFrame(render);
+    }
+
+    function scheduleTick() {
+      clearTimeout(tickHandle);
+      tickHandle = window.setTimeout(() => {
+        lastTickTime = performance.now();
+        advanceSimulation();
+        scheduleTick();
+      }, getTickMs());
+    }
+
+    function getGridPosition(event) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = Math.floor(((event.clientX - rect.left) * scaleX) / CELL_SIZE);
+      const y = Math.floor(((event.clientY - rect.top) * scaleY) / CELL_SIZE);
+      return { x, y };
+    }
+
+    canvas.addEventListener("pointerdown", (event) => {
+      const { x, y } = getGridPosition(event);
+      const tool = getToolById(mouseToolId);
+      if (tool) {
+        placeTool(x, y, tool, tool.dir ?? "right", "鼠标");
+      }
+    });
+
+    function handlePlayerMove(player, dx, dy) {
+      player.x = Math.max(0, Math.min(GRID_WIDTH - 1, player.x + dx));
+      player.y = Math.max(0, Math.min(GRID_HEIGHT - 1, player.y + dy));
+      updateHud();
+    }
+
+    function handlePlayerCycle(player, delta) {
+      player.toolIndex = (player.toolIndex + delta + keyboardToolOrder.length) % keyboardToolOrder.length;
+      updateHud();
+    }
+
+    function handlePlayerPlace(player) {
+      const activeTool = keyboardToolOrder[player.toolIndex];
+      let tool;
+      if (activeTool === "belt") {
+        tool = { id: `belt-${player.dir}`, type: "belt", label: `传送带 ${player.dir}`, cost: 1, dir: player.dir };
+      } else if (activeTool === "processor") {
+        tool = { id: "processor", type: "processor", label: "加工站", cost: 8 };
+      } else if (activeTool === "collector") {
+        tool = { id: "collector", type: "collector", label: "收集器", cost: 6 };
+      } else {
+        tool = { id: "erase", type: "erase", label: "清除", cost: 0 };
+      }
+
+      placeTool(player.x, player.y, tool, player.dir, player.name);
+    }
+
+    document.addEventListener("keydown", (event) => {
+      const key = event.key;
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " ", "Enter", ",", ".", "/"].includes(key)) {
+        event.preventDefault();
+      }
+
+      if (key === "w" || key === "W") {
+        handlePlayerMove(players[0], 0, -1);
+      } else if (key === "s" || key === "S") {
+        handlePlayerMove(players[0], 0, 1);
+      } else if (key === "a" || key === "A") {
+        handlePlayerMove(players[0], -1, 0);
+      } else if (key === "d" || key === "D") {
+        handlePlayerMove(players[0], 1, 0);
+      } else if (key === "q" || key === "Q") {
+        handlePlayerCycle(players[0], -1);
+      } else if (key === "e" || key === "E") {
+        handlePlayerCycle(players[0], 1);
+      } else if (key === "r" || key === "R") {
+        players[0].dir = rotateDirection(players[0].dir);
+        updateHud();
+      } else if (key === "f" || key === "F") {
+        handlePlayerPlace(players[0]);
+      } else if (key === "ArrowUp") {
+        handlePlayerMove(players[1], 0, -1);
+      } else if (key === "ArrowDown") {
+        handlePlayerMove(players[1], 0, 1);
+      } else if (key === "ArrowLeft") {
+        handlePlayerMove(players[1], -1, 0);
+      } else if (key === "ArrowRight") {
+        handlePlayerMove(players[1], 1, 0);
+      } else if (key === ",") {
+        handlePlayerCycle(players[1], -1);
+      } else if (key === ".") {
+        handlePlayerCycle(players[1], 1);
+      } else if (key === "/") {
+        players[1].dir = rotateDirection(players[1].dir);
+        updateHud();
+      } else if (key === "Enter") {
+        handlePlayerPlace(players[1]);
+      }
+    });
+
+    upgradeBeltsButton.addEventListener("click", () => {
+      const cost = getBeltUpgradeCost();
+      if (coins < cost) {
+        return;
+      }
+      coins -= cost;
+      beltLevel += 1;
+      updateHud();
+      scheduleTick();
+      setStatus("传送带升级完成，整条产线节拍更快了。", "good");
+    });
+
+    upgradeProcessorsButton.addEventListener("click", () => {
+      const cost = getProcessorUpgradeCost();
+      if (coins < cost) {
+        return;
+      }
+      coins -= cost;
+      processorLevel += 1;
+      updateHud();
+      setStatus("加工站升级完成，处理更快，成品更值钱。", "good");
+    });
+
+    function init() {
+      resetGrid();
+      renderToolButtons();
+      updateHud();
+      scheduleTick();
+      requestAnimationFrame(render);
+    }
+
+    init();
+  </script>
+</body>
+</html>
